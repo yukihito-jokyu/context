@@ -20,6 +20,13 @@ type Candidate struct {
 	SourcePath string
 }
 
+type Deployment struct {
+	Candidate Candidate
+	Targets   []string
+}
+
+var agentSkillBases = []string{".claude/skills", ".codex/skills"}
+
 func Collect(sharedDir, projectDir string) ([]Candidate, error) {
 	shared, err := collectFromDir(sharedDir, SourceShared)
 	if err != nil {
@@ -52,9 +59,20 @@ func Collect(sharedDir, projectDir string) ([]Candidate, error) {
 }
 
 func DeployToAgents(targetDir string, candidates []Candidate) error {
+	deployments := make([]Deployment, 0, len(candidates))
 	for _, candidate := range candidates {
-		for _, base := range []string{".claude/skills", ".codex/skills"} {
-			dstDir := filepath.Join(targetDir, base, candidate.Name)
+		deployments = append(deployments, Deployment{
+			Candidate: candidate,
+			Targets:   agentSkillBases,
+		})
+	}
+	return Deploy(targetDir, deployments)
+}
+
+func Deploy(targetDir string, deployments []Deployment) error {
+	for _, deployment := range deployments {
+		for _, base := range deployment.Targets {
+			dstDir := filepath.Join(targetDir, base, deployment.Candidate.Name)
 			if err := os.RemoveAll(dstDir); err != nil {
 				return errs.Wrap("failed to reset skill dir", dstDir, err)
 			}
@@ -62,7 +80,7 @@ func DeployToAgents(targetDir string, candidates []Candidate) error {
 				return errs.Wrap("failed to create skill dir", dstDir, err)
 			}
 
-			srcFile := filepath.Join(candidate.SourcePath, "SKILL.md")
+			srcFile := filepath.Join(deployment.Candidate.SourcePath, "SKILL.md")
 			dstFile := filepath.Join(dstDir, "SKILL.md")
 			if err := copyFile(srcFile, dstFile); err != nil {
 				return err
@@ -70,6 +88,52 @@ func DeployToAgents(targetDir string, candidates []Candidate) error {
 		}
 	}
 	return nil
+}
+
+func ExistingAgentTargets(targetDir string, candidate Candidate) ([]string, error) {
+	existing := make([]string, 0, len(agentSkillBases))
+	for _, base := range agentSkillBases {
+		dstDir := filepath.Join(targetDir, base, candidate.Name)
+		_, err := os.Stat(dstDir)
+		if err == nil {
+			existing = append(existing, base)
+			continue
+		}
+		if os.IsNotExist(err) {
+			continue
+		}
+		return nil, errs.Wrap("failed to stat skill dir", dstDir, err)
+	}
+	return existing, nil
+}
+
+func MissingAgentTargets(targetDir string, candidate Candidate) ([]string, error) {
+	existing, err := ExistingAgentTargets(targetDir, candidate)
+	if err != nil {
+		return nil, err
+	}
+
+	existingSet := make(map[string]struct{}, len(existing))
+	for _, base := range existing {
+		existingSet[base] = struct{}{}
+	}
+
+	missing := make([]string, 0, len(agentSkillBases))
+	for _, base := range agentSkillBases {
+		if _, ok := existingSet[base]; ok {
+			continue
+		}
+		missing = append(missing, base)
+	}
+	return missing, nil
+}
+
+func ExistsInAgents(targetDir string, candidate Candidate) (bool, error) {
+	existing, err := ExistingAgentTargets(targetDir, candidate)
+	if err != nil {
+		return false, err
+	}
+	return len(existing) > 0, nil
 }
 
 func collectFromDir(root, source string) ([]Candidate, error) {
