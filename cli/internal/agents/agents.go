@@ -10,24 +10,32 @@ import (
 
 func Deploy(targetDir, sourceFile string) error {
 	dstFile := filepath.Join(targetDir, "AGENTS.md")
+	return copyFile(sourceFile, dstFile, "AGENTS.md")
+}
 
+func GenerateClaude(targetDir, sourceFile string) error {
+	dstFile := filepath.Join(targetDir, "CLAUDE.md")
+	return copyFile(sourceFile, dstFile, "CLAUDE.md")
+}
+
+func copyFile(sourceFile, dstFile, label string) error {
 	in, err := os.Open(sourceFile)
 	if err != nil {
-		return errs.Wrap("failed to open AGENTS.md", sourceFile, err)
+		return errs.Wrap("failed to open "+label, sourceFile, err)
 	}
 	defer in.Close()
 
 	out, err := os.Create(dstFile)
 	if err != nil {
-		return errs.Wrap("failed to create AGENTS.md", dstFile, err)
+		return errs.Wrap("failed to create "+label, dstFile, err)
 	}
 
 	if _, err := io.Copy(out, in); err != nil {
 		out.Close()
-		return errs.Wrap("failed to copy AGENTS.md", dstFile, err)
+		return errs.Wrap("failed to copy "+label, dstFile, err)
 	}
 	if err := out.Close(); err != nil {
-		return errs.Wrap("failed to close AGENTS.md", dstFile, err)
+		return errs.Wrap("failed to close "+label, dstFile, err)
 	}
 	return nil
 }
