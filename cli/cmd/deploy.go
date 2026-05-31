@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/yukihito-jokyu/context/cli/internal/agents"
 	"github.com/yukihito-jokyu/context/cli/internal/errs"
 	"github.com/yukihito-jokyu/context/cli/internal/filesystem"
 	"github.com/yukihito-jokyu/context/cli/internal/project"
@@ -29,6 +30,7 @@ type deployCommand struct {
 	listProjects    func(string) ([]project.Project, error)
 	resolveProject  func(string, string) (project.Project, error)
 	suggestProjects func([]project.Project, string, int) []string
+	lineScanner     *bufio.Scanner
 }
 
 type gitInspector func(string) (bool, string, error)
@@ -56,6 +58,8 @@ func newDeployCommand(in io.Reader, out, errOut io.Writer) *deployCommand {
 }
 
 func (c *deployCommand) run(args []string) error {
+	c.lineScanner = nil
+
 	if len(args) > 1 {
 		return usageError("deploy accepts at most one repo-name")
 	}
@@ -129,19 +133,38 @@ func (c *deployCommand) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(candidates) == 0 {
-		fmt.Fprintf(c.out, "No skills found for project: %s\n", selected.Name)
-		return nil
-	}
 
 	chosen := candidates
 	if c.interactive() {
-		chosen, err = c.selectSkills(candidates)
+		if len(candidates) > 0 {
+			chosen, err = c.selectSkills(candidates)
+			if err != nil {
+				return err
+			}
+		} else {
+			fmt.Fprintf(c.out, "No skills found for project: %s\n", selected.Name)
+		}
+	} else if len(candidates) == 0 {
+		fmt.Fprintf(c.out, "No skills found for project: %s\n", selected.Name)
+	}
+
+	deployAgents := false
+	if c.interactive() {
+		deployAgents, err = c.selectAgents(&selected)
 		if err != nil {
 			return err
 		}
 	}
-	return skill.DeployToAgents(cwd, chosen)
+
+	if len(chosen) > 0 {
+		if err := skill.DeployToAgents(cwd, chosen); err != nil {
+			return err
+		}
+	}
+	if deployAgents {
+		return agents.Deploy(cwd, selected.AgentsPath)
+	}
+	return nil
 }
 
 func (c *deployCommand) selectProject(projects []project.Project) (project.Project, error) {
@@ -155,16 +178,15 @@ func (c *deployCommand) selectProject(projects []project.Project) (project.Proje
 	}
 	fmt.Fprint(c.out, "> ")
 
-	scanner := bufio.NewScanner(c.in)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
+	input, err := c.readLine()
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
 			return project.Project{}, fmt.Errorf("failed to read project selection: %w", err)
 		}
 		return project.Project{}, errs.ErrProjectSelectionMissing
 	}
 
-	input := strings.TrimSpace(scanner.Text())
-	index, err := strconv.Atoi(input)
+	index, err := strconv.Atoi(strings.TrimSpace(input))
 	if err != nil || index < 1 || index > len(projects) {
 		return project.Project{}, fmt.Errorf("%w: %s", errs.ErrInvalidProjectSelection, input)
 	}
@@ -183,15 +205,15 @@ func (c *deployCommand) selectSkills(candidates []skill.Candidate) ([]skill.Cand
 	}
 	fmt.Fprint(c.out, "> ")
 
-	scanner := bufio.NewScanner(c.in)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
+	input, err := c.readLine()
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
 			return nil, fmt.Errorf("failed to read skill selection: %w", err)
 		}
 		return nil, errs.ErrSkillSelectionMissing
 	}
 
-	input := strings.TrimSpace(scanner.Text())
+	input = strings.TrimSpace(input)
 	if input == "" {
 		return nil, errs.ErrSkillSelectionMissing
 	}
@@ -212,6 +234,53 @@ func (c *deployCommand) selectSkills(candidates []skill.Candidate) ([]skill.Cand
 	}
 
 	return selected, nil
+}
+
+func (c *deployCommand) selectAgents(selected *project.Project) (bool, error) {
+	info, err := os.Stat(selected.AgentsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Fprintf(c.out, "AGENTS.md not found for project %s. Skipping.\n", selected.Name)
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to stat AGENTS.md: %w", err)
+	}
+	if info.IsDir() {
+		return false, fmt.Errorf("%w: %s", errs.ErrInvalidAgentsPath, selected.AgentsPath)
+	}
+
+	fmt.Fprint(c.out, "Deploy AGENTS.md from project? [y/N]: ")
+
+	input, err := c.readLine()
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			return false, fmt.Errorf("failed to read AGENTS.md selection: %w", err)
+		}
+		return false, nil
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	switch input {
+	case "", "n", "no":
+		return false, nil
+	case "y", "yes":
+		return true, nil
+	default:
+		return false, fmt.Errorf("%w: %s", errs.ErrInvalidAgentsSelection, input)
+	}
+}
+
+func (c *deployCommand) readLine() (string, error) {
+	if c.lineScanner == nil {
+		c.lineScanner = bufio.NewScanner(c.in)
+	}
+	if !c.lineScanner.Scan() {
+		if err := c.lineScanner.Err(); err != nil {
+			return "", err
+		}
+		return "", io.EOF
+	}
+	return c.lineScanner.Text(), nil
 }
 
 func isInteractiveStdin() bool {

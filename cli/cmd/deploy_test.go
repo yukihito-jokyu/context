@@ -275,6 +275,134 @@ func TestDeployRunDeploysAllSkillsInNonInteractiveMode(t *testing.T) {
 	}
 }
 
+func TestDeployRunDeploysProjectAgentsWhenSelected(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	agentsPath := filepath.Join(repoRoot, "projects", "alpha", "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("project agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("y\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(targetDir, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("failed to read deployed AGENTS.md: %v", err)
+	}
+	if string(content) != "project agents" {
+		t.Fatalf("expected deployed AGENTS.md content, got %q", string(content))
+	}
+	if !strings.Contains(stdout.String(), "Deploy AGENTS.md from project?") {
+		t.Fatalf("expected AGENTS prompt, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunReadsSkillAndAgentsSelectionsFromSameInput(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "shared-only", "shared skill", true)
+
+	agentsPath := filepath.Join(repoRoot, "projects", "alpha", "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("project agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("1\ny\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	skillPath := filepath.Join(targetDir, ".codex", "skills", "shared-only", "SKILL.md")
+	content, err := os.ReadFile(skillPath)
+	if err != nil {
+		t.Fatalf("failed to read deployed skill: %v", err)
+	}
+	if string(content) != "shared skill" {
+		t.Fatalf("expected deployed skill content, got %q", string(content))
+	}
+
+	agentsContent, err := os.ReadFile(filepath.Join(targetDir, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("failed to read deployed AGENTS.md: %v", err)
+	}
+	if string(agentsContent) != "project agents" {
+		t.Fatalf("expected deployed AGENTS.md content, got %q", string(agentsContent))
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunSkipsMissingProjectAgentsWithMessage(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader(""),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(targetDir, "AGENTS.md")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected AGENTS.md to be absent, got err=%v", err)
+	}
+	if !strings.Contains(stdout.String(), "AGENTS.md not found for project alpha. Skipping.") {
+		t.Fatalf("expected skip message, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
 func TestSelectProject(t *testing.T) {
 	projects := []project.Project{{Name: "alpha"}, {Name: "beta"}}
 
@@ -401,6 +529,60 @@ func TestSelectSkills(t *testing.T) {
 			}
 			if strings.Join(names, ",") != strings.Join(tt.wantNames, ",") {
 				t.Fatalf("expected names %v, got %v", tt.wantNames, names)
+			}
+		})
+	}
+}
+
+func TestSelectAgents(t *testing.T) {
+	agentsPath := filepath.Join(t.TempDir(), "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md fixture: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		input    string
+		want     bool
+		wantErr  string
+		wantText string
+	}{
+		{
+			name:  "accepts yes",
+			input: "y\n",
+			want:  true,
+		},
+		{
+			name:  "accepts empty as no",
+			input: "\n",
+		},
+		{
+			name:    "rejects invalid answer",
+			input:   "maybe\n",
+			wantErr: "invalid AGENTS.md selection",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			command := deployCommand{
+				in:  strings.NewReader(tt.input),
+				out: &out,
+			}
+
+			selected, err := command.selectAgents(&project.Project{Name: "alpha", AgentsPath: agentsPath})
+			if tt.wantErr == "" && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("expected error containing %q, got %v", tt.wantErr, err)
+				}
+				return
+			}
+			if selected != tt.want {
+				t.Fatalf("expected %t, got %t", tt.want, selected)
 			}
 		})
 	}
