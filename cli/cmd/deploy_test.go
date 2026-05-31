@@ -43,7 +43,7 @@ func TestDeployRun(t *testing.T) {
 		},
 		{
 			name:        "selects project interactively and prints git warning",
-			input:       "2\n",
+			input:       "2\ny\n",
 			cwd:         filepath.Join(repoRoot, "cli"),
 			inspector:   func(string) (bool, string, error) { return false, "", errors.New("git unavailable") },
 			wantOutText: "project: beta",
@@ -409,6 +409,96 @@ func TestDeployRunGeneratesClaudeWhenSelected(t *testing.T) {
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunCancelsWhenUserDeclinesNonGitTarget(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "shared-only", "shared skill", true)
+
+	agentsPath := filepath.Join(repoRoot, "projects", "alpha", "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("project agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("n\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return false, "", nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(targetDir, ".codex", "skills", "shared-only", "SKILL.md")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected skills to remain undeployed, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(targetDir, "AGENTS.md")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected AGENTS.md to remain absent, got err=%v", err)
+	}
+	if strings.Contains(stdout.String(), "Deploy session started") {
+		t.Fatalf("did not expect deploy session output after cancellation, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Continue deploy without git repository? [y/N]: ") {
+		t.Fatalf("expected continue prompt, got %q", stdout.String())
+	}
+	if stderr.String() != "warning: current directory is not a git repository\n" {
+		t.Fatalf("expected git warning, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunContinuesWhenUserAcceptsNonGitTarget(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "shared-only", "shared skill", true)
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("y\n1\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return false, "", nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(targetDir, ".codex", "skills", "shared-only", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("failed to read deployed skill: %v", err)
+	}
+	if string(content) != "shared skill" {
+		t.Fatalf("expected deployed skill content, got %q", string(content))
+	}
+	if !strings.Contains(stdout.String(), "Continue deploy without git repository? [y/N]: ") {
+		t.Fatalf("expected continue prompt, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Deploy session started") {
+		t.Fatalf("expected deploy session output, got %q", stdout.String())
+	}
+	if stderr.String() != "warning: current directory is not a git repository\n" {
+		t.Fatalf("expected git warning, got %q", stderr.String())
 	}
 }
 

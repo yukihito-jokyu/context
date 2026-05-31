@@ -54,11 +54,13 @@ func TestUsageError(t *testing.T) {
 
 func TestExecuteDeploy(t *testing.T) {
 	repoRoot := makeContextRepo(t, []string{"alpha"})
+	originalStdinStat := stdinStat
 	originalWD, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get working directory: %v", err)
 	}
 	t.Cleanup(func() {
+		stdinStat = originalStdinStat
 		if chdirErr := os.Chdir(originalWD); chdirErr != nil {
 			t.Fatalf("failed to restore working directory: %v", chdirErr)
 		}
@@ -67,6 +69,9 @@ func TestExecuteDeploy(t *testing.T) {
 		t.Fatalf("failed to chdir: %v", err)
 	}
 	t.Setenv("CONTEXT_REPO", repoRoot)
+	stdinStat = func() (os.FileInfo, error) {
+		return fileInfoStub{mode: 0}, nil
+	}
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
