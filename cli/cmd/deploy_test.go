@@ -13,6 +13,7 @@ import (
 	"github.com/yukihito-jokyu/context/cli/internal/errs"
 	"github.com/yukihito-jokyu/context/cli/internal/filesystem"
 	"github.com/yukihito-jokyu/context/cli/internal/project"
+	"github.com/yukihito-jokyu/context/cli/internal/skill"
 )
 
 func TestDeployRun(t *testing.T) {
@@ -170,6 +171,110 @@ func TestDeployRun(t *testing.T) {
 	}
 }
 
+func TestDeployRunDeploysSelectedSkills(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "override", "shared override", true)
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "shared-only", "shared only", true)
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "ignored-no-skill", "", false)
+	writeSkillFixture(t, filepath.Join(repoRoot, "projects", "alpha", "skills"), "override", "project override", true)
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("1\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	for _, agentDir := range []string{".claude/skills/override", ".codex/skills/override"} {
+		skillPath := filepath.Join(targetDir, agentDir, "SKILL.md")
+		content, err := os.ReadFile(skillPath)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", skillPath, err)
+		}
+		if string(content) != "project override" {
+			t.Fatalf("expected project skill content in %s, got %q", skillPath, string(content))
+		}
+
+		readmePath := filepath.Join(targetDir, agentDir, "README.md")
+		if _, err := os.Stat(readmePath); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("expected README to be excluded from %s, got err=%v", readmePath, err)
+		}
+	}
+
+	if _, err := os.Stat(filepath.Join(targetDir, ".claude", "skills", "shared-only")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected unselected skill to be absent, got err=%v", err)
+	}
+	if !strings.Contains(stdout.String(), "Select skills to deploy:") {
+		t.Fatalf("expected skill selection prompt, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunDeploysAllSkillsInNonInteractiveMode(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "shared-only", "shared only", true)
+	writeSkillFixture(t, filepath.Join(repoRoot, "projects", "alpha", "skills"), "override", "project override", true)
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader(""),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return false },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	for path, want := range map[string]string{
+		filepath.Join(targetDir, ".claude", "skills", "override", "SKILL.md"):    "project override",
+		filepath.Join(targetDir, ".codex", "skills", "override", "SKILL.md"):     "project override",
+		filepath.Join(targetDir, ".claude", "skills", "shared-only", "SKILL.md"): "shared only",
+		filepath.Join(targetDir, ".codex", "skills", "shared-only", "SKILL.md"):  "shared only",
+	} {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", path, err)
+		}
+		if string(content) != want {
+			t.Fatalf("expected %q in %s, got %q", want, path, string(content))
+		}
+	}
+
+	if strings.Contains(stdout.String(), "Select skills to deploy:") {
+		t.Fatalf("did not expect skill selection prompt in non-interactive mode, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
 func TestSelectProject(t *testing.T) {
 	projects := []project.Project{{Name: "alpha"}, {Name: "beta"}}
 
@@ -233,6 +338,69 @@ func TestSelectProject(t *testing.T) {
 			}
 			if tt.wantName != "" && selected.Name != tt.wantName {
 				t.Fatalf("expected project %q, got %q", tt.wantName, selected.Name)
+			}
+		})
+	}
+}
+
+func TestSelectSkills(t *testing.T) {
+	candidates := []skill.Candidate{
+		{Name: "override", Source: skill.SourceProject},
+		{Name: "shared-only", Source: skill.SourceShared},
+	}
+
+	tests := []struct {
+		name        string
+		input       string
+		wantNames   []string
+		wantErrIs   error
+		wantErrText string
+	}{
+		{
+			name:      "selects multiple skills once",
+			input:     "2, 1, 2\n",
+			wantNames: []string{"shared-only", "override"},
+		},
+		{
+			name:      "fails on missing selection",
+			input:     "\n",
+			wantErrIs: errs.ErrSkillSelectionMissing,
+		},
+		{
+			name:        "fails on invalid selection",
+			input:       "3\n",
+			wantErrText: "invalid skill selection",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			command := deployCommand{
+				in:  strings.NewReader(tt.input),
+				out: &out,
+			}
+
+			selected, err := command.selectSkills(candidates)
+			if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
+				t.Fatalf("expected error %v, got %v", tt.wantErrIs, err)
+			}
+			if tt.wantErrText == "" && tt.wantErrIs == nil && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tt.wantErrText != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErrText) {
+					t.Fatalf("expected error containing %q, got %v", tt.wantErrText, err)
+				}
+				return
+			}
+
+			names := make([]string, 0, len(selected))
+			for _, candidate := range selected {
+				names = append(names, candidate.Name)
+			}
+			if strings.Join(names, ",") != strings.Join(tt.wantNames, ",") {
+				t.Fatalf("expected names %v, got %v", tt.wantNames, names)
 			}
 		})
 	}
@@ -399,4 +567,21 @@ func makeContextRepo(t *testing.T, projectNames []string) string {
 		}
 	}
 	return root
+}
+
+func writeSkillFixture(t *testing.T, baseDir, name, skillContent string, withSkill bool) {
+	t.Helper()
+
+	skillDir := filepath.Join(baseDir, name)
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatalf("failed to create skill dir %s: %v", skillDir, err)
+	}
+	if withSkill {
+		if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(skillContent), 0o644); err != nil {
+			t.Fatalf("failed to create SKILL.md for %s: %v", name, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "README.md"), []byte("catalog"), 0o644); err != nil {
+		t.Fatalf("failed to create README.md for %s: %v", name, err)
+	}
 }

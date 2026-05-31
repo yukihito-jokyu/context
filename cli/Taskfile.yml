@@ -1,8 +1,8 @@
 version: "3"
 
 vars:
-  LOCAL_GOCACHE: "{{.TASKFILE_DIR}}/.cache/go-build"
-  LOCAL_GOLANGCI_LINT_CACHE: "{{.TASKFILE_DIR}}/.cache/golangci-lint"
+  TMP_GOCACHE: '{{default "/private/tmp" .TMPDIR}}/context-cli-go-build'
+  TMP_GOLANGCI_LINT_CACHE: '{{default "/private/tmp" .TMPDIR}}/context-cli-golangci-lint'
 
 tasks:
   default:
@@ -14,7 +14,7 @@ tasks:
     desc: "CLI のテストを実行する"
     dir: "{{.USER_WORKING_DIR}}"
     env:
-      GOCACHE: "{{.LOCAL_GOCACHE}}"
+      GOCACHE: "{{.TMP_GOCACHE}}"
     cmds:
       - go test ./...
 
@@ -22,7 +22,7 @@ tasks:
     desc: "context deploy を実行する"
     dir: "{{.USER_WORKING_DIR}}"
     env:
-      GOCACHE: "{{.LOCAL_GOCACHE}}"
+      GOCACHE: "{{.TMP_GOCACHE}}"
     cmds:
       - go run . deploy {{default "context" .CLI_ARGS}}
 
@@ -30,7 +30,7 @@ tasks:
     desc: "CLI バイナリをビルドする"
     dir: "{{.USER_WORKING_DIR}}"
     env:
-      GOCACHE: "{{.LOCAL_GOCACHE}}"
+      GOCACHE: "{{.TMP_GOCACHE}}"
     cmds:
       - mkdir -p build
       - go build -o build/context .
@@ -45,7 +45,7 @@ tasks:
     desc: CLI のテストカバレッジを測定し、HTMLで表示します
     dir: "{{.USER_WORKING_DIR}}"
     env:
-      GOCACHE: "{{.LOCAL_GOCACHE}}"
+      GOCACHE: "{{.TMP_GOCACHE}}"
     cmds:
       - go test -coverprofile=coverage.out ./...
       - go tool cover -html=coverage.out
@@ -54,8 +54,8 @@ tasks:
     desc: CLI のリンターを実行します
     dir: "{{.USER_WORKING_DIR}}"
     env:
-      GOCACHE: "{{.LOCAL_GOCACHE}}"
-      GOLANGCI_LINT_CACHE: "{{.LOCAL_GOLANGCI_LINT_CACHE}}"
+      GOCACHE: "{{.TMP_GOCACHE}}"
+      GOLANGCI_LINT_CACHE: "{{.TMP_GOLANGCI_LINT_CACHE}}"
     cmds:
       - golangci-lint run
 
@@ -63,8 +63,8 @@ tasks:
     desc: CLI のコードをフォーマットします
     dir: "{{.USER_WORKING_DIR}}"
     env:
-      GOCACHE: "{{.LOCAL_GOCACHE}}"
-      GOLANGCI_LINT_CACHE: "{{.LOCAL_GOLANGCI_LINT_CACHE}}"
+      GOCACHE: "{{.TMP_GOCACHE}}"
+      GOLANGCI_LINT_CACHE: "{{.TMP_GOLANGCI_LINT_CACHE}}"
     cmds:
       - golangci-lint run --fix
 
