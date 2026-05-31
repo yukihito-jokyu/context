@@ -148,18 +148,31 @@ func (c *deployCommand) run(args []string) error {
 		return err
 	}
 
-	chosen := candidates
+	deployments := make([]skill.Deployment, 0, len(candidates))
 	if c.interactive() {
 		if len(candidates) > 0 {
-			chosen, err = c.selectSkills(candidates)
+			chosen, err := c.selectSkills(candidates)
+			if err != nil {
+				return err
+			}
+			deployments, err = c.planSkillDeployments(cwd, chosen)
 			if err != nil {
 				return err
 			}
 		} else {
 			fmt.Fprintf(c.out, "No skills found for project: %s\n", selected.Name)
 		}
-	} else if len(candidates) == 0 {
-		fmt.Fprintf(c.out, "No skills found for project: %s\n", selected.Name)
+	} else {
+		if len(candidates) == 0 {
+			fmt.Fprintf(c.out, "No skills found for project: %s\n", selected.Name)
+		} else {
+			for _, candidate := range candidates {
+				deployments = append(deployments, skill.Deployment{
+					Candidate: candidate,
+					Targets:   []string{".claude/skills", ".codex/skills"},
+				})
+			}
+		}
 	}
 
 	deployAgents := false
@@ -179,19 +192,31 @@ func (c *deployCommand) run(args []string) error {
 		}
 	}
 
-	if len(chosen) > 0 {
-		if err := skill.DeployToAgents(cwd, chosen); err != nil {
+	if len(deployments) > 0 {
+		if err := skill.Deploy(cwd, deployments); err != nil {
 			return err
 		}
 	}
 	if deployAgents {
-		if err := agents.Deploy(cwd, selected.AgentsPath); err != nil {
+		overwrite, err := c.confirmOverwriteFile(cwd, "AGENTS.md")
+		if err != nil {
 			return err
+		}
+		if overwrite {
+			if err := agents.Deploy(cwd, selected.AgentsPath); err != nil {
+				return err
+			}
 		}
 	}
 	if generateClaude {
-		if err := agents.GenerateClaude(cwd, selected.AgentsPath); err != nil {
+		overwrite, err := c.confirmOverwriteFile(cwd, "CLAUDE.md")
+		if err != nil {
 			return err
+		}
+		if overwrite {
+			if err := agents.GenerateClaude(cwd, selected.AgentsPath); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -264,6 +289,103 @@ func (c *deployCommand) selectSkills(candidates []skill.Candidate) ([]skill.Cand
 	}
 
 	return selected, nil
+}
+
+func (c *deployCommand) planSkillDeployments(targetDir string, candidates []skill.Candidate) ([]skill.Deployment, error) {
+	deployments := make([]skill.Deployment, 0, len(candidates))
+	for _, candidate := range candidates {
+		existingTargets, err := skill.ExistingAgentTargets(targetDir, candidate)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(existingTargets) == 0 {
+			deployments = append(deployments, skill.Deployment{
+				Candidate: candidate,
+				Targets:   []string{".claude/skills", ".codex/skills"},
+			})
+			continue
+		}
+
+		overwrite, err := c.selectSkillOverwrite(candidate.Name)
+		if err != nil {
+			return nil, err
+		}
+		if overwrite {
+			deployments = append(deployments, skill.Deployment{
+				Candidate: candidate,
+				Targets:   []string{".claude/skills", ".codex/skills"},
+			})
+			continue
+		}
+
+		missingTargets, err := skill.MissingAgentTargets(targetDir, candidate)
+		if err != nil {
+			return nil, err
+		}
+		if len(missingTargets) > 0 {
+			deployments = append(deployments, skill.Deployment{
+				Candidate: candidate,
+				Targets:   missingTargets,
+			})
+		}
+	}
+	return deployments, nil
+}
+
+func (c *deployCommand) selectSkillOverwrite(name string) (bool, error) {
+	fmt.Fprintf(c.out, "Overwrite existing skill %s? [y/N]: ", name)
+
+	input, err := c.readLine()
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			return false, fmt.Errorf("failed to read skill overwrite selection: %w", err)
+		}
+		return false, nil
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	switch input {
+	case "", "n", "no":
+		return false, nil
+	case "y", "yes":
+		return true, nil
+	default:
+		return false, fmt.Errorf("%w: %s", errs.ErrInvalidSkillOverwrite, input)
+	}
+}
+
+func (c *deployCommand) confirmOverwriteFile(targetDir, name string) (bool, error) {
+	exists, err := agents.Exists(targetDir, name)
+	if err != nil {
+		return false, err
+	}
+	if !exists {
+		return true, nil
+	}
+
+	fmt.Fprintf(c.out, "Overwrite existing %s? [y/N]: ", name)
+
+	input, err := c.readLine()
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			return false, fmt.Errorf("failed to read %s overwrite selection: %w", name, err)
+		}
+		return false, nil
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	switch input {
+	case "", "n", "no":
+		return false, nil
+	case "y", "yes":
+		return true, nil
+	default:
+		if name == "AGENTS.md" {
+			return false, fmt.Errorf("%w: %s", errs.ErrInvalidAgentsOverwrite, input)
+		}
+		return false, fmt.Errorf("%w: %s", errs.ErrInvalidClaudeOverwrite, input)
+	}
 }
 
 func (c *deployCommand) inspectAgentsPath(selected *project.Project) (agentsPromptState, error) {

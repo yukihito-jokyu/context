@@ -226,6 +226,180 @@ func TestDeployRunDeploysSelectedSkills(t *testing.T) {
 	}
 }
 
+func TestDeployRunSkipsOnlyDeclinedExistingSkill(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "existing-skill", "new existing skill", true)
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "fresh-skill", "fresh skill", true)
+
+	existingDir := filepath.Join(targetDir, ".codex", "skills", "existing-skill")
+	if err := os.MkdirAll(existingDir, 0o755); err != nil {
+		t.Fatalf("failed to create existing skill dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(existingDir, "SKILL.md"), []byte("old existing skill"), 0o644); err != nil {
+		t.Fatalf("failed to create existing skill file: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("1,2\nn\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(targetDir, ".codex", "skills", "existing-skill", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("failed to read existing skill: %v", err)
+	}
+	if string(content) != "old existing skill" {
+		t.Fatalf("expected declined skill to remain unchanged, got %q", string(content))
+	}
+
+	freshContent, err := os.ReadFile(filepath.Join(targetDir, ".codex", "skills", "fresh-skill", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("failed to read fresh skill: %v", err)
+	}
+	if string(freshContent) != "fresh skill" {
+		t.Fatalf("expected fresh skill to be deployed, got %q", string(freshContent))
+	}
+
+	if !strings.Contains(stdout.String(), "Overwrite existing skill existing-skill? [y/N]: ") {
+		t.Fatalf("expected overwrite prompt, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunOverwritesSkillWhenClaudeCopyAlreadyExists(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "existing-skill", "new existing skill", true)
+
+	existingDir := filepath.Join(targetDir, ".claude", "skills", "existing-skill")
+	if err := os.MkdirAll(existingDir, 0o755); err != nil {
+		t.Fatalf("failed to create existing skill dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(existingDir, "SKILL.md"), []byte("old existing skill"), 0o644); err != nil {
+		t.Fatalf("failed to create existing skill file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(existingDir, "README.md"), []byte("old readme"), 0o644); err != nil {
+		t.Fatalf("failed to create existing README: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("1\ny\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	for _, base := range []string{".claude", ".codex"} {
+		skillPath := filepath.Join(targetDir, base, "skills", "existing-skill", "SKILL.md")
+		content, err := os.ReadFile(skillPath)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", skillPath, err)
+		}
+		if string(content) != "new existing skill" {
+			t.Fatalf("expected overwritten skill content in %s, got %q", skillPath, string(content))
+		}
+		readmePath := filepath.Join(targetDir, base, "skills", "existing-skill", "README.md")
+		if _, err := os.Stat(readmePath); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("expected README removal in %s, got err=%v", readmePath, err)
+		}
+	}
+
+	if !strings.Contains(stdout.String(), "Overwrite existing skill existing-skill? [y/N]: ") {
+		t.Fatalf("expected overwrite prompt, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunDeploysMissingSkillCopyWhenOverwriteDeclined(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "existing-skill", "new existing skill", true)
+
+	existingDir := filepath.Join(targetDir, ".codex", "skills", "existing-skill")
+	if err := os.MkdirAll(existingDir, 0o755); err != nil {
+		t.Fatalf("failed to create existing skill dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(existingDir, "SKILL.md"), []byte("old existing skill"), 0o644); err != nil {
+		t.Fatalf("failed to create existing skill file: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("1\nn\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	codexContent, err := os.ReadFile(filepath.Join(targetDir, ".codex", "skills", "existing-skill", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("failed to read codex skill: %v", err)
+	}
+	if string(codexContent) != "old existing skill" {
+		t.Fatalf("expected codex skill to remain unchanged, got %q", string(codexContent))
+	}
+
+	claudeContent, err := os.ReadFile(filepath.Join(targetDir, ".claude", "skills", "existing-skill", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("failed to read claude skill: %v", err)
+	}
+	if string(claudeContent) != "new existing skill" {
+		t.Fatalf("expected missing claude skill to be deployed, got %q", string(claudeContent))
+	}
+
+	if !strings.Contains(stdout.String(), "Overwrite existing skill existing-skill? [y/N]: ") {
+		t.Fatalf("expected overwrite prompt, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
 func TestDeployRunDeploysAllSkillsInNonInteractiveMode(t *testing.T) {
 	repoRoot := makeContextRepo(t, []string{"alpha"})
 	targetDir := t.TempDir()
@@ -406,6 +580,67 @@ func TestDeployRunGeneratesClaudeWhenSelected(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "Generate CLAUDE.md from project AGENTS.md?") {
 		t.Fatalf("expected CLAUDE prompt, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunContinuesWhenAgentsOverwriteDeclinedButClaudeAccepted(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	agentsPath := filepath.Join(repoRoot, "projects", "alpha", "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("project agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(targetDir, "AGENTS.md"), []byte("old agents"), 0o644); err != nil {
+		t.Fatalf("failed to create target AGENTS.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(targetDir, "CLAUDE.md"), []byte("old claude"), 0o644); err != nil {
+		t.Fatalf("failed to create target CLAUDE.md: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("y\ny\nn\ny\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	agentsContent, err := os.ReadFile(filepath.Join(targetDir, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("failed to read AGENTS.md: %v", err)
+	}
+	if string(agentsContent) != "old agents" {
+		t.Fatalf("expected declined AGENTS.md to remain unchanged, got %q", string(agentsContent))
+	}
+
+	claudeContent, err := os.ReadFile(filepath.Join(targetDir, "CLAUDE.md"))
+	if err != nil {
+		t.Fatalf("failed to read CLAUDE.md: %v", err)
+	}
+	if string(claudeContent) != "project agents" {
+		t.Fatalf("expected CLAUDE.md to be regenerated, got %q", string(claudeContent))
+	}
+
+	if !strings.Contains(stdout.String(), "Overwrite existing AGENTS.md? [y/N]: ") {
+		t.Fatalf("expected AGENTS overwrite prompt, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Overwrite existing CLAUDE.md? [y/N]: ") {
+		t.Fatalf("expected CLAUDE overwrite prompt, got %q", stdout.String())
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())

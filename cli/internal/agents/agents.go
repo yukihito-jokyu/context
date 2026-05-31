@@ -8,6 +8,18 @@ import (
 	"github.com/yukihito-jokyu/context/cli/internal/errs"
 )
 
+func Exists(targetDir, name string) (bool, error) {
+	path := filepath.Join(targetDir, name)
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, errs.Wrap("failed to stat "+name, path, err)
+}
+
 func Deploy(targetDir, sourceFile string) error {
 	dstFile := filepath.Join(targetDir, "AGENTS.md")
 	return copyFile(sourceFile, dstFile, "AGENTS.md")
