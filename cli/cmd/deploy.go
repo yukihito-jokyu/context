@@ -126,6 +126,16 @@ func (c *deployCommand) run(args []string) error {
 	}
 	if !gitOK {
 		fmt.Fprintln(c.errOut, "warning: current directory is not a git repository")
+		if c.interactive() {
+			proceed, err := c.confirmContinueWithoutGit()
+			if err != nil {
+				return err
+			}
+			if !proceed {
+				fmt.Fprintln(c.out, "Deploy canceled.")
+				return nil
+			}
+		}
 	}
 
 	deploySession := session.New(root, &selected, cwd, gitOK, gitRoot)
@@ -321,6 +331,28 @@ func (c *deployCommand) selectClaude(state agentsPromptState) (bool, error) {
 		return true, nil
 	default:
 		return false, fmt.Errorf("%w: %s", errs.ErrInvalidClaudeSelection, input)
+	}
+}
+
+func (c *deployCommand) confirmContinueWithoutGit() (bool, error) {
+	fmt.Fprint(c.out, "Continue deploy without git repository? [y/N]: ")
+
+	input, err := c.readLine()
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			return false, fmt.Errorf("failed to read continue selection: %w", err)
+		}
+		return false, nil
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	switch input {
+	case "", "n", "no":
+		return false, nil
+	case "y", "yes":
+		return true, nil
+	default:
+		return false, fmt.Errorf("%w: %s", errs.ErrInvalidContinueSelection, input)
 	}
 }
 
