@@ -15,6 +15,7 @@ import (
 	"github.com/yukihito-jokyu/context/cli/internal/project"
 	"github.com/yukihito-jokyu/context/cli/internal/prompt"
 	"github.com/yukihito-jokyu/context/cli/internal/session"
+	"github.com/yukihito-jokyu/context/cli/internal/skill"
 )
 
 type deployCommand struct {
@@ -120,7 +121,27 @@ func (c *deployCommand) run(args []string) error {
 	}
 
 	deploySession := session.New(root, &selected, cwd, gitOK, gitRoot)
-	return prompt.PrintSessionStarted(c.out, &deploySession)
+	if err := prompt.PrintSessionStarted(c.out, &deploySession); err != nil {
+		return err
+	}
+
+	candidates, err := skill.Collect(root.UtilsSkillsDir(), selected.SkillsDir)
+	if err != nil {
+		return err
+	}
+	if len(candidates) == 0 {
+		fmt.Fprintf(c.out, "No skills found for project: %s\n", selected.Name)
+		return nil
+	}
+
+	chosen := candidates
+	if c.interactive() {
+		chosen, err = c.selectSkills(candidates)
+		if err != nil {
+			return err
+		}
+	}
+	return skill.DeployToAgents(cwd, chosen)
 }
 
 func (c *deployCommand) selectProject(projects []project.Project) (project.Project, error) {
@@ -149,6 +170,48 @@ func (c *deployCommand) selectProject(projects []project.Project) (project.Proje
 	}
 
 	return projects[index-1], nil
+}
+
+func (c *deployCommand) selectSkills(candidates []skill.Candidate) ([]skill.Candidate, error) {
+	if len(candidates) == 0 {
+		return nil, errs.ErrNoSkillsFound
+	}
+
+	fmt.Fprintln(c.out, "Select skills to deploy:")
+	for i, candidate := range candidates {
+		fmt.Fprintf(c.out, "  %d. %s (%s)\n", i+1, candidate.Name, candidate.Source)
+	}
+	fmt.Fprint(c.out, "> ")
+
+	scanner := bufio.NewScanner(c.in)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return nil, fmt.Errorf("failed to read skill selection: %w", err)
+		}
+		return nil, errs.ErrSkillSelectionMissing
+	}
+
+	input := strings.TrimSpace(scanner.Text())
+	if input == "" {
+		return nil, errs.ErrSkillSelectionMissing
+	}
+
+	indexes := strings.Split(input, ",")
+	selected := make([]skill.Candidate, 0, len(indexes))
+	seen := make(map[int]struct{}, len(indexes))
+	for _, raw := range indexes {
+		index, err := strconv.Atoi(strings.TrimSpace(raw))
+		if err != nil || index < 1 || index > len(candidates) {
+			return nil, fmt.Errorf("%w: %s", errs.ErrInvalidSkillSelection, raw)
+		}
+		if _, ok := seen[index]; ok {
+			continue
+		}
+		seen[index] = struct{}{}
+		selected = append(selected, candidates[index-1])
+	}
+
+	return selected, nil
 }
 
 func isInteractiveStdin() bool {
