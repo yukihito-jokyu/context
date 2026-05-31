@@ -14,6 +14,8 @@ var (
 	ErrNoSkillsFound           = errors.New("no skills found to deploy")
 	ErrSkillSelectionMissing   = errors.New("skill selection was not provided")
 	ErrInvalidSkillSelection   = errors.New("invalid skill selection")
+	ErrInvalidAgentsPath       = errors.New("invalid AGENTS.md path")
+	ErrInvalidAgentsSelection  = errors.New("invalid AGENTS.md selection")
 	ErrProjectNotFound         = errors.New("project not found")
 	ErrInvalidProjectName      = errors.New("project name must be a single directory name under projects/")
 	ErrContextRootNotFound     = errors.New("failed to locate context repository root")
