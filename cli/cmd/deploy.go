@@ -35,6 +35,10 @@ type deployCommand struct {
 
 type gitInspector func(string) (bool, string, error)
 
+type agentsPromptState struct {
+	available bool
+}
+
 type commandRunner func(name string, args ...string) *exec.Cmd
 
 var (
@@ -149,8 +153,17 @@ func (c *deployCommand) run(args []string) error {
 	}
 
 	deployAgents := false
+	generateClaude := false
 	if c.interactive() {
-		deployAgents, err = c.selectAgents(&selected)
+		agentsState, err := c.inspectAgentsPath(&selected)
+		if err != nil {
+			return err
+		}
+		deployAgents, err = c.selectAgents(agentsState)
+		if err != nil {
+			return err
+		}
+		generateClaude, err = c.selectClaude(agentsState)
 		if err != nil {
 			return err
 		}
@@ -162,7 +175,14 @@ func (c *deployCommand) run(args []string) error {
 		}
 	}
 	if deployAgents {
-		return agents.Deploy(cwd, selected.AgentsPath)
+		if err := agents.Deploy(cwd, selected.AgentsPath); err != nil {
+			return err
+		}
+	}
+	if generateClaude {
+		if err := agents.GenerateClaude(cwd, selected.AgentsPath); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -236,17 +256,25 @@ func (c *deployCommand) selectSkills(candidates []skill.Candidate) ([]skill.Cand
 	return selected, nil
 }
 
-func (c *deployCommand) selectAgents(selected *project.Project) (bool, error) {
+func (c *deployCommand) inspectAgentsPath(selected *project.Project) (agentsPromptState, error) {
 	info, err := os.Stat(selected.AgentsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Fprintf(c.out, "AGENTS.md not found for project %s. Skipping.\n", selected.Name)
-			return false, nil
+			fmt.Fprintf(c.out, "AGENTS.md not found for project %s. Skipping AGENTS.md deploy and CLAUDE.md generation.\n", selected.Name)
+			return agentsPromptState{}, nil
 		}
-		return false, fmt.Errorf("failed to stat AGENTS.md: %w", err)
+		return agentsPromptState{}, fmt.Errorf("failed to stat AGENTS.md: %w", err)
 	}
 	if info.IsDir() {
-		return false, fmt.Errorf("%w: %s", errs.ErrInvalidAgentsPath, selected.AgentsPath)
+		return agentsPromptState{}, fmt.Errorf("%w: %s", errs.ErrInvalidAgentsPath, selected.AgentsPath)
+	}
+
+	return agentsPromptState{available: true}, nil
+}
+
+func (c *deployCommand) selectAgents(state agentsPromptState) (bool, error) {
+	if !state.available {
+		return false, nil
 	}
 
 	fmt.Fprint(c.out, "Deploy AGENTS.md from project? [y/N]: ")
@@ -267,6 +295,32 @@ func (c *deployCommand) selectAgents(selected *project.Project) (bool, error) {
 		return true, nil
 	default:
 		return false, fmt.Errorf("%w: %s", errs.ErrInvalidAgentsSelection, input)
+	}
+}
+
+func (c *deployCommand) selectClaude(state agentsPromptState) (bool, error) {
+	if !state.available {
+		return false, nil
+	}
+
+	fmt.Fprint(c.out, "Generate CLAUDE.md from project AGENTS.md? [y/N]: ")
+
+	input, err := c.readLine()
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			return false, fmt.Errorf("failed to read CLAUDE.md selection: %w", err)
+		}
+		return false, nil
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	switch input {
+	case "", "n", "no":
+		return false, nil
+	case "y", "yes":
+		return true, nil
+	default:
+		return false, fmt.Errorf("%w: %s", errs.ErrInvalidClaudeSelection, input)
 	}
 }
 

@@ -369,6 +369,49 @@ func TestDeployRunReadsSkillAndAgentsSelectionsFromSameInput(t *testing.T) {
 	}
 }
 
+func TestDeployRunGeneratesClaudeWhenSelected(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	agentsPath := filepath.Join(repoRoot, "projects", "alpha", "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("project agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("n\ny\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(targetDir, "CLAUDE.md"))
+	if err != nil {
+		t.Fatalf("failed to read generated CLAUDE.md: %v", err)
+	}
+	if string(content) != "project agents" {
+		t.Fatalf("expected generated CLAUDE.md content, got %q", string(content))
+	}
+	if !strings.Contains(stdout.String(), "Generate CLAUDE.md from project AGENTS.md?") {
+		t.Fatalf("expected CLAUDE prompt, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
 func TestDeployRunSkipsMissingProjectAgentsWithMessage(t *testing.T) {
 	repoRoot := makeContextRepo(t, []string{"alpha"})
 	targetDir := t.TempDir()
@@ -395,8 +438,81 @@ func TestDeployRunSkipsMissingProjectAgentsWithMessage(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(targetDir, "AGENTS.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected AGENTS.md to be absent, got err=%v", err)
 	}
-	if !strings.Contains(stdout.String(), "AGENTS.md not found for project alpha. Skipping.") {
+	if !strings.Contains(stdout.String(), "AGENTS.md not found for project alpha. Skipping AGENTS.md deploy and CLAUDE.md generation.") {
 		t.Fatalf("expected skip message, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunSkipsClaudeGenerationWhenProjectAgentsMissing(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader(""),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(targetDir, "CLAUDE.md")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected CLAUDE.md to be absent, got err=%v", err)
+	}
+	if !strings.Contains(stdout.String(), "AGENTS.md not found for project alpha. Skipping AGENTS.md deploy and CLAUDE.md generation.") {
+		t.Fatalf("expected CLAUDE skip message, got %q", stdout.String())
+	}
+	if strings.Count(stdout.String(), "AGENTS.md not found for project alpha.") != 1 {
+		t.Fatalf("expected a single skip message, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunReturnsClaudeSpecificSelectionError(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	agentsPath := filepath.Join(repoRoot, "projects", "alpha", "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("project agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("n\nmaybe\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	err := command.run([]string{"alpha"})
+	if !errors.Is(err, errs.ErrInvalidClaudeSelection) {
+		t.Fatalf("expected invalid CLAUDE selection error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "invalid CLAUDE.md selection: maybe") {
+		t.Fatalf("expected CLAUDE selection detail, got %v", err)
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
@@ -571,7 +687,7 @@ func TestSelectAgents(t *testing.T) {
 				out: &out,
 			}
 
-			selected, err := command.selectAgents(&project.Project{Name: "alpha", AgentsPath: agentsPath})
+			selected, err := command.selectAgents(agentsPromptState{available: true})
 			if tt.wantErr == "" && err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
