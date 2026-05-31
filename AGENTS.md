@@ -19,6 +19,7 @@
 - ルート `AGENTS.md`: このファイル。`projects/context/AGENTS.md` の配布先想定
 - ルート `CLAUDE.md`: 将来生成されるファイルの配置先
 - `cli/`: 将来 `context` CLI を実装する場所
+- `docs/`: 要件、詳細設計、PRD などのドキュメント
 - `utils/skills/`: 共通 Skill の正本
 - `projects/context/`: このリポジトリ自身を管理するプロジェクト定義
 
