@@ -75,6 +75,68 @@ func TestDeployToAgents(t *testing.T) {
 	}
 }
 
+func TestDeployDeploysOnlyMissingTargets(t *testing.T) {
+	targetDir := t.TempDir()
+	sourceRoot := t.TempDir()
+	sourceDir := filepath.Join(sourceRoot, "override")
+	writeSkillDir(t, sourceRoot, "override", "project override")
+
+	existingDir := filepath.Join(targetDir, ".codex", "skills", "override")
+	if err := os.MkdirAll(existingDir, 0o755); err != nil {
+		t.Fatalf("failed to create existing dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(existingDir, "SKILL.md"), []byte("old"), 0o644); err != nil {
+		t.Fatalf("failed to create existing SKILL.md: %v", err)
+	}
+
+	err := Deploy(targetDir, []Deployment{{
+		Candidate: Candidate{
+			Name:       "override",
+			Source:     SourceProject,
+			SourcePath: sourceDir,
+		},
+		Targets: []string{".claude/skills"},
+	}})
+	if err != nil {
+		t.Fatalf("Deploy returned error: %v", err)
+	}
+
+	claudeContent, err := os.ReadFile(filepath.Join(targetDir, ".claude", "skills", "override", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("failed to read deployed claude skill: %v", err)
+	}
+	if string(claudeContent) != "project override" {
+		t.Fatalf("unexpected claude skill content: %q", string(claudeContent))
+	}
+
+	codexContent, err := os.ReadFile(filepath.Join(targetDir, ".codex", "skills", "override", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("failed to read existing codex skill: %v", err)
+	}
+	if string(codexContent) != "old" {
+		t.Fatalf("expected codex skill to remain unchanged, got %q", string(codexContent))
+	}
+}
+
+func TestExistingAgentTargets(t *testing.T) {
+	targetDir := t.TempDir()
+	candidate := Candidate{Name: "override"}
+
+	if err := os.MkdirAll(filepath.Join(targetDir, ".codex", "skills", "override"), 0o755); err != nil {
+		t.Fatalf("failed to create codex dir: %v", err)
+	}
+
+	got, err := ExistingAgentTargets(targetDir, candidate)
+	if err != nil {
+		t.Fatalf("ExistingAgentTargets returned error: %v", err)
+	}
+
+	want := []string{".codex/skills"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected existing targets: %#v", got)
+	}
+}
+
 func writeSkillDir(t *testing.T, root, name, content string) {
 	t.Helper()
 
