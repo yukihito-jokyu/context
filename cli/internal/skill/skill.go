@@ -25,6 +25,12 @@ type Deployment struct {
 	Targets   []string
 }
 
+type TargetResult struct {
+	Candidate Candidate
+	Target    string
+	Err       error
+}
+
 var agentSkillBases = []string{".claude/skills", ".codex/skills"}
 
 func Collect(sharedDir, projectDir string) ([]Candidate, error) {
@@ -70,24 +76,28 @@ func DeployToAgents(targetDir string, candidates []Candidate) error {
 }
 
 func Deploy(targetDir string, deployments []Deployment) error {
-	for _, deployment := range deployments {
-		for _, base := range deployment.Targets {
-			dstDir := filepath.Join(targetDir, base, deployment.Candidate.Name)
-			if err := os.RemoveAll(dstDir); err != nil {
-				return errs.Wrap("failed to reset skill dir", dstDir, err)
-			}
-			if err := os.MkdirAll(dstDir, 0o755); err != nil {
-				return errs.Wrap("failed to create skill dir", dstDir, err)
-			}
-
-			srcFile := filepath.Join(deployment.Candidate.SourcePath, "SKILL.md")
-			dstFile := filepath.Join(dstDir, "SKILL.md")
-			if err := copyFile(srcFile, dstFile); err != nil {
-				return err
-			}
+	results := DeployWithReport(targetDir, deployments)
+	for _, result := range results {
+		if result.Err != nil {
+			return result.Err
 		}
 	}
 	return nil
+}
+
+func DeployWithReport(targetDir string, deployments []Deployment) []TargetResult {
+	results := make([]TargetResult, 0)
+	for _, deployment := range deployments {
+		for _, base := range deployment.Targets {
+			err := deployTarget(targetDir, deployment.Candidate, base)
+			results = append(results, TargetResult{
+				Candidate: deployment.Candidate,
+				Target:    base,
+				Err:       err,
+			})
+		}
+	}
+	return results
 }
 
 func ExistingAgentTargets(targetDir string, candidate Candidate) ([]string, error) {
@@ -190,6 +200,23 @@ func copyFile(src, dst string) error {
 	}
 	if err := out.Close(); err != nil {
 		return errs.Wrap("failed to close skill file", dst, err)
+	}
+	return nil
+}
+
+func deployTarget(targetDir string, candidate Candidate, base string) error {
+	dstDir := filepath.Join(targetDir, base, candidate.Name)
+	if err := os.RemoveAll(dstDir); err != nil {
+		return errs.Wrap("failed to reset skill dir", dstDir, err)
+	}
+	if err := os.MkdirAll(dstDir, 0o755); err != nil {
+		return errs.Wrap("failed to create skill dir", dstDir, err)
+	}
+
+	srcFile := filepath.Join(candidate.SourcePath, "SKILL.md")
+	dstFile := filepath.Join(dstDir, "SKILL.md")
+	if err := copyFile(srcFile, dstFile); err != nil {
+		return err
 	}
 	return nil
 }
