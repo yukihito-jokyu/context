@@ -41,6 +41,12 @@ type agentsPromptState struct {
 
 type commandRunner func(name string, args ...string) *exec.Cmd
 
+type deploySummary struct {
+	deployed []string
+	skipped  []string
+	failed   []string
+}
+
 var (
 	stdinStat                = func() (os.FileInfo, error) { return os.Stdin.Stat() }
 	execRunner commandRunner = exec.Command
@@ -63,6 +69,7 @@ func newDeployCommand(in io.Reader, out, errOut io.Writer) *deployCommand {
 
 func (c *deployCommand) run(args []string) error {
 	c.lineScanner = nil
+	summary := deploySummary{}
 
 	if len(args) > 1 {
 		return usageError("deploy accepts at most one repo-name")
@@ -182,6 +189,12 @@ func (c *deployCommand) run(args []string) error {
 		if err != nil {
 			return err
 		}
+		if !agentsState.available {
+			summary.skipped = append(summary.skipped,
+				"AGENTS.md deploy: project AGENTS.md not found",
+				"CLAUDE.md generation: project AGENTS.md not found",
+			)
+		}
 		deployAgents, err = c.selectAgents(agentsState)
 		if err != nil {
 			return err
@@ -193,8 +206,14 @@ func (c *deployCommand) run(args []string) error {
 	}
 
 	if len(deployments) > 0 {
-		if err := skill.Deploy(cwd, deployments); err != nil {
-			return err
+		results := skill.DeployWithReport(cwd, deployments)
+		for _, result := range results {
+			label := fmt.Sprintf("skill %s -> %s", result.Candidate.Name, result.Target)
+			if result.Err != nil {
+				summary.failed = append(summary.failed, fmt.Sprintf("%s: %v", label, result.Err))
+				continue
+			}
+			summary.deployed = append(summary.deployed, label)
 		}
 	}
 	if deployAgents {
@@ -204,8 +223,12 @@ func (c *deployCommand) run(args []string) error {
 		}
 		if overwrite {
 			if err := agents.Deploy(cwd, selected.AgentsPath); err != nil {
-				return err
+				summary.failed = append(summary.failed, fmt.Sprintf("AGENTS.md: %v", err))
+			} else {
+				summary.deployed = append(summary.deployed, "AGENTS.md")
 			}
+		} else {
+			summary.skipped = append(summary.skipped, "AGENTS.md deploy: overwrite declined")
 		}
 	}
 	if generateClaude {
@@ -215,9 +238,17 @@ func (c *deployCommand) run(args []string) error {
 		}
 		if overwrite {
 			if err := agents.GenerateClaude(cwd, selected.AgentsPath); err != nil {
-				return err
+				summary.failed = append(summary.failed, fmt.Sprintf("CLAUDE.md: %v", err))
+			} else {
+				summary.deployed = append(summary.deployed, "CLAUDE.md")
 			}
+		} else {
+			summary.skipped = append(summary.skipped, "CLAUDE.md generation: overwrite declined")
 		}
+	}
+	c.printSummary(summary)
+	if len(summary.failed) > 0 {
+		return fmt.Errorf("%w: %s", errs.ErrDeployCompletedWithFailures, strings.Join(summary.failed, "; "))
 	}
 	return nil
 }
@@ -402,6 +433,31 @@ func (c *deployCommand) inspectAgentsPath(selected *project.Project) (agentsProm
 	}
 
 	return agentsPromptState{available: true}, nil
+}
+
+func (c *deployCommand) printSummary(summary deploySummary) {
+	if len(summary.deployed) == 0 && len(summary.skipped) == 0 && len(summary.failed) == 0 {
+		return
+	}
+
+	if len(summary.deployed) > 0 {
+		fmt.Fprintln(c.out, "Deployed:")
+		for _, item := range summary.deployed {
+			fmt.Fprintf(c.out, "- %s\n", item)
+		}
+	}
+	if len(summary.skipped) > 0 {
+		fmt.Fprintln(c.out, "Skipped:")
+		for _, item := range summary.skipped {
+			fmt.Fprintf(c.out, "- %s\n", item)
+		}
+	}
+	if len(summary.failed) > 0 {
+		fmt.Fprintln(c.out, "Failed:")
+		for _, item := range summary.failed {
+			fmt.Fprintf(c.out, "- %s\n", item)
+		}
+	}
 }
 
 func (c *deployCommand) selectAgents(state agentsPromptState) (bool, error) {
