@@ -808,6 +808,171 @@ func TestDeployRunSkipsClaudeGenerationWhenProjectAgentsMissing(t *testing.T) {
 	}
 }
 
+func TestDeployRunReportsSummaryWhenProjectAgentsMissing(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "shared-only", "shared skill", true)
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("1\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	if err := command.run([]string{"alpha"}); err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Deployed:") {
+		t.Fatalf("expected deployed summary, got %q", output)
+	}
+	if !strings.Contains(output, "skill shared-only -> .claude/skills") {
+		t.Fatalf("expected deployed claude skill summary, got %q", output)
+	}
+	if !strings.Contains(output, "skill shared-only -> .codex/skills") {
+		t.Fatalf("expected deployed skill summary, got %q", output)
+	}
+	if !strings.Contains(output, "Skipped:") {
+		t.Fatalf("expected skipped summary, got %q", output)
+	}
+	if !strings.Contains(output, "AGENTS.md deploy: project AGENTS.md not found") {
+		t.Fatalf("expected AGENTS skipped summary, got %q", output)
+	}
+	if !strings.Contains(output, "CLAUDE.md generation: project AGENTS.md not found") {
+		t.Fatalf("expected CLAUDE skipped summary, got %q", output)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunContinuesAfterAgentsDeployFailureAndReportsIt(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	agentsPath := filepath.Join(repoRoot, "projects", "alpha", "AGENTS.md")
+	if err := os.WriteFile(agentsPath, []byte("project agents"), 0o644); err != nil {
+		t.Fatalf("failed to create AGENTS.md: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(targetDir, "AGENTS.md"), 0o755); err != nil {
+		t.Fatalf("failed to create blocking AGENTS.md directory: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader("y\ny\ny\n"),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return true },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	err := command.run([]string{"alpha"})
+	if err == nil {
+		t.Fatal("expected run to report failure")
+	}
+	if !strings.Contains(err.Error(), "AGENTS.md") {
+		t.Fatalf("expected AGENTS.md failure in error, got %v", err)
+	}
+
+	content, readErr := os.ReadFile(filepath.Join(targetDir, "CLAUDE.md"))
+	if readErr != nil {
+		t.Fatalf("expected CLAUDE.md to be generated despite AGENTS failure: %v", readErr)
+	}
+	if string(content) != "project agents" {
+		t.Fatalf("expected CLAUDE.md content, got %q", string(content))
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Deployed:") || !strings.Contains(output, "CLAUDE.md") {
+		t.Fatalf("expected deployed CLAUDE summary, got %q", output)
+	}
+	if !strings.Contains(output, "Failed:") {
+		t.Fatalf("expected failed summary, got %q", output)
+	}
+	if !strings.Contains(output, "AGENTS.md:") {
+		t.Fatalf("expected AGENTS failure detail, got %q", output)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestDeployRunContinuesAfterSkillCopyFailureAndReportsIt(t *testing.T) {
+	repoRoot := makeContextRepo(t, []string{"alpha"})
+	targetDir := t.TempDir()
+
+	writeSkillFixture(t, filepath.Join(repoRoot, "utils", "skills"), "shared-only", "shared skill", true)
+	if err := os.MkdirAll(filepath.Join(targetDir, ".claude"), 0o755); err != nil {
+		t.Fatalf("failed to create .claude dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(targetDir, ".claude", "skills"), []byte("blocked"), 0o644); err != nil {
+		t.Fatalf("failed to block .claude/skills path: %v", err)
+	}
+
+	t.Setenv("CONTEXT_REPO", repoRoot)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	command := deployCommand{
+		in:          strings.NewReader(""),
+		out:         &stdout,
+		errOut:      &stderr,
+		locator:     filesystem.NewContextLocator(),
+		getwd:       func() (string, error) { return targetDir, nil },
+		interactive: func() bool { return false },
+		inspector:   func(string) (bool, string, error) { return true, targetDir, nil },
+	}
+
+	err := command.run([]string{"alpha"})
+	if err == nil {
+		t.Fatal("expected run to report skill copy failure")
+	}
+	if !strings.Contains(err.Error(), "skill shared-only") {
+		t.Fatalf("expected skill failure in error, got %v", err)
+	}
+
+	content, readErr := os.ReadFile(filepath.Join(targetDir, ".codex", "skills", "shared-only", "SKILL.md"))
+	if readErr != nil {
+		t.Fatalf("expected codex skill deployment to continue: %v", readErr)
+	}
+	if string(content) != "shared skill" {
+		t.Fatalf("expected deployed codex skill content, got %q", string(content))
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Failed:") {
+		t.Fatalf("expected failed summary, got %q", output)
+	}
+	if !strings.Contains(output, "skill shared-only -> .claude/skills:") {
+		t.Fatalf("expected claude skill failure detail, got %q", output)
+	}
+	if !strings.Contains(output, "skill shared-only -> .codex/skills") {
+		t.Fatalf("expected codex skill success detail, got %q", output)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
 func TestDeployRunReturnsClaudeSpecificSelectionError(t *testing.T) {
 	repoRoot := makeContextRepo(t, []string{"alpha"})
 	targetDir := t.TempDir()
