@@ -1,5 +1,16 @@
 {
     "hooks": {
+        "SessionStart": [
+            {
+                "matcher": "compact",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 .codex/load_context_on_compact.py"
+                    }
+                ]
+            }
+        ],
         "PermissionRequest": [
             {
                 "hooks": [
@@ -16,6 +27,16 @@
                     {
                         "type": "command",
                         "command": "terminal-notifier -title \"codex\" -subtitle \"タスク完了\" -message \"タスクが完了しました\" -sender \"com.apple.Terminal\" -sound \"Finished\""
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 .codex/user_prompt_submit.py"
                     }
                 ]
             }
