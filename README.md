@@ -4,32 +4,6 @@ AI Agent 向けコンテキストを一元管理するリポジトリです。
 
 このリポジトリでは `AGENTS.md`、`CLAUDE.md`、Skill (`SKILL.md`) を管理し、各開発リポジトリには生成物またはコピーを配布する想定です。正本は Context Repository 側に集約します。
 
-## 現在の構成
-
-```text
-context/
-├── README.md
-├── AGENTS.md
-├── CLAUDE.md
-├── cli/
-│   └── README.md
-├── utils/
-│   ├── README.md
-│   └── skills/
-│       ├── commit/
-│       │   └── SKILL.md
-│       ├── grill-issue/
-│       │   └── SKILL.md
-│       └── pr/
-│           └── SKILL.md
-└── projects/
-    └── context/
-        ├── README.md
-        ├── AGENTS.md
-        └── skills/
-            └── README.md
-```
-
 ## 正本の扱い
 
 - `projects/context/AGENTS.md` がこのリポジトリ自身の `AGENTS.md` 正本です。
@@ -51,3 +25,11 @@ context/
 - 共通 Skill は `utils/skills/` に配置します。
 - プロジェクト固有 Skill は将来的に `projects/<repo-name>/skills/` に配置します。
 - `SKILL.md` が正本、`README.md` はその要約カタログという関係を前提に運用します。
+
+## プロジェクト一覧
+
+### context
+
+- 説明: この Context Repository 自身を管理するためのプロジェクト定義
+- GitHub: <https://github.com/yukihito/context>
+- 詳細: [projects/context/README.md](projects/context/README.md)
