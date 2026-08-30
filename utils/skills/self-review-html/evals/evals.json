@@ -1,0 +1,44 @@
+{
+  "skill_name": "self-review-html",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "このGitリポジトリのmainをターゲット、feature/user-apiをソースとして、指定したSKILL.mdとproject-rules.mdだけを根拠にセルフレビューしてください。PR形式の差分、行ごとのルール判定、出典、理由、修正案を確認できるHTMLを生成し、ブラウザで開いて指摘送信を待ってください。",
+      "expected_output": "コミット済みブランチ差分が共通祖先基準で収集され、指定ルールだけを使った全変更行の評価HTMLと送信待機フローが生成される。",
+      "files": [],
+      "expectations": [
+        "report.htmlが存在し、mainとfeature/user-api、および変更されたsrc/api.tsとsrc/controller.tsを表示する",
+        "評価JSONが追加行・削除行をすべて覆い、ルール出典がreview-skill.mdとproject-rules.mdだけである",
+        "HTMLにファイルツリー、PR形式diff、判定、出典、理由、修正案が表示される",
+        "評価ごとの指摘欄、任意行選択、JSON送信または保存機能が存在する",
+        "評価実行後もfixture Gitリポジトリの追跡状態が変更されていない"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "まだコミットしていない変更をレビューしたいです。targetはmain、sourceはWORKTREEです。ステージ済み、未ステージ、未追跡ファイルをまとめて通常のPRのように表示し、rules/backend.mdだけで評価してください。任意行をドラッグして複数行へ指摘でき、送信内容をJSONで受け取れるところまでお願いします。",
+      "expected_output": "WORKTREEの全変更種別と未追跡ファイルが一つのPR形式差分になり、複数行指摘とfeedback.json保存が動作する。",
+      "files": [],
+      "expectations": [
+        "WORKTREE差分にstagedのsrc/normalize.ts、unstagedのsrc/profile.ts、untrackedのsrc/audit.tsがすべて含まれる",
+        "rules/backend.mdだけを根拠に、trim行がルール内、console.log(value)行がルール外として評価される",
+        "評価JSONが全追加行・削除行を少なくとも一度覆う",
+        "HTMLでドラッグした連続行が背景色を変えず一つの外枠で囲まれ、内部行に上下枠がなく、1-3形式の行範囲をfeedback JSONへ保存できる",
+        "左ファイルツリーのネストしたフォルダと中央diffの各ファイルをそれぞれ折りたため、aria-expandedが状態と一致し、評価カードと差分行が連動する"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "差分や評価JSONはまだ用意していません。self-review-htmlの完成版テンプレートから、データを一切埋め込まない骨組みだけのHTMLを生成してください。乱数、UUID、生成日時を含めず、同じコマンドを2回実行した結果が完全一致することも確認してください。",
+      "expected_output": "JSON入力、差分行、評価カードを含まない空状態HTMLが2回生成され、両ファイルのチェックサムが一致する。",
+      "files": [],
+      "expectations": [
+        "JSON入力なしで骨組みHTMLが2ファイル生成され、バイト単位またはSHA-256で一致する",
+        "骨組みHTMLに差分行、ファイル項目、評価カードが存在しない",
+        "ファイルツリー、diff、ルール評価の三領域と空状態が表示される",
+        "検索、任意行指摘、JSON送信などデータ依存操作が無効化されている",
+        "生成HTMLに生成日時、UUID、乱数、未置換プレースホルダーが含まれない"
+      ]
+    }
+  ]
+}
