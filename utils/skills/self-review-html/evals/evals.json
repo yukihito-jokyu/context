@@ -8,8 +8,11 @@
       "files": [],
       "expectations": [
         "report.htmlが存在し、mainとfeature/user-api、および変更されたsrc/api.tsとsrc/controller.tsを表示する",
-        "評価JSONが追加行・削除行をすべて覆い、ルール出典がreview-skill.mdとproject-rules.mdだけである",
+        "rule_gapを除く通常評価が追加行・削除行をすべて覆い、ルール出典がreview-skill.mdとproject-rules.mdだけである",
         "HTMLにファイルツリー、PR形式diff、判定、出典、理由、修正案が表示される",
+        "すべて・ルール外・ルール内・判断不能・対象なしのボタンがそれぞれ青・赤・緑・黄・灰で固定表示される",
+        "差分行の左端に最大2pxの連続レールが表示され、同じ評価の連続行では始端と終端だけが丸く、重複評価は平行レールになる",
+        "評価カードから差分行、差分行から関連する先頭カード、レールから対応する個別カードへ双方向に移動できる",
         "評価ごとの指摘欄、任意行選択、JSON送信または保存機能が存在する",
         "評価実行後もfixture Gitリポジトリの追跡状態が変更されていない"
       ]
@@ -22,22 +25,65 @@
       "expectations": [
         "WORKTREE差分にstagedのsrc/normalize.ts、unstagedのsrc/profile.ts、untrackedのsrc/audit.tsがすべて含まれる",
         "rules/backend.mdだけを根拠に、trim行がルール内、console.log(value)行がルール外として評価される",
-        "評価JSONが全追加行・削除行を少なくとも一度覆う",
+        "rule_gapを除く通常評価が全追加行・削除行を少なくとも一度覆う",
         "HTMLでドラッグした連続行が背景色を変えず一つの外枠で囲まれ、内部行に上下枠がなく、1-3形式の行範囲をfeedback JSONへ保存できる",
-        "左ファイルツリーのネストしたフォルダと中央diffの各ファイルをそれぞれ折りたため、aria-expandedが状態と一致し、評価カードと差分行が連動する"
+        "左ファイルツリーのネストしたフォルダと中央diffの各ファイルをそれぞれ折りたため、aria-expandedが状態と一致し、評価カードと差分行が連動する",
+        "任意行選択モード中は差分行やレールのナビゲーションより行選択が優先される"
       ]
     },
     {
       "id": 3,
-      "prompt": "差分や評価JSONはまだ用意していません。self-review-htmlの完成版テンプレートから、データを一切埋め込まない骨組みだけのHTMLを生成してください。乱数、UUID、生成日時を含めず、同じコマンドを2回実行した結果が完全一致することも確認してください。",
-      "expected_output": "JSON入力、差分行、評価カードを含まない空状態HTMLが2回生成され、両ファイルのチェックサムが一致する。",
+      "prompt": "mainとfeature/retry-policyの差分を、指定したrules/service.mdだけを根拠にレビューしてください。差分にはretry回数の既定値、公開APIのエラー変換、許可リスト、および機械的なimport整理があります。通常の行評価に加えて、指定ルールだけでは根拠を確定できない方針選択をルール不足候補としてあぶり出し、HTMLで確認できるようにしてください。",
+      "expected_output": "全変更行の通常評価とは独立して、未定義の方針選択がルール不足候補として別ID・別カード・別レールで表示され、提案が未承認であることが明示される。",
       "files": [],
       "expectations": [
-        "JSON入力なしで骨組みHTMLが2ファイル生成され、バイト単位またはSHA-256で一致する",
-        "骨組みHTMLに差分行、ファイル項目、評価カードが存在しない",
-        "ファイルツリー、diff、ルール評価の三領域と空状態が表示される",
-        "検索、任意行指摘、JSON送信などデータ依存操作が無効化されている",
-        "生成HTMLに生成日時、UUID、乱数、未置換プレースホルダーが含まれない"
+        "rule_gapを除く通常評価だけで全追加行・削除行を覆い、ルール不足候補だけでは完全性を満たさない",
+        "retry回数の既定値、公開APIのエラー変換、許可リストのうちrules/service.mdに根拠がない方針選択が、それぞれ独立したrule_gap評価になる",
+        "import整理など方針選択を含まない機械的変更はrule_gapではなく通常のno_ruleとして評価される",
+        "各rule_gapは一つの紫色ラベルだけを持ち、空のrule_ids、具体的な不足判断reason、提案ルールsuggestion、通常評価と異なる一意なIDを持つ",
+        "同じ行に通常評価とrule_gapがある場合も別カード・別レールとして共存し、紫色の点線レールから該当rule_gapカードへ正確に移動できる",
+        "ルール提案は提案・未承認と明示され、明示的な利用者指示なしにコードやルールへ適用されない"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "mainとfeature/admin-uiの差分にはfrontendとbackendの変更があります。frontend直下だけを、指定したrules/frontend.mdでセルフレビューし、HTMLを生成してください。実行のためだけの補助スクリプトや対象外差分JSONは作らないでください。",
+      "expected_output": "差分収集時にfrontendがrepository-relative prefixとして指定され、対象内の差分と正規成果物だけが生成される。",
+      "files": [],
+      "expectations": [
+        "collect_diff.pyが--path-prefix frontendを受け取り、diff.jsonにfrontend配下の変更だけを収録する",
+        "--path-prefixを複数指定した場合は、重複を除いて正規化しOR条件で対象を収録する",
+        "backend配下の差分本文がdiff.jsonとreport.htmlへ混入しない",
+        "diff.jsonのpath_prefixesにfrontendが記録され、summaryが限定後の差分と一致する",
+        "diff-full.json、filter_diff.py、build_review.py、report.repro.htmlが実行成果物に存在しない",
+        "review-raw.jsonはAIが直接作成し、validate_review.pyがreview.jsonを生成する"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "targetはmain、sourceはWORKTREEです。未コミット変更のうちfrontend/srcだけをレビューしてください。frontend/testsとbackendにはステージ済み・未ステージ・未追跡の変更がありますが対象外です。",
+      "expected_output": "WORKTREEの変更種別を統合しつつ、追跡済み・未追跡の両方をfrontend/srcへ限定する。",
+      "files": [],
+      "expectations": [
+        "frontend/srcのステージ済み、未ステージ、未追跡ファイルがdiff.jsonへ含まれる",
+        "frontend/testsとbackendの追跡済み・未追跡ファイルがdiff.jsonへ含まれない",
+        "対象prefix内の未追跡symlinkや特殊ファイルはリンク先本文を埋め込まず、本文なしの変更として扱う",
+        "path prefix未指定の従来実行では全差分を収集する互換性が維持される",
+        "絶対パス、空文字、親へ遡るpath prefixをエラーとして拒否する"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "mainとfeature/review-jsonの差分をレビューしてください。review-raw.jsonは説明用の生成プログラムを作らず直接出力し、指定ルール外の出典や未評価行がある場合はHTMLを作らず停止してください。",
+      "expected_output": "AIとvalidatorの責務が分離され、実行固有スクリプトなしで検証済みreview.jsonが作られる。",
+      "files": [],
+      "expectations": [
+        "AIがreferences/review-schema.mdに従うreview-raw.jsonを直接作成する",
+        "review-raw.json生成専用の実行固有Python、JavaScript、shell scriptを作成しない",
+        "validate_review.pyが構造、変更行の存在、通常評価による全行網羅、許可された出典を検証する",
+        "未評価行または指定外出典があればreview.jsonとreport.htmlを生成しない",
+        "正常時はvalidate_review.pyだけが安定したreview_idとline_rangeを持つreview.jsonを生成する",
+        "render_report.pyの--verify-determinismがメモリ上の二重描画結果を比較し、report.htmlを一つだけ生成する"
       ]
     }
   ]

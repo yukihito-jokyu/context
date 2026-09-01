@@ -6,8 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import stat
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
@@ -31,6 +32,29 @@ def resolve_repo(path: Path) -> Path:
 
 def resolve_commit(repo: Path, ref: str) -> str:
     return str(git(repo, "rev-parse", "--verify", f"{ref}^{{commit}}")).strip()
+
+
+def normalize_path_prefixes(values: list[str]) -> list[str]:
+    result: set[str] = set()
+    for value in values:
+        if "\0" in value:
+            raise ValueError("path prefixにNUL文字は使用できません")
+        path = PurePosixPath(value)
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError(
+                f"path prefixはrepository-relative pathにしてください: {value}"
+            )
+        normalized = path.as_posix().rstrip("/")
+        if normalized in {"", "."}:
+            raise ValueError(f"path prefixが空です: {value}")
+        result.add(normalized)
+    return sorted(result)
+
+
+def path_in_scope(path: str, prefixes: list[str]) -> bool:
+    return not prefixes or any(
+        path == prefix or path.startswith(f"{prefix}/") for prefix in prefixes
+    )
 
 
 def name_status(repo: Path, args: list[str]) -> list[tuple[str, str, str]]:
@@ -95,6 +119,24 @@ def parse_patch(patch: str) -> tuple[bool, list[dict[str, Any]]]:
 
 def untracked_file(repo: Path, relative: str) -> dict[str, Any]:
     path = repo / relative
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode):
+        return {
+            "status": "A",
+            "old_path": None,
+            "new_path": relative,
+            "binary": True,
+            "hunks": [],
+        }
+    resolved = path.resolve()
+    if not resolved.is_relative_to(repo):
+        return {
+            "status": "A",
+            "old_path": None,
+            "new_path": relative,
+            "binary": True,
+            "hunks": [],
+        }
     raw = path.read_bytes()
     binary = b"\0" in raw[:8192]
     hunks: list[dict[str, Any]] = []
@@ -117,8 +159,14 @@ def untracked_file(repo: Path, relative: str) -> dict[str, Any]:
     return {"status": "A", "old_path": None, "new_path": relative, "binary": binary, "hunks": hunks}
 
 
-def collect(repo_path: Path, target: str, source: str) -> dict[str, Any]:
+def collect(
+    repo_path: Path,
+    target: str,
+    source: str,
+    path_prefixes: list[str] | None = None,
+) -> dict[str, Any]:
     repo = resolve_repo(repo_path)
+    path_prefixes = normalize_path_prefixes(path_prefixes or [])
     target_commit = resolve_commit(repo, target)
     mode = source.upper()
     if mode in {"WORKTREE", "STAGED"}:
@@ -139,6 +187,11 @@ def collect(repo_path: Path, target: str, source: str) -> dict[str, Any]:
 
     files: list[dict[str, Any]] = []
     for status, old_path, new_path in name_status(repo, diff_args):
+        if not (
+            path_in_scope(old_path, path_prefixes)
+            or path_in_scope(new_path, path_prefixes)
+        ):
+            continue
         paths = [old_path] if old_path == new_path else [old_path, new_path]
         patch = str(git(repo, *diff_args, "--no-color", "--no-ext-diff", "--unified=3", "--", *paths))
         binary, hunks = parse_patch(patch)
@@ -152,12 +205,16 @@ def collect(repo_path: Path, target: str, source: str) -> dict[str, Any]:
 
     if mode == "WORKTREE":
         raw = bytes(git(repo, "ls-files", "--others", "--exclude-standard", "-z", binary=True))
-        untracked = sorted(item for item in raw.decode("utf-8", errors="surrogateescape").split("\0") if item)
+        untracked = sorted(
+            item
+            for item in raw.decode("utf-8", errors="surrogateescape").split("\0")
+            if item and path_in_scope(item, path_prefixes)
+        )
         files.extend(untracked_file(repo, path) for path in untracked)
 
     additions = sum(1 for file in files for hunk in file["hunks"] for line in hunk["lines"] if line["kind"] == "addition")
     deletions = sum(1 for file in files for hunk in file["hunks"] for line in hunk["lines"] if line["kind"] == "deletion")
-    return {
+    result = {
         "schema_version": "1.0",
         "repository": repo.name,
         "target": target,
@@ -169,6 +226,9 @@ def collect(repo_path: Path, target: str, source: str) -> dict[str, Any]:
         "summary": {"files_changed": len(files), "additions": additions, "deletions": deletions},
         "files": files,
     }
+    if path_prefixes:
+        result["path_prefixes"] = path_prefixes
+    return result
 
 
 def main() -> None:
@@ -176,11 +236,17 @@ def main() -> None:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--target", required=True)
     parser.add_argument("--source", required=True)
+    parser.add_argument(
+        "--path-prefix",
+        action="append",
+        default=[],
+        help="対象を限定するrepository-relative path。複数指定可能",
+    )
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(f"出力先が既に存在します: {args.output}")
-    result = collect(args.repo, args.target, args.source)
+    result = collect(args.repo, args.target, args.source, args.path_prefix)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
 

@@ -33,14 +33,28 @@
     .ref { min-width: 74px; padding: 5px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--blue); text-align: center; }
     .arrow { color: var(--muted); }
     .summary { margin-left: auto; display: flex; gap: 15px; color: var(--muted); font-size: 13px; }
-    .summary strong { color: var(--text); font-weight: 600; }
+    .summary strong { font-weight: 700; }
+    .summary-files strong { color: var(--blue); }
+    .summary-reviews strong { color: #d2a8ff; }
     .shell-badge { padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 11px; }
     .toolbar { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--panel); }
     .search { width: 280px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); outline: none; }
     .search:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(88,166,255,.15); }
     .filters { display: flex; gap: 6px; }
     .filter, .manual-mode-button { cursor: pointer; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); color: #c9d1d9; font-size: 12px; }
-    .filter.active { border-color: var(--blue); background: rgba(56,139,253,.15); color: #79c0ff; }
+    .filter[data-filter="all"] { border-color: rgba(88,166,255,.55); background: rgba(56,139,253,.10); color: #79c0ff; }
+    .filter[data-filter="rule_out"] { border-color: rgba(248,81,73,.55); background: rgba(248,81,73,.10); color: #ff7b72; }
+    .filter[data-filter="rule_in"] { border-color: rgba(63,185,80,.55); background: rgba(46,160,67,.10); color: #56d364; }
+    .filter[data-filter="unknown"] { border-color: rgba(210,153,34,.60); background: rgba(187,128,9,.11); color: #e3b341; }
+    .filter[data-filter="no_rule"] { border-color: rgba(139,148,158,.55); background: rgba(110,118,129,.10); color: #b1bac4; }
+    .filter[data-filter="rule_gap"] { border-color: rgba(163,113,247,.60); background: rgba(163,113,247,.10); color: #d2a8ff; }
+    .filter.active { box-shadow: 0 0 0 2px currentColor; }
+    .filter[data-filter="all"].active { background: rgba(56,139,253,.24); }
+    .filter[data-filter="rule_out"].active { background: rgba(248,81,73,.24); }
+    .filter[data-filter="rule_in"].active { background: rgba(46,160,67,.24); }
+    .filter[data-filter="unknown"].active { background: rgba(187,128,9,.25); }
+    .filter[data-filter="no_rule"].active { background: rgba(110,118,129,.24); }
+    .filter[data-filter="rule_gap"].active { background: rgba(163,113,247,.24); }
     .manual-mode-button { border-radius: 6px; }
     .manual-mode-button.active { border-color: #e3b341; background: rgba(187,128,9,.18); color: #f2cc60; }
     .hint { margin-left: auto; color: var(--muted); font-size: 12px; }
@@ -48,7 +62,7 @@
     .pane { min-width: 0; overflow: auto; }
     .file-tree-pane { padding: 12px 9px; border-right: 1px solid var(--border); background: #0b0f14; }
     .diff-pane { padding: 16px; border-right: 1px solid var(--border); }
-    .review-pane { padding: 16px; background: #0b0f14; }
+    .review-pane { padding: 0 16px 16px; background: #0b0f14; }
     .tree-title { display: flex; align-items: center; justify-content: space-between; margin: 2px 7px 10px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
     .tree-count, .review-count { padding: 3px 7px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 11px; }
     .empty-tree { margin: 12px 6px; padding: 18px 10px; border: 1px dashed var(--border); border-radius: 7px; color: var(--muted); text-align: center; font-size: 12px; line-height: 1.55; }
@@ -59,11 +73,12 @@
     .empty-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-2); color: var(--muted); font-size: 22px; }
     .empty-content h1 { margin: 0 0 7px; font-size: 16px; }
     .empty-content p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
-    .review-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 13px; }
+    .review-head { position: sticky; top: 0; z-index: 5; display: flex; align-items: flex-start; gap: 10px; margin: 0 -16px 13px; padding: 14px 16px 12px; border-bottom: 1px solid var(--border); background: rgba(11,15,20,.96); backdrop-filter: blur(10px); }
     .review-head h1 { margin: 0; font-size: 17px; }
     .review-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
-    .review-count { margin-left: auto; }
-    .export-button { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel-2); color: var(--muted); font-size: 12px; font-weight: 700; }
+    .review-count { margin-left: auto; background: rgba(163,113,247,.18); color: #d2a8ff; }
+    .export-button { padding: 7px 10px; border: 1px solid rgba(88,166,255,.65); border-radius: 6px; background: rgba(56,139,253,.18); color: #79c0ff; cursor: pointer; font-size: 12px; font-weight: 700; }
+    .export-button:hover { background: rgba(56,139,253,.28); }
     .empty-review { min-height: 310px; display: grid; place-items: center; padding: 30px; border: 1px dashed var(--border); border-radius: 8px; background: rgba(22,27,34,.45); }
     .shell-notes { margin-top: 12px; padding: 10px 11px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); color: var(--muted); font-size: 11px; line-height: 1.6; }
     .tree { list-style: none; margin: 0; padding: 0; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -87,11 +102,22 @@
     .file.collapsed .file-icon { transform: rotate(-90deg); }
     .file.collapsed .file-header { border-bottom: 0; }
     .hunk { padding: 7px 12px; background: rgba(56,139,253,.12); color: #79c0ff; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .line { position: relative; display: grid; grid-template-columns: 44px 44px 20px minmax(0,1fr); min-height: 25px; font: 12px/25px ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; }
+    .line { position: relative; display: grid; grid-template-columns: 8px 44px 44px 20px minmax(0,1fr); min-height: 25px; font: 12px/25px ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; }
     .line.addition { background: var(--green-bg); } .line.deletion { background: var(--red-bg); }
+    .line-review-markers { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(1px,2px); align-self: stretch; justify-content: center; gap: 1px; min-width: 0; }
+    .line-review-marker { width: 100%; min-width: 1px; padding: 0; border: 0; border-radius: 0; cursor: pointer; }
+    .line-review-marker.marker-start { margin-top: 3px; border-radius: 2px 2px 0 0; }
+    .line-review-marker.marker-end { margin-bottom: 3px; border-radius: 0 0 2px 2px; }
+    .line-review-marker.marker-start.marker-end { border-radius: 2px; }
+    .line-review-marker.rule_out { background: #f85149; }
+    .line-review-marker.rule_in { background: #3fb950; }
+    .line-review-marker.unknown { background: #d29922; }
+    .line-review-marker.no_rule { background: #8b949e; }
+    .line-review-marker.rule_gap { background: repeating-linear-gradient(to bottom,#a371f7 0 3px,transparent 3px 5px); }
+    .line-review-marker:focus-visible { outline: 2px solid #ffffff; outline-offset: 1px; }
     .ln { padding-right: 8px; border-right: 1px solid rgba(139,148,158,.16); color: var(--muted); text-align: right; }
     .sign { text-align: center; } .code { padding: 0 9px; overflow: hidden; white-space: pre; text-overflow: ellipsis; }
-    .line.selected::after, .line.manual-selected::before { position: absolute; inset: 0; border-right: 2px solid var(--selection); border-left: 4px solid var(--selection); content: ""; pointer-events: none; }
+    .line.selected::after, .line.manual-selected::before { position: absolute; inset: 0 0 0 8px; border-right: 2px solid var(--selection); border-left: 2px solid var(--selection); content: ""; pointer-events: none; }
     .line.group-start::after { border-top: 2px solid var(--selection); } .line.group-end::after { border-bottom: 2px solid var(--selection); }
     .line.manual-selected::before { border-right: 2px dashed #e3b341; border-left: 4px solid #e3b341; }
     .line.manual-start::before { border-top: 2px dashed #e3b341; } .line.manual-end::before { border-bottom: 2px dashed #e3b341; }
@@ -99,14 +125,35 @@
     .card:hover { border-color: #6e7681; transform: translateY(-1px); }
     .card.selected { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(88,166,255,.16); } .card.hidden { display: none; }
     .card.has-feedback { border-left: 4px solid var(--selection); }
-    .card-top { display: flex; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 11px; }
-    .badge { padding: 3px 7px; border-radius: 999px; font-weight: 700; } .badge.rule_out { color:#ff7b72;background:rgba(248,81,73,.16); } .badge.rule_in { color:#56d364;background:rgba(46,160,67,.16); } .badge.unknown { color:#e3b341;background:rgba(187,128,9,.17); } .badge.no_rule { color:#b1bac4;background:rgba(110,118,129,.16); }
-    .range { font-family: ui-monospace,monospace; } .confidence { margin-left:auto;color:var(--muted); } .card-body { padding:12px; }
-    .rule-name { margin:0 0 5px;font-size:14px; }
-    .source { display:grid;gap:3px;margin-bottom:8px;color:var(--blue);font:11px ui-monospace,monospace; }
-    .source-item { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    .card.approved { border-color: rgba(63,185,80,.72); box-shadow: inset 3px 0 0 var(--green); }
+    .card-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 11px; }
+    .card-toggle { min-width: 0; flex: 1; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+    .card-chevron { width: 12px; flex: 0 0 auto; color: var(--muted); text-align: center; transition: transform .12s; }
+    .card.collapsed .card-chevron { transform: rotate(-90deg); }
+    .card.collapsed .card-top { border-bottom: 0; }
+    .card.collapsed .card-body { display: none; }
+    .approve-button { flex: 0 0 auto; padding: 5px 8px; border: 1px solid rgba(63,185,80,.62); border-radius: 5px; background: transparent; color: #56d364; cursor: pointer; font-size: 11px; font-weight: 700; }
+    .card.approved .approve-button { background: rgba(46,160,67,.20); }
+    .approved-icon { display: none; flex: 0 0 auto; color: #56d364; font-size: 15px; font-weight: 900; }
+    .card.approved .approved-icon { display: inline; }
+    .badge { flex:0 0 auto;align-self:flex-start;padding:3px 7px;border-radius:999px;font-weight:700;white-space:nowrap; } .badge.rule_out { color:#ff7b72;background:rgba(248,81,73,.16); } .badge.rule_in { color:#56d364;background:rgba(46,160,67,.16); } .badge.unknown { color:#e3b341;background:rgba(187,128,9,.17); } .badge.no_rule { color:#b1bac4;background:rgba(110,118,129,.16); } .badge.rule_gap { color:#d2a8ff;background:rgba(163,113,247,.18); }
+    .range { min-width:0;overflow:hidden;font-family:ui-monospace,monospace;text-overflow:ellipsis;white-space:nowrap; }
+    .confidence { flex:0 0 auto;padding:3px 7px;border-radius:999px;font-weight:700; }
+    .confidence.high { color:#56d364;background:rgba(46,160,67,.16); }
+    .confidence.medium { color:#e3b341;background:rgba(187,128,9,.17); }
+    .confidence.low { color:#b1bac4;background:rgba(110,118,129,.18); }
+    .card-body { padding:12px; }
+    .section-title { margin:13px 0 5px;color:#c9d1d9;font-size:12px; }
+    .section-title:first-child { margin-top:0; }
+    .source { display:grid;gap:3px;color:var(--blue);font:11px/1.5 ui-monospace,monospace; }
+    .source-item { display:block;overflow-wrap:anywhere;word-break:break-word; }
     .quote { margin:0 0 9px;padding:8px 9px;border-left:3px solid #6e7681;background:var(--bg);font-size:12px;line-height:1.5; }
-    .reason,.suggestion { margin:0;font-size:12px;line-height:1.55; } .suggestion { margin-top:8px;padding:8px;background:rgba(248,81,73,.08);color:#ffa198; }
+    .reason,.suggestion { margin:0;font-size:12px;line-height:1.55; } .suggestion { padding:8px;background:rgba(248,81,73,.08);color:#ffa198; }
+    .rule-gap-proposal { position:relative;margin-top:10px;padding:10px 11px;border:1px dashed rgba(163,113,247,.65);border-radius:7px;background:rgba(163,113,247,.08); }
+    .rule-gap-heading { margin-bottom:8px;color:#d2a8ff;font-size:11px;font-weight:800;letter-spacing:.04em; }
+    .rule-gap-proposal p { margin:0 0 8px;color:#c9d1d9;font-size:12px;line-height:1.55; }
+    .rule-gap-proposal p:last-of-type { margin-bottom:0; }
+    .rule-gap-proposal strong { display:block;margin-bottom:2px;color:#d2a8ff;font-size:10px; }
     .feedback { margin-top:10px;padding-top:9px;border-top:1px solid var(--border); } .feedback label { display:block;margin-bottom:5px;color:#cae8ff;font-size:11px;font-weight:700; }
     textarea { width:100%;min-height:60px;resize:vertical;padding:8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);outline:none; }
     textarea:focus { border-color: var(--selection); box-shadow: 0 0 0 2px rgba(88,166,255,.14); }
@@ -128,7 +175,7 @@
   <header class="topbar">
     <div class="brand">Self Review</div>
     <div class="compare" aria-label="比較対象"><span class="ref">__TARGET_HTML__</span><span class="arrow">←</span><span class="ref">__SOURCE_HTML__</span></div>
-    <div class="summary"><span><strong>__FILES_CHANGED__</strong> files changed</span>__ADDITIONS_STAT_HTML____DELETIONS_STAT_HTML__<span><strong>__REVIEW_COUNT__</strong> reviews</span></div>
+    <div class="summary"><span class="summary-files"><strong>__FILES_CHANGED__</strong> files changed</span>__ADDITIONS_STAT_HTML____DELETIONS_STAT_HTML__<span class="summary-reviews"><strong>__REVIEW_COUNT__</strong> reviews</span></div>
   </header>
   <nav class="toolbar" aria-label="評価の絞り込み">
     <input class="search" type="search" placeholder="ファイル、ルール、理由を検索" __DISABLED__>
@@ -138,6 +185,7 @@
       <button class="filter" type="button" data-filter="rule_in" __DISABLED__>ルール内 __RULE_IN_COUNT__</button>
       <button class="filter" type="button" data-filter="unknown" __DISABLED__>判断不能 __UNKNOWN_COUNT__</button>
       <button class="filter" type="button" data-filter="no_rule" __DISABLED__>対象なし __NO_RULE_COUNT__</button>
+      <button class="filter" type="button" data-filter="rule_gap" __DISABLED__>ルール不足候補 __RULE_GAP_COUNT__</button>
     </div>
     <button id="manual-mode" class="manual-mode-button" type="button" __DISABLED__>任意行を選択して指摘</button>
     <span class="hint">ドラッグで連続行、クリックで個別行を選択できます</span>
@@ -164,20 +212,22 @@
     </aside>
   </main>
   <script>
-    const mappedLines=[...document.querySelectorAll('.line[data-reviews]')],allLines=[...document.querySelectorAll('.line[data-number]')],cards=[...document.querySelectorAll('.card')];
+    const mappedLines=[...document.querySelectorAll('.line[data-reviews]')],allLines=[...document.querySelectorAll('.line[data-number]')],cards=[...document.querySelectorAll('.card')],reviewMarkers=[...document.querySelectorAll('.line-review-marker')];
     const manualButton=document.querySelector('#manual-mode'),manualPanel=document.querySelector('#manual-panel'),manualLocation=document.querySelector('#manual-location'),manualFeedback=document.querySelector('#manual-feedback'),manualAdd=document.querySelector('#manual-add'),manualCommentsElement=document.querySelector('#manual-comments');
     let manualMode=false,dragging=false,dragAnchor=null,didDrag=false,suppressClick=false,manualComments=[],manualCommentSerial=0;
     const clearClass=(names)=>allLines.forEach(line=>line.classList.remove(...names));
     function markGroups(selected,prefix){selected.forEach(line=>{const prev=line.previousElementSibling,next=line.nextElementSibling;if(!prev?.classList.contains(prefix==='manual'?'manual-selected':'selected'))line.classList.add(prefix==='manual'?'manual-start':'group-start');if(!next?.classList.contains(prefix==='manual'?'manual-selected':'selected'))line.classList.add(prefix==='manual'?'manual-end':'group-end')})}
-    function selectReview(id){cards.forEach(card=>card.classList.toggle('selected',card.dataset.reviewId===id));clearClass(['selected','group-start','group-end']);const selected=mappedLines.filter(line=>line.dataset.reviews.split(',').includes(id));selected.forEach(line=>line.classList.add('selected'));markGroups(selected,'review');selected[0]?.scrollIntoView({behavior:'smooth',block:'center'})}
-    cards.forEach(card=>card.addEventListener('click',event=>{if(!event.target.closest('textarea'))selectReview(card.dataset.reviewId)}));
+    function selectReview(id,destination='diff'){const targetCard=cards.find(card=>card.dataset.reviewId===id);cards.forEach(card=>card.classList.toggle('selected',card===targetCard));clearClass(['selected','group-start','group-end']);const selected=mappedLines.filter(line=>line.dataset.reviews.split(',').includes(id));selected.forEach(line=>line.classList.add('selected'));markGroups(selected,'review');if(destination==='review')targetCard?.scrollIntoView({behavior:'smooth',block:'center'});else selected[0]?.scrollIntoView({behavior:'smooth',block:'center'})}
+    cards.forEach(card=>card.addEventListener('click',event=>{if(!event.target.closest('textarea,button'))selectReview(card.dataset.reviewId,'diff')}));
+    cards.forEach(card=>{const toggle=card.querySelector('.card-toggle'),approve=card.querySelector('.approve-button');toggle.addEventListener('click',()=>{const collapsed=card.classList.toggle('collapsed');toggle.setAttribute('aria-expanded',String(!collapsed))});approve.addEventListener('click',()=>{const approved=card.classList.toggle('approved');approve.textContent=approved?'承認済み':'承認';approve.setAttribute('aria-pressed',String(approved))})});
     function selectedManual(){return allLines.filter(line=>line.classList.contains('manual-selected'))}
     function compact(values){const nums=[...new Set(values.map(Number))].sort((a,b)=>a-b);if(!nums.length)return'';const result=[];let start=nums[0],end=nums[0];for(const n of nums.slice(1)){if(n===end+1)end=n;else{result.push(start===end?`${start}`:`${start}-${end}`);start=end=n}}result.push(start===end?`${start}`:`${start}-${end}`);return result.join(',')}
     function refreshManual(){clearClass(['manual-start','manual-end']);const selected=selectedManual();markGroups(selected,'manual');manualPanel.classList.toggle('visible',!!selected.length);manualAdd.disabled=!selected.length||!manualFeedback.value.trim();if(selected.length){manualLocation.textContent=`${selected[0].dataset.file}:${compact(selected.map(line=>line.dataset.number))} (${selected.length}行)`}else{manualLocation.textContent=''}}
     function clearManual(){clearClass(['manual-selected','manual-start','manual-end']);manualFeedback.value='';dragAnchor=null;refreshManual()}
     function fileLines(line){return allLines.filter(item=>item.dataset.file===line.dataset.file&&item.dataset.side===line.dataset.side)}
     function toggleLine(line){const selected=selectedManual();if(selected.length&&(selected[0].dataset.file!==line.dataset.file||selected[0].dataset.side!==line.dataset.side))clearManual();line.classList.toggle('manual-selected');dragAnchor=line;refreshManual()}
-    allLines.forEach(line=>{line.addEventListener('mousedown',event=>{if(manualMode&&event.button===0){event.preventDefault();dragging=true;didDrag=false;dragAnchor=line}});line.addEventListener('mouseenter',()=>{if(!manualMode||!dragging||!dragAnchor||dragAnchor.dataset.file!==line.dataset.file||dragAnchor.dataset.side!==line.dataset.side)return;didDrag=true;clearClass(['manual-selected']);const list=fileLines(line),a=list.indexOf(dragAnchor),b=list.indexOf(line);list.slice(Math.min(a,b),Math.max(a,b)+1).forEach(item=>item.classList.add('manual-selected'));refreshManual()});line.addEventListener('click',()=>{if(manualMode&&!suppressClick)toggleLine(line);else if(!manualMode&&line.dataset.reviews)selectReview(line.dataset.reviews.split(',')[0])})});
+    reviewMarkers.forEach(marker=>marker.addEventListener('click',event=>{event.stopPropagation();const line=marker.closest('.line');if(manualMode){toggleLine(line);return}selectReview(marker.dataset.reviewTarget,'review')}));
+    allLines.forEach(line=>{line.addEventListener('mousedown',event=>{if(manualMode&&event.button===0){event.preventDefault();dragging=true;didDrag=false;dragAnchor=line}});line.addEventListener('mouseenter',()=>{if(!manualMode||!dragging||!dragAnchor||dragAnchor.dataset.file!==line.dataset.file||dragAnchor.dataset.side!==line.dataset.side)return;didDrag=true;clearClass(['manual-selected']);const list=fileLines(line),a=list.indexOf(dragAnchor),b=list.indexOf(line);list.slice(Math.min(a,b),Math.max(a,b)+1).forEach(item=>item.classList.add('manual-selected'));refreshManual()});line.addEventListener('click',()=>{if(manualMode&&!suppressClick)toggleLine(line);else if(!manualMode&&line.dataset.reviews)selectReview(line.dataset.reviews.split(',')[0],'review')})});
     document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;if(didDrag){suppressClick=true;setTimeout(()=>suppressClick=false,0)}});
     manualButton.addEventListener('click',()=>{manualMode=!manualMode;manualButton.classList.toggle('active',manualMode);manualButton.textContent=manualMode?'行選択モード中':'任意行を選択して指摘';if(!manualMode)clearManual()});
     document.querySelector('#manual-cancel').addEventListener('click',clearManual);
@@ -189,7 +239,7 @@
     document.querySelectorAll('.tree-file').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.tree-file').forEach(item=>item.classList.remove('active'));button.classList.add('active');const file=document.getElementById(button.dataset.target);file.classList.remove('collapsed');file.querySelector('.file-header').setAttribute('aria-expanded','true');file.scrollIntoView({behavior:'smooth',block:'start'})}));
     const search=document.querySelector('.search'),empty=document.querySelector('#empty'),filters=[...document.querySelectorAll('[data-filter]')];let filter='all';function applyFilter(){const q=search.value.toLowerCase();let visible=0;cards.forEach(card=>{const show=(filter==='all'||card.dataset.verdict===filter)&&card.dataset.search.toLowerCase().includes(q);card.classList.toggle('hidden',!show);visible+=show});empty.style.display=cards.length&&!visible?'block':'none'}search.addEventListener('input',applyFilter);filters.forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.filter;filters.forEach(item=>item.classList.toggle('active',item===button));applyFilter()}));
     cards.forEach(card=>card.querySelector('textarea').addEventListener('input',event=>card.classList.toggle('has-feedback',!!event.target.value.trim())));
-    document.querySelector('#export-feedback').addEventListener('click',async()=>{const payload={schema_version:'1.0',report:{target:document.body.dataset.target,source:document.body.dataset.source},reviews:cards.map(card=>({review_id:card.dataset.reviewId,feedback:card.querySelector('textarea').value.trim()})),manual_comments:manualComments};const status=document.querySelector('#export-status');try{if(location.protocol.startsWith('http')){const response=await fetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!response.ok)throw new Error(await response.text());status.textContent='指摘を送信しました。AIが修正へ進みます。'}else{const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='self-review-feedback.json';a.click();URL.revokeObjectURL(url);status.textContent='self-review-feedback.jsonを書き出しました。'}status.hidden=false}catch(error){status.textContent=`送信に失敗しました: ${error.message}`;status.hidden=false}});
+    document.querySelector('#export-feedback').addEventListener('click',async()=>{const payload={schema_version:'1.0',report:{target:document.body.dataset.target,source:document.body.dataset.source},reviews:cards.map(card=>({review_id:card.dataset.reviewId,approved:card.classList.contains('approved'),feedback:card.querySelector('textarea').value.trim()})),manual_comments:manualComments};const status=document.querySelector('#export-status');try{if(location.protocol.startsWith('http')){const response=await fetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!response.ok)throw new Error(await response.text());status.textContent='指摘を送信しました。AIが修正へ進みます。'}else{const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='self-review-feedback.json';a.click();URL.revokeObjectURL(url);status.textContent='self-review-feedback.jsonを書き出しました。'}status.hidden=false}catch(error){status.textContent=`送信に失敗しました: ${error.message}`;status.hidden=false}});
   </script>
 </body>
 </html>

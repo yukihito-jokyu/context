@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 
-VERDICTS = {"rule_in", "rule_out", "unknown", "no_rule"}
+VERDICTS = {"rule_in", "rule_out", "unknown", "no_rule", "rule_gap"}
 CONFIDENCE = {"high", "medium", "low"}
 
 
@@ -87,7 +87,8 @@ def normalize(diff: dict[str, Any], review: dict[str, Any], allowed: list[Path],
         rule_ids.add(rule_id)
         normalized_rules.append({key: rule[key] for key in sorted(rule)})
 
-    covered: set[tuple[str, str, int]] = set()
+    covered_by_base_review: set[tuple[str, str, int]] = set()
+    review_ids: set[str] = set()
     normalized_reviews: list[dict[str, Any]] = []
     for item in reviews:
         required = {"verdict", "rule_ids", "locations", "reason", "suggestion", "confidence"}
@@ -104,6 +105,16 @@ def normalize(diff: dict[str, Any], review: dict[str, Any], allowed: list[Path],
             raise ValueError(f"{verdict} にはrule_idsが必要です")
         if verdict == "no_rule" and refs:
             raise ValueError("no_rule のrule_idsは空にしてください")
+        if verdict == "rule_gap":
+            if refs:
+                raise ValueError("rule_gap のrule_idsは空にしてください")
+            if (
+                not isinstance(item["reason"], str)
+                or not item["reason"].strip()
+                or not isinstance(item["suggestion"], str)
+                or not item["suggestion"].strip()
+            ):
+                raise ValueError("rule_gap には不足理由と提案ルールが必要です")
 
         locations = item["locations"]
         if not isinstance(locations, list) or not locations:
@@ -116,12 +127,19 @@ def normalize(diff: dict[str, Any], review: dict[str, Any], allowed: list[Path],
             numbers = sorted(set(location["lines"])) if isinstance(location["lines"], list) else []
             if key not in available or not numbers or any(not isinstance(value, int) or value not in available[key] for value in numbers):
                 raise ValueError(f"差分に存在しない行範囲です: {key} {numbers}")
-            covered.update((key[0], key[1], number) for number in numbers)
+            if verdict != "rule_gap":
+                covered_by_base_review.update(
+                    (key[0], key[1], number) for number in numbers
+                )
             normalized_locations.append({"file": key[0], "side": key[1], "lines": numbers, "line_range": compact(numbers)})
 
         seed = json.dumps({"verdict": verdict, "rule_ids": refs, "locations": normalized_locations, "reason": item["reason"]}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        review_id = f"review-{hashlib.sha256(seed.encode()).hexdigest()[:12]}"
+        if review_id in review_ids:
+            raise ValueError(f"同一内容のreviewが重複しています: {review_id}")
+        review_ids.add(review_id)
         normalized_reviews.append({
-            "review_id": f"review-{hashlib.sha256(seed.encode()).hexdigest()[:12]}",
+            "review_id": review_id,
             "verdict": verdict,
             "rule_ids": refs,
             "locations": normalized_locations,
@@ -131,7 +149,7 @@ def normalize(diff: dict[str, Any], review: dict[str, Any], allowed: list[Path],
         })
 
     expected = {(file, side, number) for (file, side), numbers in available.items() for number in numbers}
-    missing = sorted(expected - covered)
+    missing = sorted(expected - covered_by_base_review)
     if require_complete and missing:
         preview = ", ".join(f"{file}:{side}:{line}" for file, side, line in missing[:10])
         raise ValueError(f"評価されていない変更行があります: {preview}")
