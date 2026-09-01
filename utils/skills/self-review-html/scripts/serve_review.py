@@ -24,8 +24,13 @@ def validate_feedback(value: object) -> dict:
     if not isinstance(value.get("reviews"), list) or not isinstance(value.get("manual_comments"), list):
         raise ValueError("reviewsとmanual_commentsは配列である必要があります")
     for item in value["reviews"]:
-        if not isinstance(item, dict) or not isinstance(item.get("review_id"), str) or not isinstance(item.get("feedback"), str):
-            raise ValueError("各reviewにはreview_idとfeedback文字列が必要です")
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("review_id"), str)
+            or not isinstance(item.get("approved"), bool)
+            or not isinstance(item.get("feedback"), str)
+        ):
+            raise ValueError("各reviewにはreview_id、approved真偽値、feedback文字列が必要です")
     for item in value["manual_comments"]:
         required = {"comment_id", "file", "side", "lines", "line_range", "feedback"}
         if not isinstance(item, dict) or not required.issubset(item) or not isinstance(item["lines"], list):
