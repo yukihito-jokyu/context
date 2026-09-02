@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ブランドを明示したAIデリバリー",
+    "quality_profile": "showcase",
+    "viewBox": [1120, 640],
+    "views": [
+      {
+        "id": "delivery-path",
+        "label": "デリバリー経路",
+        "focus": ["request", "claude", "github", "container", "edge", "customer"],
+        "note": "1つのデリバリーを、リクエストからモデル、リポジトリ、コンテナ、エッジまで追跡します。"
+      },
+      {
+        "id": "business-data",
+        "label": "ビジネスとデータ",
+        "focus": ["container", "database", "billing"],
+        "note": "主要なデリバリー経路を見失わずに、永続状態と請求を確認します。"
+      }
+    ]
+  },
+  "components": [
+    { "id": "request", "type": "external", "label": "プロダクト要件", "sublabel": "担当者の概要説明", "pos": [38, 260], "size": [138, 68] },
+    { "id": "claude", "type": "frontend", "label": "Claude", "sublabel": "計画と作成", "brand": "claude", "pos": [220, 260], "size": [138, 68] },
+    { "id": "github", "type": "messagebus", "label": "GitHub", "sublabel": "レビューとマージ", "brand": "github", "pos": [402, 260], "size": [138, 68] },
+    { "id": "container", "type": "backend", "label": "Dockerサービス", "sublabel": "ビルドと実行", "brand": "docker", "pos": [584, 260], "size": [138, 68] },
+    { "id": "edge", "type": "cloud", "label": "Cloudflare", "sublabel": "グローバル配信", "brand": "cloudflare", "pos": [766, 260], "size": [138, 68] },
+    { "id": "customer", "type": "external", "label": "顧客", "sublabel": "Webとモバイル", "pos": [948, 260], "size": [138, 68] },
+    { "id": "database", "type": "database", "label": "PostgreSQL", "sublabel": "永続状態", "brand": "postgresql", "pos": [584, 420], "size": [138, 68] },
+    { "id": "billing", "type": "external", "label": "Stripe", "sublabel": "請求イベント", "brand": "stripe", "pos": [766, 420], "size": [138, 68] }
+  ],
+  "connections": [
+    { "id": "brief-to-claude", "from": "request", "to": "claude", "label": "概要説明", "variant": "emphasis", "labelDy": -28 },
+    { "id": "claude-to-github", "from": "claude", "to": "github", "label": "変更セット", "labelDy": -28 },
+    { "id": "github-to-container", "from": "github", "to": "container", "label": "承認済みビルド", "labelDy": -28 },
+    { "id": "container-to-edge", "from": "container", "to": "edge", "label": "デプロイ", "labelDy": -28 },
+    { "id": "edge-to-customer", "from": "edge", "to": "customer", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "container-to-database", "from": "container", "to": "database", "label": "SQL", "fromSide": "bottom", "toSide": "top", "labelAt": [625, 370] },
+    { "id": "container-to-billing", "from": "container", "to": "billing", "label": "請求を作成", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "via": [[653, 374], [835, 374]] },
+    { "id": "billing-to-database", "from": "billing", "to": "database", "label": "Webhook", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "ひと目で分かる識別情報", "items": ["セマンティックカラーは引き続き技術的な役割を示します", "ブランドバッジは実際の製品を識別します"] },
+    { "dot": "amber", "title": "標準で移植可能", "items": ["プリセットのマークはArchifyに同梱されています", "すべての画像エクスポートで同じバッジが維持されます"] }
+  ]
+}

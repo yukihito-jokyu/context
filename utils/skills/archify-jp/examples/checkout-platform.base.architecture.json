@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "チェックアウトプラットフォーム — ベースライン",
+    "visual_preset": "signal-flow"
+  },
+  "components": [
+    { "id": "buyers", "type": "external", "label": "購入者", "sublabel": "Web + モバイル", "pos": [40, 250], "size": [120, 60] },
+    { "id": "edge", "type": "cloud", "label": "エッジゲートウェイ", "sublabel": "TLS + ルーティング", "pos": [220, 250], "size": [130, 60] },
+    { "id": "checkout", "type": "backend", "label": "チェックアウトAPI", "sublabel": "v1サービス", "pos": [430, 250], "size": [130, 60] },
+    { "id": "cache", "type": "database", "label": "セッションキャッシュ", "sublabel": "Redis", "pos": [430, 100], "size": [130, 60] },
+    { "id": "orders", "type": "database", "label": "注文", "sublabel": "PostgreSQL", "pos": [640, 250], "size": [130, 60] },
+    { "id": "queue", "type": "messagebus", "label": "注文イベント", "sublabel": "永続キュー", "pos": [430, 400], "size": [130, 60] },
+    { "id": "worker", "type": "backend", "label": "フルフィルメント", "sublabel": "非同期ワーカー", "pos": [640, 400], "size": [130, 60] },
+    { "id": "payments", "type": "external", "label": "決済ネットワーク", "sublabel": "外部", "pos": [850, 250], "size": [130, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "本番リージョン", "wraps": ["edge", "checkout", "cache", "orders", "queue", "worker"] },
+    { "kind": "security-group", "label": "チェックアウト信頼ゾーン", "wraps": ["checkout", "orders"] }
+  ],
+  "connections": [
+    { "id": "buyer-request", "from": "buyers", "to": "edge", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "edge-checkout", "from": "edge", "to": "checkout" },
+    { "id": "session-read", "from": "checkout", "to": "cache", "label": "セッション", "fromSide": "top", "toSide": "bottom", "labelDy": -66 },
+    { "id": "persist-order", "from": "checkout", "to": "orders", "label": "SQL" },
+    { "id": "publish-order", "from": "checkout", "to": "queue", "label": "受付済み", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 66 },
+    { "id": "consume-order", "from": "queue", "to": "worker" },
+    { "id": "authorize-payment", "from": "orders", "to": "payments", "label": "承認", "variant": "security" }
+  ]
+}

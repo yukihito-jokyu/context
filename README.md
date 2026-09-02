@@ -8,7 +8,7 @@ AI Agent 向けコンテキストを一元管理するリポジトリです。
 
 - `projects/context/AGENTS.md` がこのリポジトリ自身の `AGENTS.md` 正本です。
 - ルート `AGENTS.md` は現時点ではその配布結果を手動で反映したものです。
-- `utils/skills/*/SKILL.md` が共通 Skill の正本です。
+- [`utils/skills/*/SKILL.md`](utils/skills/README.md) が共通 Skill の正本です。
 - `.codex/skills/*` は当面の互換配置であり、`utils/skills/*` と同一内容を保つ前提です。
 - `README.md` はカタログまたは概要文書であり、Skill の正本ではありません。
 
