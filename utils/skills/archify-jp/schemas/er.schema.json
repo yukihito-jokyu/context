@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tt-a1i/archify/schemas/er.schema.json",
+  "title": "Archify ER図",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "diagram_type", "notation", "meta", "entities", "relationships"],
+  "properties": {
+    "schema_version": { "const": 1 }, "diagram_type": { "const": "er" }, "notation": { "const": "crow-foot" },
+    "meta": { "type": "object", "additionalProperties": false, "required": ["title"], "properties": { "title": { "type": "string", "minLength": 1 }, "subtitle": { "type": "string" }, "locale": { "$ref": "common.schema.json#/$defs/locale" }, "output": { "type": "string" }, "visual_preset": { "$ref": "common.schema.json#/$defs/visualPreset" }, "quality_profile": { "$ref": "common.schema.json#/$defs/qualityProfile" }, "views": { "$ref": "common.schema.json#/$defs/guidedViews" }, "viewBox": { "$ref": "#/$defs/viewBox" } } },
+    "entities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/entity" } },
+    "relationships": { "type": "array", "items": { "$ref": "#/$defs/relationship" } },
+    "cards": { "$ref": "common.schema.json#/$defs/cards" }
+  },
+  "$defs": {
+    "viewBox": { "type": "array", "prefixItems": [{ "type": "number", "minimum": 320 }, { "type": "number", "minimum": 240 }], "items": false, "minItems": 2, "maxItems": 2 },
+    "foreignKey": { "type": "object", "additionalProperties": false, "required": ["entity", "column"], "properties": { "entity": { "$ref": "common.schema.json#/$defs/id" }, "column": { "$ref": "common.schema.json#/$defs/id" } } },
+    "column": { "type": "object", "additionalProperties": false, "required": ["id", "name", "type", "nullable"], "properties": { "id": { "$ref": "common.schema.json#/$defs/id" }, "name": { "type": "string", "minLength": 1 }, "type": { "type": "string", "minLength": 1 }, "primary_key": { "type": "boolean" }, "foreign_key": { "$ref": "#/$defs/foreignKey" }, "unique": { "type": "boolean" }, "nullable": { "type": "boolean" } } },
+    "entity": { "type": "object", "additionalProperties": false, "required": ["id", "name", "pos", "columns"], "properties": { "id": { "$ref": "common.schema.json#/$defs/id" }, "name": { "type": "string", "minLength": 1 }, "pos": { "$ref": "common.schema.json#/$defs/point" }, "width": { "type": "number", "minimum": 200 }, "columns": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/column" } } } },
+    "endpoint": { "type": "object", "additionalProperties": false, "required": ["entity", "column"], "properties": { "entity": { "$ref": "common.schema.json#/$defs/id" }, "column": { "$ref": "common.schema.json#/$defs/id" } } },
+    "cardinality": { "enum": ["one", "zero_or_one", "one_or_many", "zero_or_many"] },
+    "relationship": { "type": "object", "additionalProperties": false, "required": ["id", "from", "to", "from_cardinality", "to_cardinality", "identifying"], "properties": { "id": { "$ref": "common.schema.json#/$defs/id" }, "from": { "$ref": "#/$defs/endpoint" }, "to": { "$ref": "#/$defs/endpoint" }, "from_cardinality": { "$ref": "#/$defs/cardinality" }, "to_cardinality": { "$ref": "#/$defs/cardinality" }, "identifying": { "type": "boolean" }, "label": { "type": "string" } } }
+  }
+}

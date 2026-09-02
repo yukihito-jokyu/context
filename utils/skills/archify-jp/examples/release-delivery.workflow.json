@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "リリースデリバリーのワークフロー",
+    "output": "examples/release-delivery.html",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "commit-to-checks", "label": "コミットから正常なビルドまで", "focus": ["commit", "pull_request", "build", "checks"], "note": "再現可能なビルドとブロッキング品質ゲートを通過する変更を追跡します。" },
+      { "id": "approval-to-production", "label": "承認と昇格", "focus": ["checks", "approval", "deploy", "verify_prod", "announce"], "note": "誰が本番反映を承認し、成功をどのように検証するかを確認します。" },
+      { "id": "rollback-path", "label": "失敗とロールバック", "focus": ["checks", "failed", "verify_prod", "rollback", "deploy"], "note": "デリバリーが安全に停止または巻き戻される2つの箇所を切り分けます。" }
+    ]
+  },
+  "lanes": [
+    { "id": "dev", "label": "開発者" },
+    { "id": "ci", "label": "継続的インテグレーション" },
+    { "id": "approval", "label": "リリースガバナンス" },
+    { "id": "environment", "label": "本番環境" },
+    { "id": "communication", "label": "リリース連絡" },
+    { "id": "exceptions", "label": "失敗 + ロールバック", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "change", "label": "変更", "fromCol": 0, "toCol": 1 },
+    { "id": "verify", "label": "ビルド + 検証", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "promote", "label": "昇格 + 監視", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "blocking_checks", "label": "ブロッキングチェック", "lane": "ci", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "rollback_work", "label": "復旧経路", "lane": "exceptions", "fromCol": 3, "toCol": 5, "variant": "security" }
+  ],
+  "mainPath": ["commit", "pull_request", "build", "checks", "approval", "deploy", "verify_prod", "announce"],
+  "nodes": [
+    { "id": "commit", "lane": "dev", "col": 0, "type": "frontend", "label": "コミット", "sublabel": "署名済み変更" },
+    { "id": "pull_request", "lane": "dev", "col": 1, "type": "frontend", "label": "Pull Request", "sublabel": "レビュー済み差分" },
+    { "id": "build", "lane": "ci", "col": 2, "type": "backend", "label": "ビルド", "sublabel": "固定された入力", "tag": "再現可能" },
+    { "id": "checks", "lane": "ci", "col": 3, "type": "security", "label": "品質ゲート", "sublabel": "テスト + スキャン", "tag": "ブロッキング" },
+    { "id": "approval", "lane": "approval", "col": 4, "type": "security", "label": "承認", "sublabel": "リリース担当者", "tag": "人によるゲート" },
+    { "id": "deploy", "lane": "environment", "col": 4, "type": "cloud", "label": "デプロイ", "sublabel": "カナリア10%", "tag": "本番" },
+    { "id": "verify_prod", "lane": "environment", "col": 5, "type": "backend", "label": "検証", "sublabel": "スモーク + SLO" },
+    { "id": "announce", "lane": "communication", "col": 5, "type": "external", "label": "告知", "sublabel": "状況 + リリースノート" },
+    { "id": "failed", "lane": "exceptions", "col": 2, "type": "security", "label": "リリース停止", "sublabel": "ゲート失敗" },
+    { "id": "rollback", "lane": "exceptions", "col": 4, "width": 120, "type": "messagebus", "label": "ロールバック", "sublabel": "直近の正常イメージ", "tag": "担当: オンコール" }
+  ],
+  "edges": [
+    { "from": "commit", "to": "pull_request" },
+    { "from": "pull_request", "to": "build", "label": "マージ", "variant": "emphasis", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "build", "to": "checks" },
+    { "from": "checks", "to": "approval", "variant": "emphasis", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "approval", "to": "deploy", "variant": "security", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "deploy", "to": "verify_prod" },
+    { "from": "verify_prod", "to": "announce", "label": "正常", "variant": "emphasis", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "checks", "to": "failed", "label": "失敗", "variant": "security", "role": "error", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "verify_prod", "to": "rollback", "variant": "security", "role": "error", "route": "outside-right", "fromSide": "right", "toSide": "right" },
+    { "from": "rollback", "to": "deploy", "label": "復元", "variant": "dashed", "role": "return", "route": "return-left", "fromSide": "left", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "1つの正常系", "items": ["すべての変更は再現可能なビルドの前にレビューされます", "人による承認の前に、すべてのブロッキングチェックが成功している必要があります", "本番反映はスモークテストとSLO検証の後にのみ完了します"] },
+    { "dot": "rose", "title": "停止条件", "items": ["テストまたはセキュリティの失敗により昇格が停止します", "本番環境の健全性に問題があればリリースを巻き戻せます", "インシデント発生前からロールバックの担当者を確認できます"] },
+    { "dot": "cyan", "title": "リリースの証拠", "items": ["承認、不変イメージ、チェック結果が保持されます", "リリース告知は検証後に行われます", "失敗経路を隠さずに主経路の読みやすさを保ちます"] }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "diagram_type": "er",
+  "notation": "crow-foot",
+  "meta": {
+    "title": "ECデータモデル ER図",
+    "subtitle": "Crow’s Foot ER図、キー、制約、カーディナリティ",
+    "locale": "ja",
+    "visual_preset": "classic",
+    "quality_profile": "showcase",
+    "viewBox": [1380, 760]
+  },
+  "entities": [
+    {
+      "id": "customers",
+      "name": "customers",
+      "pos": [55, 105],
+      "width": 265,
+      "columns": [
+        { "id": "id", "name": "id", "type": "uuid", "primary_key": true, "nullable": false },
+        { "id": "email", "name": "email", "type": "varchar", "unique": true, "nullable": false },
+        { "id": "display_name", "name": "display_name", "type": "varchar", "nullable": false },
+        { "id": "created_at", "name": "created_at", "type": "timestamp", "nullable": false }
+      ]
+    },
+    {
+      "id": "orders",
+      "name": "orders",
+      "pos": [410, 80],
+      "width": 280,
+      "columns": [
+        { "id": "id", "name": "id", "type": "uuid", "primary_key": true, "nullable": false },
+        { "id": "customer_id", "name": "customer_id", "type": "uuid", "foreign_key": { "entity": "customers", "column": "id" }, "nullable": false },
+        { "id": "status", "name": "status", "type": "varchar", "nullable": false },
+        { "id": "total_amount", "name": "total_amount", "type": "decimal", "nullable": false },
+        { "id": "ordered_at", "name": "ordered_at", "type": "timestamp", "nullable": false }
+      ]
+    },
+    {
+      "id": "order_items",
+      "name": "order_items",
+      "pos": [765, 80],
+      "width": 275,
+      "columns": [
+        { "id": "order_id", "name": "order_id", "type": "uuid", "primary_key": true, "foreign_key": { "entity": "orders", "column": "id" }, "nullable": false },
+        { "id": "product_id", "name": "product_id", "type": "uuid", "primary_key": true, "foreign_key": { "entity": "products", "column": "id" }, "nullable": false },
+        { "id": "quantity", "name": "quantity", "type": "integer", "nullable": false },
+        { "id": "unit_price", "name": "unit_price", "type": "decimal", "nullable": false },
+        { "id": "note", "name": "note", "type": "varchar", "nullable": true }
+      ]
+    },
+    {
+      "id": "products",
+      "name": "products",
+      "pos": [1085, 105],
+      "width": 250,
+      "columns": [
+        { "id": "id", "name": "id", "type": "uuid", "primary_key": true, "nullable": false },
+        { "id": "sku", "name": "sku", "type": "varchar", "unique": true, "nullable": false },
+        { "id": "name", "name": "name", "type": "varchar", "nullable": false },
+        { "id": "price", "name": "price", "type": "decimal", "nullable": false }
+      ]
+    },
+    {
+      "id": "payments",
+      "name": "payments",
+      "pos": [410, 480],
+      "width": 280,
+      "columns": [
+        { "id": "id", "name": "id", "type": "uuid", "primary_key": true, "nullable": false },
+        { "id": "order_id", "name": "order_id", "type": "uuid", "foreign_key": { "entity": "orders", "column": "id" }, "unique": true, "nullable": false },
+        { "id": "provider_ref", "name": "provider_ref", "type": "varchar", "nullable": true },
+        { "id": "status", "name": "status", "type": "varchar", "nullable": false }
+      ]
+    }
+  ],
+  "relationships": [
+    { "id": "customer_orders", "from": { "entity": "customers", "column": "id" }, "to": { "entity": "orders", "column": "customer_id" }, "from_cardinality": "one", "to_cardinality": "zero_or_many", "identifying": false },
+    { "id": "order_items", "from": { "entity": "orders", "column": "id" }, "to": { "entity": "order_items", "column": "order_id" }, "from_cardinality": "one", "to_cardinality": "one_or_many", "identifying": true },
+    { "id": "product_items", "from": { "entity": "products", "column": "id" }, "to": { "entity": "order_items", "column": "product_id" }, "from_cardinality": "one", "to_cardinality": "zero_or_many", "identifying": false },
+    { "id": "order_payments", "from": { "entity": "orders", "column": "id" }, "to": { "entity": "payments", "column": "order_id" }, "from_cardinality": "one", "to_cardinality": "zero_or_one", "identifying": false }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "エンティティ", "items": ["列名・型・NULL可否を一覧表示", "PK・FK・UQを色分け"] },
+    { "dot": "emerald", "title": "関係", "items": ["Crow’s Footで最小・最大数を表現", "実線は識別、破線は非識別関係"] },
+    { "dot": "rose", "title": "探索", "items": ["テーブルを選択して直接関係を追跡", "検索・経路・マップ・レンズに対応"] }
+  ]
+}

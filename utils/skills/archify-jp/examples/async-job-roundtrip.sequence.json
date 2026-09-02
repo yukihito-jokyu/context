@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "非同期ジョブの往復処理",
+    "output": "examples/async-job-roundtrip.html",
+    "viewBox": [820, 920],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "accept-and-enqueue", "label": "ブロックせずに受け付け", "focus": ["client", "api", "queue"], "note": "APIは永続キューへの投入後、すぐに確認応答を返します。" },
+      { "id": "work-and-retry", "label": "バックグラウンド処理と再試行", "focus": ["queue", "worker", "provider"], "note": "タイムアウト時は元のリクエストを開いたままにせず、キューへ戻します。" },
+      { "id": "observe-final-state", "label": "最終的な整合性を確認", "focus": ["worker", "store", "notify", "client", "api"], "note": "Webhook配信を主経路とし、ポーリングは範囲を限定したフォールバックとして残します。" }
+    ]
+  },
+  "participants": [
+    { "id": "client", "type": "external", "label": "クライアント", "sublabel": "モバイルアプリ" },
+    { "id": "api", "type": "backend", "label": "Jobs API", "sublabel": "リクエスト境界" },
+    { "id": "queue", "type": "messagebus", "label": "キュー", "sublabel": "永続的な作業" },
+    { "id": "worker", "type": "backend", "label": "ワーカー", "sublabel": "バックグラウンド" },
+    { "id": "provider", "type": "cloud", "label": "プロバイダー", "sublabel": "外部API" },
+    { "id": "store", "type": "database", "label": "ジョブストア", "sublabel": "信頼できる情報源" },
+    { "id": "notify", "type": "messagebus", "label": "通知サービス", "sublabel": "Webhook" }
+  ],
+  "segments": [
+    { "from": 150, "to": 288, "label": "受付" },
+    { "from": 306, "to": 538, "label": "バックグラウンド処理" },
+    { "from": 554, "to": 800, "label": "通知 + 整合" }
+  ],
+  "messages": [
+    { "from": "client", "to": "api", "y": 180, "label": "POST /jobs", "variant": "emphasis" },
+    { "from": "api", "to": "queue", "y": 222, "label": "ジョブを投入", "variant": "emphasis" },
+    { "from": "api", "to": "client", "y": 264, "label": "202 + ジョブID", "variant": "return" },
+    { "from": "queue", "to": "worker", "y": 326, "label": "配信", "variant": "emphasis" },
+    { "from": "worker", "to": "provider", "y": 368, "label": "処理を実行", "variant": "default" },
+    { "from": "provider", "to": "worker", "y": 410, "label": "結果 / タイムアウト", "variant": "return" },
+    { "from": "worker", "to": "queue", "y": 452, "label": "タイムアウト時に再試行", "variant": "dashed" },
+    { "from": "worker", "to": "store", "y": 494, "label": "最終状態を永続化", "variant": "emphasis" },
+    { "from": "worker", "to": "notify", "y": 566, "label": "job.completed", "variant": "dashed" },
+    { "from": "notify", "to": "client", "y": 608, "label": "署名付きWebhook", "variant": "dashed" },
+    { "from": "client", "to": "api", "y": 650, "label": "GET /jobs/:id", "variant": "default" },
+    { "from": "api", "to": "store", "y": 692, "label": "状態を読み取り", "variant": "default" },
+    { "from": "store", "to": "api", "y": 734, "label": "完了", "variant": "return" },
+    { "from": "api", "to": "client", "y": 776, "label": "200 最終結果", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "api", "from": 174, "to": 272, "type": "backend" },
+    { "participant": "queue", "from": 216, "to": 334, "type": "messagebus" },
+    { "participant": "worker", "from": 320, "to": 574, "type": "backend" },
+    { "participant": "provider", "from": 362, "to": 416, "type": "cloud" },
+    { "participant": "store", "from": 488, "to": 742, "type": "database" },
+    { "participant": "notify", "from": 560, "to": 616, "type": "messagebus" },
+    { "participant": "api", "from": 644, "to": 784, "type": "backend" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "迅速な確認応答", "items": ["呼び出し元は処理開始前に永続的なジョブIDを受け取ります", "受付契約でキューの担当範囲を確認できます", "元の接続はプロバイダーのレイテンシーを待ちません"] },
+    { "dot": "orange", "title": "範囲を限定した復旧", "items": ["タイムアウトした処理は再試行ポリシーに従ってキューへ戻ります", "通知前に最終状態を永続化します", "ジョブストアが信頼できる情報源として維持されます"] },
+    { "dot": "emerald", "title": "2つの確認経路", "items": ["署名付きWebhookが完了を通知します", "状態ポーリングは第2のワークフローではなくフォールバックです", "どちらの経路も同じ最終状態へ収束します"] }
+  ]
+}
