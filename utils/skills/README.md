@@ -5,6 +5,7 @@
 | Skill | 概要 |
 |---|---|
 | [archify-jp](archify-jp/SKILL.md) | 自然言語または Mermaid から、検証済みのインタラクティブ HTML 図を生成する。 |
+| [agent-trace](agent-trace/SKILL.md) | エージェントの作業証跡を Markdown に記録し、最短経路の簡易手順書を作成する。 |
 | [blindspot](blindspot/SKILL.md) | 作業前に未知や見落としやすい論点を洗い出す。 |
 | [commit](commit/SKILL.md) | 変更を確認してコミットする。 |
 | [explanation-design](explanation-design/SKILL.md) | 読者が理解に到達できる説明構成を設計する。 |
