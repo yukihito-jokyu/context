@@ -33,3 +33,8 @@ AI Agent 向けコンテキストを一元管理するリポジトリです。
 - 説明: この Context Repository 自身を管理するためのプロジェクト定義
 - GitHub: <https://github.com/yukihito/context>
 - 詳細: [projects/context/README.md](projects/context/README.md)
+
+## 画面要件すり合わせの成果物
+
+- [チームの依頼管理：第1案〜第4案と閲覧手順](react-discussion-team-requests/README.md)
+- [第4案のプレビュー画像](react-discussion-team-requests/preview.png)
