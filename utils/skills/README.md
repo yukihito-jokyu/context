@@ -11,6 +11,7 @@
 | [explanation-design](explanation-design/SKILL.md) | 読者が理解に到達できる説明構成を設計する。 |
 | [grill-issue](grill-issue/SKILL.md) | Issue を精査し、議論を経て実装計画を立てる。 |
 | [html-requirements-workshop](html-requirements-workshop/SKILL.md) | HTML モックを反復しながら曖昧な画面要件を固める。 |
+| [react-requirements-workshop](react-requirements-workshop/SKILL.md) | Design System に沿う React 画面を枠付きプレビューで見ながら要件を固める。画面案と承認履歴を保存し、起動済みサーバーを再利用する。 |
 | [interview](interview/SKILL.md) | 曖昧な点や既知の未知を一問ずつ明確にする。 |
 | [my-skill-creator](my-skill-creator/SKILL.md) | Skill の作成、改善、評価、最適化を行う。 |
 | [notes](notes/SKILL.md) | 実装中の判断、逸脱、エッジケースを記録する。 |
