@@ -68,7 +68,7 @@ const svgMatches = [...html.matchAll(/<svg\b[\s\S]*?<\/svg>/gi)];
 addCheck('single_svg', svgMatches.length === 1, [`<svg>ブロックが${svgMatches.length}個見つかりました`]);
 
 if (svgMatches.length === 1) {
-  const compound = /data-diagram-type="sequence-er"/.test(svgMatches[0][0]);
+  const compound = /data-diagram-type="(?:sequence-er|workflow-er)"/.test(svgMatches[0][0]);
   const svg = compound ? inspectionSvg(svgMatches[0][0]) : svgMatches[0][0];
   const svgRoot = svg.match(/<svg\b[^>]*>/i)?.[0] || '';
   const svgAttrs = parseAttrs(svgRoot);

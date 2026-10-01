@@ -22,7 +22,7 @@ export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = p
   const inputPath = path.resolve(argv[2] || path.join(skillRoot, 'examples', defaultExample));
   const diagram = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   validateSchema(diagramType, diagram);
-  if(diagramType==='sequence-er')validateAccesses(diagram,process.env.ARCHIFY_REPO_ROOT);
+  if(['sequence-er','workflow-er'].includes(diagramType))validateAccesses(diagram,process.env.ARCHIFY_REPO_ROOT);
   validateGuidedViews(diagramType, diagram);
   validateRelationshipIds(diagramType, diagram);
   validateEngineeringProfile(diagramType, diagram);
@@ -49,7 +49,7 @@ export async function loadDiagramWithBrandMarks(options) {
   return loaded;
 }
 
-const START_TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er']);
+const START_TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er', 'workflow-er']);
 
 // Common CLI tail: fill the template and write the standalone HTML file.
 export function writeDiagram({ outPath, template, diagramType, meta, svg, cards, cardsHtml = null, sourceEvidence = null }) {
@@ -124,7 +124,7 @@ export function validateGuidedViews(diagramType, diagram) {
   const views = diagram.meta?.views;
   if (!Array.isArray(views) || views.length === 0) return;
   const collection = SEMANTIC_COLLECTIONS[diagramType];
-  const semanticIds = new Set(diagramType === 'sequence-er' ? [...diagram.sequence.participants.map(x=>diagram.er?'seq-'+x.id:x.id),...(diagram.er?.entities||[]).map(x=>'er-'+x.id)] : (diagram[collection] || []).map((item) => item.id));
+  const semanticIds = new Set(diagramType === 'workflow-er' ? [...diagram.workflow.nodes.map(x=>'flow-'+x.id),...diagram.er.entities.map(x=>'er-'+x.id)] : diagramType === 'sequence-er' ? [...diagram.sequence.participants.map(x=>diagram.er?'seq-'+x.id:x.id),...(diagram.er?.entities||[]).map(x=>'er-'+x.id)] : (diagram[collection] || []).map((item) => item.id));
   const seen = new Set();
   const problems = [];
 

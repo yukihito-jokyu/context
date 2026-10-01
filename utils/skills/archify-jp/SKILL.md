@@ -1,6 +1,6 @@
 ---
 name: archify-jp
-description: architecture、workflow、sequence、シーケンスとERの統合図、data-flow、lifecycle/state、class、ERの各図を、インラインSVGとエクスポート機能を備えた探索可能な単体HTMLとして作成・検証します。自然言語またはMermaidを入力とし、実コードを反映する場合はリポジトリの根拠を調査します。システム構成、API呼び出し、データパイプライン、状態遷移、UMLクラス設計、データモデルやDBアクセスの参照先を可視化するときに使用します。
+description: architecture、workflow、sequence、シーケンスとERの統合図、フローチャートとERの統合図、data-flow、lifecycle/state、class、ERの各図を、インラインSVGとエクスポート機能を備えた探索可能な単体HTMLとして作成・検証します。自然言語またはMermaidを入力とし、実コードを反映する場合はリポジトリの根拠を調査します。システム構成、API呼び出し、データパイプライン、状態遷移、UMLクラス設計、データモデルやDBアクセスの参照先を可視化するときに使用します。
 license: MIT
 metadata:
   version: "2.16"
@@ -16,8 +16,8 @@ metadata:
 
 通常の生成では、以下の範囲を限定した手順を使用します。ユーザーがその機能を求めない限り、任意のViewer Runtimeリファレンスは読みません。
 
-1. 質問内容から `architecture`、`workflow`、`sequence`、`sequence-er`、`dataflow`、`lifecycle`、`class`、`er` のいずれかを選びます。テーブル・カラムへの実際の参照や更新をシーケンスと対応づけて説明する場合は `sequence-er` を選びます。ER図が関係しない場合は通常の `sequence` だけを生成し、空のER領域や仮のテーブルを追加しません。スキーマの根拠が不足する場合はERを推測で補わず、確認できたDB呼び出しと不足する根拠を示します。
-2. `schemas/` 内の該当スキーマ1つ、`schemas/common.schema.json`、および `examples/` 内の該当JSON例1つを読みます。`sequence-er` では、入れ子定義の確認に必要なsequence／erスキーマと `references/sequence-er.md` も読みます。通常の図では、それらのファイルだけを読んでください。新規作成では、新しい安定ID、ドメイン固有の文言、レイアウトを使用します。例はフィールド構造の参考にし、事実は流用しません。新しいワークフローソースでは `schema_version: 2` と可読性重視のレイアウト契約を使用し、既存ワークフローの固定ジオメトリを維持する場合にのみ `schema_version: 1` を残します。実在製品の識別情報が重要な場合は `node bin/archify.mjs brands "<name>" --json` を実行します。ユーザーがURLを提供した未知のブランドについてのみ `references/brand-marks.md` を読みます。
+1. 質問内容から `architecture`、`workflow`、`sequence`、`sequence-er`、`workflow-er`、`dataflow`、`lifecycle`、`class`、`er` のいずれかを選びます。テーブル・カラムへの実際の参照や更新をシーケンスと対応づけて説明する場合は `sequence-er` を選びます。処理の分岐や手順を左のフローチャート、対象データを右のER図で説明する場合は `workflow-er` を選びます。ER図が関係しない場合は主題に応じて通常の `sequence` または `workflow` だけを生成し、空のER領域や仮のテーブルを追加しません。スキーマの根拠が不足する場合はERを推測で補わず、確認できたDB呼び出しと不足する根拠を示します。
+2. `schemas/` 内の該当スキーマ1つ、`schemas/common.schema.json`、および `examples/` 内の該当JSON例1つを読みます。`sequence-er` では、入れ子定義の確認に必要なsequence／erスキーマと `references/sequence-er.md` も読みます。`workflow-er` ではworkflow／erスキーマと `references/workflow-er.md` も読みます。通常の図では、それらのファイルだけを読んでください。新規作成では、新しい安定ID、ドメイン固有の文言、レイアウトを使用します。例はフィールド構造の参考にし、事実は流用しません。新しいワークフローソースでは `schema_version: 2` と可読性重視のレイアウト契約を使用し、既存ワークフローの固定ジオメトリを維持する場合にのみ `schema_version: 1` を残します。実在製品の識別情報が重要な場合は `node bin/archify.mjs brands "<name>" --json` を実行します。ユーザーがURLを提供した未知のブランドについてのみ `references/brand-marks.md` を読みます。
 3. 成果物を先に作成します。次のツール操作では候補を書き込まなければなりません。レンダラー内部を調べる前に候補を書き込んでください。正確な座標を文章で計画しません。明確な主経路を1つ、短い側枝、少数のラベル、最大12個の主要ノードから始めます。ユーザーが密集した `standard` マップを明示的に求めない限り、`meta.quality_profile` を `"showcase"` に設定します。自動ルートと自動ラベルから始めます。診断で必要とされる前に `via`、`channelX`、`channelY`、`labelAt` を追加しません。1回の修正で適用する診断済みジオメトリ制御は最大1つです。
 4. 候補を編集するたび、および引き渡し直前に検証します。
 
@@ -58,6 +58,7 @@ metadata:
 | `workflow`     | プロセス、承認ゲート、ツール呼び出し、ランブック、CI/CD                              |
 | `sequence`     | API呼び出しチェーン、リクエストのライフサイクル、非同期トレース、戻り値              |
 | `sequence-er`  | シーケンスのDBアクセスと実際のテーブル・カラム、JOIN／サブクエリ、更新／DELETEの対応 |
+| `workflow-er` | 左のフローチャートの処理ノードと、右のER図の取得・条件・結合・更新・削除の対応 |
 | `dataflow`     | パイプライン、ETL/ELT、リネージ、ガバナンス、利用者                                  |
 | `lifecycle`    | 状態／ステータス遷移、再試行、待機、終端状態                                         |
 | `class`        | UMLクラス、インターフェース、属性、操作、継承／実現／集約／合成                      |
