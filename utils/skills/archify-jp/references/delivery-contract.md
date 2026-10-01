@@ -75,3 +75,7 @@ correction_rounds: 0|1|2
 ```
 
 オープン状態、プレビュー状態、Share Card、その他のViewerエクスポートは検証済みという主張にはなりません。
+
+## シーケンスとERの統合図
+
+DBアクセスと実テーブル・カラムの対応は `sequence-er` を使用します。既存sequence／er形式を入れ子で再利用し、根拠検証には `--repo-root` を指定します。ERが関係しない場合は通常のsequenceを選びます。入力、表示切替、保証範囲は [sequence-er](sequence-er.md) を参照してください。

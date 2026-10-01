@@ -345,6 +345,14 @@ const RAW_RECIPES = [
   },
 ];
 
+const sequenceERRecipe=structuredClone(RAW_RECIPES.find(r=>r.id==='api-request'));
+sequenceERRecipe.id='sequence-er';sequenceERRecipe.type='sequence-er';sequenceERRecipe.proof='join-update-delete';
+sequenceERRecipe.signals=[['シーケンスER',24],['DBアクセス',18],['SQLとER',22],['sequence ER',24],['SQL references',18],['sequence database',20],['シーケンスとER',24],['顺序和ER',24]];
+for(const lang of ['ja','en','zh'])Object.assign(sequenceERRecipe[lang],{title:'シーケンスとER',question:'各DB呼び出しはどのテーブル・カラムを参照しますか？',summary:'処理順と取得・条件・結合・更新・DELETEの対応を示します。',useWhen:'SQLとデータモデルを処理順に対応づける場合。',avoidWhen:'ERが関係しない場合は通常sequenceを選びます。',include:['既存シーケンス','実スキーマの根拠','SQLと列の対応','種類ごとの表示切替'],prompt:'DBアクセスをsequence-erで描いてください。既存の参加者・メソッド名・順序・戻り値・TX境界を維持し、実DDLとSQLを根拠に対応づけてください。ERが不要なら通常sequenceだけを描いてください。'});
+Object.assign(sequenceERRecipe.en,{title:'Sequence and ER',question:'Which tables and columns does each database call access?',summary:'Connect call order to reads, predicates, joins, updates and row deletion.',useWhen:'Explain SQL access against a verified database model.',avoidWhen:'Use the regular sequence diagram when an ER model is irrelevant.',include:['existing sequence','verified DDL','SQL column mapping','role switches'],prompt:'Use sequence-er to connect database calls to verified DDL and SQL. Preserve participants, method labels, order, returns and transaction boundaries. Use sequence alone when ER is irrelevant.'});
+Object.assign(sequenceERRecipe.zh,{title:'时序与ER对应',question:'每次数据库调用访问哪些表和列？',summary:'把调用顺序与读取、条件、关联、更新和删除对应起来。',useWhen:'说明SQL访问与已确认的数据模型的对应关系。',avoidWhen:'不涉及ER模型时使用普通时序图，不添加空表区域。',include:['既有时序','DDL依据','SQL列映射','分类显示切换'],prompt:'用sequence-er把数据库调用与实际DDL和SQL对应起来，保持参与者、方法名、顺序、返回值和事务边界。不涉及ER时只使用sequence。'});
+sequenceERRecipe.start=undefined;RAW_RECIPES.push(sequenceERRecipe);
+
 export const SCENARIO_RECIPES = Object.freeze(RAW_RECIPES.map((recipe) => Object.freeze({
   ...recipe,
   presentation: Object.freeze({ ...recipe.presentation }),

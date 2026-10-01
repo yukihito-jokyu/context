@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { applyTemplate, renderCards, esc } from './utils.mjs';
+import { validateAccesses } from '../sequence-er/validate.mjs';
 import { validateSchema } from './validator.mjs';
 import { verifyRepositoryEvidence } from './repository-evidence.mjs';
 import { installRendererDiagnosticBoundary, throwDiagnosticProblems } from './diagnostics.mjs';
@@ -21,6 +22,7 @@ export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = p
   const inputPath = path.resolve(argv[2] || path.join(skillRoot, 'examples', defaultExample));
   const diagram = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   validateSchema(diagramType, diagram);
+  if(diagramType==='sequence-er')validateAccesses(diagram,process.env.ARCHIFY_REPO_ROOT);
   validateGuidedViews(diagramType, diagram);
   validateRelationshipIds(diagramType, diagram);
   validateEngineeringProfile(diagramType, diagram);
@@ -47,10 +49,10 @@ export async function loadDiagramWithBrandMarks(options) {
   return loaded;
 }
 
-const START_TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er']);
+const START_TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er']);
 
 // Common CLI tail: fill the template and write the standalone HTML file.
-export function writeDiagram({ outPath, template, diagramType, meta, svg, cards, sourceEvidence = null }) {
+export function writeDiagram({ outPath, template, diagramType, meta, svg, cards, cardsHtml = null, sourceEvidence = null }) {
   if (!START_TYPES.has(diagramType)) throw new Error(`writeDiagram: 不明な図の種類 ${JSON.stringify(diagramType)}`);
   const outputGuard = outputPathGuards.get(outPath);
   if (outputGuard) resolveOutputPath(outputGuard);
@@ -59,7 +61,7 @@ export function writeDiagram({ outPath, template, diagramType, meta, svg, cards,
     title: meta.title,
     subtitle: meta.subtitle,
     svg,
-    cards: renderCards(cards),
+    cards: cardsHtml ?? renderCards(cards),
     locale: meta.locale,
     visualPreset: meta.visual_preset || 'classic',
     guidedViews: meta.views || [],
@@ -122,7 +124,7 @@ export function validateGuidedViews(diagramType, diagram) {
   const views = diagram.meta?.views;
   if (!Array.isArray(views) || views.length === 0) return;
   const collection = SEMANTIC_COLLECTIONS[diagramType];
-  const semanticIds = new Set((diagram[collection] || []).map((item) => item.id));
+  const semanticIds = new Set(diagramType === 'sequence-er' ? [...diagram.sequence.participants.map(x=>diagram.er?'seq-'+x.id:x.id),...(diagram.er?.entities||[]).map(x=>'er-'+x.id)] : (diagram[collection] || []).map((item) => item.id));
   const seen = new Set();
   const problems = [];
 

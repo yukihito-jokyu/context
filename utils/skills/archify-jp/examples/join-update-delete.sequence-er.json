@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence-er",
+  "meta": {
+    "title": "担当者とタスク｜架空ケース",
+    "locale": "ja",
+    "quality_profile": "showcase"
+  },
+  "label": "タスク",
+  "sequence": {
+    "schema_version": 1,
+    "diagram_type": "sequence",
+    "meta": {
+      "title": "タスクの操作",
+      "locale": "ja",
+      "quality_profile": "showcase",
+      "column_fit": "spread",
+      "viewBox": [
+        1100,
+        850
+      ]
+    },
+    "participants": [
+      {
+        "id": "app",
+        "label": "タスクサービス",
+        "type": "backend"
+      },
+      {
+        "id": "db",
+        "label": "PostgreSQL",
+        "type": "database"
+      }
+    ],
+    "messages": [
+      {
+        "id": "query-1",
+        "from": "app",
+        "to": "db",
+        "y": 300,
+        "label": "担当者と状態を取得"
+      },
+      {
+        "id": "query-2",
+        "from": "app",
+        "to": "db",
+        "y": 420,
+        "label": "状態を更新"
+      },
+      {
+        "id": "query-3",
+        "from": "app",
+        "to": "db",
+        "y": 540,
+        "label": "完了タスクを削除"
+      }
+    ]
+  },
+  "er": {
+    "schema_version": 1,
+    "diagram_type": "er",
+    "notation": "crow-foot",
+    "meta": {
+      "title": "タスクと担当者",
+      "locale": "ja",
+      "quality_profile": "showcase",
+      "viewBox": [
+        780,
+        850
+      ]
+    },
+    "entities": [
+      {
+        "id": "accounts",
+        "name": "accounts",
+        "pos": [
+          15,
+          85
+        ],
+        "width": 345,
+        "columns": [
+          {
+            "id": "id",
+            "name": "id",
+            "type": "bigint",
+            "nullable": false,
+            "primary_key": true
+          },
+          {
+            "id": "name",
+            "name": "name",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "id": "active",
+            "name": "active",
+            "type": "boolean",
+            "nullable": false
+          }
+        ]
+      },
+      {
+        "id": "tasks",
+        "name": "tasks",
+        "pos": [
+          410,
+          85
+        ],
+        "width": 345,
+        "columns": [
+          {
+            "id": "id",
+            "name": "id",
+            "type": "bigint",
+            "nullable": false,
+            "primary_key": true
+          },
+          {
+            "id": "account_id",
+            "name": "account_id",
+            "type": "bigint",
+            "nullable": false,
+            "foreign_key": {
+              "entity": "accounts",
+              "column": "id"
+            }
+          },
+          {
+            "id": "state",
+            "name": "state",
+            "type": "text",
+            "nullable": false
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "id": "owns",
+        "from": {
+          "entity": "accounts",
+          "column": "id"
+        },
+        "to": {
+          "entity": "tasks",
+          "column": "account_id"
+        },
+        "from_cardinality": "one",
+        "to_cardinality": "zero_or_many",
+        "identifying": false
+      }
+    ]
+  },
+  "accesses": [
+    {
+      "id": "A1",
+      "message": "query-1",
+      "title": "担当者と状態を取得",
+      "operation": "SELECT",
+      "read": [
+        "accounts.name",
+        "tasks.state"
+      ],
+      "filter": [
+        "accounts.active"
+      ],
+      "join": [
+        "accounts.id",
+        "tasks.account_id"
+      ],
+      "write": [],
+      "delete": [],
+      "relations": [
+        {
+          "id": "owns",
+          "kind": "inner"
+        }
+      ],
+      "source": {
+        "path": "examples/sequence-er.sql",
+        "line": 3,
+        "quote": "SELECT a.name, t.state FROM accounts a INNER JOIN tasks t ON t.account_id = a.id WHERE a.active = true;",
+        "sql": "SELECT a.name, t.state FROM accounts a INNER JOIN tasks t ON t.account_id = a.id WHERE a.active = true;"
+      },
+      "filterText": "有効なアカウント",
+      "relationText": "accounts.id = tasks.account_id",
+      "help": "架空の検証ケース。実システムの仕様ではありません。"
+    },
+    {
+      "id": "A2",
+      "message": "query-2",
+      "title": "状態を更新",
+      "operation": "UPDATE",
+      "read": [],
+      "filter": [
+        "tasks.id"
+      ],
+      "join": [],
+      "write": [
+        "tasks.state"
+      ],
+      "delete": [],
+      "relations": [],
+      "source": {
+        "path": "examples/sequence-er.sql",
+        "line": 4,
+        "quote": "UPDATE tasks SET state = 'done' WHERE id = $1;",
+        "sql": "UPDATE tasks SET state = 'done' WHERE id = $1;"
+      },
+      "filterText": "指定タスクID",
+      "relationText": "単一テーブル",
+      "help": "架空の検証ケース。実システムの仕様ではありません。"
+    },
+    {
+      "id": "A3",
+      "message": "query-3",
+      "title": "完了タスクを削除",
+      "operation": "DELETE",
+      "read": [],
+      "filter": [
+        "tasks.state"
+      ],
+      "join": [],
+      "write": [],
+      "delete": [
+        "tasks"
+      ],
+      "relations": [],
+      "source": {
+        "path": "examples/sequence-er.sql",
+        "line": 5,
+        "quote": "DELETE FROM tasks WHERE state = 'done';",
+        "sql": "DELETE FROM tasks WHERE state = 'done';"
+      },
+      "filterText": "完了状態",
+      "relationText": "単一テーブル",
+      "help": "架空の検証ケース。実システムの仕様ではありません。"
+    }
+  ],
+  "default": "A1",
+  "context": "取得・更新・行削除の切替を検証",
+  "scope": "架空SQLとDDLに基づく検証用データ",
+  "layout": {
+    "sequenceWidth": 1100,
+    "height": 900,
+    "erWidth": 780,
+    "footerY": 775,
+    "controlsY": 830
+  },
+  "evidence": [
+    {
+      "path": "examples/sequence-er.sql",
+      "line": 1,
+      "quote": "CREATE TABLE accounts (id bigint PRIMARY KEY, name text NOT NULL, active boolean NOT NULL);",
+      "entity": "accounts"
+    },
+    {
+      "path": "examples/sequence-er.sql",
+      "line": 2,
+      "quote": "CREATE TABLE tasks (id bigint PRIMARY KEY, account_id bigint NOT NULL REFERENCES accounts(id), state text NOT NULL);",
+      "entity": "tasks"
+    }
+  ]
+}

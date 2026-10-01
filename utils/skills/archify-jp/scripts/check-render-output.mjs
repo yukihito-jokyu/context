@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import {inspectionSvg} from '../renderers/sequence-er/compose.mjs';
 import path from 'node:path';
 import { collectAmbiguousCorridors, collectBorderRuns, collectLabelRouteClearance, collectRouteRhythmIssues, routeBudgetMetrics } from '../renderers/shared/geometry.mjs';
 import {
@@ -67,7 +68,8 @@ const svgMatches = [...html.matchAll(/<svg\b[\s\S]*?<\/svg>/gi)];
 addCheck('single_svg', svgMatches.length === 1, [`<svg>ブロックが${svgMatches.length}個見つかりました`]);
 
 if (svgMatches.length === 1) {
-  const svg = svgMatches[0][0];
+  const compound = /data-diagram-type="sequence-er"/.test(svgMatches[0][0]);
+  const svg = compound ? inspectionSvg(svgMatches[0][0]) : svgMatches[0][0];
   const svgRoot = svg.match(/<svg\b[^>]*>/i)?.[0] || '';
   const svgAttrs = parseAttrs(svgRoot);
   const qualityProfile = svgAttrs['data-quality-profile'] || 'standard';
@@ -77,7 +79,8 @@ if (svgMatches.length === 1) {
   const beforeLegend = legendStart >= 0 ? svg.slice(0, legendStart) : svg;
   const desktopReadabilityIssue = collectDesktopReadability(svgAttrs, beforeLegend);
   const arrows = collectArrows(beforeLegend);
-  const diagonal = arrows.flatMap((arrow) => diagonalStraightSegments(arrow).map((segment) => ({ arrow, ...segment })));
+  const erArrows = compound ? collectArrows(beforeLegend.replace(/class="er-edge /g,'class="a-default ')) .filter(a=>a.raw.includes('er-')) : [];
+  const diagonal = [...arrows,...erArrows].flatMap((arrow) => diagonalStraightSegments(arrow).map((segment) => ({ arrow, ...segment })));
   addCheck(
     'orthogonal_arrows',
     diagonal.length === 0,
