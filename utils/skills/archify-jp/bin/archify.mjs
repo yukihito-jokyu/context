@@ -10,15 +10,15 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skillRoot = path.resolve(__dirname, '..');
 
-const TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er']);
+const TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er', 'workflow-er']);
 
 function usage() {
   return `使用方法:
-  archify render <type> <input.json> [output.html] [--quality standard|showcase] [--repo-root path（architecture／sequence-er）]
+  archify render <type> <input.json> [output.html] [--quality standard|showcase] [--repo-root path（architecture／sequence-er／workflow-er）]
   archify compare architecture <base.json> <head.json> [output.html] [--receipt path] [--json] [--quality standard|showcase] [--repo-root path]
-  archify deliver <type> <input.json> [output.html] [--json] [--open] [--quality standard|showcase] [--repo-root path（architecture／sequence-er）]
-  archify preview <type> <input.json> [output.html] [--no-open] [--quality standard|showcase] [--repo-root path（architecture／sequence-er）]
-  archify validate <type> <input.json> [--json] [--layout-json] [--quality standard|showcase] [--repo-root path（architecture／sequence-er）]
+  archify deliver <type> <input.json> [output.html] [--json] [--open] [--quality standard|showcase] [--repo-root path（architecture／sequence-er／workflow-er）]
+  archify preview <type> <input.json> [output.html] [--no-open] [--quality standard|showcase] [--repo-root path（architecture／sequence-er／workflow-er）]
+  archify validate <type> <input.json> [--json] [--layout-json] [--quality standard|showcase] [--repo-root path（architecture／sequence-er／workflow-er）]
   archify migrate workflow <old.json> <new.json> --to-schema 2 [--json]
   archify inspect <type> <input.json>
   archify check <output.html>
@@ -31,7 +31,7 @@ function usage() {
   archify demo [output-directory]
 
 種類:
-  architecture, workflow, sequence, sequence-er, dataflow, lifecycle, class, er
+  architecture, workflow, sequence, sequence-er, workflow-er, dataflow, lifecycle, class, er
 `;
 }
 
@@ -240,8 +240,8 @@ function formatDiagnostics(error, diagnostics = []) {
 }
 
 function assertEvidenceType(type, repoRoot) {
-  if (repoRoot && !['architecture', 'sequence-er'].includes(type)) {
-    fail('--repo-rootは現在architecture図とsequence-er図で使用できます。');
+  if (repoRoot && !['architecture', 'sequence-er', 'workflow-er'].includes(type)) {
+    fail('--repo-rootは現在architecture図・sequence-er図・workflow-er図で使用できます。');
   }
 }
 
@@ -1308,6 +1308,7 @@ async function commandDoctor() {
     workflow: 'agent-tool-call.workflow.json',
     sequence: 'cache-miss-request.sequence.json',
     'sequence-er': 'join-update-delete.sequence-er.json',
+    'workflow-er': 'task-operations.workflow-er.json',
     dataflow: 'product-analytics.dataflow.json',
     lifecycle: 'agent-run.lifecycle.json',
     class: 'domain-model.class.json',
