@@ -8,9 +8,9 @@ import {
   recommendScenario,
 } from '../recipes/scenarios.mjs';
 
-test('guide: exposes 12 unique recipes across every diagram type', () => {
-  assert.equal(SCENARIO_RECIPES.length, 12);
-  assert.equal(new Set(SCENARIO_RECIPES.map((recipe) => recipe.id)).size, 12);
+test('guide: exposes 13 unique recipes across every diagram type', () => {
+  assert.equal(SCENARIO_RECIPES.length, 13);
+  assert.equal(new Set(SCENARIO_RECIPES.map((recipe) => recipe.id)).size, 13);
   assert.deepEqual(
     Object.fromEntries(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle'].map((type) => [
       type,
@@ -53,6 +53,8 @@ test('guide: representative scenarios map to specialized recipes', () => {
     ['梳理 ETL 数仓 PII 数据血缘', 'data-lineage'],
     ['deployment lifecycle approval rollback state', 'deployment-lifecycle'],
     ['agent tool call approval gate MCP', 'agent-tool-call'],
+    ['左にフローチャートと右にER図', 'workflow-er'],
+    ['flowchart and ER', 'workflow-er'],
   ];
 
   for (const [query, expected] of cases) {
@@ -73,7 +75,7 @@ test('guide: exact ids win and unknown questions fall back honestly', () => {
 
 test('guide: public data includes all supported languages and weighted signals', () => {
   const data = publicGuideData();
-  assert.equal(data.length, 12);
+  assert.equal(data.length, 13);
   for (const recipe of data) {
     assert.ok(recipe.en.title);
     assert.ok(recipe.ja.title);
