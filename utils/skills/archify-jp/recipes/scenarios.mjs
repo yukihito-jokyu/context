@@ -353,6 +353,14 @@ Object.assign(sequenceERRecipe.en,{title:'Sequence and ER',question:'Which table
 Object.assign(sequenceERRecipe.zh,{title:'时序与ER对应',question:'每次数据库调用访问哪些表和列？',summary:'把调用顺序与读取、条件、关联、更新和删除对应起来。',useWhen:'说明SQL访问与已确认的数据模型的对应关系。',avoidWhen:'不涉及ER模型时使用普通时序图，不添加空表区域。',include:['既有时序','DDL依据','SQL列映射','分类显示切换'],prompt:'用sequence-er把数据库调用与实际DDL和SQL对应起来，保持参与者、方法名、顺序、返回值和事务边界。不涉及ER时只使用sequence。'});
 sequenceERRecipe.start=undefined;RAW_RECIPES.push(sequenceERRecipe);
 
+const workflowERRecipe=structuredClone(sequenceERRecipe);
+workflowERRecipe.id='workflow-er';workflowERRecipe.type='workflow-er';workflowERRecipe.proof='task-operations';
+workflowERRecipe.signals=[['フローチャートとER',30],['フローチャートER',30],['workflow ER',30],['workflow-er',30],['flowchart ER',30],['流程图与ER',30],['フローチャートと右にER',30],['flowchart and ER',30]];
+Object.assign(workflowERRecipe.ja,{title:'フローチャートとER',question:'各処理はどのデータを参照・変更しますか？',summary:'左の処理フローと右のER図をノード選択で対応づけます。',useWhen:'分岐や手順とSQLの対象データを一緒に説明する場合。',avoidWhen:'データモデルが不要なら通常workflowを使います。',include:['処理フロー','実DDLとSQL','ノードと列の対応','種類別表示'],prompt:'workflow-erで左にフローチャート、右にER図を描いてください。処理ノードと実SQLの対象列を対応づけ、分岐・合流を維持してください。'});
+Object.assign(workflowERRecipe.en,{title:'Flowchart and ER',question:'Which data does each process read or change?',summary:'Select a process on the left to highlight its SQL targets in the ER model on the right.',useWhen:'Explain branches and process steps against verified SQL and DDL.',avoidWhen:'Use workflow alone when the data model is irrelevant.',include:['process flow','verified SQL and DDL','node to column mapping','role switches'],prompt:'Use workflow-er with a flowchart on the left and an ER model on the right. Map process nodes to verified SQL columns and preserve branches and merges.'});
+Object.assign(workflowERRecipe.zh,{title:'流程图与ER',question:'各处理读取或修改哪些数据？',summary:'选择左侧处理节点，突出右侧ER图中的SQL目标。',useWhen:'结合SQL和DDL说明分支及处理步骤。',avoidWhen:'不涉及数据模型时使用普通workflow。',include:['处理流程','SQL和DDL依据','节点与列的对应','分类显示'],prompt:'用workflow-er把流程图放在左侧、ER图放在右侧。对应处理节点与实际SQL的列，保留分支及汇合。'});
+RAW_RECIPES.push(workflowERRecipe);
+
 export const SCENARIO_RECIPES = Object.freeze(RAW_RECIPES.map((recipe) => Object.freeze({
   ...recipe,
   presentation: Object.freeze({ ...recipe.presentation }),
