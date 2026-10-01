@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const schemasDir = path.join(root, 'schemas');
 const output = path.join(root, 'renderers/shared/generated-validators.mjs');
-const diagramTypes = ['workflow', 'sequence', 'dataflow', 'lifecycle', 'architecture', 'class', 'er'];
+const diagramTypes = ['workflow', 'sequence', 'dataflow', 'lifecycle', 'architecture', 'class', 'er', 'sequence-er'];
 
 const ajv = new Ajv2020({
   allErrors: true,
@@ -25,7 +25,7 @@ for (const type of diagramTypes) {
   ajv.addSchema(schema);
   // `class` is a reserved binding name in JavaScript. AJV receives a safe
   // local binding and we re-export it under the diagram-type key below.
-  schemaIds[type === 'class' ? 'classDiagram' : type] = schema.$id;
+  schemaIds[type === 'class' ? 'classDiagram' : type === 'sequence-er' ? 'sequenceER' : type] = schema.$id;
 }
 
 const banner = '// scripts/generate-validators.mjs により生成されました。手動で編集しないでください。\n';
@@ -50,7 +50,7 @@ validatorCode = validatorCode.replaceAll(ajvUcs2Import, inlineUcs2Length);
 if (validatorCode.includes('require(')) {
   throw new Error('AJVの単体出力に想定外の実行時依存関係が含まれています');
 }
-const generated = `${banner}${validatorCode}\nexport { classDiagram as class };\n`;
+const generated = `${banner}${validatorCode}\nexport { classDiagram as class, sequenceER as "sequence-er" };\n`;
 
 if (process.argv.includes('--check')) {
   const current = fs.existsSync(output)

@@ -1,0 +1,367 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tt-a1i/archify/schemas/sequence-er.schema.json",
+  "title": "Sequence and ER",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "diagram_type",
+    "meta",
+    "sequence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "diagram_type": {
+      "const": "sequence-er"
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locale": {
+          "$ref": "common.schema.json#/$defs/locale"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "output": {
+          "type": "string"
+        },
+        "animation": {
+          "$ref": "common.schema.json#/$defs/animation"
+        },
+        "visual_preset": {
+          "$ref": "common.schema.json#/$defs/visualPreset"
+        },
+        "quality_profile": {
+          "$ref": "common.schema.json#/$defs/qualityProfile"
+        },
+        "column_fit": {
+          "description": "参加者の水平レイアウト。安定した86pxのボックスと108pxの間隔を使用するには、このフィールドを省略するかfixedを使用します。幅広いviewBoxで未使用の水平空間が残る場合、または意味のある参加者ラベルが固定ボックスに収まらない場合はspreadを使用します。spreadは参加者順やメッセージの意味を変更せず、viewBoxからより幅広いボックスと間隔を導出します。",
+          "enum": [
+            "fixed",
+            "spread"
+          ]
+        },
+        "views": {
+          "$ref": "common.schema.json#/$defs/guidedViews"
+        },
+        "legend": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "$ref": "common.schema.json#/$defs/legendMode"
+            },
+            "entries": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "default": {
+                  "$ref": "common.schema.json#/$defs/legendEntry"
+                },
+                "emphasis": {
+                  "$ref": "common.schema.json#/$defs/legendEntry"
+                },
+                "security": {
+                  "$ref": "common.schema.json#/$defs/legendEntry"
+                },
+                "dashed": {
+                  "$ref": "common.schema.json#/$defs/legendEntry"
+                },
+                "return": {
+                  "$ref": "common.schema.json#/$defs/legendEntry"
+                }
+              }
+            }
+          }
+        },
+        "viewBox": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": 480
+            },
+            {
+              "type": "number",
+              "minimum": 480
+            }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "sequence": {
+      "$ref": "sequence.schema.json"
+    },
+    "er": {
+      "$ref": "er.schema.json"
+    },
+    "accesses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "message",
+          "title",
+          "operation",
+          "read",
+          "filter",
+          "join",
+          "write",
+          "delete",
+          "relations",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operation": {
+            "enum": [
+              "SELECT",
+              "UPDATE",
+              "DELETE"
+            ]
+          },
+          "read": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "filter": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "join": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "write": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "delete": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "relations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "kind": {
+                  "enum": [
+                    "inner",
+                    "left",
+                    "subquery"
+                  ]
+                }
+              }
+            }
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "line",
+              "quote"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "quote": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sql": {
+                "type": "string"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "filterText": {
+            "type": "string"
+          },
+          "relationText": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "line",
+          "quote"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sql": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "default": {
+      "type": "string",
+      "minLength": 1
+    },
+    "context": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "sequenceHeading": {
+      "type": "string"
+    },
+    "caption": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sequenceWidth": {
+          "type": "number",
+          "minimum": 1
+        },
+        "erWidth": {
+          "type": "number",
+          "minimum": 1
+        },
+        "height": {
+          "type": "number",
+          "minimum": 1
+        },
+        "footerY": {
+          "type": "number",
+          "minimum": 1
+        },
+        "controlsY": {
+          "type": "number",
+          "minimum": 1
+        },
+        "routes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^M[ 0-9.,MLHV+-]+$"
+          }
+        }
+      }
+    },
+    "navigation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "href",
+          "label"
+        ],
+        "properties": {
+          "href": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*\\.html$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}
