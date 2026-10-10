@@ -67,12 +67,14 @@ context deploy context
 
 ```text
 projects/<repo>/skills/*
-utils/skills/*
+utils/skills/（直下と分類最大2階層）
 ```
+
+共通Skillの配置・候補探索・同名競合・同梱Skillの要件は[要件定義 2.3](requirements.md#23-共通skill管理)に従う。探索手順は[詳細設計 5章](detailed-design.md#5-skill候補収集)を参照する。
 
 ### 6.2 Skill の優先順位
 
-同名 Skill が存在する場合は、以下を優先する。
+共通側の候補名が一意であることを確認した後、共通とプロジェクト固有の同名 Skill が存在する場合は、以下を優先する。
 
 ```text
 projects/<repo>/skills
@@ -85,6 +87,8 @@ projects/<repo>/skills
 選択結果は保存しない。
 
 毎回選択する。
+
+選択画面にはSkill名と実際の配布元パスを表示する。コピー元はそのパスとし、分類階層は配布先に含めない。同梱ファイル・同梱Skillも親Skillと一緒にコピーする。
 
 ---
 
