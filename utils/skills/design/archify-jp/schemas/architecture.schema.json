@@ -13,6 +13,7 @@
       "additionalProperties": false,
       "required": ["title"],
       "properties": {
+        "hierarchy": { "$ref": "common.schema.json#/$defs/hierarchy" },
         "title": { "type": "string", "minLength": 1 },
         "locale": { "$ref": "common.schema.json#/$defs/locale" },
         "subtitle": { "type": "string" },
@@ -88,6 +89,7 @@
         "additionalProperties": false,
         "required": ["id", "type", "label"],
         "properties": {
+          "link": { "$ref": "common.schema.json#/$defs/nodeLink" },
           "id": { "$ref": "common.schema.json#/$defs/id" },
           "type": { "$ref": "common.schema.json#/$defs/componentType" },
           "label": { "type": "string", "minLength": 1 },
@@ -140,8 +142,11 @@
             "minItems": 1,
             "items": { "$ref": "common.schema.json#/$defs/id" }
           },
-          "pad": { "type": "number", "minimum": 0 }
-        }
+          "pad": { "type": "number", "minimum": 0 },
+          "id": { "$ref": "common.schema.json#/$defs/id" },
+          "link": { "$ref": "common.schema.json#/$defs/nodeLink" }
+        },
+        "dependentRequired": { "link": ["id"] }
       }
     },
     "connections": {
