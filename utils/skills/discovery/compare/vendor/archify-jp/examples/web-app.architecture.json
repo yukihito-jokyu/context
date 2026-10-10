@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Webアプリのサンプル",
+    "output": "web-app-rendered.html",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "request-path", "label": "主要なリクエスト経路", "focus": ["users", "cdn", "lb", "api", "db"], "note": "主要な顧客リクエストをエッジから永続状態まで追跡します。" },
+      { "id": "identity-and-cache", "label": "認証とキャッシュ", "focus": ["auth", "api", "cache"], "note": "リクエスト経路に隣接する認証とリードスルーキャッシュを切り分けます。" },
+      { "id": "async-work", "label": "静的配信と非同期処理", "focus": ["cdn", "s3", "api", "queue", "worker"], "note": "主要なリクエストに余計な情報を加えず、2つの副次経路を確認します。" }
+    ]
+  },
+  "components": [
+    { "id": "users", "type": "external", "label": "ユーザー", "sublabel": "ブラウザー / モバイル", "pos": [40, 300], "size": [120, 60] },
+    { "id": "auth", "type": "security", "label": "認証プロバイダー", "sublabel": "OAuth 2.0", "pos": [40, 110], "size": [120, 64], "tag": "JWT + PKCE" },
+    { "id": "cdn", "type": "cloud", "label": "CloudFront", "sublabel": "CDN", "pos": [250, 300], "size": [130, 60] },
+    { "id": "lb", "type": "cloud", "label": "ロードバランサー", "sublabel": "HTTPS :443", "pos": [460, 300], "size": [130, 60] },
+    { "id": "api", "type": "backend", "label": "APIサーバー", "sublabel": "FastAPI :8000", "pos": [670, 300], "size": [130, 60] },
+    { "id": "cache", "type": "database", "label": "Redis", "sublabel": "キャッシュ :6379", "pos": [670, 150], "size": [130, 60] },
+    { "id": "db", "type": "database", "label": "PostgreSQL", "sublabel": "プライマリー :5432", "pos": [880, 300], "size": [130, 60] },
+    { "id": "s3", "type": "cloud", "label": "S3", "sublabel": "静的アセット", "pos": [250, 440], "size": [130, 60], "tag": "OAIで保護" },
+    { "id": "queue", "type": "messagebus", "label": "SQS", "sublabel": "ジョブキュー", "pos": [670, 440], "size": [130, 60] },
+    { "id": "worker", "type": "backend", "label": "ワーカー", "sublabel": "非同期ジョブ", "pos": [880, 440], "size": [130, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "AWS Region: us-west-2", "wraps": ["cdn", "lb", "api", "cache", "db", "s3", "queue", "worker"] },
+    { "kind": "security-group", "label": "sg-api :443/:8000", "wraps": ["lb", "api"] }
+  ],
+  "connections": [
+    { "id": "users-to-cdn", "from": "users", "to": "cdn", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "jwt-verification", "from": "auth", "to": "api", "label": "JWTを検証", "variant": "security", "fromSide": "right", "toSide": "top", "via": [[620, 142], [620, 246], [735, 246]] },
+    { "id": "cdn-to-lb", "from": "cdn", "to": "lb" },
+    { "id": "static-assets", "from": "cdn", "to": "s3", "label": "静的", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 58 },
+    { "id": "lb-to-api", "from": "lb", "to": "api" },
+    { "id": "cache-read-through", "from": "api", "to": "cache", "label": "リードスルー", "fromSide": "top", "toSide": "bottom", "labelDy": -68 },
+    { "id": "api-sql", "from": "api", "to": "db", "label": "SQL" },
+    { "id": "enqueue-job", "from": "api", "to": "queue", "label": "キューへ投入", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 58 },
+    { "id": "queue-to-worker", "from": "queue", "to": "worker" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "エッジ", "items": ["CloudFront CDNがすべてのトラフィックを受け付けます", "S3はOAI経由で静的アセットを配信します"] },
+    { "dot": "emerald", "title": "アプリケーション", "items": ["FastAPIはHTTPSロードバランサーの背後に配置されます", "Redisのリードスルーキャッシュを使用します", "ワーカーがSQSから非同期処理を取り出します"] },
+    { "dot": "rose", "title": "セキュリティ", "items": ["JWT + PKCEを使用するOAuth 2.0", "API + LBをセキュリティグループ内に分離します"] }
+  ]
+}
