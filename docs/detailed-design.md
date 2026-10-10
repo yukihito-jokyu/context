@@ -30,8 +30,15 @@ context/
 ├── utils/
 │   ├── README.md
 │   └── skills/
-│       └── <skill-name>/
-│           └── SKILL.md
+│       ├── README.md
+│       ├── <skill-name>/
+│       │   └── SKILL.md
+│       └── <category>/
+│           ├── <skill-name>/
+│           │   └── SKILL.md
+│           └── <subcategory>/
+│               └── <skill-name>/
+│                   └── SKILL.md
 │
 └── projects/
     ├── context/
@@ -107,7 +114,8 @@ const (
 
 - `SKILL.md` は必須
 - `metadata.yaml` は持たない
-- 同名Skillがある場合は Project 側を優先
+- 候補名はSkillディレクトリ名とし、分類名を含めない
+- 共通側の同名重複はエラー。同名の共通SkillとProject Skillの競合は Project 側を優先
 - 配布時は選択されたSkillのみコピーする
 
 ---
@@ -266,7 +274,7 @@ Gitリポジトリでない場合は警告を表示し、続行確認する。
 
 ```text
 projects/<repo>/skills/*
-utils/skills/*
+utils/skills/（直下と分類最大2階層）
 ```
 
 ---
@@ -279,13 +287,25 @@ Skillディレクトリとして扱う条件：
 <skill-name>/SKILL.md
 ```
 
-が存在すること。
+が存在すること。配置の要件は[要件定義 2.3](requirements.md#23-共通skill管理)を正とする。
+
+共通Skillは次の手順で収集する。ここで深さは `utils/skills/` からのディレクトリ階層数で、直下のSkillが1、分類2階層のSkillが3となる。
+
+1. `utils/skills/` 直下のディレクトリから開始し、名前順に探索する。
+2. 探索対象に `SKILL.md` が直接存在すれば、末尾のディレクトリ名を `Name`、実際のディレクトリパスを `SourcePath` として候補へ追加する。その内部には降りない。
+3. `SKILL.md` がなければ分類用ディレクトリとして扱い、深さ3未満の場合だけ子ディレクトリを探索する。
+4. 深さ3に達したディレクトリに `SKILL.md` がなければ、その配下には降りない。上限を超える配置は候補にならない。
+5. プロジェクト固有Skillは `projects/<repo>/skills/` 直下だけを調べ、`SKILL.md` を直接持つディレクトリを追加する。
+
+READMEなどの通常ファイルは候補にしない。Skillの内部には降りないため、例えば `react-requirements-workshop/vendor/design-system/SKILL.md` は独立した候補にならない。
 
 ---
 
 ## 5.3 優先順位
 
-同名Skillが存在する場合：
+まず共通候補を `Name` でまとめる。同名が複数あれば、名前と全該当 `SourcePath` をエラー表示して配布前に中止する。プロジェクト側に同名があっても共通側の重複はエラーとする。
+
+共通側の一意性を確認した後、同名のProject Skillが存在する場合：
 
 ```text
 projects/<repo>/skills/<skill-name>
@@ -294,10 +314,12 @@ projects/<repo>/skills/<skill-name>
 を採用し、
 
 ```text
-utils/skills/<skill-name>
+utils/skills/[<category>/[<subcategory>/]]<skill-name>
 ```
 
 は候補から除外する。
+
+上記の角括弧は省略可能な分類階層を表し、実際のディレクトリ名ではない。解決後の候補は `Name` 順で表示し、分類名を含む実際の `SourcePath` も併記する。候補の読み込み・コピーには `SourcePath` を使い、分類を落としたパスを再構築しない。
 
 ---
 
@@ -345,6 +367,8 @@ Select skills to deploy:
 [x] spring-review          project
 ```
 
+各候補には配布元のパスも表示する。例えば `archify-jp` の共通候補の配布元は `utils/skills/design/archify-jp` となる。
+
 ---
 
 ## 6.2 AGENTS.md確認
@@ -370,6 +394,8 @@ CLAUDE.md の内容は AGENTS.md と同じ内容にする。
 ## 7.1 Skillコピー先
 
 選択されたSkillは両方へコピーする。
+
+配布元には候補の `SourcePath` を使い、同梱Skillを含むディレクトリ全体をコピーする。分類用ディレクトリは配布先に作らない。
 
 ```text
 .claude/skills/<skill-name>/
@@ -466,12 +492,14 @@ READMEの生成・更新はAI Agentが行う。
 対象：
 
 ```text
-utils/skills/*
+utils/skills/ 配下の共通Skill候補（5章の探索規則）
 ```
 
 目的：
 
 共通Skillカタログ。
+
+`utils/skills/README.md` に分類と所属Skillの一覧を置き、`utils/README.md` に用途・使い方の要約を置く。分類移動時は両方の参照を更新する。
 
 ---
 
