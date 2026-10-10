@@ -117,6 +117,17 @@ node bin/archify.mjs preview <type> <input>.json <output>.html --quality showcas
 
 既定ではpreviewを開始しません。preview、リポジトリの根拠、エクスポートレシート、目視確認、確定後のオープンを使用する場合は `references/delivery-contract.md` を読みます。
 
+## 階層化（詳細図への遷移）
+
+ユーザーが図を関心ごとに分割し、全体図のノードから詳細図へ遷移させたい場合にのみ `references/hierarchy.md` を読みます。要点は次のとおりです。
+
+- ノードの `link`（`href` は相対 `.html`、任意で `focus` / `view` / `label`）と、`meta.hierarchy`（`parent` / `map` / `require_links` / `leaf_nodes`）は全種類の図で使えます。
+- 全体図には `require_links: true` を付け、遷移先のないノードは詳細図を作るか、理由付きで `leaf_nodes` に登録します。
+- architecture の全体図では、囲みを詳細図の単位（関心ごと）と一致させ、複数ノードで1枚になる詳細図は囲みに `id` と `link` を書きます。共通部品を使う関係は囲みどうしの接続で描き、詳細図どうしの横断リンクは親図の線で裏付けます。横断リンクには遷移先のノードを `link.focus` で指定し、ノードどうしのつながりにします（遷移元に着くノード、遷移先に参照元が表示されます）。
+- 新しく作るときは `examples/hierarchy/`（全体図1枚と詳細図3枚の一式）を構造の参考にします。事実は流用しません。
+- 各仕様を `validate --quality showcase` で合格させた後、`node bin/archify.mjs hierarchy-build <root.json> --strict --json` を実行します。同期（パンくず・同じ階層の図・参照元・子図の数）、親から順の `deliver`、横断リンクの図の出し直し、マップ図の生成、`hierarchy-check`、遷移先プレビューの検査、各図の `visual-check` までをこの順で行います。個別に `deliver` すると順序次第で `hierarchy/stale-html` になるため、階層の図はこのコマンドで出力します。architecture の `sources` や sequence-er／workflow-er の SQL/DDL など、リポジトリの根拠を持つ図がある場合は `--repo-root` を渡します。合成図へリンクする `focus` は、出力の接頭辞付き id（`seq-` / `flow-` / `er-`）で書きます。
+- 結果が合格になるまで、報告された図や診断だけを直して再実行します。プレビュー検査や visual-check が「スキップ」（Chrome なし）の場合は、その確認をしていないことを報告します。スクリーンショットの目視確認は別途行います。
+
 ## Viewerの任意機能
 
 生成されたHTMLには、テーマ切り替え、パン／ズーム、検索、フォーカス、関係トレース、意味ビュー、プレゼンテーション、正確なエクスポートがすでに含まれています。これらは閲覧者向けの機能であり、追加のオーサリング作業ではありません。`meta.animation: "trace"` は任意指定です。`meta.views` は任意で、厳選したチャプターを最大5つ含めます。
