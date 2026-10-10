@@ -29,6 +29,10 @@ function usage() {
   archify examples
   archify doctor
   archify demo [output-directory]
+  archify hierarchy-check <root.json> [--scan dir] [--json] [--strict]
+  archify hierarchy-sync <root.json> [--check] [--json]
+  archify map <root.json> <map.html> [--scan dir] [--json]
+  archify hierarchy-build <root.json> [--scan dir] [--quality showcase|standard] [--repo-root dir] [--strict] [--no-preview-check] [--json]
 
 種類:
   architecture, workflow, sequence, sequence-er, workflow-er, dataflow, lifecycle, class, er
@@ -1987,6 +1991,26 @@ switch (command) {
   case 'demo':
     commandDemo(args);
     break;
+  case 'hierarchy-check': {
+    const { runHierarchyCheck } = await import('../scripts/check-hierarchy.mjs');
+    process.exitCode = runHierarchyCheck(args);
+    break;
+  }
+  case 'hierarchy-sync': {
+    const { runHierarchyCheck } = await import('../scripts/check-hierarchy.mjs');
+    process.exitCode = runHierarchyCheck(['--sync', ...args]);
+    break;
+  }
+  case 'map': {
+    const { runHierarchyCheck } = await import('../scripts/check-hierarchy.mjs');
+    process.exitCode = runHierarchyCheck(['--map', ...args]);
+    break;
+  }
+  case 'hierarchy-build': {
+    const { runHierarchyBuild } = await import('../scripts/build-hierarchy.mjs');
+    process.exitCode = await runHierarchyBuild(args);
+    break;
+  }
   default:
     fail(`不明なコマンドです: "${command}"。\n\n${usage()}`);
 }

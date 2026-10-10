@@ -73,7 +73,7 @@ function renderNode(box) {
   const attrs = item.attributes.length ? item.attributes.map((a, i) => `<text class="class-member" x="14" y="${82 + i * 23}">${esc(`${visibility[a.visibility]} ${a.static ? '$' : ''}${a.name}: ${a.type}`)}</text>`).join('') : '<text class="class-member class-empty" x="14" y="82">—</text>';
   const methods = item.methods.length ? item.methods.flatMap((m) => methodLines(m, width)).map((line, i) => `<text class="class-member" x="14" y="${attrBottom + 28 + i * 20}">${esc(line)}</text>`).join('') : `<text class="class-member class-empty" x="14" y="${attrBottom + 28}">—</text>`;
   const semanticKind = item.kind === 'interface' ? 'external' : 'backend';
-  return `        <g class="class-node ${esc(item.kind)}" ${focusNodeAttrs(item.id, item.name, { kind: semanticKind, sublabel: item.stereotype || item.kind, context: item.kind === 'interface' ? 'UML interface' : 'UML class' }, diagram.meta.locale)}>
+  return `        <g class="class-node ${esc(item.kind)}" ${focusNodeAttrs(item.id, item.name, { kind: semanticKind, sublabel: item.stereotype || item.kind, context: item.kind === 'interface' ? 'UML interface' : 'UML class', link: item.link }, diagram.meta.locale)}>
           <g transform="translate(${x} ${y})"><title>${esc([item.name, item.stereotype].filter(Boolean).join(' · '))}</title><rect width="${width}" height="${height}" rx="8"/><text class="class-stereo" x="${width / 2}" y="20">&lt;&lt;${esc(item.stereotype || item.kind)}&gt;&gt;</text><text class="class-name" data-node-label x="${width / 2}" y="44">${esc(item.name)}</text><line class="class-divider" x1="0" y1="58" x2="${width}" y2="58"/>${attrs}<line class="class-divider" x1="0" y1="${attrBottom}" x2="${width}" y2="${attrBottom}"/>${methods}</g>
         </g>`;
 }

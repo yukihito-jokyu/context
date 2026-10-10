@@ -1,0 +1,382 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow-er",
+  "meta": {
+    "title": "空き枠判定フロー",
+    "locale": "ja",
+    "quality_profile": "showcase",
+    "hierarchy": {
+      "parent": {
+        "href": "../root.html",
+        "label": "全体図"
+      }
+    }
+  },
+  "label": "空き枠",
+  "er": {
+    "schema_version": 1,
+    "diagram_type": "er",
+    "notation": "crow-foot",
+    "meta": {
+      "title": "枠と予約",
+      "locale": "ja",
+      "quality_profile": "showcase",
+      "viewBox": [
+        780,
+        850
+      ]
+    },
+    "entities": [
+      {
+        "id": "doctors",
+        "name": "doctors",
+        "pos": [
+          15,
+          85
+        ],
+        "width": 345,
+        "columns": [
+          {
+            "id": "id",
+            "name": "id",
+            "type": "bigint",
+            "nullable": false,
+            "primary_key": true
+          },
+          {
+            "id": "name",
+            "name": "name",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "id": "dept",
+            "name": "dept",
+            "type": "text",
+            "nullable": false
+          }
+        ]
+      },
+      {
+        "id": "slots",
+        "name": "slots",
+        "pos": [
+          410,
+          85
+        ],
+        "width": 345,
+        "columns": [
+          {
+            "id": "id",
+            "name": "id",
+            "type": "bigint",
+            "nullable": false,
+            "primary_key": true
+          },
+          {
+            "id": "doctor_id",
+            "name": "doctor_id",
+            "type": "bigint",
+            "nullable": false,
+            "foreign_key": {
+              "entity": "doctors",
+              "column": "id"
+            }
+          },
+          {
+            "id": "starts_at",
+            "name": "starts_at",
+            "type": "timestamp",
+            "nullable": false
+          },
+          {
+            "id": "capacity",
+            "name": "capacity",
+            "type": "integer",
+            "nullable": false
+          }
+        ]
+      },
+      {
+        "id": "appointments",
+        "name": "appointments",
+        "pos": [
+          410,
+          420
+        ],
+        "width": 345,
+        "columns": [
+          {
+            "id": "id",
+            "name": "id",
+            "type": "bigint",
+            "nullable": false,
+            "primary_key": true
+          },
+          {
+            "id": "slot_id",
+            "name": "slot_id",
+            "type": "bigint",
+            "nullable": false,
+            "foreign_key": {
+              "entity": "slots",
+              "column": "id"
+            }
+          },
+          {
+            "id": "patient_id",
+            "name": "patient_id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "id": "status",
+            "name": "status",
+            "type": "text",
+            "nullable": false
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "id": "doctor-slots",
+        "from": {
+          "entity": "doctors",
+          "column": "id"
+        },
+        "to": {
+          "entity": "slots",
+          "column": "doctor_id"
+        },
+        "from_cardinality": "one",
+        "to_cardinality": "zero_or_many",
+        "identifying": false
+      },
+      {
+        "id": "slot-appointments",
+        "from": {
+          "entity": "slots",
+          "column": "id"
+        },
+        "to": {
+          "entity": "appointments",
+          "column": "slot_id"
+        },
+        "from_cardinality": "one",
+        "to_cardinality": "zero_or_many",
+        "identifying": false
+      }
+    ]
+  },
+  "accesses": [
+    {
+      "id": "A1",
+      "title": "日時の枠を検索",
+      "operation": "SELECT",
+      "read": [
+        "slots.id",
+        "slots.capacity",
+        "doctors.dept"
+      ],
+      "filter": [
+        "slots.starts_at"
+      ],
+      "join": [
+        "doctors.id",
+        "slots.doctor_id"
+      ],
+      "write": [],
+      "delete": [],
+      "relations": [
+        {
+          "id": "doctor-slots",
+          "kind": "inner"
+        }
+      ],
+      "source": {
+        "path": "sql/hospital.sql",
+        "line": 5,
+        "quote": "SELECT s.id, s.capacity, d.dept FROM slots s INNER JOIN doctors d ON d.id = s.doctor_id WHERE s.starts_at = $1;"
+      },
+      "filterText": "指定日時",
+      "relationText": "doctors.id = slots.doctor_id",
+      "node": "find-slot"
+    },
+    {
+      "id": "A2",
+      "title": "予約済みを数える",
+      "operation": "SELECT",
+      "read": [
+        "appointments.id"
+      ],
+      "filter": [
+        "appointments.slot_id",
+        "appointments.status"
+      ],
+      "join": [],
+      "write": [],
+      "delete": [],
+      "relations": [],
+      "source": {
+        "path": "sql/hospital.sql",
+        "line": 6,
+        "quote": "SELECT a.id FROM appointments a WHERE a.slot_id = $1 AND a.status = 'booked';"
+      },
+      "filterText": "対象枠の予約済み",
+      "relationText": "単一テーブル",
+      "node": "count-booked"
+    },
+    {
+      "id": "A3",
+      "title": "仮押さえを失効",
+      "operation": "UPDATE",
+      "read": [],
+      "filter": [
+        "appointments.slot_id",
+        "appointments.status"
+      ],
+      "join": [],
+      "write": [
+        "appointments.status"
+      ],
+      "delete": [],
+      "relations": [],
+      "source": {
+        "path": "sql/hospital.sql",
+        "line": 7,
+        "quote": "UPDATE appointments SET status = 'expired' WHERE slot_id = $1 AND status = 'held';"
+      },
+      "filterText": "対象枠の仮押さえ",
+      "relationText": "単一テーブル",
+      "node": "expire-holds"
+    }
+  ],
+  "default": "A1",
+  "context": "空き枠の検索から満席時の仮押さえ失効まで",
+  "scope": "検証用の架空SQLとDDL",
+  "layout": {
+    "height": 900,
+    "erWidth": 780,
+    "footerY": 775,
+    "controlsY": 830,
+    "workflowWidth": 890
+  },
+  "evidence": [
+    {
+      "path": "sql/hospital.sql",
+      "line": 2,
+      "quote": "CREATE TABLE doctors (id bigint PRIMARY KEY, name text NOT NULL, dept text NOT NULL);",
+      "entity": "doctors"
+    },
+    {
+      "path": "sql/hospital.sql",
+      "line": 3,
+      "quote": "CREATE TABLE slots (id bigint PRIMARY KEY, doctor_id bigint NOT NULL REFERENCES doctors(id), starts_at timestamp NOT NULL, capacity integer NOT NULL);",
+      "entity": "slots"
+    },
+    {
+      "path": "sql/hospital.sql",
+      "line": 4,
+      "quote": "CREATE TABLE appointments (id bigint PRIMARY KEY, slot_id bigint NOT NULL REFERENCES slots(id), patient_id bigint NOT NULL REFERENCES patients(id), status text NOT NULL);",
+      "entity": "appointments"
+    }
+  ],
+  "workflow": {
+    "schema_version": 2,
+    "diagram_type": "workflow",
+    "meta": {
+      "title": "空き枠の判定",
+      "locale": "ja",
+      "quality_profile": "showcase",
+      "viewBox": [
+        850,
+        730
+      ],
+      "legend": {
+        "mode": "hidden"
+      }
+    },
+    "lanes": [
+      {
+        "id": "search",
+        "label": "検索"
+      },
+      {
+        "id": "count",
+        "label": "集計"
+      },
+      {
+        "id": "decide",
+        "label": "判定"
+      },
+      {
+        "id": "cleanup",
+        "label": "失効"
+      }
+    ],
+    "mainPath": [
+      "find-slot",
+      "count-booked",
+      "has-room",
+      "expire-holds"
+    ],
+    "nodes": [
+      {
+        "id": "find-slot",
+        "lane": "search",
+        "col": 0,
+        "type": "backend",
+        "label": "日時の枠を検索",
+        "width": 250,
+        "height": 85
+      },
+      {
+        "id": "count-booked",
+        "lane": "count",
+        "col": 0,
+        "type": "backend",
+        "label": "予約済みを数える",
+        "width": 250,
+        "height": 85
+      },
+      {
+        "id": "has-room",
+        "lane": "decide",
+        "col": 0,
+        "type": "security",
+        "label": "定員に空きがあるか",
+        "width": 250,
+        "height": 85
+      },
+      {
+        "id": "expire-holds",
+        "lane": "cleanup",
+        "col": 0,
+        "type": "backend",
+        "label": "仮押さえを失効",
+        "width": 250,
+        "height": 85
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "find-slot",
+        "to": "count-booked"
+      },
+      {
+        "id": "e2",
+        "from": "count-booked",
+        "to": "has-room"
+      },
+      {
+        "id": "e3",
+        "from": "has-room",
+        "to": "expire-holds",
+        "label": "満席"
+      }
+    ]
+  },
+  "caption": "処理ノードを選択して、SQLの対象列を確認"
+}
