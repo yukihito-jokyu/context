@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Agent実行のライフサイクル",
+    "output": "examples/lifecycle-agent-run.html",
+    "viewBox": [980, 660],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "main-lifecycle", "label": "主要なライフサイクル", "focus": ["queued", "planning", "executing", "reviewing", "completed"], "note": "リクエストの受け付けから応答の完了まで、順序付けられたフェーズを追跡します。" },
+      { "id": "human-waits", "label": "人と入力の待機", "focus": ["executing", "approval", "reviewing", "blocked"], "note": "終了状態にならずに実行が一時停止する箇所を確認します。" },
+      { "id": "recovery-and-exits", "label": "復旧と終了", "focus": ["executing", "failed", "blocked", "cancelled", "expired"], "note": "再試行可能な失敗を、キャンセルや期限切れと分けて確認します。" }
+    ]
+  },
+  "lanes": [
+    { "id": "main", "label": "ライフサイクルのフェーズ" },
+    { "id": "waiting", "label": "中断" },
+    { "id": "exceptions", "label": "復旧ループ" },
+    { "id": "terminal", "label": "終了状態" }
+  ],
+  "states": [
+    { "id": "queued", "type": "start", "label": "待機中", "sublabel": "リクエスト受付済み", "lane": "main", "col": 0, "step": "01", "tag": "開始" },
+    { "id": "planning", "type": "active", "label": "計画中", "sublabel": "タスクグラフを構築", "lane": "main", "col": 1, "step": "02", "tag": "モデル" },
+    { "id": "executing", "type": "active", "label": "実行中", "sublabel": "ツール呼び出し", "lane": "main", "col": 2, "step": "03", "tag": "作業" },
+    { "id": "reviewing", "type": "decision", "label": "レビュー中", "sublabel": "品質ゲート", "lane": "main", "col": 3, "step": "04", "tag": "確認" },
+    { "id": "completed", "type": "success", "label": "完了", "sublabel": "最終応答", "lane": "main", "col": 4, "step": "05", "tag": "完了" },
+    { "id": "approval", "type": "waiting", "label": "承認が必要", "sublabel": "人によるゲート", "lane": "waiting", "col": 0, "tag": "一時停止" },
+    { "id": "blocked", "type": "waiting", "label": "ブロック中", "sublabel": "入力不足", "lane": "waiting", "col": 1, "tag": "待機" },
+    { "id": "failed", "type": "failure", "label": "失敗", "sublabel": "復旧可能なエラー", "lane": "exceptions", "col": 0, "yOffset": 78, "tag": "再試行可能" },
+    { "id": "cancelled", "type": "failure", "label": "キャンセル済み", "sublabel": "ユーザーが停止", "lane": "terminal", "col": 0, "tag": "終了" },
+    { "id": "expired", "type": "failure", "label": "期限切れ", "sublabel": "タイムアウト", "lane": "terminal", "col": 1, "tag": "終了" }
+  ],
+  "transitions": [
+    { "id": "approval-needed", "from": "executing", "to": "approval", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "id": "review-blocked", "from": "reviewing", "to": "blocked", "variant": "default", "route": "drop" },
+    { "id": "execution-failed", "from": "executing", "to": "failed", "variant": "security", "fromSide": "left", "toSide": "left", "via": [[320, 157], [320, 385]] },
+    { "id": "failed-retry", "from": "failed", "to": "executing", "variant": "emphasis", "fromSide": "left", "toSide": "top", "via": [[20, 385], [20, 80], [402, 80]] },
+    { "id": "block-expired", "from": "blocked", "to": "expired", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "id": "approval-cancelled", "from": "approval", "to": "cancelled", "variant": "security", "fromSide": "bottom", "toSide": "top", "via": [[480, 336], [480, 432], [402, 432]] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "主経路",
+      "items": [
+        "実行には待機から完了まで順序付けられた5つのフェーズがあります",
+        "主要なライフサイクルは1本の水平経路で示されます",
+        "完了は切り離された補助ボックスではなく1つのフェーズです"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "人 + 入力のゲート",
+      "items": [
+        "承認では実行を終了させずに一時停止します",
+        "ブロック中は不足しているユーザー入力を待ちます",
+        "待機状態はキャンセルまたは期限切れになるまで終了状態ではありません"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "終了 + 復旧",
+      "items": [
+        "再試行回数が残っている間、失敗から実行へ戻ります",
+        "キャンセル済みと期限切れはライフサイクルの終了状態です",
+        "終了状態から実行中の状態へ戻る遷移はありません"
+      ]
+    }
+  ]
+}
