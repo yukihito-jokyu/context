@@ -8,8 +8,9 @@ AI Agent 向けコンテキストを一元管理するリポジトリです。
 
 - `projects/context/AGENTS.md` がこのリポジトリ自身の `AGENTS.md` 正本です。
 - ルート `AGENTS.md` は現時点ではその配布結果を手動で反映したものです。
-- [`utils/skills/*/SKILL.md`](utils/skills/README.md) が共通 Skill の正本です。
-- `.codex/skills/*` は当面の互換配置であり、`utils/skills/*` と同一内容を保つ前提です。
+- [`utils/skills/` 配下の各Skillの `SKILL.md`](utils/skills/README.md) が共通 Skill の正本です。
+- 共通 Skill は関心ごとで分類し、分類は最大2階層まで、直下の配置も許容します。配置と候補探索のルールは[要件定義](docs/requirements.md#23-共通skill管理)を参照してください。
+- `.codex/skills/<skill-name>/` は当面の互換配置です。分類階層を含めず、対応する正本のSkillディレクトリと同一内容を保つ前提です。
 - `README.md` はカタログまたは概要文書であり、Skill の正本ではありません。
 
 ## 予定・未実装
