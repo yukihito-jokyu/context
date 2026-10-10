@@ -48,6 +48,24 @@ utils/skills/
 
 に配置する。
 
+### 配置・候補探索のルール
+
+- 共通Skillは主な関心ごとで分類する。分類用ディレクトリは最大2階層とし、次の3形式を許容する。
+
+  ```text
+  utils/skills/<skill-name>/SKILL.md
+  utils/skills/<category>/<skill-name>/SKILL.md
+  utils/skills/<category>/<subcategory>/<skill-name>/SKILL.md
+  ```
+
+- 分類名は小文字のkebab-caseとし、目的に合う既存分類を優先する。分類が不要なSkillは直下に置いてよい。現在の分類と所属Skillは[共通Skillカタログ](../utils/skills/README.md)で案内する。
+- `SKILL.md` を直接持つディレクトリを1つのSkillとする。候補名は末尾のディレクトリ名 `<skill-name>` とし、分類名を含めない。
+- 共通Skillの探索は上記の深さまで行う。Skillを見つけたら、その配下を候補探索しない。分類用ディレクトリ自体は `SKILL.md` を持たない。
+- Skill内部の `vendor/` などにある同梱Skillは独立した配布候補にしない。scripts・assets・referencesなどとともに親Skillの一部として保持する。
+- 共通Skillの候補名は分類をまたいで一意とする。同名候補が複数ある場合は全該当パスを表示し、配布前にエラーで中止する。探索順で勝手に選ばない。
+- プロジェクト固有Skillは従来どおり `projects/<repo-name>/skills/<skill-name>/SKILL.md` の直下構成とする。同名の共通Skillと競合する場合は、プロジェクト側を優先する。ただし共通側の重複エラーは、この優先処理で隠さない。
+- 配布時は分類階層を含めず、選択されたSkillのディレクトリ全体を `.claude/skills/<skill-name>/` と `.codex/skills/<skill-name>/` へ同じ内容でコピーする。
+
 ---
 
 ## 2.4 プロジェクト固有Skill管理
@@ -81,8 +99,15 @@ context/
 ├── utils/
 │   ├── README.md
 │   └── skills/
-│       └── <skill-name>/
-│           └── SKILL.md
+│       ├── README.md
+│       ├── <skill-name>/
+│       │   └── SKILL.md
+│       └── <category>/
+│           ├── <skill-name>/
+│           │   └── SKILL.md
+│           └── <subcategory>/
+│               └── <skill-name>/
+│                   └── SKILL.md
 │
 └── projects/
     ├── context/
@@ -258,7 +283,7 @@ Skill作成・更新・レビューを支援する管理Skill。
 調査対象
 
 ```text
-utils/skills/*
+utils/skills/（2.3の配置・候補探索のルールに従う）
 projects/*/skills/*
 ```
 
@@ -354,7 +379,7 @@ context deploy spring-boot-api
 
 ```text
 projects/<repo>/skills/*
-utils/skills/*
+utils/skills/（2.3の配置・候補探索のルールに従う）
 ```
 
 ---
@@ -447,10 +472,10 @@ projects/<repo>/skills
 対象
 
 ```text
-utils/skills/*
+utils/skills/（2.3の配置・候補探索のルールに従う）
 ```
 
-Skill追加・削除・名称変更時に更新する。
+共通Skillの追加・削除・名称変更・分類移動時に、`utils/skills/README.md` とともに更新する。
 
 ---
 
