@@ -10,7 +10,7 @@
 
 - コンテキストの正本は Context Repository 側に集約します。
 - プロジェクト単位の管理は `projects/<repo-name>/` で行います。
-- 共通 Skill は `utils/skills/` に配置します。
+- 共通 Skill は `utils/skills/` に関心ごとで分類して配置します。分類は最大2階層とし、直下配置も許容します。
 - プロジェクト固有 Skill は `projects/<repo-name>/skills/` に配置します。
 - Skill を中心に運用し、具体的な手順や実行フローは Skill または CLI に分離します。
 - 同じ情報を複数箇所で管理しないことを原則とします。
@@ -22,12 +22,12 @@
 - ルート `CLAUDE.md`: 将来 `AGENTS.md` から生成される配置先
 - `cli/`: Go 製 `context` CLI を実装する予定のディレクトリ
 - `utils/README.md`: 共通 Skill カタログ
-- `utils/skills/*/SKILL.md`: 共通 Skill の正本
+- `utils/skills/` 配下の各Skillの `SKILL.md`: 共通 Skill の正本
 - `projects/context/README.md`: このプロジェクトの概要
 - `projects/context/skills/`: context 管理用 Skill の将来配置先
 
 ## 補足
 
 - ルート `AGENTS.md` は現時点ではこの正本と同内容を手動で反映します。
-- `.codex/skills/*` は当面の互換配置であり、正本は `utils/skills/*` です。
+- `.codex/skills/<skill-name>/` は分類階層を含めない互換配置であり、正本は `utils/skills/` 配下の対応するSkillディレクトリです。
 - `README.md` は正本ではなく、概要またはカタログを提供する文書です。
