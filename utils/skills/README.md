@@ -13,6 +13,7 @@
 | [html-requirements-workshop](html-requirements-workshop/SKILL.md) | HTML モックを反復しながら曖昧な画面要件を固める。 |
 | [react-requirements-workshop](react-requirements-workshop/SKILL.md) | Design System に沿う React 画面を枠付きプレビューで見ながら要件を固める。画面案と承認履歴を保存し、起動済みサーバーを再利用する。 |
 | [interview](interview/SKILL.md) | 曖昧な点や既知の未知を一問ずつ明確にする。 |
+| [issue-trace](issue-trace/SKILL.md) | Issueを基準に、調査・実装・修正・方針決定の証跡を必須項目と条件に応じた任意項目で記録する。 |
 | [my-skill-creator](my-skill-creator/SKILL.md) | Skill の作成、改善、評価、最適化を行う。 |
 | [notes](notes/SKILL.md) | 実装中の判断、逸脱、エッジケースを記録する。 |
 | [pitch](pitch/SKILL.md) | 実装の背景、変更、判断理由、レビュー観点を説明資料にまとめる。 |
