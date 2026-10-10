@@ -450,6 +450,7 @@ function renderState(state) {
     sublabel: state.sublabel,
     tag: state.tag,
     context: laneLabels.get(state.lane) || i18nText(lifecycle.meta.locale, 'node.context.lifecycle'),
+    link: state.link,
     ...brandMetadataFor(state),
   };
   return `        <g ${focusNodeAttrs(state.id, state.label, passport, lifecycle.meta.locale)}>

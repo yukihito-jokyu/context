@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "チェックアウト画面",
+    "quality_profile": "showcase",
+    "hierarchy": {
+      "parent": {
+        "href": "../../shop.html",
+        "label": "ネットショップ全体図"
+      },
+      "map": {
+        "href": "../../shop.map.html",
+        "label": "図のマップ"
+      },
+      "trail": [
+        {
+          "href": "../../shop.html",
+          "label": "ネットショップ全体図"
+        },
+        {
+          "href": "../../shop.map.html",
+          "label": "storefront",
+          "focus": "c-storefront"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "id": "cart-page",
+      "type": "frontend",
+      "label": "カート画面",
+      "sublabel": "/cart",
+      "pos": [
+        40,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "address",
+      "type": "frontend",
+      "label": "配送先入力",
+      "sublabel": "/checkout/address",
+      "pos": [
+        260,
+        180
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "confirm",
+      "type": "frontend",
+      "label": "確認画面",
+      "sublabel": "/checkout/confirm",
+      "pos": [
+        500,
+        180
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "submit",
+      "type": "backend",
+      "label": "注文を送る",
+      "sublabel": "fetch POST /orders",
+      "pos": [
+        740,
+        180
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "link": {
+        "href": "../../orders/order-api/order-api.html",
+        "focus": "create-order",
+        "label": "注文作成",
+        "onward": 1,
+        "title": "注文 API"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "to-address",
+      "from": "cart-page",
+      "to": "address",
+      "label": "購入へ"
+    },
+    {
+      "id": "to-confirm",
+      "from": "address",
+      "to": "confirm",
+      "label": "次へ"
+    },
+    {
+      "id": "to-submit",
+      "from": "confirm",
+      "to": "submit",
+      "label": "確定",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "画面遷移",
+      "items": [
+        "カート → 配送先 → 確認 → 送信"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "送信先",
+      "items": [
+        "注文 API の注文作成へ"
+      ]
+    }
+  ]
+}

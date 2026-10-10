@@ -11,6 +11,7 @@
     "meta": {
       "type": "object", "additionalProperties": false, "required": ["title"],
       "properties": {
+        "hierarchy": { "$ref": "common.schema.json#/$defs/hierarchy" },
         "title": { "type": "string", "minLength": 1 }, "subtitle": { "type": "string" },
         "locale": { "$ref": "common.schema.json#/$defs/locale" }, "output": { "type": "string" },
         "visual_preset": { "$ref": "common.schema.json#/$defs/visualPreset" },
@@ -29,7 +30,7 @@
     "parameter": { "type": "object", "additionalProperties": false, "required": ["name", "type"], "properties": { "name": { "type": "string", "minLength": 1 }, "type": { "type": "string", "minLength": 1 } } },
     "attribute": { "type": "object", "additionalProperties": false, "required": ["visibility", "name", "type"], "properties": { "visibility": { "$ref": "#/$defs/visibility" }, "name": { "type": "string", "minLength": 1 }, "type": { "type": "string", "minLength": 1 }, "static": { "type": "boolean" }, "abstract": { "type": "boolean" } } },
     "method": { "type": "object", "additionalProperties": false, "required": ["visibility", "name", "parameters", "return_type"], "properties": { "visibility": { "$ref": "#/$defs/visibility" }, "name": { "type": "string", "minLength": 1 }, "parameters": { "type": "array", "items": { "$ref": "#/$defs/parameter" } }, "return_type": { "type": "string", "minLength": 1 }, "static": { "type": "boolean" }, "abstract": { "type": "boolean" } } },
-    "class": { "type": "object", "additionalProperties": false, "required": ["id", "name", "kind", "pos", "attributes", "methods"], "properties": { "id": { "$ref": "common.schema.json#/$defs/id" }, "name": { "type": "string", "minLength": 1 }, "kind": { "enum": ["class", "abstract", "interface"] }, "stereotype": { "type": "string" }, "pos": { "$ref": "common.schema.json#/$defs/point" }, "width": { "type": "number", "minimum": 180 }, "attributes": { "type": "array", "items": { "$ref": "#/$defs/attribute" } }, "methods": { "type": "array", "items": { "$ref": "#/$defs/method" } } } },
+    "class": { "type": "object", "additionalProperties": false, "required": ["id", "name", "kind", "pos", "attributes", "methods"], "properties": { "link": { "$ref": "common.schema.json#/$defs/nodeLink" }, "id": { "$ref": "common.schema.json#/$defs/id" }, "name": { "type": "string", "minLength": 1 }, "kind": { "enum": ["class", "abstract", "interface"] }, "stereotype": { "type": "string" }, "pos": { "$ref": "common.schema.json#/$defs/point" }, "width": { "type": "number", "minimum": 180 }, "attributes": { "type": "array", "items": { "$ref": "#/$defs/attribute" } }, "methods": { "type": "array", "items": { "$ref": "#/$defs/method" } } } },
     "relationship": { "type": "object", "additionalProperties": false, "required": ["id", "from", "to", "kind"], "properties": { "id": { "$ref": "common.schema.json#/$defs/id" }, "from": { "$ref": "common.schema.json#/$defs/id" }, "to": { "$ref": "common.schema.json#/$defs/id" }, "kind": { "enum": ["association", "aggregation", "composition", "inheritance", "realization", "dependency"] }, "label": { "type": "string" }, "from_multiplicity": { "type": "string" }, "to_multiplicity": { "type": "string" } } }
   }
 }

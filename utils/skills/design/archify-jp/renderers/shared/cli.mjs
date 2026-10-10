@@ -9,6 +9,8 @@ import { validateEngineeringProfile } from './engineering-profiles.mjs';
 import { resolveOutputPath } from './output-path.mjs';
 import { prepareDiagramBrandMarks } from './brand-marks.mjs';
 import { resolveLocale, translateMessage } from './i18n.mjs';
+import { validateHierarchy, hierarchyViewerPayload } from './hierarchy.mjs';
+import { linkHrefsIn, locatorFor, peersFor } from './hierarchy-locator.mjs';
 
 installRendererDiagnosticBoundary();
 
@@ -25,6 +27,7 @@ export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = p
   if(['sequence-er','workflow-er'].includes(diagramType))validateAccesses(diagram,process.env.ARCHIFY_REPO_ROOT);
   validateGuidedViews(diagramType, diagram);
   validateRelationshipIds(diagramType, diagram);
+  validateHierarchy(diagramType, diagram);
   validateEngineeringProfile(diagramType, diagram);
   const sourceEvidence = verifyRepositoryEvidence(diagramType, diagram, process.env.ARCHIFY_REPO_ROOT);
   const template = fs.readFileSync(path.join(skillRoot, 'assets/template.html'), 'utf8');
@@ -51,6 +54,14 @@ export async function loadDiagramWithBrandMarks(options) {
 
 const START_TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er', 'workflow-er']);
 
+// A child page also carries a thumbnail of its parent (see hierarchy-locator).
+export function withLocator(payload, meta, outPath, linkHrefs = []) {
+  if (!payload) return payload;
+  const locator = locatorFor(meta, outPath);
+  const peers = peersFor(meta, outPath, linkHrefs);
+  return { ...payload, ...(locator ? { locator } : {}), ...(peers ? { peers } : {}) };
+}
+
 // Common CLI tail: fill the template and write the standalone HTML file.
 export function writeDiagram({ outPath, template, diagramType, meta, svg, cards, cardsHtml = null, sourceEvidence = null }) {
   if (!START_TYPES.has(diagramType)) throw new Error(`writeDiagram: 不明な図の種類 ${JSON.stringify(diagramType)}`);
@@ -66,6 +77,7 @@ export function writeDiagram({ outPath, template, diagramType, meta, svg, cards,
     visualPreset: meta.visual_preset || 'classic',
     guidedViews: meta.views || [],
     sourceEvidence,
+    hierarchy: withLocator(hierarchyViewerPayload(meta), meta, outPath, linkHrefsIn(svg)),
   }));
   outputPathGuards.delete(outPath);
   console.log(outPath);
@@ -194,6 +206,7 @@ export function focusNodeAttrs(id, label, metadata = {}, locale) {
     ['data-node-brand-id', metadata.brandId],
     ['data-node-brand-status', metadata.brandStatus],
     ['data-node-brand-source', metadata.brandSource],
+    ...nodeLinkAttrEntries(metadata.link),
   ].filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
     .map(([name, value]) => ` ${name}="${esc(String(value))}"`)
     .join('');
@@ -204,6 +217,30 @@ export function focusNodeAttrs(id, label, metadata = {}, locale) {
     ? translateMessage(locale, 'node.focus.detail', { label, detail })
     : translateMessage(locale, 'node.focus', { label });
   return `id="node-${esc(id)}" data-node-id="${esc(id)}" data-node-label="${esc(label)}" tabindex="0" role="button" aria-label="${esc(aria)}" aria-pressed="false"${optional}`;
+}
+
+// A boundary that links as a group: its frame carries the id and the same
+// link attributes as a node, so the viewer and the checks treat it alike.
+export function boundaryLinkAttrs(boundary) {
+  if (!boundary?.id) return '';
+  return [['data-boundary-id', boundary.id], ['data-boundary-label', boundary.label], ...nodeLinkAttrEntries(boundary.link || null)]
+    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+    .map(([name, value]) => ` ${name}="${esc(String(value))}"`)
+    .join('');
+}
+
+// Drill-down links are plain data attributes: the viewer turns them into
+// navigation, and an SVG embedded elsewhere simply ignores them.
+function nodeLinkAttrEntries(link) {
+  if (!link || typeof link.href !== 'string') return [];
+  return [
+    ['data-node-link-href', link.href],
+    ['data-node-link-focus', link.focus],
+    ['data-node-link-view', link.view],
+    ['data-node-link-label', link.label],
+    ['data-node-link-onward', link.onward],
+    ['data-node-link-title', link.title],
+  ];
 }
 
 // Native SVG titles preserve a compact details-on-demand fallback when the

@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "注文データの保存",
+    "quality_profile": "showcase",
+    "hierarchy": {
+      "parent": {
+        "href": "../../shop.html",
+        "label": "ネットショップ全体図"
+      },
+      "map": {
+        "href": "../../shop.map.html",
+        "label": "図のマップ"
+      },
+      "trail": [
+        {
+          "href": "../../shop.html",
+          "label": "ネットショップ全体図"
+        },
+        {
+          "href": "../../shop.map.html",
+          "label": "orders",
+          "focus": "c-orders"
+        }
+      ],
+      "siblings": [
+        {
+          "href": "../order-api/order-api.html",
+          "label": "注文 API"
+        },
+        {
+          "href": "order-store.html",
+          "label": "注文データの保存"
+        }
+      ],
+      "incoming": [
+        {
+          "href": "../order-api/order-api.html",
+          "label": "注文 API",
+          "node": "repo",
+          "node_label": "リポジトリ",
+          "focus": "orders-table"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "id": "orders-table",
+      "type": "database",
+      "label": "orders",
+      "sublabel": "注文ヘッダー",
+      "pos": [
+        40,
+        180
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "items-table",
+      "type": "database",
+      "label": "order_items",
+      "sublabel": "明細",
+      "pos": [
+        300,
+        180
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "outbox",
+      "type": "messagebus",
+      "label": "outbox",
+      "sublabel": "注文確定イベント",
+      "pos": [
+        300,
+        330
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "relay",
+      "type": "backend",
+      "label": "リレー",
+      "sublabel": "outbox を配信",
+      "pos": [
+        620,
+        330
+      ],
+      "size": [
+        160,
+        64
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "has-items",
+      "from": "orders-table",
+      "to": "items-table",
+      "label": "1:N"
+    },
+    {
+      "id": "emit",
+      "from": "orders-table",
+      "to": "outbox",
+      "label": "同一トランザクション",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "publish",
+      "from": "outbox",
+      "to": "relay",
+      "label": "配信"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "保存",
+      "items": [
+        "ヘッダーと明細を1トランザクションで書く",
+        "確定イベントは outbox からリレーが配信"
+      ]
+    }
+  ]
+}
