@@ -54,5 +54,5 @@
 
 | Skill | 概要 |
 |---|---|
-| [skill-authoring](authoring/skill-authoring/SKILL.md) | Skill の追加、更新、配置判定とカタログ整備を行う。 |
+| [skill-authoring](authoring/skill-authoring/SKILL.md) | Skill の追加、更新、配置・配布単位の判定とカタログ整備を行う。 |
 | [my-skill-creator](authoring/my-skill-creator/SKILL.md) | Skill の作成、改善、評価、最適化を行う。 |
