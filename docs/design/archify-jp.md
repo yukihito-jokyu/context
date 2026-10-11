@@ -66,4 +66,8 @@ archify-jpを使って、依頼登録の画面、API、DBの呼び出しをシ�
 
 ## 正本を読む
 
+ライフサイクル図は、注文やセッションなど同じ対象の生涯を追うために使います。新規入力ではschema v2を選び、対象と観測範囲、開始・終了、状態・フェーズ・イベント・活動の種類を明示します。状態の変化、処理の順序、関連付けは別の関係として記述し、配置から実行順序を推測させません。部分の完了、反復、並行性は必要な範囲で説明します。既存v1の固定配置は維持されます。
+
+記述方法は[ライフサイクルの記述ルール](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/archify-jp/references/lifecycle.md)、適用例は[注文](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/archify-jp/examples/order.lifecycle.json)、[React Effect](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/archify-jp/examples/react-effect.lifecycle.json)、[Claude Code Hooks](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/archify-jp/examples/claude-hooks.lifecycle.json)を参照してください。ReactやClaude Codeの例は省略範囲を明示した説明用のモデルで、製品固有の書き方を一般ルールとして強制しません。
+
 詳細な手順と制約は[archify-jpのSKILL.md](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/archify-jp/SKILL.md)を参照してください。
