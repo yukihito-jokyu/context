@@ -23,6 +23,7 @@
 - `cli/`: Go 製 `context` CLI を実装する予定のディレクトリ
 - `utils/README.md`: 共通 Skill カタログ
 - `utils/skills/` 配下の各Skillの `SKILL.md`: 共通 Skill の正本
+- `docs/`: スキルの使い方、ワークフロー、成果物例を掲載する利用者向けガイド
 - `projects/context/README.md`: このプロジェクトの概要
 - `projects/context/skills/`: context 管理用 Skill の将来配置先
 
