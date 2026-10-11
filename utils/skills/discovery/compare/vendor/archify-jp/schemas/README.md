@@ -44,7 +44,10 @@
 | Workflow | `frontend`, `backend`, `security`, `messagebus`, `database`, `cloud`, `external` |
 | Sequence | `emphasis`, `return`, `security`, `dashed`, `default` |
 | Dataflow | `emphasis`, `security`, `dashed`, `database`, `default` |
-| Lifecycle | `start`, `active`, `waiting`, `decision`, `success`, `failure`, `neutral`, `external` |
+| Lifecycle v1 | `start`, `active`, `waiting`, `decision`, `success`, `failure`, `neutral`, `external` |
+| Lifecycle v2 | `state`, `phase`, `event`, `activity`, `initial`, `terminal`, `transition`, `sequence`, `association`, `scope`, `repeat`, `parallel`, `group-phase`、およびv1と共通の配色キー |
+
+Lifecycle v2の凡例は読み方を説明する視覚キーです。typeが未指定なら配色キーを追加しません。自動viewBoxは凡例の行数を確保し、明示viewBoxに収まらない場合はmeta.legendの省略時も診断します。Semantic Legendの絞り込み操作は付けません。
 
 ラベルは表示専用です。安定種別の改名、ノード／関係の変更、Semantic Lensのエッジ事実の作成は行いません。SequenceメッセージとDataflowのフローバリアントエントリは視覚キーです。正確なコンパイル済みノード事実に裏付けられたコンポーネント／状態エントリは、対話的なSemantic Legendブリッジを受け取ります。実際の `nodes[].type: "database"` 事実が存在する場合のDataflow `database` も含まれます。
 
@@ -54,7 +57,7 @@
 
 ## schema_versionポリシー
 
-Workflowはschemaバージョン1と2に対応します。バージョン1は固定レイアウト互換契約のままです。バージョン2は可読ワークフローコンパイラーを有効にし、`archify migrate workflow ... --to-schema 2` で明示的に生成できます。他の4つの図schemaは `schema_version` を `1` に固定します。
+Workflowはschemaバージョン1と2に対応します。バージョン1は固定レイアウト互換契約のままです。バージョン2は可読ワークフローコンパイラーを有効にし、`archify migrate workflow ... --to-schema 2` で明示的に生成できます。Lifecycleもバージョン1と2に対応しますが、自動移行は提供しません。Architecture、Sequence、Dataflowは `schema_version` を `1` に固定します。
 
 Workflowは任意の `semanticChecks` も受け入れます。`allowedRoots` と `allowedTerminals` は意図的なグラフの起点と終点の集合を閉じ、`requiredEdges` は正確な作成済み関係を要求し、`requiredPaths` は中間ノードを許可しながら有向到達可能性を要求します。コンパイラーはレイアウト前にこれらの事実を評価し、型付き `workflow/*` 診断を返します。このフィールドは追加的でジオメトリ中立です。省略すると既存のワークフロー動作を維持し、満たされた契約を含めてもSVGやレイアウトレシートのバイト列は変わりません。
 
@@ -102,3 +105,7 @@ workflow schema validation failed:
 ```
 
 schemaは形式エラー（型、enum、範囲、不明フィールド）を検出します。重なりやラベル衝突などのジオメトリ問題はレンダラーの役割です。
+
+## ライフサイクルv2
+
+`lifecycle.schema.json`はv1とv2を分けて検証します。新規記述の意味ルールは[references/lifecycle.md](../references/lifecycle.md)を参照してください。共有ローダーはschema検証後に`renderers/lifecycle/model.mjs`で開始／終端、関係種別、参照・到達可能性、囲みの包含・反復・並行性を確認します。v2のレーンID・行・列は配置情報であり、そこから遷移を生成しません。v1の固定ジオメトリは互換性のため保持します。

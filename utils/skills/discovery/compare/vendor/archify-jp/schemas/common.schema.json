@@ -3,6 +3,181 @@
   "$id": "https://github.com/tt-a1i/archify/schemas/common.schema.json",
   "title": "Archify 共有定義",
   "$defs": {
+    "relativeHtmlHref": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 512,
+      "pattern": "^(?![a-zA-Z][a-zA-Z0-9+.-]*:)(?!/)(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\\.html$"
+    },
+    "nodeLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "href"
+      ],
+      "properties": {
+        "href": {
+          "$ref": "#/$defs/relativeHtmlHref"
+        },
+        "focus": {
+          "$ref": "#/$defs/id"
+        },
+        "view": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "onward": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "hierarchyCrumb": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "href",
+        "label"
+      ],
+      "properties": {
+        "href": {
+          "$ref": "#/$defs/relativeHtmlHref"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "focus": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "hierarchy": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "parent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "href",
+            "label"
+          ],
+          "properties": {
+            "href": {
+              "$ref": "#/$defs/relativeHtmlHref"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "href"
+          ],
+          "properties": {
+            "href": {
+              "$ref": "#/$defs/relativeHtmlHref"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        },
+        "trail": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hierarchyCrumb"
+          }
+        },
+        "siblings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hierarchyCrumb"
+          }
+        },
+        "incoming": {
+          "description": "hierarchy-sync が書き込む、他の詳細図からこの図への横断リンク（参照元）。",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "href",
+              "label",
+              "node"
+            ],
+            "properties": {
+              "href": {
+                "$ref": "#/$defs/relativeHtmlHref"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "node": {
+                "$ref": "#/$defs/id"
+              },
+              "node_label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "focus": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "role": {
+          "enum": [
+            "map"
+          ]
+        },
+        "require_links": {
+          "type": "boolean"
+        },
+        "leaf_nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          }
+        }
+      }
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$"

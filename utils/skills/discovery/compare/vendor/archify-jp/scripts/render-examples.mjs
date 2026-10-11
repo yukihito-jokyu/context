@@ -14,6 +14,9 @@ const TARGETS = [
   ['sequence', 'cache-miss-request.sequence.json', 'sequence-cache-miss-request.html'],
   ['dataflow', 'product-analytics.dataflow.json', 'dataflow-product-analytics.html'],
   ['lifecycle', 'agent-run.lifecycle.json', 'lifecycle-agent-run.html'],
+  ['lifecycle', 'order.lifecycle.json', 'lifecycle-order.html'],
+  ['lifecycle', 'react-effect.lifecycle.json', 'lifecycle-react-effect.html'],
+  ['lifecycle', 'claude-hooks.lifecycle.json', 'lifecycle-claude-hooks.html'],
   ['architecture', 'web-app.architecture.json', 'web-app-rendered.html'],
 ];
 

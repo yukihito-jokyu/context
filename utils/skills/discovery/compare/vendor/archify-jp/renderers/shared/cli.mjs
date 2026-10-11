@@ -3,12 +3,15 @@ import path from 'node:path';
 import { applyTemplate, renderCards, esc } from './utils.mjs';
 import { validateAccesses } from '../sequence-er/validate.mjs';
 import { validateSchema } from './validator.mjs';
+import { validateLifecycleModel } from '../lifecycle/model.mjs';
 import { verifyRepositoryEvidence } from './repository-evidence.mjs';
 import { installRendererDiagnosticBoundary, throwDiagnosticProblems } from './diagnostics.mjs';
 import { validateEngineeringProfile } from './engineering-profiles.mjs';
 import { resolveOutputPath } from './output-path.mjs';
 import { prepareDiagramBrandMarks } from './brand-marks.mjs';
 import { resolveLocale, translateMessage } from './i18n.mjs';
+import { validateHierarchy, hierarchyViewerPayload } from './hierarchy.mjs';
+import { linkHrefsIn, locatorFor, peersFor } from './hierarchy-locator.mjs';
 
 installRendererDiagnosticBoundary();
 
@@ -22,9 +25,11 @@ export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = p
   const inputPath = path.resolve(argv[2] || path.join(skillRoot, 'examples', defaultExample));
   const diagram = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   validateSchema(diagramType, diagram);
-  if(diagramType==='sequence-er')validateAccesses(diagram,process.env.ARCHIFY_REPO_ROOT);
+  if (diagramType === 'lifecycle') validateLifecycleModel(diagram);
+  if(['sequence-er','workflow-er'].includes(diagramType))validateAccesses(diagram,process.env.ARCHIFY_REPO_ROOT);
   validateGuidedViews(diagramType, diagram);
   validateRelationshipIds(diagramType, diagram);
+  validateHierarchy(diagramType, diagram);
   validateEngineeringProfile(diagramType, diagram);
   const sourceEvidence = verifyRepositoryEvidence(diagramType, diagram, process.env.ARCHIFY_REPO_ROOT);
   const template = fs.readFileSync(path.join(skillRoot, 'assets/template.html'), 'utf8');
@@ -49,7 +54,15 @@ export async function loadDiagramWithBrandMarks(options) {
   return loaded;
 }
 
-const START_TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er']);
+const START_TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'class', 'er', 'sequence-er', 'workflow-er']);
+
+// A child page also carries a thumbnail of its parent (see hierarchy-locator).
+export function withLocator(payload, meta, outPath, linkHrefs = []) {
+  if (!payload) return payload;
+  const locator = locatorFor(meta, outPath);
+  const peers = peersFor(meta, outPath, linkHrefs);
+  return { ...payload, ...(locator ? { locator } : {}), ...(peers ? { peers } : {}) };
+}
 
 // Common CLI tail: fill the template and write the standalone HTML file.
 export function writeDiagram({ outPath, template, diagramType, meta, svg, cards, cardsHtml = null, sourceEvidence = null }) {
@@ -66,6 +79,7 @@ export function writeDiagram({ outPath, template, diagramType, meta, svg, cards,
     visualPreset: meta.visual_preset || 'classic',
     guidedViews: meta.views || [],
     sourceEvidence,
+    hierarchy: withLocator(hierarchyViewerPayload(meta), meta, outPath, linkHrefsIn(svg)),
   }));
   outputPathGuards.delete(outPath);
   console.log(outPath);
@@ -124,7 +138,7 @@ export function validateGuidedViews(diagramType, diagram) {
   const views = diagram.meta?.views;
   if (!Array.isArray(views) || views.length === 0) return;
   const collection = SEMANTIC_COLLECTIONS[diagramType];
-  const semanticIds = new Set(diagramType === 'sequence-er' ? [...diagram.sequence.participants.map(x=>diagram.er?'seq-'+x.id:x.id),...(diagram.er?.entities||[]).map(x=>'er-'+x.id)] : (diagram[collection] || []).map((item) => item.id));
+  const semanticIds = new Set(diagramType === 'workflow-er' ? [...diagram.workflow.nodes.map(x=>'flow-'+x.id),...diagram.er.entities.map(x=>'er-'+x.id)] : diagramType === 'sequence-er' ? [...diagram.sequence.participants.map(x=>diagram.er?'seq-'+x.id:x.id),...(diagram.er?.entities||[]).map(x=>'er-'+x.id)] : (diagram[collection] || []).map((item) => item.id));
   const seen = new Set();
   const problems = [];
 
@@ -194,6 +208,7 @@ export function focusNodeAttrs(id, label, metadata = {}, locale) {
     ['data-node-brand-id', metadata.brandId],
     ['data-node-brand-status', metadata.brandStatus],
     ['data-node-brand-source', metadata.brandSource],
+    ...nodeLinkAttrEntries(metadata.link),
   ].filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
     .map(([name, value]) => ` ${name}="${esc(String(value))}"`)
     .join('');
@@ -204,6 +219,30 @@ export function focusNodeAttrs(id, label, metadata = {}, locale) {
     ? translateMessage(locale, 'node.focus.detail', { label, detail })
     : translateMessage(locale, 'node.focus', { label });
   return `id="node-${esc(id)}" data-node-id="${esc(id)}" data-node-label="${esc(label)}" tabindex="0" role="button" aria-label="${esc(aria)}" aria-pressed="false"${optional}`;
+}
+
+// A boundary that links as a group: its frame carries the id and the same
+// link attributes as a node, so the viewer and the checks treat it alike.
+export function boundaryLinkAttrs(boundary) {
+  if (!boundary?.id) return '';
+  return [['data-boundary-id', boundary.id], ['data-boundary-label', boundary.label], ...nodeLinkAttrEntries(boundary.link || null)]
+    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+    .map(([name, value]) => ` ${name}="${esc(String(value))}"`)
+    .join('');
+}
+
+// Drill-down links are plain data attributes: the viewer turns them into
+// navigation, and an SVG embedded elsewhere simply ignores them.
+function nodeLinkAttrEntries(link) {
+  if (!link || typeof link.href !== 'string') return [];
+  return [
+    ['data-node-link-href', link.href],
+    ['data-node-link-focus', link.focus],
+    ['data-node-link-view', link.view],
+    ['data-node-link-label', link.label],
+    ['data-node-link-onward', link.onward],
+    ['data-node-link-title', link.title],
+  ];
 }
 
 // Native SVG titles preserve a compact details-on-demand fallback when the
