@@ -20,12 +20,14 @@ skill-authoringを使って、完成した調査スキルを共通スキルと�
 ## 進め方
 
 1. 既存スキルとの重複や流用可能性を確認します。
-2. 再利用範囲から配置先を決め、許可された範囲だけを変更します。
+2. 再利用範囲から配置先を決め、依頼範囲に応じてSkill単体とpluginの配布単位を判定します。許可された範囲だけを変更します。
 3. 対応するREADMEを更新し、正本と案内の関係を確認します。
+
+複数Skillのパッケージ化やhooksの同梱を扱う場合は、[Skillとpluginの配布・導入](plugin-distribution.md)に沿って正本と配布定義を分けます。情報整理の依頼では、構造と導入方法の記録までを行います。
 
 ## 成果物の例
 
-提供したサンプル用プロンプトから実際に作成したSKILL.mdと要約カタログです。配置判断も保存しました。
+更新後のskill-authoringで、提供したサンプル用プロンプトから単一Skillと要約カタログを隔離領域に再作成しました。配置・配布単位の判断も保存しました。
 
 **到達点：隔離領域でのスキル・カタログ作成。**
 
@@ -50,6 +52,8 @@ skill-authoringを使って、完成した調査スキルを共通スキルと�
 
 utils/skills/README.md、docs/authoring/index.md、skill-authoring、my-skill-creator、agent-trace、issue-traceのSKILL.mdを読んだ。
 
+再実行では更新後のskill-authoringとdocs/authoring/plugin-distribution.mdも確認し、Skill単体とpluginの配布単位を判定した。
+
 ## 既存スキルを更新するか
 
 既存の証跡記録とスキル作成の責務は分かれている。サンプルでは提供したプロンプトの範囲を成果物リンク検査に限定し、新規SKILL.mdを作成した。contextの既存スキルの動作は変更していない。
@@ -58,6 +62,7 @@ utils/skills/README.md、docs/authoring/index.md、skill-authoring、my-skill-cr
 
 - 検査内容はDocusaurusの設定に限定されず、複数プロジェクトの成果物展示に再利用できるため共通スキルと判定した。
 - サンプル領域のutils/skills/documentation/artifact-links/SKILL.mdへ配置した。
+- 分類は1階層。サンプル領域に同名スキルが存在しないことを確認して新規作成した。
 ````
 
 ### 成果物を取得する
@@ -70,8 +75,9 @@ utils/skills/README.md、docs/authoring/index.md、skill-authoring、my-skill-cr
 
 ### 確認した結果
 
-- サンプル領域のdocumentation/artifact-linksへ配置。READMEから正本を参照。
-- contextのスキル正本や互換配置へは導入していません。
+- サンプル領域のdocumentation/artifact-linksへ単一Skillとして配置。READMEのリンク先と候補名の一意性を確認。
+- 単一Skillでhooksの同梱が不要なためplugin作成・インストールは行っていません。
+- サンプルSkillはcontextの正本や互換配置へ導入していません。
 
 ## 確認するポイント
 
