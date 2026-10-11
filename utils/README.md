@@ -1,12 +1,16 @@
 # utils
 
-`utils/` は複数プロジェクトで再利用する共通 Skill を管理する領域です。
+`utils/` は複数プロジェクトで再利用する共通 Skill を管理する領域です。複数Skillやhooksをまとめて配布する場合は、Skill正本とは別にpluginの配布定義を管理する方針です。
 
 ## 正本関係
 
 - `utils/skills/` 配下の各Skillの `SKILL.md` が正本です。
 - この `README.md` は Skill カタログです。
 - `README.md` と `SKILL.md` に差分がある場合は `SKILL.md` を正とします。
+
+## 配布単位とpluginの配置
+
+単一Skillとpluginの使い分け、合意済みの`utils/plugins/<plugin-name>/`構造、Codex・Claude Codeへの導入方法は[配布・導入ガイド](../docs/authoring/plugin-distribution.md)を参照してください。plugin配布定義と生成処理は未実装です。
 
 ## Skill カタログ
 
@@ -130,7 +134,7 @@
 
 - 目的: Skill の追加・更新・配置判定を行い、関連する README.md も整備する
 - 使うタイミング: 新しい Skill を追加したいとき、既存 Skill の内容や配置を見直したいとき
-- 使い方: 明示された許可範囲だけを扱い、配置・移動では Skill 本体を変更せず README カタログを同期する。内容の作成・更新を依頼された場合だけ `SKILL.md` と同梱ファイルを変更する
+- 使い方: 明示された許可範囲だけを扱い、配置・移動では Skill 本体を変更せず README カタログを同期する。内容の作成・更新を依頼された場合だけ `SKILL.md` と同梱ファイルを変更する。配布を扱う場合はSkill単体とpluginの単位を判定する
 
 ### [my-skill-creator](skills/authoring/my-skill-creator/SKILL.md)
 
