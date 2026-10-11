@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "注文イベントストリームのトポロジー",
+    "output": "examples/event-stream.html",
+    "viewBox": [1080, 780],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "order-transit", "label": "注文イベントの転送", "focus": ["checkout", "orders", "validate", "state", "fulfillment"], "note": "注文をプロデューサーから順序付き処理を経てフルフィルメントまで追跡します。" },
+      { "id": "payment-transit", "label": "決済イベントの転送", "focus": ["billing", "payments", "enrich", "state", "analytics"], "note": "決済データを共有のマテリアライズド状態と分析まで追跡します。" },
+      { "id": "failure-and-replay", "label": "失敗とリプレイ", "focus": ["validate", "enrich", "dlq", "replay", "ops"], "note": "デッドレター、運用担当者の確認、制御されたリプレイの担当範囲を切り分けます。" }
+    ]
+  },
+  "stages": [
+    { "label": "プロデューサー" },
+    { "label": "転送" },
+    { "label": "プロセッサー" },
+    { "label": "状態 + 復旧" },
+    { "label": "コンシューマー" }
+  ],
+  "nodes": [
+    { "id": "checkout", "type": "frontend", "label": "チェックアウトAPI", "sublabel": "注文プロデューサー", "stage": 0, "row": 0, "tag": "コマースチーム" },
+    { "id": "billing", "type": "backend", "label": "請求API", "sublabel": "決済プロデューサー", "stage": 0, "row": 2, "tag": "決済チーム" },
+    { "id": "orders", "type": "messagebus", "label": "orders.v1", "sublabel": "12パーティション", "stage": 1, "row": 0, "tag": "キー: order_id" },
+    { "id": "payments", "type": "messagebus", "label": "payments.v2", "sublabel": "8パーティション", "stage": 1, "row": 2, "tag": "キー: order_id" },
+    { "id": "validate", "type": "backend", "label": "注文検証", "sublabel": "フルフィルメントグループ", "stage": 2, "row": 0, "tag": "順序保証" },
+    { "id": "enrich", "type": "backend", "label": "決済エンリッチ", "sublabel": "分析グループ", "stage": 2, "row": 2, "tag": "at-least-once" },
+    { "id": "state", "type": "database", "label": "注文状態", "sublabel": "マテリアライズドビュー", "stage": 3, "row": 1, "tag": "冪等" },
+    { "id": "dlq", "type": "messagebus", "label": "events.dlq", "sublabel": "処理不能イベント", "stage": 3, "row": 4, "tag": "7日間保持" },
+    { "id": "fulfillment", "type": "backend", "label": "フルフィルメント", "sublabel": "配送ワークフロー", "stage": 4, "row": 0, "tag": "コンシューマー" },
+    { "id": "analytics", "type": "database", "label": "分析", "sublabel": "ストリーミングデータ", "stage": 4, "row": 2, "tag": "コンシューマー" },
+    { "id": "replay", "type": "security", "label": "リプレイツール", "sublabel": "承認済みバッチ", "stage": 4, "row": 4, "tag": "運用ゲート" },
+    { "id": "ops", "type": "external", "label": "オンコール", "sublabel": "DLQ担当", "stage": 4, "row": 3, "yOffset": -18, "tag": "SRE" }
+  ],
+  "flows": [
+    { "from": "checkout", "to": "orders", "label": "OrderPlaced", "classification": "schema v1", "variant": "emphasis", "route": "straight" },
+    { "from": "billing", "to": "payments", "label": "PaymentCaptured", "classification": "schema v2", "variant": "emphasis", "route": "straight" },
+    { "from": "orders", "to": "validate", "label": "順序付き注文", "classification": "コンシューマーグループ", "variant": "emphasis", "route": "straight", "labelAt": [423, 200] },
+    { "from": "payments", "to": "enrich", "label": "決済データ", "classification": "at-least-once", "variant": "emphasis", "route": "straight" },
+    { "from": "validate", "to": "state", "label": "有効な注文", "classification": "冪等", "variant": "emphasis", "route": "vertical-channel" },
+    { "from": "enrich", "to": "state", "label": "エンリッチ済み決済", "classification": "冪等", "variant": "default", "route": "vertical-channel" },
+    { "from": "state", "to": "fulfillment", "label": "処理可能な注文", "classification": "読み取りモデル", "variant": "emphasis", "route": "vertical-channel" },
+    { "from": "state", "to": "analytics", "label": "注文データ", "classification": "非PII", "variant": "default", "route": "vertical-channel" },
+    { "from": "validate", "to": "dlq", "label": "無効なイベント", "classification": "デッドレター", "variant": "security", "fromSide": "top", "toSide": "top", "via": [[530, 80], [20, 80], [20, 550], [745, 550]], "labelAt": [300, 550] },
+    { "from": "enrich", "to": "dlq", "label": "処理不能イベント", "classification": "デッドレター", "variant": "security", "route": "bottom-channel", "labelDy": 30 },
+    { "from": "dlq", "to": "ops", "label": "失敗サンプル", "classification": "制限付き", "variant": "security", "route": "vertical-channel" },
+    { "from": "dlq", "to": "replay", "label": "承認済みリプレイ", "classification": "監査対象バッチ", "variant": "dashed", "route": "straight", "labelDy": 30 }
+  ],
+  "cards": [
+    { "dot": "amber", "title": "転送契約", "items": ["すべてのイベントとTopicに名前があります", "パーティションキーにより注文ごとの順序が維持されます", "コンシューマーグループによって処理の担当範囲が明確になります"] },
+    { "dot": "emerald", "title": "状態 + 配信", "items": ["プロセッサーは冪等なマテリアライズドビューへ書き込みます", "フルフィルメントと分析は別々のデータ資産を使用します", "at-least-once配信でもビジネス上の効果が重複するとは限りません"] },
+    { "dot": "rose", "title": "失敗時の担当", "items": ["処理不能イベントは保持されるデッドレターTopicに格納されます", "オンコール担当者がリプレイ前にサンプルを確認します", "リプレイはゲートで制御され、バッチ化され、監査可能です"] }
+  ]
+}
