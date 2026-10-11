@@ -12,6 +12,7 @@
 | [blindspot](discovery/blindspot/SKILL.md) | 作業前に未知や見落としやすい論点を洗い出す。 |
 | [reference](discovery/reference/SKILL.md) | 既存成果物から仕様、命名、設計意図を抽出する。 |
 | [compare](discovery/compare/SKILL.md) | 似た技術・仕組み・実装を、図とコードで比較して理解できる単体HTMLにまとめる。 |
+| [explain-html](discovery/explain-html/SKILL.md) | 分野を限定せず、一つの事象・事柄を全体図と具体例から詳細・条件と例外まで理解できる単体HTMLにまとめる。 |
 | [interview](discovery/interview/SKILL.md) | 曖昧な点や既知の未知を一問ずつ明確にする。 |
 | [prototype](discovery/prototype/SKILL.md) | UI や成果物を軽量に可視化して判断基準を引き出す。 |
 | [quiz](discovery/quiz/SKILL.md) | AI 生成物や変更内容への理解漏れを確認する。 |
