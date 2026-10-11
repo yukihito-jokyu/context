@@ -1,0 +1,136 @@
+{
+  "snapshot": {
+    "number": 1,
+    "slug": "artifact-gallery",
+    "label": "文章成果物の閲覧案",
+    "note": "実行済みunknowns出力を表示。画面案の承認は未実施。"
+  },
+  "project": {
+    "title": "成果物の確認",
+    "subtitle": "入力から実出力を確かめる"
+  },
+  "review_points": [
+    {
+      "number": 1,
+      "title": "全文の展開",
+      "description": "抜粋から必要な時に全文を開く順序を確認してください。",
+      "target_key": "expand",
+      "status": "pending",
+      "approval_history": []
+    },
+    {
+      "number": 2,
+      "title": "原本取得",
+      "description": "同じMarkdownを取得するリンクを確認してください。",
+      "target_key": "download",
+      "status": "pending",
+      "approval_history": []
+    }
+  ],
+  "fixed_annotations": [
+    {
+      "number": 1,
+      "target_key": "expand",
+      "padding_px": 0
+    },
+    {
+      "number": 2,
+      "target_key": "download",
+      "padding_px": 0
+    }
+  ],
+  "screen_details": [
+    {
+      "number": 1,
+      "key": "artifact-view",
+      "target_key": "artifact-view",
+      "region": "実行結果",
+      "name": "実行結果の全体",
+      "type": "表示領域",
+      "description": "スキル名、入力、実出力と関連操作をまとめて示す。",
+      "capability": "実例の全体を把握する。",
+      "behavior": "display_only",
+      "trigger": "画面表示",
+      "result": "スキル名と結果を読む。",
+      "failure": "表示できない場合は再読み込み。"
+    },
+    {
+      "number": 2,
+      "key": "input",
+      "target_key": "input",
+      "region": "実行結果",
+      "name": "実行した依頼",
+      "type": "文章",
+      "description": "実際に渡した依頼を示す。",
+      "capability": "入力と出力を対応づける。",
+      "behavior": "display_only",
+      "trigger": "画面表示",
+      "result": "依頼を読む。",
+      "failure": "表示できない場合は入力ファイルを確認。"
+    },
+    {
+      "number": 3,
+      "key": "output",
+      "target_key": "output",
+      "region": "実行結果",
+      "name": "実際の出力",
+      "type": "文章",
+      "description": "unknownsの実出力を示す。",
+      "capability": "未知の分類を読む。",
+      "behavior": "display_only",
+      "trigger": "画面表示または全文展開",
+      "result": "実出力の抜粋または全文を読む。",
+      "failure": "表示できない場合は原本を取得。"
+    },
+    {
+      "number": 4,
+      "key": "expand",
+      "target_key": "expand",
+      "region": "実行結果",
+      "name": "全文の展開",
+      "type": "ボタン",
+      "description": "抜粋と全文を切り替える。",
+      "capability": "長い実出力を読む。",
+      "behavior": "local_state_change",
+      "trigger": "ボタンクリック",
+      "result": "全文表示と抜粋表示を切り替える。",
+      "failure": "表示が変わらない場合は原本を取得。"
+    },
+    {
+      "number": 5,
+      "key": "download",
+      "target_key": "download",
+      "region": "実行結果",
+      "name": "原本取得",
+      "type": "リンク",
+      "description": "表示している実Markdownを取得する。",
+      "capability": "原本を手元で読む。",
+      "behavior": "local_state_change",
+      "trigger": "リンククリック",
+      "result": "unknowns.mdを保存する。",
+      "failure": "保存できない場合は再試行。"
+    }
+  ],
+  "requirements": {
+    "purpose": [
+      "実行結果を入力と対応づけて確認する"
+    ],
+    "target_users": [
+      "スキルを使う前に出力を確かめたい読者"
+    ],
+    "confirmed": [
+      "実際の実行成果物を掲載する",
+      "画像と原本ダウンロードを用意する"
+    ],
+    "hypotheses": [
+      "画像の直後に原本取得を置くと見つけやすい"
+    ],
+    "open_questions": [
+      "画像の大きさが十分か"
+    ],
+    "deferred": [],
+    "next": [
+      "初回画面案を確認する"
+    ]
+  }
+}
