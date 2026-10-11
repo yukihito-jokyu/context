@@ -1,0 +1,94 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Agentのツール呼び出しワークフロー",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "happy-path",
+        "label": "リクエストから結果まで",
+        "focus": ["user", "chat", "planner", "router", "approval", "tool", "external", "final"],
+        "note": "ユーザーの意図から最終応答まで、成功するリクエストを追跡します。"
+      },
+      {
+        "id": "safety-gate",
+        "label": "ポリシーと復旧",
+        "focus": ["router", "approval", "blocked", "retry"],
+        "note": "リスクのある作業が停止し、同意を待ち、または修正へ戻る箇所を確認します。"
+      },
+      {
+        "id": "evidence-loop",
+        "label": "証拠とメモリ",
+        "focus": ["external", "store", "trace"],
+        "note": "表示される回答を支える永続的なトレースとコンテキストの経路を切り分けます。"
+      }
+    ],
+    "output": "examples/workflow-agent-tool-call-rendered.html"
+  },
+  "lanes": [
+    { "id": "ui", "label": "ユーザーインターフェース" },
+    { "id": "agent", "label": "Agent Runtime" },
+    { "id": "policy", "label": "ポリシーと復旧", "variant": "exception" },
+    { "id": "tools", "label": "ツール実行と証拠" }
+  ],
+  "phases": [
+    { "id": "intake", "label": "受付", "fromCol": 0, "toCol": 1 },
+    { "id": "reasoning", "label": "計画 + 振り分け", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "execution", "label": "実行 + 報告", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "agent_loop", "label": "計画ループ", "lane": "agent", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "exception_path", "label": "人またはポリシーによる停止", "lane": "policy", "fromCol": 3, "toCol": 5, "variant": "security" },
+    { "id": "evidence_path", "label": "証拠の経路", "lane": "tools", "fromCol": 1, "toCol": 2, "variant": "dashed" },
+    { "id": "tool_work", "label": "ツール作業", "lane": "tools", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["user", "chat", "planner", "router", "approval", "tool", "external", "final"],
+  "nodes": [
+    { "id": "user", "lane": "ui", "col": 0, "type": "external", "label": "ユーザー", "sublabel": "作業を依頼", "width": 132 },
+    { "id": "chat", "lane": "ui", "col": 1, "type": "frontend", "label": "チャット画面", "sublabel": "スレッド + ファイル", "width": 132 },
+    { "id": "final", "lane": "ui", "col": 5, "type": "backend", "label": "最終応答", "sublabel": "回答 + 変更", "width": 132 },
+    { "id": "planner", "lane": "agent", "col": 2, "type": "backend", "label": "Agentプランナー", "sublabel": "次の手順を計画", "tag": "コンテキスト対応", "width": 132 },
+    { "id": "router", "lane": "agent", "col": 3, "type": "backend", "label": "ツールルーター", "sublabel": "機能を選択", "width": 132 },
+    { "id": "approval", "lane": "policy", "col": 3, "type": "security", "label": "承認ゲート", "sublabel": "範囲 + 同意", "tag": "危険な操作をブロック", "width": 132 },
+    { "id": "blocked", "lane": "policy", "col": 4, "type": "security", "label": "ブロック中", "sublabel": "待機または拒否", "width": 132 },
+    { "id": "retry", "lane": "policy", "col": 5, "type": "messagebus", "label": "再試行経路", "sublabel": "リクエストを修正", "width": 132 },
+    { "id": "tool", "lane": "tools", "col": 4, "type": "messagebus", "label": "ツール呼び出し", "sublabel": "shell / browser / MCP", "tag": "構造化された結果", "width": 132 },
+    { "id": "external", "lane": "tools", "col": 5, "type": "cloud", "label": "外部API", "sublabel": "ネットワークサービス", "width": 132 },
+    { "id": "store", "lane": "tools", "col": 1, "type": "database", "label": "コンテキストストア", "sublabel": "リポジトリ + メモリ", "width": 132 },
+    { "id": "trace", "lane": "tools", "col": 2, "type": "database", "label": "トレースログ", "sublabel": "イベント + 出力", "width": 132 }
+  ],
+  "edges": [
+    { "id": "request-chat", "from": "user", "to": "chat", "variant": "default" },
+    { "id": "plan-request", "from": "chat", "to": "planner", "label": "計画", "variant": "emphasis" },
+    { "id": "planner-route", "from": "planner", "to": "router", "variant": "default" },
+    { "id": "approval-check", "from": "router", "to": "approval", "label": "承認が必要?", "variant": "security" },
+    { "id": "approved-tool", "from": "approval", "to": "tool", "variant": "emphasis" },
+    { "id": "approval-denied", "from": "approval", "to": "blocked", "label": "却下", "variant": "security", "role": "error" },
+    { "id": "retry-request", "from": "blocked", "to": "retry", "variant": "dashed", "role": "branch" },
+    { "id": "tool-external-call", "from": "tool", "to": "external", "variant": "default" },
+    { "id": "external-reply", "from": "external", "to": "final", "variant": "emphasis", "role": "return", "fromSide": "right", "toSide": "right", "route": "outside-right", "width": 1.2 },
+    { "id": "record-result", "from": "external", "to": "trace", "label": "結果を記録", "variant": "dashed", "fromSide": "bottom", "toSide": "bottom", "route": "bottom-channel", "labelSegment": 1 },
+    { "id": "write-trace-memory", "from": "store", "to": "trace", "label": "トレース + メモリ", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "コンパイラー契約",
+      "items": [
+        "レーンと列によってノードの配置が決まります",
+        "ラベル用の間隔を確保し、経路は直交を維持します"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "ランタイムのセマンティクス",
+      "items": [
+        "承認ゲートはツール実行前にリスクのある作業を制御します",
+        "証拠は分離されたトレースとメモリを通じて返されます"
+      ]
+    }
+  ]
+}
