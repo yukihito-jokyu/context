@@ -6,6 +6,20 @@
   <meta name="generator" content="archify 2.16.0">
   <title>[PROJECT NAME] アーキテクチャ図</title>
   <script>
+    // Arriving from a drill-down zoom: hide the page until the runtime plays
+    // the emerge animation (released by a timeout if the runtime never runs).
+    (function () {
+      try {
+        var raw = sessionStorage.getItem('archify-zoom-arrival');
+        if (!raw) return;
+        sessionStorage.removeItem('archify-zoom-arrival');
+        if (Date.now() - Number(raw) > 4000) return;
+        document.documentElement.setAttribute('data-zoom-arrival', 'pending');
+        setTimeout(function () { document.documentElement.removeAttribute('data-zoom-arrival'); }, 1500);
+      } catch (_) {}
+    })();
+  </script>
+  <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
     (function () {
@@ -1801,6 +1815,445 @@
       background: var(--backend-stroke);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--backend-stroke) 14%, transparent);
     }
+    /* Hierarchy navigation: breadcrumb, level badge, drill-down badges and
+       the stacked layer view of map diagrams. Runtime-only; the export path
+       strips the badges and never sees the layer view. */
+    /* Location tabs hanging from the diagram panel's top edge: the level
+       glyph and breadcrumb on the left, then one tab per sibling diagram
+       (those sharing this page's parent) with the current page's tab lit.
+       They sit in the panel's top margin, so the page height never changes. */
+    .archify-hierarchy {
+      position: absolute;
+      top: 0;
+      left: 1.1rem;
+      right: 1.1rem;
+      z-index: 6;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      min-width: 0;
+      font-size: 0.7rem;
+      line-height: 1.3;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .archify-hierarchy > * { pointer-events: auto; }
+    .archify-hierarchy[hidden] { display: none; }
+    .archify-hierarchy-path {
+      display: inline-flex;
+      flex: 0 0 auto;
+      max-width: 45%;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 0;
+      padding-top: 0.25rem;
+      overflow: hidden;
+    }
+    /* Beats the page-wide rule that stretches inline SVGs. */
+    .archify-hierarchy svg.archify-hierarchy-glyph { flex: none; width: 22px; min-width: 0; height: 18px; display: inline-block; transform: none; transition: none; }
+    .archify-hierarchy-glyph path { fill: var(--panel); stroke: var(--text-faint); stroke-width: 1; }
+    .archify-hierarchy-glyph path[data-current] { fill: var(--backend-stroke); stroke: var(--backend-stroke); }
+    .archify-hierarchy-level {
+      flex: none;
+      padding: 0 0.4rem;
+      border-radius: 0.3rem;
+      background: var(--backend-stroke);
+      color: var(--bg);
+      font-weight: 700;
+    }
+    .archify-hierarchy-levelname { flex: none; color: var(--text-muted); }
+    .archify-hierarchy-crumb {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .archify-hierarchy-crumb:hover,
+    .archify-hierarchy-crumb:focus-visible { color: var(--backend-stroke); text-decoration: underline; }
+    .archify-hierarchy-sep { flex: none; color: var(--text-faint); }
+    .archify-hierarchy-tabs {
+      display: flex;
+      flex: 1 1 0;
+      align-items: flex-start;
+      gap: 0.25rem;
+      min-width: 0;
+      /* Tabs that do not fit scroll sideways instead of running under the map link. */
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0 2px 3px;
+      scrollbar-width: none;
+    }
+    .archify-hierarchy-tabs::-webkit-scrollbar { display: none; }
+    .archify-hierarchy[data-wrap] { flex-wrap: wrap; row-gap: 0.15rem; }
+    .archify-hierarchy[data-wrap] .archify-hierarchy-path { max-width: calc(100% - 6rem); }
+    .archify-hierarchy[data-wrap] .archify-hierarchy-tabs { flex: 1 1 100%; order: 1; }
+    .archify-hierarchy-sibling {
+      flex: 0 1 auto;
+      min-width: 6.5rem;
+      max-width: 15rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0.2rem 0.75rem;
+      border: 1px solid var(--panel-border);
+      border-top: none;
+      border-radius: 0 0 0.55rem 0.55rem;
+      background: color-mix(in srgb, var(--panel) 55%, var(--bg));
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    a.archify-hierarchy-sibling:hover,
+    a.archify-hierarchy-sibling:focus-visible { color: var(--backend-stroke); }
+    .archify-hierarchy-sibling[aria-current] {
+      /* This page's own tab keeps its width; the others give way or scroll. */
+      flex: 0 0 auto;
+      max-width: 22rem;
+      border-color: color-mix(in srgb, var(--backend-stroke) 50%, var(--panel-border));
+      border-bottom: 2px solid var(--backend-stroke);
+      background: color-mix(in srgb, var(--backend-stroke) 10%, var(--panel));
+      color: var(--text);
+      font-weight: 700;
+    }
+    .archify-hierarchy-locate {
+      flex: none;
+      align-self: flex-start;
+      margin-top: 0.2rem;
+      padding: 0 0.55rem;
+      border: 1px solid var(--panel-border);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--text-muted);
+      font: inherit;
+      cursor: pointer;
+    }
+    .archify-hierarchy-locate:hover,
+    .archify-hierarchy-locate:focus-visible,
+    .archify-hierarchy-locate[aria-expanded="true"] { color: var(--backend-stroke); border-color: var(--backend-stroke); }
+    /* Parent thumbnail: this page's node, its siblings' nodes, the rest. */
+    .archify-locator {
+      position: absolute;
+      top: 1.9rem;
+      z-index: 7;
+      width: min(340px, calc(100% - 2.2rem));
+      padding: 0.55rem 0.65rem 0.5rem;
+      border: 1px solid var(--panel-border);
+      border-radius: 0.7rem;
+      /* --panel is translucent in dark presets; lay it over the page colour. */
+      background: linear-gradient(var(--panel), var(--panel)), var(--bg);
+      box-shadow: 0 14px 34px rgba(2, 6, 23, 0.22);
+      font-size: 0.68rem;
+      line-height: 1.35;
+    }
+    .archify-locator[hidden] { display: none; }
+    .archify-locator-title { margin: 0 0 0.35rem; color: var(--text-muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .archify-locator svg { display: block; width: 100%; min-width: 0; height: auto; transform: none; transition: none; }
+    .archify-locator-edge { fill: none; stroke: var(--text-faint); stroke-width: 3; opacity: 0.55; vector-effect: non-scaling-stroke; }
+    .archify-locator-edge[data-state] { stroke-width: 1.6; opacity: 0.9; }
+    .archify-locator-edge[data-state="self"] { stroke: var(--backend-stroke); }
+    .archify-locator-edge[data-state="sibling"] { stroke: color-mix(in srgb, var(--backend-stroke) 55%, var(--text-faint)); }
+    .archify-locator-edge:not([data-state]) { stroke-width: 1; }
+    .archify-locator-node { fill: var(--bg); stroke: var(--text-faint); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .archify-locator-node[data-state="sibling"] { fill: color-mix(in srgb, var(--backend-stroke) 22%, var(--panel)); stroke: color-mix(in srgb, var(--backend-stroke) 60%, var(--panel-border)); cursor: pointer; }
+    .archify-locator-node[data-state="self"] { fill: var(--backend-stroke); stroke: var(--backend-stroke); }
+    .archify-locator-node[data-hot] { stroke: var(--arrow-emphasis); stroke-width: 3; filter: drop-shadow(0 0 6px var(--arrow-emphasis)); }
+    .archify-locator-badge circle { fill: var(--panel); stroke: var(--backend-stroke); vector-effect: non-scaling-stroke; }
+    .archify-locator-badge[data-state="self"] circle { fill: var(--backend-stroke); }
+    .archify-locator-badge text { fill: var(--backend-stroke); font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+    .archify-locator-badge[data-state="self"] text { fill: var(--bg); }
+    .archify-locator-list { margin: 0.4rem 0 0; padding: 0; list-style: none; }
+    .archify-locator-list li { display: flex; gap: 0.4rem; align-items: baseline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
+    .archify-locator-list li[aria-current] { color: var(--text); font-weight: 700; }
+    .archify-locator-list a { color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
+    .archify-locator-list a:hover, .archify-locator-list a:focus-visible { color: var(--backend-stroke); text-decoration: underline; }
+    .archify-hierarchy-num,
+    .archify-locator-list b {
+      display: inline-block;
+      min-width: 1.1rem;
+      margin-right: 0.3rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--backend-stroke) 18%, var(--panel));
+      color: var(--backend-stroke);
+      font-size: 0.62rem;
+      font-weight: 700;
+      line-height: 1.1rem;
+      text-align: center;
+    }
+    .archify-hierarchy-sibling[aria-current] .archify-hierarchy-num { background: var(--backend-stroke); color: var(--bg); }
+    .archify-locator-legend { display: flex; gap: 0.8rem; margin-top: 0.35rem; color: var(--text-muted); }
+    .archify-locator-legend span::before {
+      content: "";
+      display: inline-block;
+      width: 0.7rem;
+      height: 0.45rem;
+      margin-right: 0.3rem;
+      border: 1px solid var(--text-faint);
+      border-radius: 2px;
+      background: var(--bg);
+      vertical-align: 0.05rem;
+    }
+    .archify-locator-legend [data-state="self"]::before { background: var(--backend-stroke); border-color: var(--backend-stroke); }
+    .archify-locator-legend [data-state="sibling"]::before { background: color-mix(in srgb, var(--backend-stroke) 22%, var(--panel)); border-color: color-mix(in srgb, var(--backend-stroke) 60%, var(--panel-border)); }
+    /* Link preview: where a linked node goes, shown next to the node. */
+    .archify-link-preview {
+      position: absolute;
+      z-index: 8;
+      width: 280px;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid color-mix(in srgb, var(--security-stroke) 45%, var(--panel-border));
+      border-radius: 0.65rem;
+      background: linear-gradient(var(--panel), var(--panel)), var(--bg);
+      box-shadow: 0 12px 30px rgba(2, 6, 23, 0.22);
+      font-size: 0.68rem;
+      line-height: 1.4;
+      pointer-events: none;
+    }
+    .archify-link-preview[hidden] { display: none; }
+    .archify-link-preview-head { display: flex; align-items: center; gap: 0.4rem; color: var(--security-stroke); font-weight: 700; white-space: nowrap; }
+    .archify-link-preview-rel {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 0.45rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--security-stroke) 14%, var(--panel));
+      color: var(--security-stroke);
+      font-weight: 600;
+    }
+    .archify-link-preview-title { margin: 0.25rem 0 0; color: var(--text); font-size: 0.78rem; font-weight: 700; }
+    .archify-link-preview-title span { color: var(--text-muted); font-weight: 600; }
+    .archify-link-preview-focus,
+    .archify-link-preview-foot { margin: 0.15rem 0 0; color: var(--text-muted); }
+    .archify-link-preview svg { display: block; width: 100%; min-width: 0; height: auto; max-height: 118px; margin-top: 0.35rem; transform: none; transition: none; }
+    .archify-link-preview-section { margin: 0.45rem 0 0; padding-top: 0.4rem; border-top: 1px solid var(--panel-border); }
+    .archify-link-preview-section > b { color: var(--text); font-weight: 700; }
+    .archify-link-preview-from { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 0.45rem; margin-top: 0.3rem; }
+    .archify-link-preview-from svg { margin-top: 0; max-height: 64px; }
+    .archify-link-preview-from span { color: var(--text-muted); overflow-wrap: anywhere; }
+    .archify-link-preview-from span b { display: inline-block; color: var(--text); font-weight: 600; }
+    .archify-link-preview[data-kind="incoming"] { border-color: color-mix(in srgb, var(--frontend-stroke) 45%, var(--panel-border)); }
+    .archify-link-preview[data-kind="incoming"] .archify-link-preview-head { color: var(--frontend-stroke); }
+    .archify-link-preview-section > b[data-kind="incoming"] { color: var(--frontend-stroke); }
+    .archify-locator-node[data-state="source"] { fill: var(--frontend-stroke); stroke: var(--frontend-stroke); }
+    .archify-locator-node[data-state="lands"] { fill: var(--security-stroke); stroke: var(--security-stroke); }
+    .archify-locator-node[data-state="target"] { fill: var(--security-stroke); stroke: var(--security-stroke); }
+    .archify-locator-group { fill: none; stroke: var(--text-faint); stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+    .archify-locator-group[data-state="self"] { stroke: var(--backend-stroke); stroke-width: 2; stroke-dasharray: none; fill: color-mix(in srgb, var(--backend-stroke) 8%, transparent); }
+    .archify-locator-group[data-state="sibling"] { stroke: color-mix(in srgb, var(--backend-stroke) 60%, var(--panel-border)); stroke-width: 1.5; }
+    .archify-locator-group[data-state="target"] { stroke: var(--security-stroke); stroke-width: 2; stroke-dasharray: none; fill: color-mix(in srgb, var(--security-stroke) 8%, transparent); }
+    .archify-locator-edge[data-route] { stroke: var(--security-stroke); stroke-width: 2.6; opacity: 1; }
+    .archify-locator-group[data-route]:not([data-state]) { stroke: var(--security-stroke); stroke-width: 1.5; }
+    .archify-locator-node[data-route]:not([data-state]) { stroke: var(--security-stroke); stroke-width: 2; }
+    .archify-link-preview-route { margin: 0.3rem 0 0; color: var(--text); font-weight: 600; }
+    .archify-link-preview-route[data-none] { color: var(--text-muted); }
+    .archify-locator-legend [data-state="target"]::before { background: var(--security-stroke); border-color: var(--security-stroke); }
+    .archify-hierarchy-sibling[data-hot] { box-shadow: 0 0 0 2px var(--security-stroke); color: var(--text); }
+    .archify-hierarchy-map {
+      flex: none;
+      margin-left: auto;
+      margin-top: 0.25rem;
+      padding: 0 0.6rem;
+      border: 1px solid color-mix(in srgb, var(--backend-stroke) 45%, var(--panel-border));
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--backend-stroke);
+      text-decoration: none;
+    }
+    .archify-hierarchy-map:hover,
+    .archify-hierarchy-map:focus-visible { border-color: var(--backend-stroke); }
+    .semantic-passport-drilldown {
+      display: inline-flex;
+      align-self: flex-start;
+      margin-top: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--backend-stroke);
+      border-radius: 0.4rem;
+      color: var(--backend-stroke);
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .semantic-passport-drilldown[hidden] { display: none; }
+    .semantic-passport-drilldown:hover,
+    .semantic-passport-drilldown:focus-visible { background: var(--backend-fill); }
+    [data-drilldown="true"] { cursor: pointer; }
+    .diagram-container svg [data-node-id], .diagram-container svg [data-drilldown] { -webkit-user-select: none; user-select: none; }
+    /* Links from other detail diagrams that land on this node. */
+    .semantic-passport-incoming { display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; margin-top: 0.35rem; }
+    .semantic-passport-incoming[hidden] { display: none; }
+    .semantic-passport-incoming a {
+      padding: 0.2rem 0.55rem;
+      border: 1px solid var(--frontend-stroke);
+      border-radius: 0.4rem;
+      color: var(--frontend-stroke);
+      font-size: 0.6rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .semantic-passport-incoming a:hover,
+    .semantic-passport-incoming a:focus-visible { background: var(--frontend-fill); }
+    .incoming-badge { pointer-events: none; }
+    .incoming-badge circle { fill: var(--panel); stroke: var(--frontend-stroke); stroke-width: 1.2; }
+    .incoming-badge path { fill: none; stroke: var(--frontend-stroke); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+    .incoming-badge .incoming-count { fill: var(--frontend-stroke); }
+    .incoming-badge .incoming-count-text { fill: var(--bg); font-size: 9px; font-weight: 700; }
+    .drilldown-badge { pointer-events: none; }
+    .drilldown-badge[data-frame-badge] { pointer-events: auto; cursor: pointer; }
+    .drilldown-badge circle { fill: var(--panel); stroke: var(--backend-stroke); stroke-width: 1.2; }
+    .drilldown-badge path { fill: none; stroke: var(--backend-stroke); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+    .drilldown-badge .drilldown-count { fill: var(--backend-stroke); }
+    .drilldown-badge .drilldown-count-text { fill: var(--bg); font-size: 9px; font-weight: 700; }
+
+    html[data-zoom-arrival="pending"] body { opacity: 0; }
+    /* Sideways travel between sibling diagrams, drawn on the parent. */
+    .travel-stage { position: fixed; inset: 0; z-index: 2147483000; overflow: hidden; background: var(--bg); cursor: progress; }
+    .travel-world { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+    .travel-world svg { position: absolute; min-width: 0; max-width: none; transform: none; transition: none; overflow: visible; }
+    .travel-route { fill: none; stroke: var(--security-stroke); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px var(--security-stroke)); }
+    .travel-label { fill: var(--text-muted); font-family: var(--font-mono, ui-monospace, monospace); font-weight: 600; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+    .travel-label[data-state] { fill: var(--bg); }
+    .travel-group-label { fill: var(--text-faint); font-family: var(--font-mono, ui-monospace, monospace); font-weight: 600; pointer-events: none; }
+    .travel-group-label[data-state="self"] { fill: var(--backend-stroke); }
+    .travel-group-label[data-state="target"] { fill: var(--security-stroke); }
+    .travel-caption { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 0.35rem 0.8rem; border: 1px solid var(--panel-border); border-radius: 999px; background: linear-gradient(var(--panel), var(--panel)), var(--bg); color: var(--text); font-size: 0.78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .travel-cover { position: absolute; inset: 0; background: var(--bg); opacity: 0; }
+    .zoom-portal {
+      position: fixed;
+      z-index: 2147483647;
+      pointer-events: none;
+      background: var(--bg);
+      border-radius: 12px;
+    }
+
+    .hier-stack, .hier-tools { display: none; }
+    /* The hidden flat SVG must not narrow the reader while the stack shows. */
+    html[data-hier-view="stack"] { --archify-reader-width: 1440px !important; }
+    .diagram-container[data-hier-view="stack"] > svg {
+      visibility: hidden;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .diagram-container[data-hier-view="stack"] .diagram-nav,
+    .diagram-container[data-hier-view="stack"] .overview-map { display: none !important; }
+    .diagram-container[data-hier-view="stack"] .hier-stack {
+      display: block;
+      position: relative;
+      height: clamp(380px, calc(100vh - 342px), 860px);
+      perspective: 2400px;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+    }
+    .diagram-container[data-hier-view="stack"] .hier-stack:active { cursor: grabbing; }
+    .hier-world {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+    }
+    .hier-plane {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-style: preserve-3d;
+      border: 2px solid var(--lane-stroke);
+      border-radius: 22px;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 39px, var(--grid) 39px 40px),
+        repeating-linear-gradient(90deg, transparent 0 39px, var(--grid) 39px 40px),
+        color-mix(in srgb, var(--lane-stroke) 16%, color-mix(in srgb, var(--bg) 45%, transparent));
+      box-shadow: 0 40px 80px rgba(2, 6, 23, 0.25), inset 0 0 0 1px color-mix(in srgb, var(--text) 6%, transparent);
+    }
+    /* Cards and level tags are drawn upright in a 2D overlay, pinned to
+       anchors on the tilted planes, so text is never skewed and no card
+       intersects a plane in the 3D sort. */
+    .hier-overlay { position: absolute; inset: 0; pointer-events: none; }
+    .hier-anchor { position: absolute; height: 0; pointer-events: none; }
+    .hier-plane-label {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 100%;
+      color: var(--text-muted);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .hier-card {
+      --k-fill: var(--backend-fill);
+      --k-stroke: var(--backend-stroke);
+      position: absolute;
+      left: 0;
+      top: 0;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-height: 96px;
+      padding: 12px 10px 10px;
+      border: 2px solid var(--k-stroke);
+      border-radius: 12px;
+      background: linear-gradient(var(--k-fill), var(--k-fill)), var(--mask);
+      color: var(--text);
+      font: inherit;
+      text-align: center;
+      cursor: pointer;
+      transform-origin: 50% 100%;
+      box-shadow: 0 10px 22px rgba(2, 6, 23, 0.18);
+      transition: opacity 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hier-card strong { font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
+    .hier-card small { color: var(--text-muted); font-size: 14px; }
+    .hier-card-chips { display: flex; gap: 6px; }
+    .hier-card-chips em {
+      padding: 0 7px;
+      border-radius: 999px;
+      background: var(--k-stroke);
+      color: var(--bg);
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 700;
+    }
+    .hier-card[data-kind="frontend"] { --k-fill: var(--frontend-fill); --k-stroke: var(--frontend-stroke); }
+    .hier-card[data-kind="database"] { --k-fill: var(--database-fill); --k-stroke: var(--database-stroke); }
+    .hier-card[data-kind="cloud"] { --k-fill: var(--cloud-fill); --k-stroke: var(--cloud-stroke); }
+    .hier-card[data-kind="security"] { --k-fill: var(--security-fill); --k-stroke: var(--security-stroke); }
+    .hier-card[data-kind="messagebus"] { --k-fill: var(--messagebus-fill); --k-stroke: var(--messagebus-stroke); }
+    .hier-card[data-kind="external"] { --k-fill: var(--external-fill); --k-stroke: var(--external-stroke); border-style: dashed; }
+    .hier-stack[data-hier-active="true"] .hier-card:not([data-hier-state]) { opacity: 0.32; }
+    .hier-card[data-hier-state="self"] { box-shadow: 0 0 0 4px var(--k-stroke), 0 18px 40px rgba(2, 6, 23, 0.35); }
+    .hier-card[data-hier-here="true"] { outline: 4px dashed var(--arrow-emphasis); outline-offset: 6px; }
+    .hier-card:focus-visible { outline: 3px solid var(--arrow-emphasis); outline-offset: 4px; }
+    .hier-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+        /* Without flat emphasis, the reader's position dims lines off its path. */
+    .hier-stack[data-hier-active="true"] .hier-lines > path:not([data-on]) { opacity: 0.2; }
+    .diagram-container[data-hier-capable="true"] .hier-tools {
+      position: absolute;
+      top: 3px;
+      right: 1.5rem;
+      z-index: 7;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.64rem;
+      line-height: 1.4;
+    }
+    .hier-tools button, .hier-spread {
+      padding: 0 0.5rem;
+      border: 1px solid var(--panel-border);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--text-muted);
+      font: inherit;
+      cursor: pointer;
+    }
+    .hier-tools button[aria-pressed="true"] { color: var(--bg); background: var(--backend-stroke); border-color: var(--backend-stroke); }
+    .hier-spread { display: inline-flex; align-items: center; gap: 0.3rem; cursor: default; }
+    .hier-spread input { width: 80px; height: 10px; accent-color: var(--backend-stroke); }
+
     .semantic-passport-repository {
       min-width: 0;
       overflow: hidden;
@@ -4963,6 +5416,7 @@
     <!-- ARCHIFY:GUIDED_VIEWS_DATA -->
     <!-- ARCHIFY:SOURCE_EVIDENCE_DATA -->
     <!-- ARCHIFY:I18N_DATA -->
+    <!-- ARCHIFY:HIERARCHY_DATA -->
     <div class="guided-views no-print" id="guided-views" hidden aria-label="{{i18n:viewer.guided.region}}">
       <button id="guided-view-prev" type="button" aria-label="{{i18n:viewer.guided.previous}}" title="{{i18n:viewer.guided.previous.title}}">&#8592;</button>
       <div class="guided-view-copy">
@@ -5153,6 +5607,8 @@
         <text x="742" y="186" class="t-muted" font-size="8">セキュリティグループ</text>
       </svg>
       <!-- ARCHIFY:SVG_SLOT_END -->
+      <!-- Absolutely positioned in the panel's top margin, so the SVG stays the first child and the page height never changes. -->
+      <nav class="archify-hierarchy no-print" id="archify-hierarchy" hidden aria-label="{{i18n:viewer.hierarchy.region}}"></nav>
       <p class="intent-trace-status no-print" id="intent-trace-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="share-chapter-cue no-print" id="share-chapter-cue" hidden role="status" aria-live="polite">
         <div class="share-chapter-index">
@@ -5246,6 +5702,8 @@
               </div>
               <div class="semantic-passport-evidence-links" id="focus-evidence-links"></div>
             </div>
+            <a class="semantic-passport-drilldown" id="focus-drilldown" hidden></a>
+            <div class="semantic-passport-incoming" id="focus-incoming" hidden></div>
             <span class="relationship-lens-summary" id="focus-summary" aria-live="polite"></span>
             <div class="semantic-passport-reach" id="focus-reach" hidden>
               <span class="semantic-passport-reach-label">{{i18n:viewer.passport.reach}}</span>
@@ -5899,6 +6357,9 @@
           el.remove();
         });
         Array.prototype.forEach.call(clone.querySelectorAll('[data-semantic-lens-overlay]'), function (el) {
+          el.remove();
+        });
+        Array.prototype.forEach.call(clone.querySelectorAll('[data-drilldown-overlay]'), function (el) {
           el.remove();
         });
         Array.prototype.forEach.call(clone.querySelectorAll('[data-legend-bridge-runtime]'), function (el) {
@@ -8433,11 +8894,47 @@
         if (containerRect.bottom <= 0 || containerRect.top >= window.innerHeight) return;
         var padding = window.innerWidth <= 720 ? 8 : 16;
         var visibleTop = Math.max(padding, -containerRect.top + padding);
+        var locationTabs = document.getElementById('archify-hierarchy');
+        if (locationTabs && !locationTabs.hidden) {
+          var tabsRect = locationTabs.getBoundingClientRect();
+          if (tabsRect.height) visibleTop = Math.max(visibleTop, tabsRect.bottom - containerRect.top + 8);
+        }
         var visibleBottom = Math.min(containerRect.height - padding, window.innerHeight - containerRect.top - padding);
         var maxTop = Math.max(padding, visibleBottom - chip.offsetHeight);
         var minTop = Math.min(visibleTop, maxTop);
         var nodeCenter = nodeRect.top - containerRect.top + nodeRect.height / 2;
         var mobile = window.innerWidth <= 720;
+        // The chip docks on the left. When that covers the node it describes
+        // or the nodes it connects to, it moves to the place (beside the node,
+        // or the right edge) that covers least of them, the node weighing most.
+        chip.style.left = '';
+        if (!mobile) {
+          var chipWidth = chip.offsetWidth;
+          var chipHeight = chip.offsetHeight;
+          var dockLeft = chip.getBoundingClientRect().left - containerRect.left;
+          var bandTop = Math.max(16, Math.min(nodeRect.top - containerRect.top + nodeRect.height / 2 - chipHeight / 2, containerRect.height - chipHeight - 16));
+          var nearby = [{ rect: nodeRect, weight: 4 }].concat(Array.prototype.map.call(svg.querySelectorAll('[data-node-id][data-focus-match]'), function (other) {
+            return { rect: other.getBoundingClientRect(), weight: 1 };
+          }));
+          var covered = function (left) {
+            var x0 = containerRect.left + left;
+            var y0 = containerRect.top + bandTop;
+            return nearby.reduce(function (sum, item) {
+              var w = Math.min(x0 + chipWidth, item.rect.right) - Math.max(x0, item.rect.left);
+              var h = Math.min(y0 + chipHeight, item.rect.bottom) - Math.max(y0, item.rect.top);
+              return sum + (w > 0 && h > 0 ? w * h * item.weight : 0);
+            }, 0);
+          };
+          var lefts = [dockLeft, nodeRect.right - containerRect.left + 16, nodeRect.left - containerRect.left - chipWidth - 16, containerRect.width - chipWidth - 16]
+            .filter(function (left) { return left >= 8 && left + chipWidth <= containerRect.width - 8; });
+          var best = dockLeft;
+          var bestCover = covered(dockLeft);
+          lefts.forEach(function (left) {
+            var cover = covered(left);
+            if (cover < bestCover - 1) { best = left; bestCover = cover; }
+          });
+          if (best !== dockLeft) chip.style.left = Math.round(best) + 'px';
+        }
         var previewingOnMobile = mobile && chip.getAttribute('data-relationship-previewing') === 'true';
         var compactOnMobile = mobile && chip.getAttribute('data-relations-expanded') !== 'true';
         var preferred;
@@ -14787,6 +15284,1943 @@
         Archify.presentation.exit();
       }
     });
+
+    // Hierarchy navigation. Node links arrive as data-node-link-* attributes;
+    // breadcrumb, level and map data arrive as archify-hierarchy-data. A single
+    // click keeps its focus behaviour, so drilling down is a double-click,
+    // Shift+Enter or the passport button. A map diagram (role "map") also gets
+    // a stacked 3D layer view built from the same nodes and edges.
+    (function installHierarchyNavigation() {
+      var container = document.querySelector('.diagram-container');
+      var svg = container ? container.querySelector('svg') : null;
+      var data = null;
+      try {
+        var dataNode = document.getElementById('archify-hierarchy-data');
+        data = dataNode ? JSON.parse(dataNode.textContent) : null;
+      } catch (_) { data = null; }
+      var SVG_NS = 'http://www.w3.org/2000/svg';
+      // Links from other detail diagrams, by the node they land on, and the
+      // embedded thumbnails of the diagrams this page links to or from.
+      var incomingBy = {};
+      ((data && data.incoming) || []).forEach(function (entry) {
+        if (entry.focus) (incomingBy[entry.focus] = incomingBy[entry.focus] || []).push(entry);
+      });
+      var peerByPath = {};
+      if (data && data.peers) {
+        Object.keys(data.peers).forEach(function (href) {
+          try { peerByPath[new URL(href, window.location.href).pathname] = data.peers[href]; } catch (_) { /* unusable href */ }
+        });
+      }
+      function peerOf(href) {
+        try { return peerByPath[new URL(href, window.location.href).pathname] || null; } catch (_) { return null; }
+      }
+      // A small drawing of another diagram with some of its nodes lit.
+      function peerThumb(geo, states, className) {
+        var thumb = document.createElementNS(SVG_NS, 'svg');
+        // Cropped to what is drawn, so lanes and margins do not shrink it.
+        var xs = [];
+        var ys = [];
+        geo.nodes.concat(geo.groups || []).forEach(function (item) {
+          xs.push(item.box[0], item.box[0] + item.box[2]);
+          ys.push(item.box[1], item.box[1] + item.box[3]);
+        });
+        geo.edges.forEach(function (edge) { edge.points.forEach(function (p) { xs.push(p[0]); ys.push(p[1]); }); });
+        var pad = 12;
+        var minX = Math.min.apply(null, xs) - pad;
+        var minY = Math.min.apply(null, ys) - pad;
+        thumb.setAttribute('viewBox', [minX, minY, Math.max.apply(null, xs) + pad - minX, Math.max.apply(null, ys) + pad - minY].join(' '));
+        thumb.setAttribute('aria-hidden', 'true');
+        if (className) thumb.setAttribute('class', className);
+        (geo.groups || []).forEach(function (group) {
+          var frame = document.createElementNS(SVG_NS, 'rect');
+          frame.setAttribute('class', 'archify-locator-group');
+          ['x', 'y', 'width', 'height'].forEach(function (name, i) { frame.setAttribute(name, group.box[i]); });
+          frame.setAttribute('rx', 10);
+          thumb.appendChild(frame);
+        });
+        geo.edges.forEach(function (edge) {
+          var line = document.createElementNS(SVG_NS, 'polyline');
+          line.setAttribute('class', 'archify-locator-edge');
+          line.setAttribute('points', edge.points.map(function (p) { return p.join(','); }).join(' '));
+          thumb.appendChild(line);
+        });
+        geo.nodes.forEach(function (node) {
+          var rect = document.createElementNS(SVG_NS, 'rect');
+          rect.setAttribute('class', 'archify-locator-node');
+          ['x', 'y', 'width', 'height'].forEach(function (name, i) { rect.setAttribute(name, node.box[i]); });
+          rect.setAttribute('rx', Math.min(node.box[2], node.box[3]) * 0.12);
+          rect.setAttribute('data-node', node.id);
+          if (states[node.id]) rect.setAttribute('data-state', states[node.id]);
+          thumb.appendChild(rect);
+        });
+        return thumb;
+      }
+      function incomingUrl(entry) {
+        return entry.href + '#focus=' + encodeURIComponent(entry.node);
+      }
+
+      function linkUrl(el) {
+        var href = el && el.getAttribute('data-node-link-href');
+        if (!href) return null;
+        var params = [];
+        var view = el.getAttribute('data-node-link-view');
+        var focus = el.getAttribute('data-node-link-focus');
+        if (view) params.push('view=' + encodeURIComponent(view));
+        if (focus) params.push('focus=' + encodeURIComponent(focus));
+        return href + (params.length ? '#' + params.join('&') : '');
+      }
+      function linkLabel(el) {
+        return el.getAttribute('data-node-link-label') || el.getAttribute('data-node-label') || el.getAttribute('data-boundary-label') || '';
+      }
+      // The element whose link applies: the node itself, or else the
+      // smallest linked boundary that wraps it (a group link).
+      function linkCarrier(target) {
+        if (!target || typeof target.closest !== 'function' || !svg) return null;
+        var badge = target.closest('[data-frame-badge]');
+        if (badge && badge.__carrier) return badge.__carrier;
+        var direct = target.closest('[data-node-link-href]');
+        if (direct) return direct;
+        var node = target.closest('[data-node-id]');
+        if (!node) return null;
+        var box;
+        try { box = node.getBBox(); } catch (_) { return null; }
+        var best = null;
+        var bestArea = Number.MAX_VALUE;
+        Array.prototype.forEach.call(svg.querySelectorAll('rect[data-boundary-id][data-node-link-href]'), function (frame) {
+          var f = frame.getBBox();
+          var inside = box.x >= f.x - 0.5 && box.y >= f.y - 0.5 &&
+            box.x + box.width <= f.x + f.width + 0.5 && box.y + box.height <= f.y + f.height + 0.5;
+          if (inside && f.width * f.height < bestArea) { best = frame; bestArea = f.width * f.height; }
+        });
+        return best;
+      }
+      // Drilling down zooms into the node the reader picked: the page
+      // accelerates towards it and the node's frame grows into the next
+      // page's background, which then emerges from the centre. Only descents
+      // animate (from a map, or to a diagram below this page's directory);
+      // going up or sideways stays an instant page change.
+      function stillMotion() {
+        return document.documentElement.getAttribute('data-motion') === 'still' ||
+          !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      }
+      function isDescent(url) {
+        if (data && data.role === 'map') return true;
+        var path = String(url).split('#')[0].replace(/^(\.\/)+/, '');
+        return path.indexOf('/') > 0 && path.split('/').indexOf('..') === -1;
+      }
+      // Shortest run of parent lines from this page to a sibling diagram, on
+      // the parent thumbnail (data.locator). A node reaches the boundaries
+      // around it for free (a relation drawn from a whole group applies to its
+      // members); stepping from a boundary down to one member costs a little,
+      // so a line that lands on the target itself wins over one that only
+      // reaches its frame. Edges come in travel order, with their direction.
+      function parentRoute(targetPath) {
+        var locator = data && data.locator;
+        if (!locator) return null;
+        var here = new URL(window.location.href);
+        var selfFile = here.pathname.split('/').pop();
+        var stateOf = function (node) {
+          if (!node || !node.to) return null;
+          if (new URL(node.to, here).pathname === targetPath) return 'target';
+          if (node.to === selfFile) return 'self';
+          return null;
+        };
+        var groups = locator.groups || [];
+        var contains = function (outer, inner) {
+          return inner[0] >= outer[0] && inner[1] >= outer[1] &&
+            inner[0] + inner[2] <= outer[0] + outer[2] && inner[1] + inner[3] <= outer[1] + outer[3];
+        };
+        var selfIds = {};
+        var targetIds = {};
+        locator.nodes.concat(groups).forEach(function (item) {
+          var state = stateOf(item);
+          if (state === 'self') selfIds[item.id] = true;
+          if (state === 'target') targetIds[item.id] = true;
+        });
+        if (!Object.keys(targetIds).length || !Object.keys(selfIds).length) return null;
+        var adjacent = {};
+        var link = function (a, b, edge, weight, forward, descend) { (adjacent[a] = adjacent[a] || []).push({ to: b, edge: edge, weight: weight, forward: forward, descend: !!descend }); };
+        locator.edges.forEach(function (edge, index) { link(edge.from, edge.to, index, 1, true); link(edge.to, edge.from, index, 1, false); });
+        locator.nodes.concat(groups).forEach(function (item) {
+          groups.forEach(function (group) {
+            if (group.id === item.id || !contains(group.box, item.box) || (item.group && contains(item.box, group.box))) return;
+            link(item.id, group.id, -1, 0, true);
+            link(group.id, item.id, -1, 0.01, true, true);
+          });
+        });
+        var via = {};
+        var cost = {};
+        var done = {};
+        Object.keys(selfIds).forEach(function (id) { via[id] = null; cost[id] = 0; });
+        var reached = null;
+        for (;;) {
+          var at = null;
+          Object.keys(cost).forEach(function (id) { if (!done[id] && (at === null || cost[id] < cost[at])) at = id; });
+          if (at === null) break;
+          if (targetIds[at]) { reached = at; break; }
+          done[at] = true;
+          (adjacent[at] || []).forEach(function (step) {
+            // Up to a frame and straight back down into a sibling member uses
+            // no line at all; a frame only leads into its members after one.
+            if (step.descend && cost[at] < 1) return;
+            var next = cost[at] + step.weight;
+            if (Object.prototype.hasOwnProperty.call(cost, step.to) && cost[step.to] <= next) return;
+            cost[step.to] = next;
+            via[step.to] = { from: at, edge: step.edge, forward: step.forward };
+          });
+        }
+        // Frames and relay nodes the route passes through are lit too, so a
+        // line that ends on one reads as part of the route.
+        var edges = [];
+        var routeGroups = {};
+        for (var walk = reached; walk && via[walk]; walk = via[walk].from) {
+          if (via[walk].edge >= 0) edges.unshift({ index: via[walk].edge, forward: via[walk].forward });
+          [walk, via[walk].from].forEach(function (id) { routeGroups[id] = true; });
+        }
+        return { locator: locator, stateOf: stateOf, selfIds: selfIds, targetIds: targetIds, reached: reached, edges: edges, groups: routeGroups };
+      }
+      var zooming = null;
+      // Sideways to a sibling: pull back from this page's box on the parent,
+      // run along the parent's lines to the sibling's box, and dive into it.
+      // The arrival then emerges as after a zoom-in.
+      function travelPlan(url) {
+        if (isDescent(url)) return null;
+        try {
+          return parentRoute(new URL(url, window.location.href).pathname);
+        } catch (_) { return null; }
+      }
+      function travel(url, plan, source) {
+        var locator = plan.locator;
+        var vb = locator.viewBox;
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var stage = document.createElement('div');
+        stage.className = 'travel-stage';
+        stage.setAttribute('aria-hidden', 'true');
+        var world = document.createElement('div');
+        world.className = 'travel-world';
+        stage.appendChild(world);
+        // Fit the parent into the viewport with a margin.
+        var k = Math.min(vw * 0.9 / vb[2], (vh * 0.86 - 40) / vb[3]);
+        var sw = vb[2] * k;
+        var sh = vb[3] * k;
+        var left = (vw - sw) / 2;
+        var top = Math.max(56, (vh - sh) / 2);
+        var map = document.createElementNS(SVG_NS, 'svg');
+        map.setAttribute('viewBox', vb.join(' '));
+        map.style.left = left + 'px';
+        map.style.top = top + 'px';
+        map.style.width = sw + 'px';
+        map.style.height = sh + 'px';
+        var font = Math.max(10, vb[2] / 100);
+        var stateOf = plan.stateOf;
+        var add = function (tag, attrs, parent) {
+          var node = document.createElementNS(SVG_NS, tag);
+          Object.keys(attrs).forEach(function (name) { if (attrs[name] !== null && attrs[name] !== undefined) node.setAttribute(name, attrs[name]); });
+          (parent || map).appendChild(node);
+          return node;
+        };
+        (locator.groups || []).forEach(function (group) {
+          var state = stateOf(group);
+          add('rect', { class: 'archify-locator-group', x: group.box[0], y: group.box[1], width: group.box[2], height: group.box[3], rx: 10, 'data-state': state, 'data-route': plan.groups[group.id] && !state ? '' : null });
+          var label = add('text', { class: 'travel-group-label', x: group.box[0] + 8, y: group.box[1] - font * 0.5, 'font-size': font * 0.9, 'data-state': state });
+          label.textContent = group.label;
+        });
+        locator.edges.forEach(function (edge) {
+          add('polyline', { class: 'archify-locator-edge', points: edge.points.map(function (p) { return p.join(','); }).join(' ') });
+        });
+        locator.nodes.forEach(function (node) {
+          var state = stateOf(node);
+          add('rect', { class: 'archify-locator-node', x: node.box[0], y: node.box[1], width: node.box[2], height: node.box[3], rx: Math.min(node.box[2], node.box[3]) * 0.12, 'data-state': state, 'data-route': plan.groups[node.id] && !state ? '' : null });
+          var chars = Array.from(String(node.label));
+          var room = Math.max(4, Math.floor(node.box[2] / (font * 0.62)));
+          var text = chars.length > room ? chars.slice(0, room - 1).join('') + '…' : chars.join('');
+          var label = add('text', { class: 'travel-label', x: node.box[0] + node.box[2] / 2, y: node.box[1] + node.box[3] / 2, 'font-size': font, 'data-state': state });
+          label.textContent = text;
+        });
+        var routes = plan.edges.map(function (step) {
+          var points = locator.edges[step.index].points.slice();
+          if (!step.forward) points.reverse();
+          return add('polyline', { class: 'travel-route', points: points.map(function (p) { return p.join(','); }).join(' '), pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 });
+        });
+        world.appendChild(map);
+        // Where a set of items sits: the lit frame, else the lit nodes' span.
+        var spanOf = function (ids) {
+          var items = locator.nodes.concat(locator.groups || []).filter(function (item) { return ids[item.id]; });
+          var frame = items.filter(function (item) { return item.group === true; })
+            .sort(function (a, b) { return a.box[2] * a.box[3] - b.box[2] * b.box[3]; })[0];
+          if (frame) return frame.box;
+          var x0 = Math.min.apply(null, items.map(function (i) { return i.box[0]; }));
+          var y0 = Math.min.apply(null, items.map(function (i) { return i.box[1]; }));
+          var x1 = Math.max.apply(null, items.map(function (i) { return i.box[0] + i.box[2]; }));
+          var y1 = Math.max.apply(null, items.map(function (i) { return i.box[1] + i.box[3]; }));
+          return [x0, y0, x1 - x0, y1 - y0];
+        };
+        var fill = function (box) {
+          var bw = box[2] * k;
+          var bh = box[3] * k;
+          var scale = Math.max(vw / bw, vh / bh) * 1.05;
+          var cx = left + (box[0] + box[2] / 2 - vb[0]) * k;
+          var cy = top + (box[1] + box[3] / 2 - vb[1]) * k;
+          return 'translate(' + (vw / 2 - scale * cx).toFixed(1) + 'px, ' + (vh / 2 - scale * cy).toFixed(1) + 'px) scale(' + scale.toFixed(3) + ')';
+        };
+        var caption = document.createElement('div');
+        caption.className = 'travel-caption';
+        // Named like the destination diagram: a sibling's title, the link's
+        // title, or else the parent's label for its box.
+        var destPath = new URL(url, window.location.href).pathname;
+        var sibling = (data.siblings || []).filter(function (item) { return new URL(item.href, window.location.href).pathname === destPath; })[0];
+        var targetItem = (locator.groups || []).filter(function (item) { return plan.targetIds[item.id]; })[0] ||
+          locator.nodes.filter(function (item) { return plan.targetIds[item.id]; })[0];
+        caption.textContent = viewerText('viewer.hierarchy.travel', {
+          parent: (data.parent && data.parent.label) || '',
+          from: data.title || '',
+          to: (sibling && sibling.label) || (source && source.getAttribute && source.getAttribute('data-node-link-title')) || (targetItem ? targetItem.label : url)
+        });
+        stage.appendChild(caption);
+        var cover = document.createElement('div');
+        cover.className = 'travel-cover';
+        stage.appendChild(cover);
+        document.documentElement.appendChild(stage);
+
+        var running = [];
+        var gone = false;
+        var state = { animations: running, stage: stage, cancelled: false };
+        var leave = function () {
+          if (gone || state.cancelled) return;
+          gone = true;
+          document.removeEventListener('keydown', onKey, true);
+          try { sessionStorage.setItem('archify-zoom-arrival', String(Date.now())); } catch (_) {}
+          window.location.href = carryTheme(url);
+        };
+        // Any click or key skips the rest of the trip.
+        stage.addEventListener('pointerdown', leave);
+        function onKey() { leave(); }
+        document.addEventListener('keydown', onKey, true);
+        state.release = function () { document.removeEventListener('keydown', onKey, true); };
+        var play = function (el, frames, options) {
+          if (state.cancelled) return Promise.reject(new Error('cancelled'));
+          var animation = el.animate(frames, Object.assign({ fill: 'forwards' }, options));
+          running.push(animation);
+          return animation.finished;
+        };
+        var selfBox = spanOf(plan.selfIds);
+        var targetBox = spanOf(plan.targetIds);
+        zooming = state;
+        var pullBack = Promise.all([
+          play(document.body, [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.94)' }], { duration: 240, easing: 'ease-in' }),
+          play(stage, [{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' }),
+          play(world, [{ transform: fill(selfBox) }, { transform: 'translate(0px, 0px) scale(1)' }], { duration: 560, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' })
+        ]);
+        pullBack.then(function () {
+          // Lines light up one after another, in travel order.
+          return routes.reduce(function (chain, line) {
+            return chain.then(function () {
+              return play(line, [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: Math.max(180, 520 / routes.length), easing: 'linear' });
+            });
+          }, Promise.resolve());
+        }).then(function () {
+          return new Promise(function (resolve, reject) {
+            setTimeout(function () { if (state.cancelled) reject(new Error('cancelled')); else resolve(); }, 140);
+          });
+        }).then(function () {
+          return Promise.all([
+            play(world, [{ transform: 'translate(0px, 0px) scale(1)' }, { transform: fill(targetBox) }], { duration: 560, easing: 'cubic-bezier(0.6, 0, 0.85, 0.35)' }),
+            play(caption, [{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: 'ease-in' }),
+            play(cover, [{ opacity: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1 }], { duration: 560, easing: 'linear' })
+          ]);
+        }).then(leave, function () { /* cancelled (page restored) */ });
+      }
+      // A theme chosen in the URL (?theme=) follows the reader to the next page.
+      function carryTheme(url) {
+        try {
+          var theme = new URLSearchParams(window.location.search).get('theme');
+          if (!theme) return url;
+          var target = new URL(url, window.location.href);
+          if (target.protocol !== window.location.protocol || target.searchParams.has('theme')) return url;
+          target.searchParams.set('theme', theme);
+          return target.href;
+        } catch (_) { return url; }
+      }
+      function go(url, source) {
+        if (!url) return;
+        if (zooming) return;
+        if (!stillMotion() && typeof document.body.animate === 'function') {
+          var plan = travelPlan(url);
+          if (plan) { travel(url, plan, source); return; }
+        }
+        if (!source || !isDescent(url) || stillMotion() || typeof document.body.animate !== 'function') {
+          window.location.href = carryTheme(url);
+          return;
+        }
+        var rect = source.getBoundingClientRect();
+        if (!rect.width || !rect.height) { window.location.href = carryTheme(url); return; }
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var cx = rect.left + rect.width / 2;
+        var cy = rect.top + rect.height / 2;
+        var scale = Math.max(vw / rect.width, vh / rect.height) * 1.15;
+        var body = document.body;
+        body.style.transformOrigin = (cx + window.scrollX) + 'px ' + (cy + window.scrollY) + 'px';
+        var portal = document.createElement('div');
+        portal.className = 'zoom-portal';
+        portal.setAttribute('aria-hidden', 'true');
+        portal.style.left = rect.left + 'px';
+        portal.style.top = rect.top + 'px';
+        portal.style.width = rect.width + 'px';
+        portal.style.height = rect.height + 'px';
+        document.documentElement.appendChild(portal);
+        var easing = 'cubic-bezier(0.6, 0, 0.85, 0.35)';
+        var duration = 560;
+        zooming = [
+          body.animate([
+            { transform: 'scale(1)', filter: 'blur(0px)' },
+            { transform: 'scale(' + scale.toFixed(2) + ')', filter: 'blur(2px)' }
+          ], { duration: duration, easing: easing, fill: 'forwards' }),
+          portal.animate([
+            { opacity: 0, left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', borderRadius: '12px' },
+            { opacity: 0.35, offset: 0.45 },
+            { opacity: 1, left: '0px', top: '0px', width: vw + 'px', height: vh + 'px', borderRadius: '0px' }
+          ], { duration: duration, easing: easing, fill: 'forwards' })
+        ];
+        zooming[1].onfinish = function () {
+          try { sessionStorage.setItem('archify-zoom-arrival', String(Date.now())); } catch (_) {}
+          window.location.href = carryTheme(url);
+        };
+      }
+      // Back/forward cache restores the zoomed page; put it back.
+      window.addEventListener('pageshow', function (event) {
+        if (!event.persisted || !zooming) return;
+        if (!Array.isArray(zooming)) { zooming.cancelled = true; zooming.release(); }
+        (Array.isArray(zooming) ? zooming : zooming.animations).forEach(function (animation) { animation.cancel(); });
+        zooming = null;
+        Array.prototype.forEach.call(document.querySelectorAll('.zoom-portal, .travel-stage'), function (el) { el.remove(); });
+        document.body.style.transformOrigin = '';
+      });
+      // Emerge after a zoom-in arrival (the head script hid the page).
+      var arrivedByZoom = false;
+      if (document.documentElement.getAttribute('data-zoom-arrival') === 'pending') {
+        arrivedByZoom = true;
+        document.documentElement.removeAttribute('data-zoom-arrival');
+        if (!stillMotion() && typeof document.body.animate === 'function') {
+          document.body.animate([
+            { opacity: 0, transform: 'scale(0.82)', filter: 'blur(3px)' },
+            { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }
+          ], { duration: 420, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
+        }
+      }
+
+      // Path of this page relative to the directory of `href`, so the map can
+      // light up where the reader came from.
+      function pathFromTarget(href) {
+        try {
+          var target = new URL(href, window.location.href);
+          var from = target.pathname.split('/').slice(0, -1);
+          var to = window.location.pathname.split('/');
+          var i = 0;
+          while (i < from.length && i < to.length - 1 && from[i] === to[i]) i += 1;
+          var up = [];
+          for (var j = i; j < from.length; j += 1) up.push('..');
+          return decodeURIComponent(up.concat(to.slice(i)).join('/'));
+        } catch (_) { return null; }
+      }
+
+      // Location bar: a small layer glyph (as on the map) with this level
+      // lit, the breadcrumb, a map link that lights this page up, and the
+      // sibling diagrams that share this page's parent.
+      function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+      function levelGlyph(level, total) {
+        var g = document.createElementNS(SVG_NS, 'svg');
+        g.setAttribute('class', 'archify-hierarchy-glyph');
+        g.setAttribute('viewBox', '0 0 26 22');
+        g.setAttribute('width', '22');
+        g.setAttribute('height', '18');
+        g.setAttribute('aria-hidden', 'true');
+        var step = total > 1 ? Math.min(6, 14 / (total - 1)) : 0;
+        var top = (22 - 7 - step * (total - 1)) / 2;
+        for (var i = 0; i < total; i += 1) {
+          var y = top + i * step;
+          var plane = document.createElementNS(SVG_NS, 'path');
+          plane.setAttribute('d', 'M6 ' + y + ' H25 L20 ' + (y + 7) + ' H1 Z');
+          if (i === level) plane.setAttribute('data-current', '');
+          g.appendChild(plane);
+        }
+        return g;
+      }
+      // Where this page sits in its parent: a thumbnail of the parent with
+      // this page's node lit and its siblings' nodes tinted. Opened from the
+      // position button, while hovering a tab (which lights that tab's node),
+      // and briefly after a zoom-in arrival.
+      function installLocator(locator, tabs, siblings, self, pathRow) {
+        var siblingHrefs = {};
+        var numberOf = {};
+        siblings.forEach(function (sibling, index) {
+          siblingHrefs[sibling.href] = true;
+          numberOf[sibling.href] = index + 1;
+        });
+        var numbered = siblings.length > 1;
+        // Number the tabs so they match the badges on the thumbnail.
+        if (numbered) {
+          Array.prototype.forEach.call(tabs.children, function (tab, index) {
+            var num = el('b', 'archify-hierarchy-num', String(index + 1));
+            num.setAttribute('aria-hidden', 'true');
+            tab.insertBefore(num, tab.firstChild);
+          });
+        }
+        var stateOf = function (node) {
+          if (!node || !node.to) return null;
+          if (node.to === self) return 'self';
+          return siblingHrefs[node.to] ? 'sibling' : null;
+        };
+        var button = el('button', 'archify-hierarchy-locate', '⌖ ' + viewerText('viewer.hierarchy.locate.button'));
+        button.type = 'button';
+        button.setAttribute('aria-expanded', 'false');
+        button.title = viewerText('viewer.hierarchy.locate', { label: data.parent.label });
+        nav.insertBefore(button, tabs);
+
+        var pop = el('div', 'archify-locator no-print');
+        pop.hidden = true;
+        pop.id = 'archify-locator';
+        pop.setAttribute('role', 'dialog');
+        pop.setAttribute('aria-label', viewerText('viewer.hierarchy.locate', { label: data.parent.label }));
+        button.setAttribute('aria-controls', pop.id);
+        pop.appendChild(el('p', 'archify-locator-title', viewerText('viewer.hierarchy.locate', { label: data.parent.label })));
+        var vb = locator.viewBox;
+        var thumb = document.createElementNS(SVG_NS, 'svg');
+        thumb.setAttribute('viewBox', vb.join(' '));
+        thumb.setAttribute('role', 'img');
+        thumb.setAttribute('aria-label', data.parent.label);
+        var byNode = {};
+        locator.nodes.concat(locator.groups || []).forEach(function (node) { byNode[node.id] = node; });
+        locator.edges.forEach(function (edge) {
+          var line = document.createElementNS(SVG_NS, 'polyline');
+          line.setAttribute('class', 'archify-locator-edge');
+          line.setAttribute('points', edge.points.map(function (p) { return p.join(','); }).join(' '));
+          var states = [stateOf(byNode[edge.from]), stateOf(byNode[edge.to])];
+          var state = states.indexOf('self') !== -1 ? 'self' : (states.indexOf('sibling') !== -1 ? 'sibling' : null);
+          if (state) line.setAttribute('data-state', state);
+          thumb.appendChild(line);
+        });
+        (locator.groups || []).forEach(function (group) {
+          var frame = document.createElementNS(SVG_NS, 'rect');
+          frame.setAttribute('class', 'archify-locator-group');
+          ['x', 'y', 'width', 'height'].forEach(function (name, i) { frame.setAttribute(name, group.box[i]); });
+          frame.setAttribute('rx', 10);
+          var state = stateOf(group);
+          if (state) frame.setAttribute('data-state', state);
+          thumb.insertBefore(frame, thumb.firstChild);
+        });
+        var rects = [];
+        locator.nodes.forEach(function (node) {
+          var rect = document.createElementNS(SVG_NS, 'rect');
+          rect.setAttribute('class', 'archify-locator-node');
+          rect.setAttribute('x', node.box[0]);
+          rect.setAttribute('y', node.box[1]);
+          rect.setAttribute('width', node.box[2]);
+          rect.setAttribute('height', node.box[3]);
+          rect.setAttribute('rx', Math.min(node.box[2], node.box[3]) * 0.12);
+          var state = stateOf(node);
+          if (state) rect.setAttribute('data-state', state);
+          var tip = document.createElementNS(SVG_NS, 'title');
+          tip.textContent = node.label;
+          rect.appendChild(tip);
+          if (state === 'sibling') {
+            rect.addEventListener('click', function () { go(node.to); });
+          }
+          rect.__to = node.to;
+          rects.push(rect);
+          thumb.appendChild(rect);
+        });
+        // Number badges on this page's and its siblings' nodes.
+        if (numbered) {
+          var unit = vb[2] / 340;
+          // One badge per destination carrier: a group, or an ungrouped node.
+          (locator.groups || []).concat(locator.nodes.filter(function (node) { return typeof node.group !== 'string'; })).forEach(function (node) {
+            var state = stateOf(node);
+            if (!state) return;
+            var badge = document.createElementNS(SVG_NS, 'g');
+            badge.setAttribute('class', 'archify-locator-badge');
+            badge.setAttribute('data-state', state);
+            var circle = document.createElementNS(SVG_NS, 'circle');
+            circle.setAttribute('cx', node.box[0]);
+            circle.setAttribute('cy', node.box[1]);
+            circle.setAttribute('r', 7.5 * unit);
+            badge.appendChild(circle);
+            var label = document.createElementNS(SVG_NS, 'text');
+            label.setAttribute('x', node.box[0]);
+            label.setAttribute('y', node.box[1]);
+            label.setAttribute('font-size', 10 * unit);
+            label.textContent = String(numberOf[node.to]);
+            badge.appendChild(label);
+            thumb.appendChild(badge);
+          });
+        }
+        pop.appendChild(thumb);
+        if (numbered) {
+          var list = el('ol', 'archify-locator-list');
+          siblings.forEach(function (sibling, index) {
+            var item = el('li');
+            var num = el('b', null, String(index + 1));
+            item.appendChild(num);
+            if (sibling.href === self) {
+              item.setAttribute('aria-current', 'page');
+              item.appendChild(el('span', null, sibling.label + ' · ' + viewerText('viewer.hierarchy.locate.self')));
+            } else {
+              var link = el('a', null, sibling.label);
+              link.setAttribute('href', sibling.href);
+              link.addEventListener('click', function (event) {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                go(sibling.href, link);
+              });
+              link.addEventListener('mouseenter', function () { hot(sibling.href); });
+              link.addEventListener('mouseleave', function () { hot(null); });
+              item.appendChild(link);
+            }
+            list.appendChild(item);
+          });
+          pop.appendChild(list);
+        }
+        var legend = el('div', 'archify-locator-legend');
+        [['self', 'viewer.hierarchy.locate.self'], ['sibling', 'viewer.hierarchy.locate.sibling'], ['', 'viewer.hierarchy.locate.other']].forEach(function (item) {
+          if (item[0] === 'sibling' && siblings.length < 2) return;
+          var key = el('span', null, viewerText(item[1]));
+          if (item[0]) key.setAttribute('data-state', item[0]);
+          legend.appendChild(key);
+        });
+        pop.appendChild(legend);
+        container.appendChild(pop);
+
+        var pinned = false;
+        var closeTimer = null;
+        function place() {
+          var panel = container.getBoundingClientRect();
+          var anchor = button.getBoundingClientRect();
+          var left = Math.max(8, Math.min(anchor.left - panel.left, panel.width - pop.offsetWidth - 8));
+          pop.style.left = Math.round(left) + 'px';
+        }
+        function open(keep) {
+          if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+          if (keep) pinned = true;
+          pop.hidden = false;
+          button.setAttribute('aria-expanded', 'true');
+          place();
+        }
+        function close() {
+          pinned = false;
+          pop.hidden = true;
+          button.setAttribute('aria-expanded', 'false');
+          hot(null);
+        }
+        function closeSoon() {
+          if (pinned) return;
+          if (closeTimer) clearTimeout(closeTimer);
+          closeTimer = setTimeout(close, 220);
+        }
+        function hot(href) {
+          rects.forEach(function (rect) {
+            if (href && rect.__to === href) rect.setAttribute('data-hot', '');
+            else rect.removeAttribute('data-hot');
+          });
+        }
+        button.addEventListener('click', function () {
+          if (!pop.hidden && pinned) close();
+          else open(true);
+        });
+        Array.prototype.forEach.call(tabs.children, function (tab) {
+          var href = tab.getAttribute('href') || self;
+          tab.addEventListener('mouseenter', function () { open(false); hot(href); });
+          tab.addEventListener('focus', function () { open(false); hot(href); });
+          tab.addEventListener('mouseleave', function () { hot(null); closeSoon(); });
+          tab.addEventListener('blur', function () { hot(null); closeSoon(); });
+        });
+        pop.addEventListener('mouseenter', function () { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } });
+        pop.addEventListener('mouseleave', closeSoon);
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape' && !pop.hidden) close();
+        });
+        document.addEventListener('pointerdown', function (event) {
+          if (pop.hidden || pop.contains(event.target) || button.contains(event.target) || tabs.contains(event.target)) return;
+          close();
+        });
+        window.addEventListener('resize', function () { if (!pop.hidden) place(); });
+        // After a zoom-in arrival the locator shows where the page sits, unless
+        // the page opens on a node (its details panel takes that side).
+        if (arrivedByZoom && !/(^|[#&])focus=/.test(window.location.hash)) {
+          open(false);
+          closeTimer = setTimeout(close, 4000);
+        }
+      }
+      // Hovering or focusing a linked node names where it goes: the target
+      // diagram, how it relates to this page (down, sibling, another concern,
+      // up), the place it opens at, and a parent thumbnail with this page and
+      // the target side by side. A sibling target also lights its tab.
+      function installLinkPreview() {
+        var here = new URL(window.location.href);
+        var selfFile = here.pathname.split('/').pop();
+        var mapDir = data.map ? new URL('.', new URL(data.map.href, here)).pathname : null;
+        // Concerns are the folders of the root's children (<concern>/<diagram>/).
+        // A page that knows its concern (from its breadcrumb) reads targets at
+        // that folder depth, so a grandchild still names the root-level concern.
+        var partsOf = function (url) {
+          if (!mapDir || url.pathname.indexOf(mapDir) !== 0) return null;
+          return decodeURIComponent(url.pathname.slice(mapDir.length)).split('/');
+        };
+        var concernCrumb = (data.trail || []).filter(function (crumb) { return crumb.focus && /^c-/.test(crumb.focus); })[0];
+        var concernDepth = -1;
+        if (concernCrumb) {
+          var ownParts = partsOf(new URL(window.location.href)) || [];
+          concernDepth = ownParts.indexOf(concernCrumb.label);
+        }
+        var concernOf = function (url) {
+          var parts = partsOf(url);
+          if (!parts) return null;
+          if (concernDepth >= 0) return parts.length > concernDepth + 2 ? parts[concernDepth] : null;
+          // Named like the map's concern level: the folder above the diagram's.
+          return parts.length >= 3 ? parts[parts.length - 3] : null;
+        };
+        var ownConcern = concernOf(here);
+        var parentUrl = data.parent ? new URL(data.parent.href, here).pathname : null;
+        var siblingSet = {};
+        (data.siblings || []).forEach(function (sibling) { siblingSet[new URL(sibling.href, here).pathname] = sibling.href; });
+        var card = el('div', 'archify-link-preview no-print');
+        card.hidden = true;
+        card.setAttribute('role', 'tooltip');
+        card.id = 'archify-link-preview';
+        container.appendChild(card);
+        var timer = null;
+        var current = null;
+        // The node's native <title> would pop the browser tooltip over the
+        // card; it is set aside while the card speaks for the node.
+        var setAside = null;
+        function restoreTitle() {
+          if (setAside) setAside.parent.insertBefore(setAside.title, setAside.next);
+          setAside = null;
+        }
+
+        function thumbnail(targetPath) {
+          var locator = data.locator;
+          if (!locator) return null;
+          var stateOf = function (node) {
+            if (!node || !node.to) return null;
+            var path = new URL(node.to, here).pathname;
+            if (path === targetPath) return 'target';
+            if (node.to === selfFile) return 'self';
+            return null;
+          };
+          var any = locator.nodes.some(function (node) { return stateOf(node) === 'target'; });
+          if (!any) return null;
+          var plan = parentRoute(targetPath);
+          var reached = plan ? plan.reached : null;
+          var hops = plan ? plan.edges.length : 0;
+          var routeGroups = plan ? plan.groups : {};
+          var routeEdges = {};
+          (plan ? plan.edges : []).forEach(function (step) { routeEdges[step.index] = true; });
+          var thumb = document.createElementNS(SVG_NS, 'svg');
+          thumb.setAttribute('viewBox', locator.viewBox.join(' '));
+          thumb.setAttribute('aria-hidden', 'true');
+          thumb.setAttribute('class', 'archify-link-preview-locator');
+          (locator.groups || []).forEach(function (group) {
+            var frame = document.createElementNS(SVG_NS, 'rect');
+            frame.setAttribute('class', 'archify-locator-group');
+            ['x', 'y', 'width', 'height'].forEach(function (name, i) { frame.setAttribute(name, group.box[i]); });
+            frame.setAttribute('rx', 10);
+            var state = stateOf(group);
+            if (state) frame.setAttribute('data-state', state);
+            if (routeGroups[group.id]) frame.setAttribute('data-route', '');
+            thumb.appendChild(frame);
+          });
+          locator.edges.forEach(function (edge, index) {
+            var line = document.createElementNS(SVG_NS, 'polyline');
+            line.setAttribute('class', 'archify-locator-edge');
+            line.setAttribute('points', edge.points.map(function (p) { return p.join(','); }).join(' '));
+            if (routeEdges[index]) line.setAttribute('data-route', '');
+            thumb.appendChild(line);
+          });
+          locator.nodes.forEach(function (node) {
+            var rect = document.createElementNS(SVG_NS, 'rect');
+            rect.setAttribute('class', 'archify-locator-node');
+            rect.setAttribute('x', node.box[0]);
+            rect.setAttribute('y', node.box[1]);
+            rect.setAttribute('width', node.box[2]);
+            rect.setAttribute('height', node.box[3]);
+            rect.setAttribute('rx', Math.min(node.box[2], node.box[3]) * 0.12);
+            var state = stateOf(node);
+            if (state) rect.setAttribute('data-state', state);
+            else if (routeGroups[node.id]) rect.setAttribute('data-route', '');
+            thumb.appendChild(rect);
+          });
+          var wrap = document.createDocumentFragment();
+          wrap.appendChild(el('p', 'archify-link-preview-route', reached
+            ? (hops <= 1 ? viewerText('viewer.hierarchy.preview.route.direct') : viewerText('viewer.hierarchy.preview.route.via', { count: hops }))
+            : viewerText('viewer.hierarchy.preview.route.none')));
+          if (!reached) wrap.firstChild.setAttribute('data-none', '');
+          else wrap.firstChild.setAttribute('data-hops', String(hops));
+          wrap.appendChild(thumb);
+          var legend = el('div', 'archify-locator-legend');
+          var a = el('span', null, viewerText('viewer.hierarchy.locate.self'));
+          a.setAttribute('data-state', 'self');
+          var b = el('span', null, viewerText('viewer.hierarchy.preview.target'));
+          b.setAttribute('data-state', 'target');
+          legend.appendChild(a);
+          legend.appendChild(b);
+          wrap.appendChild(legend);
+          return wrap;
+        }
+        function tabFor(path) {
+          var href = siblingSet[path];
+          if (!href) return null;
+          return Array.prototype.find.call(document.querySelectorAll('.archify-hierarchy-sibling'), function (tab) {
+            return (tab.getAttribute('href') || selfFile) === href;
+          }) || null;
+        }
+        function show(node, anchor) {
+          anchor = anchor || node;
+          while (card.firstChild) card.removeChild(card.firstChild);
+          var target = null;
+          if (node) {
+            var href = node.getAttribute('data-node-link-href');
+            target = new URL(href, here);
+            var title = node.getAttribute('data-node-link-title') || node.getAttribute('data-node-link-label') || href;
+            var focusLabel = node.getAttribute('data-node-link-label');
+            var focusId = node.getAttribute('data-node-link-focus');
+            var onward = Number(node.getAttribute('data-node-link-onward') || 0);
+            var concern = concernOf(target);
+            var relation;
+            if (parentUrl && target.pathname === parentUrl) relation = viewerText('viewer.hierarchy.preview.up');
+            else if (siblingSet[target.pathname]) relation = viewerText('viewer.hierarchy.preview.sibling');
+            else if (isDescent(href)) relation = viewerText('viewer.hierarchy.preview.down');
+            else if (concern && concern !== ownConcern) relation = viewerText('viewer.hierarchy.preview.other', { label: concern });
+            else relation = viewerText('viewer.hierarchy.preview.elsewhere');
+
+            var head = el('div', 'archify-link-preview-head', '↗ ' + viewerText('viewer.hierarchy.preview'));
+            head.appendChild(el('span', 'archify-link-preview-rel', relation));
+            card.appendChild(head);
+            var name = el('p', 'archify-link-preview-title');
+            if (concern) name.appendChild(el('span', null, concern + ' › '));
+            name.appendChild(document.createTextNode(title));
+            card.appendChild(name);
+            if (focusLabel && focusLabel !== title) card.appendChild(el('p', 'archify-link-preview-focus', viewerText('viewer.hierarchy.preview.focus', { label: focusLabel })));
+            var thumb = thumbnail(target.pathname);
+            if (thumb) card.appendChild(thumb);
+            // Inside the destination: the node this link lands on.
+            var geo = peerOf(href);
+            if (geo) {
+              var section = el('div', 'archify-link-preview-section');
+              section.appendChild(el('b', null, viewerText('viewer.hierarchy.preview.destination')));
+              var landing = focusId ? geo.nodes.find(function (n) { return n.id === focusId; }) : null;
+              if (landing) section.appendChild(el('p', 'archify-link-preview-focus', viewerText('viewer.hierarchy.preview.lands', { label: landing.label })));
+              var states = {};
+              if (landing) states[landing.id] = 'lands';
+              section.appendChild(peerThumb(geo, states, 'archify-link-preview-dest'));
+              card.appendChild(section);
+            }
+            card.appendChild(el('p', 'archify-link-preview-foot', onward > 0
+              ? viewerText('viewer.hierarchy.preview.onward', { count: onward })
+              : viewerText('viewer.hierarchy.preview.open')));
+          }
+          // Links from other diagrams that land on this node: which diagram,
+          // and which node there.
+          var arriving = incomingBy[anchor.getAttribute('data-node-id')] || [];
+          if (node) card.removeAttribute('data-kind');
+          else card.setAttribute('data-kind', 'incoming');
+          if (arriving.length) {
+            var from = el('div', node ? 'archify-link-preview-section' : null);
+            var fromHead = el(node ? 'b' : 'div', node ? null : 'archify-link-preview-head', (node ? '' : '↙ ') + viewerText('viewer.hierarchy.incoming', { count: arriving.length }));
+            if (node) fromHead.setAttribute('data-kind', 'incoming');
+            from.appendChild(fromHead);
+            arriving.forEach(function (entry) {
+              var row = el('div', 'archify-link-preview-from');
+              var source = peerOf(entry.href);
+              var lit = {};
+              lit[entry.node] = 'source';
+              row.appendChild(source ? peerThumb(source, lit, 'archify-link-preview-source') : el('span'));
+              var text = el('span');
+              text.appendChild(document.createTextNode(entry.label + ' › '));
+              text.appendChild(el('b', null, entry.nodeLabel));
+              row.appendChild(text);
+              row.setAttribute('data-source', entry.href + '#' + entry.node);
+              from.appendChild(row);
+            });
+            from.appendChild(el('p', 'archify-link-preview-foot', viewerText('viewer.hierarchy.incoming.hint')));
+            card.appendChild(from);
+          }
+          card.hidden = false;
+
+          // Below the node when it fits, otherwise above, otherwise beside it;
+          // never off the panel.
+          var panel = container.getBoundingClientRect();
+          var box = anchor.getBoundingClientRect();
+          var w = card.offsetWidth;
+          var h = card.offsetHeight;
+          // The location tabs hang in the panel's top margin; keep them visible.
+          var navBox = nav && !nav.hidden ? nav.getBoundingClientRect() : null;
+          var floor = navBox && navBox.height ? Math.max(8, navBox.bottom - panel.top + 4) : 8;
+          var left = Math.max(8, Math.min(box.left - panel.left, panel.width - w - 8));
+          var top = box.bottom - panel.top + 8;
+          if (top + h > panel.height - 8) {
+            top = box.top - panel.top - h - 8;
+            if (top < floor) {
+              top = Math.max(floor, Math.min(box.top - panel.top + box.height / 2 - h / 2, panel.height - h - 8));
+              var right = box.right - panel.left + 8;
+              left = right + w <= panel.width - 8 ? right : Math.max(8, box.left - panel.left - w - 8);
+            }
+          }
+          // Lift it clear of the zoom bar at the panel's foot when there is room.
+          var bar = document.querySelector('.diagram-nav');
+          var barBox = bar ? bar.getBoundingClientRect() : null;
+          var hits = function (l, t, r, gap) {
+            gap = gap || 0;
+            return l < r.right - panel.left + gap && l + w > r.left - panel.left - gap && t < r.bottom - panel.top + gap && t + h > r.top - panel.top - gap;
+          };
+          if (barBox && barBox.width && hits(left, top, barBox, 8)) {
+            // Up if that keeps the node in view, else sideways off the bar.
+            var lifted = Math.max(floor, barBox.top - panel.top - h - 8);
+            var aside = barBox.left - panel.left - w - 8;
+            if (!hits(left, lifted, box) && !hits(left, lifted, barBox, 8)) top = lifted;
+            else if (aside >= 8 && !hits(aside, top, box)) left = aside;
+          }
+          card.style.left = Math.round(left) + 'px';
+          card.style.top = Math.round(top) + 'px';
+          var tab = target ? tabFor(target.pathname) : null;
+          Array.prototype.forEach.call(document.querySelectorAll('.archify-hierarchy-sibling[data-hot]'), function (t) { t.removeAttribute('data-hot'); });
+          if (tab) tab.setAttribute('data-hot', '');
+          anchor.setAttribute('aria-describedby', card.id);
+          restoreTitle();
+          // The node's own title: on the node, or in the group that draws its
+          // box (ER/class); badges inside the node keep theirs.
+          var box = anchor.querySelector('rect');
+          var native = Array.prototype.find.call(anchor.querySelectorAll('title'), function (title) {
+            return title.parentNode === anchor || (box && title.parentNode.contains(box));
+          });
+          if (native) {
+            setAside = { parent: native.parentNode, next: native.nextSibling, title: native };
+            native.parentNode.removeChild(native);
+          }
+          current = anchor;
+        }
+        function hide() {
+          if (timer) { clearTimeout(timer); timer = null; }
+          card.hidden = true;
+          Array.prototype.forEach.call(document.querySelectorAll('.archify-hierarchy-sibling[data-hot]'), function (t) { t.removeAttribute('data-hot'); });
+          if (current) current.removeAttribute('aria-describedby');
+          restoreTitle();
+          current = null;
+        }
+        // The card sits by the hovered node; a node inside a linked boundary
+        // describes the boundary's destination.
+        var anchorOf = function (target) {
+          var badge = target.closest('[data-frame-badge]');
+          if (badge && badge.__carrier) return badge.__carrier;
+          return target.closest('[data-node-id]') || target.closest('[data-node-link-href]');
+        };
+        var arrivesAt = function (anchor) { return !!(anchor && incomingBy[anchor.getAttribute('data-node-id')]); };
+        svg.addEventListener('pointerover', function (event) {
+          var anchor = anchorOf(event.target);
+          var carrier = anchor ? linkCarrier(anchor) : null;
+          if ((!carrier && !arrivesAt(anchor)) || anchor === current) return;
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(function () { show(carrier, anchor); }, 200);
+        });
+        svg.addEventListener('pointerout', function (event) {
+          var anchor = anchorOf(event.target);
+          var into = event.relatedTarget && event.relatedTarget.closest ? event.relatedTarget : null;
+          // Moving within the node, or between the parts of a frame badge,
+          // keeps the card open.
+          if (!anchor || (into && (anchor.contains(into) || anchorOf(into) === anchor))) return;
+          hide();
+        });
+        svg.addEventListener('focusin', function (event) {
+          var anchor = anchorOf(event.target);
+          var carrier = anchor ? linkCarrier(anchor) : null;
+          if (carrier || arrivesAt(anchor)) show(carrier, anchor);
+        });
+        svg.addEventListener('focusout', hide);
+        container.addEventListener('pointerdown', hide);
+        container.addEventListener('wheel', hide, { passive: true });
+      }
+      var nav = document.getElementById('archify-hierarchy');
+      // The fixed toolbar can sit over the panel's top margin when nothing
+      // pushes the panel down; keep the location tabs clear of it. When the
+      // room beside it is too narrow for the tabs, they move below it.
+      // Still too narrow there, the trail takes a row of its own.
+      function clearToolbar() {
+        if (!nav || nav.hidden) return;
+        nav.style.right = '';
+        nav.style.top = '';
+        nav.removeAttribute('data-wrap');
+        var row = nav.querySelector('.archify-hierarchy-tabs');
+        var current = row && row.querySelector('[aria-current]');
+        // Cramped: something runs over, or this page's own tab is squeezed
+        // below its usual width and cut short (a long title is cut at max-width anyway).
+        var cramped = function () {
+          var squeezed = current && current.scrollWidth > current.clientWidth + 1 &&
+            current.getBoundingClientRect().width + 1 < parseFloat(window.getComputedStyle(current).maxWidth);
+          return nav.scrollWidth > nav.clientWidth + 1 || (row && row.scrollWidth > row.clientWidth + 1) || !!squeezed;
+        };
+        var toolbar = document.querySelector('.toolbar');
+        var t = toolbar ? toolbar.getBoundingClientRect() : null;
+        var n = nav.getBoundingClientRect();
+        var panel = (nav.offsetParent || container).getBoundingClientRect();
+        // The toolbar stays put while the page scrolls; compare where the tabs
+        // sit at the top of the page.
+        var lift = toolbar && window.getComputedStyle(toolbar).position === 'fixed' ? window.scrollY : 0;
+        var nTop = n.top + lift;
+        var nBottom = n.bottom + lift;
+        if (t && t.width && nTop < t.bottom && nBottom > t.top && n.right > t.left) {
+          nav.style.right = Math.max(0, Math.round(panel.right - t.left + 8)) + 'px';
+          if (cramped()) {
+            nav.style.right = '';
+            nav.style.top = Math.round(t.bottom - (panel.top + lift) + 6) + 'px';
+          }
+        }
+        if (cramped()) nav.setAttribute('data-wrap', '');
+        if (current) {
+          var rowBox = row.getBoundingClientRect();
+          var hereBox = current.getBoundingClientRect();
+          if (hereBox.left < rowBox.left || hereBox.right > rowBox.right) row.scrollLeft += hereBox.left - rowBox.left - 2;
+        }
+      }
+      // Diagrams that start right at the top (composites put headings there)
+      // would sit under the tabs; the drawing then starts below them and
+      // gives up the same height, so the page never grows. Only at rest: a
+      // panned or zoomed drawing is left alone.
+      function clearDiagramTop() {
+        if (!nav || nav.hidden || !svg) return;
+        var transform = window.getComputedStyle(svg).transform;
+        if (transform && transform !== 'none' && transform !== 'matrix(1, 0, 0, 1, 0, 0)') { topPending = true; return; }
+        topPending = false;
+        svg.style.marginTop = '';
+        svg.style.height = '';
+        var tabs = Array.prototype.map.call(nav.querySelectorAll('a, button, span'), function (el) { return el.getBoundingClientRect(); })
+          .filter(function (r) { return r.width && r.height; });
+        var underTabs = function () {
+          var under = 0;
+          Array.prototype.forEach.call(svg.querySelectorAll('text, [data-node-id]'), function (el) {
+            var r = el.getBoundingClientRect();
+            if (!r.width) return;
+            tabs.forEach(function (t) {
+              if (r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top) under = Math.max(under, t.bottom - r.top);
+            });
+          });
+          return under;
+        };
+        // A shorter drawing can scale its content down, so measure again.
+        var height = svg.getBoundingClientRect().height;
+        var shift = 0;
+        for (var pass = 0; pass < 3; pass++) {
+          var under = underTabs();
+          if (under <= 0) return;
+          shift += Math.ceil(under) + 4;
+          svg.style.marginTop = shift + 'px';
+          svg.style.height = Math.max(0, height - shift) + 'px';
+        }
+      }
+      function settleTabs() {
+        clearToolbar();
+        clearDiagramTop();
+      }
+      // Skipped while zoomed; redone once the drawing is back at rest, since
+      // the window may have changed size meanwhile.
+      var topPending = false;
+      if (svg && window.MutationObserver) {
+        var atRestAgain = function () {
+          if (!topPending) return;
+          var transform = window.getComputedStyle(svg).transform;
+          if (!transform || transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)') settleSoon();
+        };
+        // The reset eases back, so check again when the easing ends.
+        new MutationObserver(atRestAgain).observe(svg, { attributes: true, attributeFilter: ['style'] });
+        svg.addEventListener('transitionend', atRestAgain);
+      }
+      // The reader layout settles the panel after load and after a resize;
+      // follow its size on the next frame, once it has.
+      var settling = 0;
+      function settleSoon() {
+        if (settling) return;
+        settling = requestAnimationFrame(function () { settling = 0; settleTabs(); });
+      }
+      window.addEventListener('resize', settleSoon);
+      window.addEventListener('load', settleTabs);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(settleTabs);
+      if (window.ResizeObserver) {
+        var settle = new ResizeObserver(settleSoon);
+        if (container) settle.observe(container);
+        settle.observe(document.body);
+      }
+      [120, 600, 1500].forEach(function (delay) { setTimeout(settleTabs, delay); });
+      if (nav && data && data.role !== 'map') {
+        while (nav.firstChild) nav.removeChild(nav.firstChild);
+        var trail = data.trail || [];
+        var crumbs = trail.length ? trail : (data.parent ? [{ href: data.parent.href, label: data.parent.label }] : []);
+        var levelNo = trail.length || crumbs.length;
+        var deeper = !!(svg && Array.prototype.some.call(svg.querySelectorAll('[data-node-link-href]'), function (node) {
+          return isDescent(node.getAttribute('data-node-link-href'));
+        }));
+        var totalLevels = levelNo + 1 + (deeper ? 1 : 0);
+        var pathRow = el('span', 'archify-hierarchy-path');
+        pathRow.appendChild(levelGlyph(levelNo, totalLevels));
+        var level = el('span', 'archify-hierarchy-level', 'L' + levelNo);
+        level.title = viewerText('viewer.hierarchy.position', { level: levelNo, total: totalLevels });
+        pathRow.appendChild(level);
+        pathRow.appendChild(el('span', 'archify-hierarchy-levelname',
+          viewerText(levelNo === 0 ? 'viewer.hierarchy.stack.root' : 'viewer.hierarchy.stack.detail')));
+        crumbs.forEach(function (crumb) {
+          var sep = el('span', 'archify-hierarchy-sep', '›');
+          sep.setAttribute('aria-hidden', 'true');
+          pathRow.appendChild(sep);
+          var a = el('a', 'archify-hierarchy-crumb', crumb.label);
+          a.setAttribute('href', crumb.href + (crumb.focus ? '#focus=' + encodeURIComponent(crumb.focus) : ''));
+          a.title = crumb.label;
+          pathRow.appendChild(a);
+        });
+        if (crumbs.length) {
+          var last = el('span', 'archify-hierarchy-sep', '›');
+          last.setAttribute('aria-hidden', 'true');
+          pathRow.appendChild(last);
+        }
+        nav.appendChild(pathRow);
+        // One tab per sibling; this page's tab is open and joins the panel.
+        var tabs = el('span', 'archify-hierarchy-tabs');
+        var owner = crumbs.length ? crumbs[crumbs.length - 1].label : '';
+        tabs.setAttribute('role', 'group');
+        if (owner) tabs.setAttribute('aria-label', viewerText('viewer.hierarchy.siblings', { label: owner }));
+        var self = window.location.pathname.split('/').pop();
+        var siblings = data.siblings && data.siblings.length > 1 ? data.siblings : [{ href: self, label: data.title || document.title }];
+        siblings.forEach(function (sibling) {
+          var current = sibling.href.indexOf('/') === -1 && decodeURIComponent(sibling.href) === decodeURIComponent(self);
+          var tab = el(current ? 'span' : 'a', 'archify-hierarchy-sibling' + (current ? ' archify-hierarchy-here' : ''), current ? (data.title || sibling.label) : sibling.label);
+          tab.title = sibling.label;
+          if (current) tab.setAttribute('aria-current', 'page');
+          else {
+            tab.setAttribute('href', sibling.href);
+            tab.addEventListener('click', function (event) {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              go(sibling.href, tab);
+            });
+          }
+          tabs.appendChild(tab);
+        });
+        nav.appendChild(tabs);
+        if (data.map) {
+          var mapLink = el('a', 'archify-hierarchy-map', viewerText('viewer.hierarchy.mapHere'));
+          var rel = pathFromTarget(data.map.href);
+          mapLink.setAttribute('href', data.map.href + (rel ? '#here=' + encodeURIComponent(rel) : ''));
+          nav.appendChild(mapLink);
+        }
+        if (data.locator && data.parent) installLocator(data.locator, tabs, siblings, self, pathRow);
+        nav.hidden = false;
+        settleTabs();
+      } else if (nav && data && data.role === 'map' && data.parent) {
+        while (nav.firstChild) nav.removeChild(nav.firstChild);
+        var upRow = el('span', 'archify-hierarchy-path');
+        var up = el('a', 'archify-hierarchy-crumb', viewerText('viewer.hierarchy.parent', { label: data.parent.label }));
+        up.setAttribute('href', data.parent.href);
+        upRow.appendChild(up);
+        nav.appendChild(upRow);
+        nav.hidden = false;
+        settleTabs();
+      }
+      if (!svg) return;
+
+      // Drill-down badges: an arrow on the node corner, plus how many diagrams
+      // the destination leads on to.
+      Array.prototype.forEach.call(svg.querySelectorAll('[data-node-link-href]'), function (el) {
+        el.setAttribute('data-drilldown', 'true');
+        el.setAttribute('aria-description', viewerText('viewer.hierarchy.drilldown.aria', { label: linkLabel(el) }));
+        var box;
+        try { box = el.getBBox(); } catch (_) { box = null; }
+        if (!box || !box.width || !box.height) return;
+        var r = 7;
+        // Straddle the bottom-right corner so the badge never covers node text.
+        var cx = box.x + box.width;
+        var cy = box.y + box.height;
+        var badge = document.createElementNS(SVG_NS, 'g');
+        badge.setAttribute('class', 'drilldown-badge');
+        badge.setAttribute('data-drilldown-overlay', 'true');
+        badge.setAttribute('aria-hidden', 'true');
+        var onward = Number(el.getAttribute('data-node-link-onward') || 0);
+        if (onward > 0) {
+          var pill = document.createElementNS(SVG_NS, 'rect');
+          pill.setAttribute('class', 'drilldown-count');
+          pill.setAttribute('x', String(cx - r - 18));
+          pill.setAttribute('y', String(cy - 6.5));
+          pill.setAttribute('width', '22');
+          pill.setAttribute('height', '13');
+          pill.setAttribute('rx', '6.5');
+          var count = document.createElementNS(SVG_NS, 'text');
+          count.setAttribute('class', 'drilldown-count-text');
+          count.setAttribute('x', String(cx - r - 8));
+          count.setAttribute('y', String(cy + 3.4));
+          count.setAttribute('text-anchor', 'middle');
+          count.textContent = String(onward);
+          badge.appendChild(pill);
+          badge.appendChild(count);
+          el.setAttribute('data-drilldown-onward', String(onward));
+        }
+        var circle = document.createElementNS(SVG_NS, 'circle');
+        circle.setAttribute('cx', String(cx));
+        circle.setAttribute('cy', String(cy));
+        circle.setAttribute('r', String(r));
+        var arrow = document.createElementNS(SVG_NS, 'path');
+        arrow.setAttribute('d', 'M' + (cx - 2.5) + ' ' + (cy + 2.5) + ' L' + (cx + 2.5) + ' ' + (cy - 2.5) +
+          ' M' + (cx - 1) + ' ' + (cy - 2.5) + ' L' + (cx + 2.5) + ' ' + (cy - 2.5) + ' L' + (cx + 2.5) + ' ' + (cy + 1));
+        badge.appendChild(circle);
+        badge.appendChild(arrow);
+        // A boundary frame is a <rect>; its badge goes next to it and stands
+        // for the frame (hover previews, double-click opens).
+        if (el.tagName.toLowerCase() !== 'g') {
+          badge.setAttribute('data-frame-badge', '');
+          badge.__carrier = el;
+        }
+        (el.tagName.toLowerCase() === 'g' ? el : el.parentNode).appendChild(badge);
+      });
+
+      // Arrival badges: an arrow into the top-left corner of nodes that links
+      // from other detail diagrams land on, with how many land there.
+      Object.keys(incomingBy).forEach(function (id) {
+        var el = null;
+        Array.prototype.some.call(svg.querySelectorAll('[data-node-id]'), function (candidate) {
+          if (candidate.getAttribute('data-node-id') !== id) return false;
+          el = candidate;
+          return true;
+        });
+        if (!el) return;
+        var box;
+        try { box = el.getBBox(); } catch (_) { box = null; }
+        if (!box || !box.width || !box.height) return;
+        var count = incomingBy[id].length;
+        el.setAttribute('data-incoming', String(count));
+        var described = el.getAttribute('aria-description');
+        var note = viewerText('viewer.hierarchy.incoming.aria', { count: count });
+        el.setAttribute('aria-description', described ? described + ' ' + note : note);
+        var r = 7;
+        var cx = box.x;
+        var cy = box.y;
+        var badge = document.createElementNS(SVG_NS, 'g');
+        badge.setAttribute('class', 'incoming-badge');
+        badge.setAttribute('data-drilldown-overlay', 'true');
+        badge.setAttribute('aria-hidden', 'true');
+        var pill = document.createElementNS(SVG_NS, 'rect');
+        pill.setAttribute('class', 'incoming-count');
+        pill.setAttribute('x', String(cx + r - 4));
+        pill.setAttribute('y', String(cy - 6.5));
+        pill.setAttribute('width', '22');
+        pill.setAttribute('height', '13');
+        pill.setAttribute('rx', '6.5');
+        var text = document.createElementNS(SVG_NS, 'text');
+        text.setAttribute('class', 'incoming-count-text');
+        text.setAttribute('x', String(cx + r + 7));
+        text.setAttribute('y', String(cy + 3.4));
+        text.setAttribute('text-anchor', 'middle');
+        text.textContent = String(count);
+        var circle = document.createElementNS(SVG_NS, 'circle');
+        circle.setAttribute('cx', String(cx));
+        circle.setAttribute('cy', String(cy));
+        circle.setAttribute('r', String(r));
+        var arrow = document.createElementNS(SVG_NS, 'path');
+        arrow.setAttribute('d', 'M' + (cx - 2.5) + ' ' + (cy - 2.5) + ' L' + (cx + 2.5) + ' ' + (cy + 2.5) +
+          ' M' + (cx + 2.5) + ' ' + (cy - 1) + ' L' + (cx + 2.5) + ' ' + (cy + 2.5) + ' L' + (cx - 1) + ' ' + (cy + 2.5));
+        badge.appendChild(pill);
+        badge.appendChild(text);
+        badge.appendChild(circle);
+        badge.appendChild(arrow);
+        el.appendChild(badge);
+      });
+
+      if (data && data.role !== 'map') installLinkPreview();
+
+      svg.addEventListener('dblclick', function (event) {
+        var el = linkCarrier(event.target);
+        if (!el) return;
+        event.preventDefault();
+        try { window.getSelection().removeAllRanges(); } catch (_) { /* nothing selected */ }
+        go(linkUrl(el), el);
+      });
+      svg.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' || !event.shiftKey) return;
+        var el = linkCarrier(event.target);
+        if (!el) return;
+        event.preventDefault();
+        event.stopPropagation();
+        go(linkUrl(el), el);
+      }, true);
+
+      var drill = document.getElementById('focus-drilldown');
+      var focusId = document.getElementById('focus-id');
+      function nodeById(id) {
+        var found = null;
+        Array.prototype.some.call(svg.querySelectorAll('[data-node-id]'), function (candidate) {
+          if (candidate.getAttribute('data-node-id') !== id) return false;
+          found = candidate;
+          return true;
+        });
+        return found;
+      }
+      var arrivals = document.getElementById('focus-incoming');
+      function syncIncoming(id) {
+        if (!arrivals) return;
+        while (arrivals.firstChild) arrivals.removeChild(arrivals.firstChild);
+        var entries = (id && incomingBy[id]) || [];
+        entries.forEach(function (entry) {
+          var a = document.createElement('a');
+          a.setAttribute('href', incomingUrl(entry));
+          a.textContent = viewerText('viewer.hierarchy.incoming.open', { diagram: entry.label, label: entry.nodeLabel });
+          a.addEventListener('click', function (event) {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            go(a.getAttribute('href'), nodeById(id));
+          });
+          arrivals.appendChild(a);
+        });
+        arrivals.hidden = !entries.length;
+      }
+      if (drill && focusId) {
+        var syncDrilldown = function () {
+          var id = focusId.textContent.trim();
+          syncIncoming(id);
+          var el = id ? linkCarrier(nodeById(id)) : null;
+          var url = linkUrl(el);
+          if (!url) {
+            drill.hidden = true;
+            drill.removeAttribute('href');
+            return;
+          }
+          drill.setAttribute('href', url);
+          drill.textContent = viewerText('viewer.hierarchy.drilldown', { label: linkLabel(el) });
+          drill.hidden = false;
+        };
+        drill.addEventListener('click', function (event) {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          var id = focusId.textContent.trim();
+          var el = id ? (nodeById(id) || null) : null;
+          if (!el) return;
+          // In the stack view the flat node is hidden; zoom from its card.
+          var card = document.querySelector('.diagram-container[data-hier-view="stack"] .hier-card[data-hier-id="' + id.replace(/["\\]/g, '\\$&') + '"]');
+          event.preventDefault();
+          go(drill.getAttribute('href'), card || el);
+        });
+        new MutationObserver(syncDrilldown).observe(focusId, { childList: true, characterData: true, subtree: true });
+        syncDrilldown();
+      }
+
+      if (data && data.role === 'map') installLayerStack();
+
+      // ---- Stacked 3D layer view for map diagrams ------------------------
+      function installLayerStack() {
+        var nodes = [];
+        var byId = {};
+        Array.prototype.forEach.call(svg.querySelectorAll('[data-node-id]'), function (el) {
+          var id = el.getAttribute('data-node-id');
+          if (byId[id]) return;
+          var node = {
+            id: id,
+            label: el.getAttribute('data-node-label') || id,
+            sublabel: el.getAttribute('data-node-sublabel') || '',
+            kind: el.getAttribute('data-node-kind') || 'backend',
+            href: el.getAttribute('data-node-link-href'),
+            onward: Number(el.getAttribute('data-node-link-onward') || 0),
+            children: [],
+            parent: null
+          };
+          byId[id] = node;
+          nodes.push(node);
+        });
+        var seenEdge = {};
+        Array.prototype.forEach.call(svg.querySelectorAll('[data-edge-from][data-edge-to]'), function (el) {
+          var from = byId[el.getAttribute('data-edge-from')];
+          var to = byId[el.getAttribute('data-edge-to')];
+          var key = el.getAttribute('data-edge-from') + '>' + el.getAttribute('data-edge-to');
+          if (!from || !to || seenEdge[key] || to.parent) return;
+          seenEdge[key] = true;
+          from.children.push(to);
+          to.parent = from;
+        });
+        var roots = nodes.filter(function (node) { return !node.parent; });
+        if (!roots.length) return;
+        var levels = [];
+        (function assign(list, depth) {
+          list.forEach(function (node) {
+            node.level = depth;
+            (levels[depth] = levels[depth] || []).push(node);
+            assign(node.children, depth + 1);
+          });
+        })(roots, 0);
+
+        // Plane layout: every first-level subtree owns a column on each plane,
+        // so a parent sits right above its children; deeper nodes stack in
+        // rows inside their column. The root is centred over all columns.
+        var columns = [];
+        roots.forEach(function (root) {
+          if (root.children.length) root.children.forEach(function (child) { columns.push(child); });
+          else columns.push(root);
+        });
+        var cellCount = {};
+        nodes.forEach(function (node) {
+          var top = node;
+          while (top.parent && top.parent.parent) top = top.parent;
+          node.column = node.parent ? columns.indexOf(top) : -1;
+          if (node.column < 0) { node.row = 0; return; }
+          var key = node.column + ':' + node.level;
+          node.row = cellCount[key] || 0;
+          cellCount[key] = node.row + 1;
+        });
+
+        container.setAttribute('data-hier-capable', 'true');
+        var stage = document.createElement('div');
+        stage.className = 'hier-stack no-print';
+        stage.id = 'hier-stack';
+        stage.setAttribute('role', 'group');
+        stage.setAttribute('aria-label', viewerText('viewer.hierarchy.stack.region'));
+        var world = document.createElement('div');
+        world.className = 'hier-world';
+        stage.appendChild(world);
+        var lines = document.createElementNS(SVG_NS, 'svg');
+        lines.setAttribute('class', 'hier-lines');
+        lines.setAttribute('aria-hidden', 'true');
+        stage.appendChild(lines);
+        var overlay = document.createElement('div');
+        overlay.className = 'hier-overlay';
+        stage.appendChild(overlay);
+        var anchors = {};
+        var labels = [];
+        function anchorIn(plane, width) {
+          var a = document.createElement('div');
+          a.className = 'hier-anchor';
+          a.style.width = width + 'px';
+          plane.appendChild(a);
+          return a;
+        }
+
+        var COLS = Math.max(1, columns.length);
+        // Column gaps leave room for the trunk lines between card columns.
+        var CARD_W = Math.max(150, Math.min(240, Math.floor(1120 / COLS) - 56));
+        var COL_W = CARD_W + 56;
+        var PLANE_W = COLS * COL_W + 80;
+        var PLANE_H = 260;
+        var cards = {};
+        var planeNames = levels.map(function (list, depth) {
+          var kinds = list.map(function (node) { return node.kind; });
+          if (depth === 0) return viewerText('viewer.hierarchy.stack.root');
+          if (kinds.every(function (kind) { return kind === 'cloud'; })) return viewerText('viewer.hierarchy.stack.concern');
+          return viewerText('viewer.hierarchy.stack.detail');
+        });
+        levels.forEach(function (list, depth) {
+          var plane = document.createElement('div');
+          plane.className = 'hier-plane';
+          plane.setAttribute('data-level', String(depth));
+          plane.style.width = PLANE_W + 'px';
+          plane.style.height = PLANE_H + 'px';
+          var tag = document.createElement('span');
+          tag.className = 'hier-plane-label';
+          tag.setAttribute('data-level', String(depth));
+          tag.textContent = 'L' + depth + ' ' + planeNames[depth];
+          overlay.appendChild(tag);
+          var tagAnchor = anchorIn(plane, 100);
+          tagAnchor.style.left = '22px';
+          tagAnchor.style.top = '40px';
+          labels.push({ el: tag, anchor: tagAnchor });
+          list.forEach(function (node) {
+            var card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'hier-card';
+            card.setAttribute('data-kind', node.kind);
+            card.setAttribute('data-hier-id', node.id);
+            card.style.width = CARD_W + 'px';
+            var cx = node.column < 0 ? PLANE_W / 2 : 40 + (node.column + 0.5) * COL_W;
+            // The anchor is the card's footprint: its bottom edge on the plane.
+            var anchor = anchorIn(plane, CARD_W);
+            anchor.style.left = Math.round(cx - CARD_W / 2) + 'px';
+            anchors[node.id] = anchor;
+            card.style.zIndex = String(10 + depth * 20 + (node.row || 0));
+            var title = document.createElement('strong');
+            title.textContent = node.label;
+            card.appendChild(title);
+            var meta = document.createElement('small');
+            meta.textContent = node.sublabel;
+            card.appendChild(meta);
+            var chips = document.createElement('span');
+            chips.className = 'hier-card-chips';
+            var lv = document.createElement('em');
+            lv.textContent = 'L' + depth;
+            chips.appendChild(lv);
+            if (node.href && node.onward > 0) {
+              var on = document.createElement('em');
+              on.className = 'hier-card-onward';
+              on.textContent = '↗ ' + node.onward;
+              on.title = viewerText('viewer.hierarchy.onward', { count: node.onward });
+              chips.appendChild(on);
+            }
+            card.appendChild(chips);
+            card.setAttribute('aria-label', node.label + (node.href ? ' — ' + viewerText('viewer.hierarchy.drilldown.aria', { label: node.label }) : ''));
+            // Hover, keyboard focus and click are handed to the same node of
+            // the hidden flat diagram, so the stack runs the flat viewer's own
+            // trace / focus / passport logic; mirror() then copies the result.
+            card.addEventListener('mouseenter', function (event) { forward(node, 'pointerover', event); });
+            card.addEventListener('mouseleave', function (event) { forward(node, 'pointerout', event); });
+            card.addEventListener('focus', function () { forward(node, 'focusin'); });
+            card.addEventListener('blur', function () { forward(node, 'focusout'); });
+            card.addEventListener('click', function () { forward(node, 'click'); });
+            card.addEventListener('dblclick', function () { if (node.href) go(node.href, card); });
+            card.addEventListener('keydown', function (event) {
+              if (event.key === 'Enter' && node.href) { event.preventDefault(); go(node.href, card); }
+            });
+            overlay.appendChild(card);
+            cards[node.id] = card;
+          });
+          world.appendChild(plane);
+        });
+
+        var tools = document.createElement('div');
+        tools.className = 'hier-tools no-print';
+        tools.setAttribute('role', 'group');
+        tools.setAttribute('aria-label', viewerText('viewer.hierarchy.stack.tools'));
+        function toolButton(label, handler, pressed) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = label;
+          if (pressed !== undefined) b.setAttribute('aria-pressed', String(pressed));
+          b.addEventListener('click', handler);
+          tools.appendChild(b);
+          return b;
+        }
+        var stackBtn = toolButton(viewerText('viewer.hierarchy.stack.stacked'), function () { setMode('stack'); }, true);
+        var flatBtn = toolButton(viewerText('viewer.hierarchy.stack.flat'), function () { setMode('flat'); }, false);
+        var spreadLabel = document.createElement('label');
+        spreadLabel.className = 'hier-spread';
+        spreadLabel.textContent = viewerText('viewer.hierarchy.stack.spread');
+        var spread = document.createElement('input');
+        spread.type = 'range';
+        spread.min = '70';
+        spread.max = '260';
+        spread.value = '120';
+        spread.setAttribute('aria-label', viewerText('viewer.hierarchy.stack.spread'));
+        spreadLabel.appendChild(spread);
+        tools.appendChild(spreadLabel);
+        toolButton(viewerText('viewer.hierarchy.stack.reset'), function () { tilt = TILT; spin = SPIN; spread.value = '120'; apply(); });
+
+        container.appendChild(stage);
+        container.appendChild(tools);
+        var rowsLaid = false;
+        var planeOffset = [];
+
+        // Cards stand upright on their plane, so seen from the tilt a card
+        // covers the strip behind it. Rows in one column are therefore
+        // spaced by the card height divided by cos(tilt), measured after the
+        // stage is displayed so wrapped titles never collide.
+        function layoutRows() {
+          var stacks = {};
+          nodes.forEach(function (node) {
+            var key = node.column + ':' + node.level;
+            (stacks[key] = stacks[key] || []).push(node);
+          });
+          var cos = Math.cos(TILT * Math.PI / 180);
+          var pitchOf = function (node) { return cards[node.id].offsetHeight / cos + 18; };
+          var depthOf = function (list) { return list.reduce(function (sum, node) { return sum + pitchOf(node); }, 0); };
+          var planeHeight = levels.map(function () { return 140; });
+          Object.keys(stacks).forEach(function (key) {
+            var level = stacks[key][0].level;
+            planeHeight[level] = Math.max(planeHeight[level], depthOf(stacks[key]) + 70);
+          });
+          Array.prototype.forEach.call(world.children, function (plane) {
+            plane.style.height = Math.round(planeHeight[Number(plane.getAttribute('data-level'))]) + 'px';
+          });
+          // Each plane steps down and back from the previous one, like
+          // terraces: they overlap at the edges while every card row stays
+          // clear of the plane above.
+          var offsets = [0];
+          for (var d = 1; d < levels.length; d += 1) offsets[d] = offsets[d - 1] + (planeHeight[d - 1] + planeHeight[d]) / 2 * 0.82;
+          var middle = (offsets[0] + offsets[offsets.length - 1]) / 2;
+          planeOffset = offsets.map(function (value) { return Math.round(value - middle); });
+          Object.keys(stacks).forEach(function (key) {
+            var list = stacks[key];
+            var base = (planeHeight[list[0].level] - depthOf(list)) / 2 + 40;
+            list.forEach(function (node) {
+              base += pitchOf(node);
+              anchors[node.id].style.top = Math.round(base - 18) + 'px';
+            });
+          });
+        }
+
+        var TILT = 46;
+        var SPIN = 0;
+        var tilt = TILT;
+        var spin = SPIN;
+        var selected = null;
+        function apply() {
+          var gap = Number(spread.value);
+          var mid = (levels.length - 1) / 2;
+          Array.prototype.forEach.call(world.children, function (plane) {
+            var depth = Number(plane.getAttribute('data-level'));
+            // Fan the layers out like stacked cards: each level sits lower and
+            // further back, so planes overlap without hiding each other.
+            var stagger = planeOffset[depth] || 0;
+            plane.style.transform = 'translate(-50%, -50%) translateY(' + stagger + 'px) translateZ(' + Math.round((mid - depth) * gap) + 'px)';
+          });
+          world.style.transform = 'scale(var(--hier-scale, 1)) rotateX(' + tilt + 'deg) rotateZ(' + spin + 'deg)';
+          fit();
+          requestAnimationFrame(drawLines);
+        }
+        // Scale the world so the whole stack fits the stage at any viewport.
+        function fit() {
+          world.style.left = '50%';
+          world.style.top = '50%';
+          world.style.setProperty('--hier-scale', '1');
+          placeOverlay();
+          var stageBox = stage.getBoundingClientRect();
+          var box = null;
+          // Standing cards rise above their plane, so they count too.
+          Array.prototype.slice.call(world.children).concat(Object.keys(cards).map(function (id) { return cards[id]; })).forEach(function (el) {
+            var r = el.getBoundingClientRect();
+            box = box ? { left: Math.min(box.left, r.left), top: Math.min(box.top, r.top), right: Math.max(box.right, r.right), bottom: Math.max(box.bottom, r.bottom) }
+              : { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+          });
+          if (!box || !stageBox.width || !stageBox.height) return;
+          var scale = Math.min(1.2, (stageBox.width - 24) / (box.right - box.left), (stageBox.height - 24) / (box.bottom - box.top));
+          world.style.setProperty('--hier-scale', String(Math.max(0.2, scale)));
+          // Re-centre: the projected stack is not symmetric around the origin.
+          var cxStack = (box.left + box.right) / 2 - stageBox.left;
+          var cyStack = (box.top + box.bottom) / 2 - stageBox.top;
+          world.style.left = 'calc(50% + ' + Math.round((stageBox.width / 2 - cxStack) * scale) + 'px)';
+          world.style.top = 'calc(50% + ' + Math.round((stageBox.height / 2 - cyStack) * scale) + 'px)';
+          placeOverlay();
+        }
+        // Pin each upright element to the projected anchor, scaled by the
+        // anchor's projected width so nearer layers read slightly larger.
+        function pin(el, anchor, width, originX) {
+          var origin = stage.getBoundingClientRect();
+          var r = anchor.getBoundingClientRect();
+          var k = r.width / width;
+          var x = r.left + r.width * originX - origin.left - el.offsetWidth * originX;
+          var y = r.top - origin.top - el.offsetHeight;
+          el.style.transform = 'translate(' + Math.round(x) + 'px, ' + Math.round(y) + 'px) scale(' + k.toFixed(3) + ')';
+        }
+        function placeOverlay() {
+          Object.keys(cards).forEach(function (id) { pin(cards[id], anchors[id], CARD_W, 0.5); });
+          labels.forEach(function (label) { pin(label.el, label.anchor, 100, 0); });
+        }
+        // Lines use the flat diagram's own edge look: the authored edge class
+        // and stroke width, the same arrowhead markers, and orthogonal routes
+        // with 8px rounded corners. Several lines leaving one card spread
+        // their start points along its bottom edge like the flat ports.
+        var markersCopied = false;
+        function copyMarkers() {
+          if (markersCopied) return;
+          markersCopied = true;
+          var defs = document.createElementNS(SVG_NS, 'defs');
+          Array.prototype.forEach.call(svg.querySelectorAll('marker[id]'), function (marker) {
+            var clone = marker.cloneNode(true);
+            clone.id = 'hier-' + marker.id;
+            defs.appendChild(clone);
+          });
+          lines.appendChild(defs);
+        }
+        function flatEdge(from, to) {
+          var esc = function (value) { return value.replace(/["\\]/g, '\\$&'); };
+          return svg.querySelector('[data-edge-from="' + esc(from) + '"][data-edge-to="' + esc(to) + '"]');
+        }
+        function rounded(points) {
+          var R = 8;
+          var d = 'M ' + points[0][0] + ' ' + points[0][1];
+          for (var i = 1; i < points.length; i += 1) {
+            var p = points[i];
+            var next = points[i + 1];
+            if (!next) { d += ' L ' + p[0] + ' ' + p[1]; break; }
+            var prev = points[i - 1];
+            var inLen = Math.abs(p[0] - prev[0]) + Math.abs(p[1] - prev[1]);
+            var outLen = Math.abs(next[0] - p[0]) + Math.abs(next[1] - p[1]);
+            var r = Math.min(R, inLen / 2, outLen / 2);
+            if (r < 0.5) { d += ' L ' + p[0] + ' ' + p[1]; continue; }
+            var ax = p[0] - Math.sign(p[0] - prev[0]) * r;
+            var ay = p[1] - Math.sign(p[1] - prev[1]) * r;
+            var bx = p[0] + Math.sign(next[0] - p[0]) * r;
+            var by = p[1] + Math.sign(next[1] - p[1]) * r;
+            d += ' L ' + ax + ' ' + ay + ' Q ' + p[0] + ' ' + p[1] + ' ' + bx + ' ' + by;
+          }
+          return d;
+        }
+        function drawLines() {
+          copyMarkers();
+          Array.prototype.slice.call(lines.childNodes).forEach(function (child) {
+            if (child.tagName !== 'defs') lines.removeChild(child);
+          });
+          traceShown = null;
+          var origin = stage.getBoundingClientRect();
+          lines.setAttribute('viewBox', '0 0 ' + origin.width + ' ' + origin.height);
+          var rel = function (el) {
+            var r = el.getBoundingClientRect();
+            return { left: r.left - origin.left, right: r.right - origin.left, top: r.top - origin.top, bottom: r.bottom - origin.top };
+          };
+          var box = {};
+          nodes.forEach(function (node) { box[node.id] = rel(cards[node.id]); });
+          var round = function (v) { return Math.round(v * 10) / 10; };
+          nodes.forEach(function (parent) {
+            if (!parent.children.length) return;
+            var a = box[parent.id];
+            var y1 = a.bottom;
+            // Children stacked under an earlier sibling are reached by a trunk
+            // down the column's left edge; the rest from the top.
+            var fromTop = [];
+            var viaTrunk = [];
+            parent.children.forEach(function (child) {
+              var b = box[child.id];
+              var above = parent.children.some(function (other) {
+                var o = box[other.id];
+                return other !== child && o.top < b.top && o.left < b.right && b.left < o.right;
+              });
+              (above ? viaTrunk : fromTop).push(child);
+            });
+            var ports = fromTop.concat(viaTrunk.length ? [null] : []);
+            ports.sort(function (p, q) {
+              var px = p ? (box[p.id].left + box[p.id].right) / 2 : Math.min.apply(null, viaTrunk.map(function (c) { return box[c.id].left; }));
+              var qx = q ? (box[q.id].left + box[q.id].right) / 2 : Math.min.apply(null, viaTrunk.map(function (c) { return box[c.id].left; }));
+              return px - qx;
+            });
+            var width = a.right - a.left;
+            var spread = Math.min(width * 0.6, (ports.length - 1) * 12);
+            var portX = function (index) {
+              return ports.length === 1 ? (a.left + a.right) / 2 : (a.left + a.right) / 2 - spread / 2 + spread * index / (ports.length - 1);
+            };
+            var routes = [];
+            fromTop.forEach(function (child) {
+              var b = box[child.id];
+              var x1 = portX(ports.indexOf(child));
+              var x2 = (b.left + b.right) / 2;
+              var ym = (y1 + b.top) / 2;
+              routes.push({ child: child, points: Math.abs(x1 - x2) < 1 ? [[x1, y1], [x1, b.top]] : [[x1, y1], [x1, ym], [x2, ym], [x2, b.top]] });
+            });
+            if (viaTrunk.length) {
+              var x1 = portX(ports.indexOf(null));
+              var column = viaTrunk.concat(fromTop).map(function (c) { return box[c.id]; })
+                .filter(function (r) { return viaTrunk.some(function (c) { var b = box[c.id]; return r.left < b.right && b.left < r.right; }); });
+              var colLeft = Math.min.apply(null, column.map(function (r) { return r.left; }));
+              var colTop = Math.min.apply(null, column.map(function (r) { return r.top; }));
+              var colBottom = Math.max.apply(null, column.map(function (r) { return r.bottom; }));
+              // Run the trunk down the middle of the gap to the cards on the
+              // left, so it never slips behind a neighbouring card.
+              var leftEdge = null;
+              nodes.forEach(function (other) {
+                var o = box[other.id];
+                if (o.right <= colLeft + 1 && o.bottom > colTop && o.top < colBottom) leftEdge = leftEdge === null ? o.right : Math.max(leftEdge, o.right);
+              });
+              var xt = leftEdge !== null ? (leftEdge + colLeft) / 2 : colLeft - 14;
+              var ym = (y1 + colTop) / 2 - 6;
+              viaTrunk.forEach(function (child) {
+                var b = box[child.id];
+                var cy = (b.top + b.bottom) / 2;
+                routes.push({ child: child, points: [[x1, y1], [x1, ym], [xt, ym], [xt, cy], [b.left, cy]] });
+              });
+            }
+            routes.forEach(function (route) {
+              var edge = flatEdge(parent.id, route.child.id);
+              var path = document.createElementNS(SVG_NS, 'path');
+              path.setAttribute('d', rounded(route.points.map(function (pt) { return [round(pt[0]), round(pt[1])]; })));
+              path.setAttribute('class', (edge && edge.getAttribute('class')) || 'a-default');
+              path.setAttribute('stroke-width', (edge && edge.getAttribute('stroke-width')) || '1.5');
+              var marker = edge && edge.getAttribute('marker-end');
+              if (marker) path.setAttribute('marker-end', marker.replace('url(#', 'url(#hier-'));
+              path.setAttribute('data-from', parent.id);
+              path.setAttribute('data-to', route.child.id);
+              lines.appendChild(path);
+            });
+          });
+          mirror();
+        }
+        function svgNode(id) {
+          return svg.querySelector('[data-node-id="' + id.replace(/["\\]/g, '\\$&') + '"]');
+        }
+        function forward(node, type, source) {
+          var target = svgNode(node.id);
+          if (!target) return;
+          var event;
+          if (type === 'pointerover' || type === 'pointerout') {
+            event = new PointerEvent(type, { bubbles: true, pointerType: (source && source.pointerType) || 'mouse' });
+          } else if (type === 'focusin' || type === 'focusout') {
+            event = new FocusEvent(type, { bubbles: true });
+          } else {
+            event = new MouseEvent(type, { bubbles: true });
+          }
+          target.dispatchEvent(event);
+        }
+        // Copy whatever emphasis the flat diagram currently shows (hover
+        // trace, focus, reachability, lens, route, chapter...) from the
+        // computed styles of its nodes and edges, so both views always agree.
+        // With no flat emphasis, the stack falls back to the reader's
+        // position (#here): the path to the root plus everything below.
+        function mirror() {
+          var active = false;
+          var state = {};
+          nodes.forEach(function (node) {
+            var el = svgNode(node.id);
+            if (!el) return;
+            var style = getComputedStyle(el);
+            var opacity = parseFloat(style.opacity);
+            if (opacity < 0.95) active = true;
+            state[node.id] = { opacity: opacity, filter: style.filter && style.filter !== 'none' ? style.filter : '' };
+          });
+          if (!active) {
+            Object.keys(cards).forEach(function (id) { cards[id].style.opacity = ''; cards[id].style.filter = ''; });
+            linePaths().forEach(function (path) {
+              path.style.opacity = '';
+              path.style.filter = '';
+            });
+            showTrace(null, []);
+            highlight(selected, false);
+            return;
+          }
+          stage.setAttribute('data-hier-active', 'true');
+          Object.keys(cards).forEach(function (id) {
+            var item = state[id] || { opacity: 1, filter: '' };
+            cards[id].style.opacity = String(item.opacity);
+            cards[id].style.filter = item.filter;
+            if (item.filter) cards[id].setAttribute('data-hier-state', 'selected');
+            else if (item.opacity >= 0.95) cards[id].setAttribute('data-hier-state', 'match');
+            else cards[id].removeAttribute('data-hier-state');
+          });
+          var traced = svg.getAttribute('data-intent-trace-active');
+          var flows = [];
+          linePaths().forEach(function (path) {
+            var from = path.getAttribute('data-from');
+            var to = path.getAttribute('data-to');
+            var edge = svg.querySelector('[data-edge-from="' + from.replace(/["\\]/g, '\\$&') + '"][data-edge-to="' + to.replace(/["\\]/g, '\\$&') + '"]');
+            var style = edge ? getComputedStyle(edge) : null;
+            var opacity = style ? parseFloat(style.opacity) : 1;
+            path.style.opacity = String(opacity);
+            path.style.filter = style && style.filter !== 'none' ? style.filter : '';
+            if (edge && traced && edge.hasAttribute('data-intent-trace-match')) {
+              flows.push({ path: path, direction: from === traced && to === traced ? 'loop' : (from === traced ? 'out' : 'in') });
+            }
+          });
+          showTrace(traced, flows);
+        }
+        // The flat hover trace: a one-shot signal running over cloned edge
+        // geometry, coloured by direction relative to the hovered node.
+        var traceShown = null;
+        function showTrace(id, flows) {
+          if (traceShown === id) return;
+          traceShown = id;
+          Array.prototype.forEach.call(lines.querySelectorAll('[data-hier-trace]'), function (g) { g.remove(); });
+          if (!id || !flows.length) return;
+          var group = document.createElementNS(SVG_NS, 'g');
+          group.setAttribute('data-hier-trace', '');
+          flows.forEach(function (flow) {
+            var clone = document.createElementNS(SVG_NS, 'path');
+            clone.setAttribute('d', flow.path.getAttribute('d'));
+            clone.setAttribute('class', 'intent-trace-flow');
+            clone.setAttribute('data-direction', flow.direction);
+            clone.setAttribute('pathLength', '1');
+            group.appendChild(clone);
+          });
+          lines.appendChild(group);
+        }
+        function linePaths() {
+          return Array.prototype.filter.call(lines.childNodes, function (child) { return child.tagName === 'path'; });
+        }
+        var mirrorQueued = false;
+        function queueMirror() {
+          if (mirrorQueued) return;
+          mirrorQueued = true;
+          requestAnimationFrame(function () {
+            mirrorQueued = false;
+            mirror();
+            // Flat emphasis may fade in; settle once the transition is over.
+            setTimeout(mirror, 260);
+          });
+        }
+        function lineage(node) {
+          var ids = {};
+          if (!node) return ids;
+          for (var up = node; up; up = up.parent) ids[up.id] = 'path';
+          (function down(list) { list.forEach(function (child) { ids[child.id] = ids[child.id] || 'child'; down(child.children); }); })(node.children);
+          ids[node.id] = 'self';
+          return ids;
+        }
+        function highlight(node, announce) {
+          var ids = lineage(node);
+          stage.setAttribute('data-hier-active', node ? 'true' : 'false');
+          Object.keys(cards).forEach(function (id) {
+            if (ids[id]) cards[id].setAttribute('data-hier-state', ids[id]);
+            else cards[id].removeAttribute('data-hier-state');
+          });
+          linePaths().forEach(function (path) {
+            var on = ids[path.getAttribute('data-from')] && ids[path.getAttribute('data-to')];
+            if (on) path.setAttribute('data-on', 'true');
+            else path.removeAttribute('data-on');
+          });
+          if (announce && node) stage.setAttribute('aria-description', node.label);
+        }
+        function setMode(mode) {
+          container.setAttribute('data-hier-view', mode);
+          document.documentElement.setAttribute('data-hier-view', mode);
+          stackBtn.setAttribute('aria-pressed', String(mode === 'stack'));
+          flatBtn.setAttribute('aria-pressed', String(mode === 'flat'));
+          if (mode !== 'stack') return;
+          // Cards can only be measured once the stage is displayed.
+          if (!rowsLaid) { layoutRows(); rowsLaid = true; }
+          apply();
+        }
+
+        // Drag to orbit the stack.
+        var drag = null;
+        stage.addEventListener('pointerdown', function (event) {
+          if (event.target.closest('.hier-card')) return;
+          drag = { x: event.clientX, y: event.clientY, tilt: tilt, spin: spin, moved: false };
+          pressed = { x: event.clientX, y: event.clientY };
+          stage.setPointerCapture(event.pointerId);
+        });
+        stage.addEventListener('pointermove', function (event) {
+          if (!drag) return;
+          if (Math.abs(event.clientX - drag.x) + Math.abs(event.clientY - drag.y) > 4) drag.moved = true;
+          spin = drag.spin + (event.clientX - drag.x) * 0.3;
+          tilt = Math.max(0, Math.min(75, drag.tilt - (event.clientY - drag.y) * 0.25));
+          apply();
+        });
+        var pressed = null;
+        function endDrag() { drag = null; }
+        // A plain click on the empty stage clears focus, like the flat canvas.
+        stage.addEventListener('click', function (event) {
+          var start = pressed;
+          pressed = null;
+          if (event.target.closest('.hier-card') || !start) return;
+          if (Math.abs(event.clientX - start.x) + Math.abs(event.clientY - start.y) > 4) return;
+          svg.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+        stage.addEventListener('pointerup', endDrag);
+        stage.addEventListener('pointercancel', endDrag);
+        spread.addEventListener('input', apply);
+        window.addEventListener('resize', function () { if (container.getAttribute('data-hier-view') === 'stack') apply(); });
+
+        // Where the reader came from (#here=path) or a crumb target (#focus=id).
+        function syncHere() {
+          var params;
+          try { params = new URLSearchParams(location.hash.replace(/^#/, '')); } catch (_) { return; }
+          var here = params.get('here');
+          var focus = params.get('focus');
+          var node = null;
+          if (here) nodes.some(function (n) { if (n.href === here) { node = n; return true; } return false; });
+          if (!node && focus) node = byId[focus] || null;
+          Object.keys(cards).forEach(function (id) { cards[id].removeAttribute('data-hier-here'); });
+          if (node) {
+            cards[node.id].setAttribute('data-hier-here', 'true');
+            selected = node;
+          }
+          mirror();
+        }
+        window.addEventListener('hashchange', syncHere);
+        if (typeof MutationObserver === 'function') {
+          new MutationObserver(queueMirror).observe(svg, { attributes: true, subtree: true, childList: true });
+        }
+        setMode('stack');
+        syncHere();
+        Archify.hierarchyStack = { setMode: setMode, select: function (id) { selected = byId[id] || null; mirror(); } };
+      }
+    })();
   </script>
 </body>
 </html>

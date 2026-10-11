@@ -3,6 +3,7 @@ import path from 'node:path';
 import { applyTemplate, renderCards, esc } from './utils.mjs';
 import { validateAccesses } from '../sequence-er/validate.mjs';
 import { validateSchema } from './validator.mjs';
+import { validateLifecycleModel } from '../lifecycle/model.mjs';
 import { verifyRepositoryEvidence } from './repository-evidence.mjs';
 import { installRendererDiagnosticBoundary, throwDiagnosticProblems } from './diagnostics.mjs';
 import { validateEngineeringProfile } from './engineering-profiles.mjs';
@@ -24,6 +25,7 @@ export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = p
   const inputPath = path.resolve(argv[2] || path.join(skillRoot, 'examples', defaultExample));
   const diagram = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   validateSchema(diagramType, diagram);
+  if (diagramType === 'lifecycle') validateLifecycleModel(diagram);
   if(['sequence-er','workflow-er'].includes(diagramType))validateAccesses(diagram,process.env.ARCHIFY_REPO_ROOT);
   validateGuidedViews(diagramType, diagram);
   validateRelationshipIds(diagramType, diagram);

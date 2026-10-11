@@ -108,6 +108,7 @@ const SUBTITLE_SLOT_RE = /^([ \t]*)<p class="subtitle">\[サブタイトルの�
 const GUIDED_VIEWS_PLACEHOLDER = '<!-- ARCHIFY:GUIDED_VIEWS_DATA -->';
 const SOURCE_EVIDENCE_PLACEHOLDER = '    <!-- ARCHIFY:SOURCE_EVIDENCE_DATA -->';
 const I18N_PLACEHOLDER = '    <!-- ARCHIFY:I18N_DATA -->';
+const HIERARCHY_PLACEHOLDER = '    <!-- ARCHIFY:HIERARCHY_DATA -->';
 
 function serializeScriptJson(value) {
   return JSON.stringify(value)
@@ -132,6 +133,7 @@ export function applyTemplate(template, {
   visualPreset = 'classic',
   guidedViews = [],
   sourceEvidence = null,
+  hierarchy = null,
 }) {
   if (!SVG_SLOT_RE.test(template)) {
     throw new Error('applyTemplate: テンプレートに ARCHIFY:SVG_SLOT センチネルがありません');
@@ -152,6 +154,11 @@ export function applyTemplate(template, {
   // becomes mandatory only for the opt-in evidence path.
   if (sourceEvidence && !template.includes(SOURCE_EVIDENCE_PLACEHOLDER)) {
     throw new Error(`applyTemplate: リポジトリの証拠にはプレースホルダー ${JSON.stringify(SOURCE_EVIDENCE_PLACEHOLDER)} が必要です`);
+  }
+  // Same opt-in rule as evidence: parent/map navigation must never vanish
+  // silently because a custom template predates the slot.
+  if (hierarchy && !template.includes(HIERARCHY_PLACEHOLDER)) {
+    throw new Error(`applyTemplate: 階層ナビゲーションにはプレースホルダー ${JSON.stringify(HIERARCHY_PLACEHOLDER)} が必要です`);
   }
   // Function replacers: a literal `$&`, `$'`, `$\`` or `$$` in titles, labels,
   // or rendered SVG must not be interpreted as a replacement pattern.
@@ -179,6 +186,9 @@ export function applyTemplate(template, {
     .replace(GUIDED_VIEWS_PLACEHOLDER, () => `<script id="archify-guided-views-data" type="application/json">${guidedViewsJson}</script>`)
     .replace(SOURCE_EVIDENCE_PLACEHOLDER, () => sourceEvidence
       ? `    <script id="archify-source-evidence-data" type="application/json">${sourceEvidenceJson}</script>`
+      : '')
+    .replace(HIERARCHY_PLACEHOLDER, () => hierarchy
+      ? `    <script id="archify-hierarchy-data" type="application/json">${serializeScriptJson(hierarchy)}</script>`
       : '');
 }
 

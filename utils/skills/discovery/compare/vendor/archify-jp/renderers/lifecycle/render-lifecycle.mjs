@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { layoutLifecycle } from './layout.mjs';
+import { lifecycleLegendEntries, lifecycleLegendReserve, lifecycleElementColorType } from './legend.mjs';
+import { relationLabel, terminology } from './model.mjs';
 import { fileURLToPath } from 'node:url';
-import { esc, renderDefinitions, renderSemanticSigil, textUnits } from '../shared/utils.mjs';
+import { esc, renderCards, renderDefinitions, renderSemanticSigil, textUnits } from '../shared/utils.mjs';
 import { animateAttr, focusEdgeAttrs, focusNodeAttrs, focusNodeTitle, loadDiagramWithBrandMarks, writeDiagram, svgAccessibleText, svgRootAttrs } from '../shared/cli.mjs';
 import { throwDiagnosticProblems } from '../shared/diagnostics.mjs';
 import { resolveLegend, renderLegend as renderResolvedLegend } from '../shared/legend.mjs';
@@ -46,7 +49,11 @@ const { diagram: lifecycle, template, outPath } = await loadDiagramWithBrandMark
   defaultExample: 'agent-run.lifecycle.json'
 });
 
-const viewBox = lifecycle.meta?.viewBox || [980, 660];
+const isV2 = lifecycle.schema_version === 2;
+const v2Layout = isV2 ? layoutLifecycle(lifecycle) : null;
+const terms = terminology(lifecycle.meta.locale);
+const viewBox = v2Layout?.viewBox || lifecycle.meta?.viewBox || [980, 660];
+if (isV2) lifecycle.transitions = lifecycle.transitions.map(edge => ({ ...edge, label: `[${terms[edge.kind]}] ${relationLabel(edge)}` }));
 const layout = {
   phaseY: 126,
   eventY: 278,
@@ -92,7 +99,7 @@ function legendY() {
 // legend's lower baseline. Moving legend chrome must not admit new state
 // geometry into the reserved outcome/legend band.
 function lifecycleAreaBottom() {
-  return viewBox[1] - 122;
+  return viewBox[1] - (isV2 ? lifecycleLegendReserve(lifecycle, viewBox[0]) : 122);
 }
 
 // Lane semantics are fixed: lane id "main" maps to the top phase band, lane id
@@ -127,7 +134,7 @@ function measureState(state) {
   };
 }
 
-const states = new Map(asArray(lifecycle.states).map((state) => [state.id, measureState(state)]));
+const states = v2Layout?.states || new Map(asArray(lifecycle.states).map((state) => [state.id, measureState(state)]));
 const laneLabels = new Map(asArray(lifecycle.lanes).map((lane) => [lane.id, lane.label]));
 const stateSteps = new Map();
 for (const [index, transition] of asArray(lifecycle.transitions).entries()) {
@@ -144,13 +151,13 @@ function validateLifecycle() {
 
   // The three bands are fixed at y=112/264/436. Preserve the original
   // outcome/legend reserve even though measured legend rows now sit lower.
-  if (lifecycleAreaBottom() + 4 < 448) {
+  if (!isV2 && lifecycleAreaBottom() + 4 < 448) {
     problems.push(`viewBox の高さ ${viewBox[1]} は固定バンドレイアウトには不足しています。meta.viewBox[1] を 566 以上に設定してください。`);
   }
 
   const laneIds = new Set(asArray(lifecycle.lanes).map((lane) => lane.id));
   if (laneIds.size !== asArray(lifecycle.lanes).length) problems.push('レーンの id は一意である必要があります。');
-  if (!laneIds.has('main')) {
+  if (!isV2 && !laneIds.has('main')) {
     problems.push('ライフサイクル図には id が "main" のレーン（フェーズレール）が必要です。レーン id "main" と "terminal" は予約済みです。"main" は上部のフェーズバンド、"terminal" は下部の結果バンドに対応し、その他のレーンは中央のイベントバンドを共有します。');
   }
 
@@ -165,7 +172,7 @@ function validateLifecycle() {
       : band === 'outcome'
         ? layout.outcomeXs.length
         : layout.eventXs.length;
-    if (!Number.isInteger(state.col) || state.col < 0 || state.col >= maxCol) {
+    if (!isV2 && (!Number.isInteger(state.col) || state.col < 0 || state.col >= maxCol)) {
       problems.push(`状態 "${state.id}" の列 ${state.col} は無効です。${band} バンドで使用できる整数列は 0..${maxCol - 1} です。`);
       continue;
     }
@@ -188,6 +195,10 @@ function validateLifecycle() {
     // sublabel and tag render as single unwrapped <text> elements; shrink-to-fit
     // handles the ordinary case, this rejects what it cannot rescue.
     const availableTextW = availableNodeTextWidth(state.width);
+    if (isV2) {
+      const badge = [terms[state.kind], lifecycle.initial.includes(state.id) && terms.initial, lifecycle.terminal.includes(state.id) && terms.terminal, state.tag].filter(Boolean).join(' / ');
+      if (textUnits(badge) * 5.5 + (brandMarkFor(state) ? 34 : 0) > availableTextW) problems.push(`要素 "${state.id}" の種類・境界・tagの表示が幅に収まりません。widthを広げてください。`);
+    }
     for (const [field, value, minimum] of [
       ['サブラベル', state.sublabel, stateTextFit.sublabelMinimum],
       ['タグ', state.tag, stateTextFit.tagMinimum],
@@ -203,6 +214,24 @@ function validateLifecycle() {
   // All non-main/non-terminal lanes share the same y band, so the overlap
   // check must run across lanes — not per-lane.
   const allStates = [...states.values()];
+  if (isV2) {
+    const groups = [...v2Layout.groups.values()];
+    const contains = (outer, inner) => inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
+    for (const group of groups) {
+      if (group.x < 32 || group.y < 64 || group.x + group.width > viewBox[0] - 32 || group.y + group.height > lifecycleAreaBottom()) problems.push(`囲み "${group.id}" が図の範囲を超えています。行・列を離すかviewBoxを広げてください。`);
+      const caption = groupCaption(group);
+      if (textUnits(caption) * 6.7 > group.width - 24) problems.push(`囲み "${group.id}" の見出しが収まりません。囲みを広げるか意味を保って文言を短くしてください。`);
+      for (const node of allStates) if (!group.members.includes(node.id) && rectsOverlap(group, node, 0)) problems.push(`囲み "${group.id}" が無関係な要素 "${node.id}" を含んでいます。行・列を調整してください。`);
+      for (const child of groups.filter(child => child.parent === group.id)) if (!contains(group, child)) problems.push(`囲み "${child.id}" が親 "${group.id}" の外にあります。`);
+    }
+    for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
+      if (!groups[i].members.some(id => groups[j].members.includes(id)) && rectsOverlap(groups[i], groups[j], 8)) problems.push(`無関係な囲み "${groups[i].id}" と "${groups[j].id}" が重なっています。`);
+    }
+    for (const edge of lifecycle.transitions) {
+      const route = pathFor(edge);
+      if (route.points.some(([x, y]) => x < 16 || y < 64 || x > viewBox[0] - 16 || y > lifecycleAreaBottom())) problems.push(`関係 "${edge.id}" が図の範囲を超えています。経路または行・列を調整してください。`);
+    }
+  }
   for (let i = 0; i < allStates.length; i += 1) {
     for (let j = i + 1; j < allStates.length; j += 1) {
       if (rectsOverlap(allStates[i], allStates[j], 10)) {
@@ -218,7 +247,7 @@ function validateLifecycle() {
       const routed = pathFor(transition);
       const [start, end] = [routed.points[0], routed.points[routed.points.length - 1]];
       const distance = Math.hypot(end[0] - start[0], end[1] - start[1]);
-      if (distance < 32) problems.push(`遷移 "${transition.label || `${transition.from}->${transition.to}`}" が短すぎます（${Math.round(distance)}px、最小 32px）。チャネルを経由させるか、ラベルを削除してください。`);
+      if (transition.from !== transition.to && distance < 32) problems.push(`遷移 "${transition.label || `${transition.from}->${transition.to}`}" が短すぎます（${Math.round(distance)}px、最小 32px）。チャネルを経由させるか、ラベルを削除してください。`);
     }
   }
 
@@ -234,7 +263,7 @@ function validateLifecycle() {
     relationCollection: 'transitions',
     fromSideFor: (transition) => transitionSides(transition).fromSide,
     toSideFor: (transition) => transitionSides(transition).toSide,
-    shouldCheckRelation: (transition) => !Array.isArray(transition.via),
+    shouldCheckRelation: (transition) => isV2 || !Array.isArray(transition.via),
     routeHint: '自動ルーティングを維持するか、最初と最後のセグメントが状態の境界を垂直に横切る fromSide/toSide と via 点を選ぶ',
   }));
   problems.push(...cleanFlowProblems({
@@ -270,7 +299,7 @@ function validateLifecycle() {
   problems.push(...cleanBorderRunProblems({
     relations: lifecycle.transitions,
     endpointIds: new Set(states.keys()),
-    frames: [],
+    frames: isV2 ? [...v2Layout.groups.values()] : [],
     pathFor,
     diagramType: 'lifecycle',
     relationCollection: 'transitions',
@@ -289,13 +318,14 @@ function validateLifecycle() {
   const labelRects = [];
   for (const [transitionIndex, transition] of asArray(lifecycle.transitions).entries()) {
     if (!transition.label || !states.has(transition.from) || !states.has(transition.to)) continue;
-    const [lx, ly] = labelPoint(transition, pathFor(transition).points);
+    const [lx, ly] = lifecycleLabelPoint(transition, pathFor(transition).points);
     const longestLine = Math.max(textUnits(transition.label), textUnits(transition.note || ''));
     const width = Math.max(32, longestLine * 4.9 + 12);
     const height = transition.note ? 27 : 16;
     labelRects.push({ relation: transition, relationIndex: transitionIndex, label: transition.label, x: lx - width / 2, y: ly - 11, width, height, lx, ly });
   }
   for (const rect of labelRects) {
+    if (isV2 && (rect.x < 16 || rect.y < 64 || rect.x + rect.width > viewBox[0] - 16 || rect.y + rect.height > lifecycleAreaBottom())) problems.push(`ラベル "${rect.label}" が図の範囲を超えています。`);
     for (const state of states.values()) {
       if (rectsOverlap(rect, state, -2)) {
         problems.push(`ラベル "${rect.label}" が状態 "${state.id}" と重なっています。labelDx/labelDy/labelSegment を調整するか labelAt を設定してください。\n${suggestLabelObstacleFix(rect, rect.lx, rect.ly, state, 'state')}`);
@@ -375,8 +405,8 @@ function transitionSides(transition) {
   const from = states.get(transition.from);
   const to = states.get(transition.to);
   return {
-    fromSide: chosenSide(transition.fromSide, defaultFromSide(from, to)),
-    toSide: chosenSide(transition.toSide, defaultToSide(from, to)),
+    fromSide: chosenSide(transition.fromSide, isV2 && from.id === to.id ? 'right' : defaultFromSide(from, to)),
+    toSide: chosenSide(transition.toSide, isV2 && from.id === to.id ? 'bottom' : defaultToSide(from, to)),
   };
 }
 
@@ -393,6 +423,11 @@ function pathFor(transition) {
   const start = ports?.from || anchor(from, fromSide);
   const end = ports?.to || anchor(to, toSide);
   let via = routeVia(transition, from, to, start, end, fromSide, toSide);
+  if (isV2 && transition.from === transition.to && !transition.via) {
+    const right = from.x + from.width + 48;
+    const bottom = from.y + from.height + 48;
+    via = [[right, start[1]], [right, bottom], [end[0], bottom]];
+  }
   if (ports && !via.length && Math.abs(start[0] - end[0]) >= 4 && Math.abs(start[1] - end[1]) >= 4) {
     const midX = (start[0] + end[0]) / 2;
     via = [[midX, start[1]], [midX, end[1]]];
@@ -404,6 +439,15 @@ function pathFor(transition) {
   };
   pathCache.set(transition, routed);
   return routed;
+}
+
+function lifecycleLabelPoint(transition, points) {
+  if (!isV2 || transition.labelAt) return labelPoint(transition, points);
+  const lengths = points.slice(1).map((point, i) => Math.hypot(point[0] - points[i][0], point[1] - points[i][1]));
+  const index = Math.min(points.length - 2, transition.labelSegment ?? lengths.indexOf(Math.max(...lengths)));
+  const [a, b] = [points[index], points[index + 1]];
+  const width = Math.max(32, Math.max(textUnits(transition.label), textUnits(transition.note || '')) * 4.9 + 12);
+  return [(a[0] + b[0]) / 2 + (a[0] === b[0] ? width / 2 + 8 : 0) + (transition.labelDx || 0), (a[1] + b[1]) / 2 - 10 + (transition.labelDy || 0)];
 }
 
 function bandTitles() {
@@ -419,6 +463,7 @@ function bandTitles() {
 }
 
 function renderBands() {
+  if (isV2) return renderV2Context();
   const right = viewBox[0] - 72;
   const titles = bandTitles();
   return `        <path d="M 72 112 L ${right} 112" class="a-default" stroke-width="0.8" stroke-dasharray="3,8"/>
@@ -429,7 +474,47 @@ function renderBands() {
         <text x="72" y="424" class="t-dim" font-size="10" font-weight="600">03 / ${esc(titles[2])}</text>`;
 }
 
+function groupCaption(group) {
+  return `${terms[group.kind]} / ${group.label}${group.condition ? ` · ${group.condition}` : ''}${group.completion ? ` · ${group.completion}` : ''}`;
+}
+
+function renderV2Context() {
+  const subject = lifecycle.subject;
+  const header = `${subject.label} · ${terms[subject.coverage]}`;
+  const bounds = `${subject.beginning} → ${subject.ending}`;
+  const groups = [...v2Layout.groups.values()].sort((a, b) => b.width * b.height - a.width * a.height);
+  return `<text data-boundary-label="" x="40" y="28" class="t-primary" font-size="12">${esc(header)}</text>
+    <text x="40" y="47" class="t-muted" font-size="10">${esc(bounds)}</text>
+    ${[...v2Layout.lanes].map(([id, lane]) => `<text x="40" y="${lane.y - 50}" class="t-dim" font-size="10">${esc(laneLabels.get(id))}</text>`).join('\n')}
+    ${groups.map(group => `<g data-lifecycle-group="${esc(group.id)}" data-group-kind="${group.kind}">
+      <title>${esc(`${groupCaption(group)} · ${group.note}`)}</title>
+      <rect data-container-id="${esc(group.id)}" data-composition-frame-kind="${group.kind}" data-composition-frame-id="${esc(group.id)}" x="${group.x}" y="${group.y}" width="${group.width}" height="${group.height}" rx="10" fill="none" class="a-default" stroke-width="1" stroke-dasharray="5,5"/>
+      <text data-boundary-label="" x="${group.x + 12}" y="${group.y + 18}" class="t-muted" font-size="11">${esc(groupCaption(group))}</text>
+    </g>`).join('\n')}`;
+}
+
+function renderV2State(state) {
+  const type = lifecycleElementColorType(state);
+  const badge = [terms[state.kind], lifecycle.initial.includes(state.id) && terms.initial, lifecycle.terminal.includes(state.id) && terms.terminal, state.tag].filter(Boolean).join(' / ');
+  const localEnds = (lifecycle.groups || []).filter(group => (group.terminal || []).includes(state.id)).map(group => `${group.label}: ${terms.terminal}`);
+  const context = [laneLabels.get(state.lane), state.description, ...localEnds].filter(Boolean).join(' · ');
+  const passport = { kind: terms[state.kind], sublabel: state.sublabel, tag: badge, context, link: state.link, ...brandMetadataFor(state) };
+  const fontSize = fittedNodeFontSize(state.label, brandLabelFitWidth(state, state.width), 14, 10);
+  return `<g ${focusNodeAttrs(state.id, state.label, passport, lifecycle.meta.locale)} data-element-kind="${state.kind}" data-lifecycle-initial="${lifecycle.initial.includes(state.id)}" data-lifecycle-terminal="${lifecycle.terminal.includes(state.id)}">
+    ${focusNodeTitle(state.label, passport)}
+    <rect x="${state.x}" y="${state.y}" width="${state.width}" height="${state.height}" rx="${state.kind === 'event' ? 20 : 7}" class="c-mask"/>
+    <rect x="${state.x}" y="${state.y}" width="${state.width}" height="${state.height}" rx="${state.kind === 'event' ? 20 : 7}" class="${typeClass[type]}" stroke-width="1.5"${animateAttr(lifecycle.meta, 'node', stateSteps.get(state.id))}${state.kind === 'activity' ? ' stroke-dasharray="4,3"' : ''}/>
+    ${lifecycle.terminal.includes(state.id) ? `<rect x="${state.x + 4}" y="${state.y + 4}" width="${state.width - 8}" height="${state.height - 8}" rx="4" fill="none" class="a-default" stroke-width="1"/>` : ''}
+    <text x="${state.x + 12}" y="${state.y + 17}" class="t-muted" font-size="9">${esc(badge)}</text>
+    ${renderBrandMark(state, { x: state.x + state.width - 22, y: state.y + 6 })}
+    <text data-node-label="" x="${state.cx}" y="${state.y + 40}" class="t-primary" font-size="${fontSize}" font-weight="600" text-anchor="middle">${esc(state.label)}</text>
+    ${state.sublabel ? `<text data-detail="context" x="${state.cx}" y="${state.y + 60}" class="t-muted" font-size="${fittedNodeFontSize(state.sublabel, state.width, 10, 8)}" text-anchor="middle">${esc(state.sublabel)}</text>` : ''}
+    ${localEnds.length ? `<text x="${state.cx}" y="${state.y + state.height - 7}" class="t-dim" font-size="8" text-anchor="middle">${esc(localEnds.join(' · '))}</text>` : ''}
+  </g>`;
+}
+
 function renderState(state) {
+  if (isV2) return renderV2State(state);
   const fill = typeClass[state.type] || typeClass.neutral;
   const accent = textClass[state.type] || 't-muted';
   const hasSub = state.sublabel != null && state.sublabel !== '';
@@ -450,6 +535,7 @@ function renderState(state) {
     sublabel: state.sublabel,
     tag: state.tag,
     context: laneLabels.get(state.lane) || i18nText(lifecycle.meta.locale, 'node.context.lifecycle'),
+    link: state.link,
     ...brandMetadataFor(state),
   };
   return `        <g ${focusNodeAttrs(state.id, state.label, passport, lifecycle.meta.locale)}>
@@ -465,20 +551,27 @@ function renderTransitionPath(transition, index) {
   const [cls, marker] = arrowClassMap[transition.variant || 'default'] || arrowClassMap.default;
   const routed = pathFor(transition);
   const strokeWidth = transition.width || (transition.variant === 'emphasis' ? 2 : 1.1);
-  return `        <path ${focusEdgeAttrs(transition.from, transition.to, transition.label, index, transition.id)} data-composition-points="${routePointsValue(routed.points)}" d="${routed.d}" class="${cls}"${animateAttr(lifecycle.meta, 'edge', index)} stroke-width="${strokeWidth}" marker-end="url(#${marker})"/>`;
+  return `        <path ${lifecycleRelationAttrs(transition, index)} data-composition-points="${routePointsValue(routed.points)}" d="${routed.d}" class="${cls}"${animateAttr(lifecycle.meta, 'edge', index)} stroke-width="${strokeWidth}" ${isV2 && transition.kind === 'association' ? 'stroke-dasharray="4,4"' : `marker-end="url(#${marker})"`}${isV2 ? ` data-relation-kind="${transition.kind}"` : ''}/>`;
+}
+
+function lifecycleRelationAttrs(transition, index) {
+  // The shared viewer traverses data-edge-* as directed progression. Keep
+  // non-directional explanations outside that graph, including label copies.
+  if (isV2 && transition.kind === 'association') return `data-association-from="${esc(transition.from)}" data-association-to="${esc(transition.to)}" data-association-id="${esc(transition.id)}" aria-label="${esc(transition.label)}"`;
+  return focusEdgeAttrs(transition.from, transition.to, transition.label, index, transition.id);
 }
 
 function renderTransitionLabel(transition, index) {
   if (!transition.label) return '';
   const routed = pathFor(transition);
-  const [lx, ly] = labelPoint(transition, routed.points);
+  const [lx, ly] = lifecycleLabelPoint(transition, routed.points);
   const longestLine = Math.max(textUnits(transition.label), textUnits(transition.note || ''));
   const labelW = Math.max(32, longestLine * 4.9 + 12);
   const labelH = transition.note ? 27 : 16;
   const note = transition.note
     ? `\n        <text data-detail="fine" x="${lx}" y="${ly + 11}" class="t-dim" font-size="7" text-anchor="middle">${esc(transition.note)}</text>`
     : '';
-  return `        <g data-detail="context" ${focusEdgeAttrs(transition.from, transition.to, transition.label, index, transition.id)}>
+  return `        <g data-detail="context" ${lifecycleRelationAttrs(transition, index)}>
           <rect x="${lx - labelW / 2}" y="${ly - 11}" width="${labelW}" height="${labelH}" rx="4" class="c-mask"/>
           <text x="${lx}" y="${ly}" class="${variantAccent(transition.variant)}" font-size="8" text-anchor="middle">${esc(transition.label)}</text>${note}
         </g>`;
@@ -496,6 +589,12 @@ const LEGEND_CATALOG = [
 ].map((kind) => ({ kind, label: i18nText(lifecycle.meta.locale, `legend.lifecycle.${kind}`) }));
 
 function renderLegend() {
+  if (isV2) return renderResolvedLegend({
+    entries: lifecycleLegendEntries(lifecycle),
+    locale: lifecycle.meta.locale,
+    layout: { x: 40, baselineY: legendY(), width: viewBox[0] - 80, minTitleY: lifecycleAreaBottom() + 8, diagramType: 'lifecycle' },
+    renderSwatch: renderV2LegendSwatch,
+  });
   const presentKinds = new Set([...states.values()].map((state) => state.type));
   const entries = resolveLegend(lifecycle.meta?.legend, LEGEND_CATALOG, presentKinds);
   return renderResolvedLegend({
@@ -513,7 +612,19 @@ function renderLegend() {
   });
 }
 
+function renderV2LegendSwatch(entry) {
+  const x = entry.x, y = entry.baseline - 9;
+  if (['transition', 'sequence', 'association'].includes(entry.kind)) {
+    return `<path d="M ${x} ${y + 5} H ${x + 21}" class="a-default" stroke-width="1.1"${entry.kind === 'association' ? ' stroke-dasharray="4,4"' : ''}/>${entry.kind === 'association' ? '' : `<path d="M ${x + 17} ${y + 2} L ${x + 21} ${y + 5} L ${x + 17} ${y + 8}" class="a-default" fill="none"/>`}`;
+  }
+  if (entry.kind === 'initial') return `<text x="${x}" y="${entry.baseline}" class="t-muted" font-size="7">${esc(terms.initial)}</text>`;
+  const group = ['scope', 'repeat', 'parallel', 'group-phase'].includes(entry.kind);
+  const color = typeClass[entry.colorType || entry.kind];
+  return `<rect x="${x}" y="${y}" width="22" height="11" rx="${entry.kind === 'event' ? 5.5 : 2}" class="${color || 'a-default'}"${color ? '' : ' fill="none"'} stroke-width="1"${group || entry.kind === 'activity' ? ' stroke-dasharray="4,3"' : ''}/>${entry.kind === 'terminal' ? `<rect x="${x + 3}" y="${y + 3}" width="16" height="5" rx="1" class="a-default" fill="none"/>` : ''}${['state', 'phase'].includes(entry.kind) ? `<text x="${x + 11}" y="${y + 8}" text-anchor="middle" class="t-muted" font-size="6">${esc(terms[entry.kind])}</text>` : ''}`;
+}
+
 function renderLifecycleRail() {
+  if (isV2) return '';
   const mainCols = [...states.values()]
     .filter((state) => bandFor(state.lane) === 'phase')
     .map((state) => state.col);
@@ -558,4 +669,14 @@ writeDiagram({
   meta: lifecycle.meta,
   svg: renderSvg(),
   cards: lifecycle.cards,
+  cardsHtml: isV2 ? renderLifecycleCards() : null,
 });
+
+function renderLifecycleCards() {
+  const notes = (lifecycle.groups || []).map(group => `${group.label}: ${group.note}`);
+  const html = renderCards(lifecycle.cards || (notes.length ? [{ dot: 'slate', title: terms.scope, items: notes }] : []));
+  const sources = lifecycle.meta.sources || [];
+  if (!sources.length) return html;
+  const sourceCard = `<div class="card"><div class="card-header"><div class="card-dot slate"></div><h3>${esc(lifecycle.meta.locale === 'en' ? 'Sources' : lifecycle.meta.locale === 'zh-CN' ? '来源' : '出典')}</h3></div><ul>${sources.map(source => `<li><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.title)}</a> (${esc(source.checked_on)})</li>`).join('')}</ul></div>`;
+  return html.replace(/\s*<\/div>\s*$/, `${sourceCard}\n</div>`);
+}

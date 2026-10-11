@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "注文 API",
+    "quality_profile": "showcase",
+    "hierarchy": {
+      "parent": {
+        "href": "../../shop.html",
+        "label": "ネットショップ全体図"
+      },
+      "map": {
+        "href": "../../shop.map.html",
+        "label": "図のマップ"
+      },
+      "trail": [
+        {
+          "href": "../../shop.html",
+          "label": "ネットショップ全体図"
+        },
+        {
+          "href": "../../shop.map.html",
+          "label": "orders",
+          "focus": "c-orders"
+        }
+      ],
+      "siblings": [
+        {
+          "href": "order-api.html",
+          "label": "注文 API"
+        },
+        {
+          "href": "../order-store/order-store.html",
+          "label": "注文データの保存"
+        }
+      ],
+      "incoming": [
+        {
+          "href": "../../storefront/checkout/checkout.html",
+          "label": "チェックアウト画面",
+          "node": "submit",
+          "node_label": "注文を送る",
+          "focus": "create-order"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "id": "router",
+      "type": "backend",
+      "label": "ルーター",
+      "sublabel": "POST /orders",
+      "pos": [
+        40,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "validate",
+      "type": "security",
+      "label": "検証",
+      "sublabel": "在庫・金額",
+      "pos": [
+        260,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "create-order",
+      "type": "backend",
+      "label": "注文作成",
+      "sublabel": "OrderService",
+      "pos": [
+        480,
+        180
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "repo",
+      "type": "database",
+      "label": "リポジトリ",
+      "sublabel": "OrderRepository",
+      "pos": [
+        720,
+        180
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "link": {
+        "href": "../order-store/order-store.html",
+        "focus": "orders-table",
+        "label": "orders テーブル",
+        "onward": 0,
+        "title": "注文データの保存"
+      }
+    },
+    {
+      "id": "pay-client",
+      "type": "external",
+      "label": "決済クライアント",
+      "sublabel": "外部APIへ",
+      "pos": [
+        480,
+        380
+      ],
+      "size": [
+        160,
+        64
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "to-validate",
+      "from": "router",
+      "to": "validate"
+    },
+    {
+      "id": "to-create",
+      "from": "validate",
+      "to": "create-order",
+      "label": "OK"
+    },
+    {
+      "id": "to-repo",
+      "from": "create-order",
+      "to": "repo",
+      "label": "保存",
+      "variant": "emphasis"
+    },
+    {
+      "id": "to-pay",
+      "from": "create-order",
+      "to": "pay-client",
+      "label": "決済",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 80
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "処理",
+      "items": [
+        "検証してから注文を作る",
+        "保存は注文データの図へ"
+      ]
+    }
+  ]
+}
