@@ -32,6 +32,9 @@ description: Skill の追加・更新・配置判定を行い、対応する REA
 - 配置先は再利用性で判定する。
 - 複数プロジェクトで再利用する Skill は `utils/skills/` 配下に関心ごとで分類して配置する。分類は最大2階層とし、直下配置も許容する。配置・候補名の一意性・同梱Skillのルールは Context Repository の `docs/authoring/index.md`「配置・候補探索のルール」に従い、現在の分類と所属Skillは `utils/skills/README.md` を参照する。
 - 特定プロジェクト専用の Skill は `projects/<repo-name>/skills/<skill-name>/SKILL.md` に配置する。
+- 配置を決める際は配布単位も判定する。単一Skillでhooksの同梱が不要ならSkill単体として扱い、複数Skillをまとめる場合またはhooksを同梱する場合はplugin配布を選ぶ。すべてのSkillをpluginへ移行しない。
+- Context Repository のplugin管理では、Skill正本を移動・手動複製せず、`utils/plugins/<plugin-name>/` の配布定義から参照する。plugin固有のhooks処理はそのpluginに所有させる。Codex・Claude Code向けの編集用構造、生成する配布物、導入方法は `docs/authoring/plugin-distribution.md` を参照する。これは合意済みの管理方針であり、生成処理やpluginが実装・公開済みであることを意味しない。
+- 配布方針の記録・案内を依頼された場合は、その範囲に限定する。plugin作成・生成処理の実装・公開・インストールを、情報整理の依頼から推測して実行しない。
 - ユーザーがスキル本文として使えるプロンプトを持っている場合は、その内容を優先して Skill 化する。
 - ユーザーがプロンプトを持っていない場合は、`grill-skill` を使ってよいか一度だけ承認を取る。
 - 承認を得たら AI エージェントが自動で `grill-skill` を読みに行き、要件定義を進める。
@@ -46,7 +49,7 @@ description: Skill の追加・更新・配置判定を行い、対応する REA
 2. ユーザーがスキル本文として使えるプロンプトを持っているか確認する。
 3. プロンプトがない場合は、`grill-skill` を使ってよいか承認を取る。
 4. 承認後は `grill-skill` を読み込み、要件定義を完了させる。
-5. Skill が共通かプロジェクト固有かを再利用性で判定する。
+5. Skill が共通かプロジェクト固有かを再利用性で判定し、Skill単体とpluginのどちらを配布単位にするか、依頼範囲に応じて判定する。
 6. 配置先の既存 `SKILL.md` の有無を確認する。
 7. Skill 本体の修正が明示的に許可されている場合だけ、既存があれば更新し、なければ新規作成する。配置・移動だけの場合は内容を変更しない。
 8. 対応するスキル群の `README.md` を要約カタログとして更新する。
@@ -58,6 +61,7 @@ description: Skill の追加・更新・配置判定を行い、対応する REA
 - 作成または更新した `SKILL.md`
 - 更新した `README.md`
 - 配置先の判断結果
+- 配布単位の判断と、案内の整備・配布物作成・実際の導入の実施状況
 - 既存 Skill を更新したか、新規作成したかの判断
 - `grill-skill` を利用した場合は、その承認有無と利用結果
 - 未解決論点がある場合は、保留事項と暫定前提
