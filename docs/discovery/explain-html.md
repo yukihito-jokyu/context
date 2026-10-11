@@ -18,7 +18,7 @@ explain-htmlで、この仕組みを初めて学ぶ読者向けに解説HTMLを�
 
 1. 題材、読者、理解したいこと、資料と確認範囲を確かめます。
 2. 一次資料から項目を洗い出し、前提から具体例・詳細へ進む順序を決めます。
-3. 関心別ページと全体図を作り、図と具体物を対応させます。コードのない題材には書類・記録・式・観測値などを使います。
+3. 図ごとに読者の問いと型の採用理由を決め、概要から同じ具体例を追える詳細へ分けます。通信の往復、条件分岐、状態変化、変換などに合う図を使い、コードのない題材には書類・記録・式・観測値などを対応させます。初期表示は図全体とし、文字を読むための表示切替は標準で追加しません。
 4. 時間順や受け渡しを追う場合は段階再生を加え、出典照合、構造・意味・実表示をそれぞれ確認します。
 
 似た対象の違いを中心に理解したい場合は[compare](compare.md)を使います。explain-htmlはcompareの表示・説明品質を引き継ぎ、単一題材を扱います。
@@ -27,51 +27,34 @@ explain-htmlで、この仕組みを初めて学ぶ読者向けに解説HTMLを�
 
 ## 成果物の例
 
-スキルを実際に適用し、入力検査の技術題材と、会員証・貸出記録を扱う一般題材の解説HTMLを作成しました。資料は保存した架空仕様・制度であり、実在製品や実在制度の説明ではありません。
+非同期API、備品貸出、水循環、CSV売上集計の4題材を独立したサブエージェントで生成しました。下の入力とHTMLは非同期APIの実出力で、他3題材の入力・HTML・モデル・検証記録はZIPに含みます。架空題材は説明用で、水循環はUSGS一次資料に基づきます。
 
-**到達点：2題材のHTML生成・構造と実ブラウザ操作確認済み。人間による成果物確認待ち。**
+**到達点：4題材のHTML生成・静的検証・独立内容レビューを実施。図の意味に不一致あり。ブラウザ表示・操作は未検証。**
 
 ### 実行した依頼
 
 ```text
-explain-htmlを使い、次の二つの題材で比較相手を置かない解説HTMLを作成してください。架空の仕様・制度であることを明記し、各題材の全項目を説明してください。
-
-## 技術題材
-
-説明用の架空仕様として、runnerはbefore(input)を同期実行し、falseならrun(input)を呼ばずblockedを返し、trueならrunが入力targetを返します。config.jsonのbeforeFileが検査関数を指定します。入力はtarget:sample.txt,allowed:true/falseです。この仕組みを初学者向けの解説HTMLにし、全体像、値の流れ、実行できる最小コード、停止と成功、設定まで説明してください。
-
-## 一般題材
-
-以下の架空の貸出制度を初めて利用する読者向けにHTMLで説明してください。利用者は会員証と本を窓口へ持参します。職員は会員証の有効性を確認し、無効なら貸出せず手続きを終了します。有効なら職員は貸出日から14日後を返却期限として貸出記録を作成し、本を利用者へ渡します。利用者は期限までに窓口へ返却します。期限を過ぎた貸出記録がある間は新規貸出ができず、返却すると職員が記録を閉じます。比較相手やコードを足さず、全体像、具体例、書類、条件と例外、資料の対応を説明してください。
+次の架空APIを初めて使う開発者向けに、仕組みを理解できる単体HTMLを作ってください。利用者は画像変換を依頼します。クライアントは同じ依頼の再送では同じrequestKeyを使い、POST /jobsへ画像IDとrequestKeyを送ります。サーバーは初回にjob_17を作り202とjobIdを返し、同じrequestKeyの再送では重複ジョブを作らず同じjobIdを返します。ワーカーはqueuedのジョブをrunningへ移し、成功ならcompletedとresultUrl、失敗ならfailedとreasonを保存します。クライアントはGET /jobs/job_17で状態を取得し、completedなら結果を表示、failedなら理由を表示します。POSTの202は完了ではありません。POSTが503なら同じrequestKeyで最大2回再試行し、なお503なら受付結果不明と表示します。図、具体的な通信例、条件、状態、資料まで説明してください。実在APIとして説明しないでください。
 ```
-
-### 実際の画面
-
-![生成した単一題材の解説HTML：入力検査の全体像](/examples/explain-html/preview.png)
-
-[画像を原寸で開く](pathname:///examples/explain-html/preview.png)
-
-一般題材のHTMLも、下記の2題材一式から取得できます。
 
 ### 成果物を取得する
 
-- [2題材のHTML・原文・モデル・検証記録（ZIP）](pathname:///examples/explain-html/bundle.zip#download)
-- [単独導入できるexplain-htmlスキル一式（ZIP）](pathname:///examples/explain-html/skill.zip#download)
-- [Chromeでの操作・表示検証結果（JSON）](pathname:///examples/explain-html/browser-validation.json#download)
-- [原文と本文・図・具体物の読み合わせ記録（Markdown）](pathname:///examples/explain-html/semantic-review.md#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/explain-html/technical/output.html)
+- [4題材の実出力・モデル・検証記録（ZIP）](pathname:///examples/explain-html/generic-examples.zip#download)
+- [更新したexplain-htmlスキル一式（ZIP）](pathname:///examples/explain-html/skill.zip#download)
+- [更新前の実例の実行記録（JSON）](pathname:///examples/explain-html/execution-before-issue72.json#download)
+- [実際のHTMLをブラウザで開く](pathname:///examples/explain-html/generic-api/index.html)
 - [実行入力の原本](pathname:///examples/explain-html/input.md#download)
 - [実行・検証記録（JSON）](pathname:///examples/explain-html/execution.json#download)
 
 ### 確認した結果
 
-- 技術題材と一般題材で各5ページ・全体図を生成。10図のshowcase検証9項目、deliver、標準SVG補助エクスポートが成功。
-- 全体図チェックは各5ページ・5図、項目対応チェックは技術7項目、一般8項目で成功。原文・本文・図・具体物を別工程で読み合わせ。
-- 技術実装をNode.jsで実行し、allowed:trueはsample.txt、allowed:falseはblockedと確認。
-- Chromeで1440pxと390pxの全10ページを表示して横はみ出し・画像読み込みを測定。深いリンク、details展開、履歴、有限再生、二重開始、一時停止と再開、段階選択、全体表示、ページ移動時の停止、連続移動、図の拡大、reduced-motion、ダークOS下のライト配色、印刷、JavaScript無効時が成功。
-- 単体スキルZIPをリポジトリ外で展開し、依存検査とHTML組み立てが成功。生成HTMLは元とバイト一致。
-- npm run build、typecheck、test:docs（4件）、test:search（4件）、examples:checkが成功。
-- 保存した画面を同一エージェントが目視確認。生成ベンチマーク・トリガー精度・第三者レビュー・ブラウザPNGエクスポートの画素一致は未検証。
+- 各HTMLの全体図・項目対応、Archifyのモデル検証と標準SVG補助出力が成功。
+- 内部リンク、ID重複、埋込SVGと保存原図の一致を静的検査。
+- 表示や操作はブラウザのfile URLがポリシー拒否されたため未検証。別経路による回避はしていない。
+- 各題材・各版は1試行であり、生成の安定性や網羅的な品質は証明していない。
+- 前回の2題材実行・ブラウザ検証記録はexecution-before-issue72.jsonと既存ファイルに保持。現在の新版へ過去のブラウザ結果を流用していない。
+- 独立レビューで凡例の不一致、図に不足する結果・条件、空レーンや余白を確認。汎用指示を補足したが、その追加後の再生成は未実施。初回成果物を合格済みの完成見本とは扱わない。
+- 新版15/20・旧版13/20。表示方針も含む5条件の各1試行評価であり、図の理解だけの改善率や統計的な優位性ではない。
 
 ## 確認するポイント
 
