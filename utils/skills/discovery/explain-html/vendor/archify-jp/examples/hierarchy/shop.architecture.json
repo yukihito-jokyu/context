@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ネットショップ全体図",
+    "quality_profile": "showcase",
+    "hierarchy": {
+      "map": {
+        "href": "shop.map.html",
+        "label": "図のマップ"
+      },
+      "require_links": true,
+      "leaf_nodes": [
+        {
+          "id": "customer",
+          "reason": "利用者で、内部構造を描かない"
+        },
+        {
+          "id": "payment",
+          "reason": "外部の決済サービスで、契約上のAPIだけを扱う"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "id": "customer",
+      "type": "external",
+      "label": "顧客",
+      "sublabel": "ブラウザー",
+      "pos": [
+        40,
+        180
+      ],
+      "size": [
+        140,
+        64
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "ストアフロント",
+      "sublabel": "Next.js",
+      "pos": [
+        270,
+        180
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "cart",
+      "type": "frontend",
+      "label": "カート",
+      "sublabel": "セッション保持",
+      "pos": [
+        270,
+        380
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "order-api",
+      "type": "backend",
+      "label": "注文 API",
+      "sublabel": "POST /orders",
+      "pos": [
+        560,
+        180
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "link": {
+        "href": "orders/order-api/order-api.html",
+        "label": "注文の受付",
+        "onward": 1,
+        "title": "注文 API"
+      }
+    },
+    {
+      "id": "orders-db",
+      "type": "database",
+      "label": "注文DB",
+      "sublabel": "PostgreSQL",
+      "pos": [
+        800,
+        180
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "link": {
+        "href": "orders/order-store/order-store.html",
+        "label": "注文データの保存",
+        "onward": 0,
+        "title": "注文データの保存"
+      }
+    },
+    {
+      "id": "payment",
+      "type": "external",
+      "label": "決済サービス",
+      "sublabel": "外部API",
+      "pos": [
+        560,
+        380
+      ],
+      "size": [
+        160,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "id": "storefront",
+      "label": "storefront",
+      "wraps": [
+        "web",
+        "cart"
+      ],
+      "link": {
+        "href": "storefront/checkout/checkout.html",
+        "label": "チェックアウト画面",
+        "onward": 1,
+        "title": "チェックアウト画面"
+      }
+    },
+    {
+      "kind": "region",
+      "id": "orders",
+      "label": "orders",
+      "wraps": [
+        "order-api",
+        "orders-db"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "visit",
+      "from": "customer",
+      "to": "web",
+      "label": "HTTPS"
+    },
+    {
+      "id": "keep-cart",
+      "from": "web",
+      "to": "cart",
+      "label": "保持",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 80
+    },
+    {
+      "id": "place-order",
+      "from": "web",
+      "to": "order-api",
+      "label": "注文送信",
+      "variant": "emphasis"
+    },
+    {
+      "id": "save",
+      "from": "order-api",
+      "to": "orders-db",
+      "label": "SQL"
+    },
+    {
+      "id": "charge",
+      "from": "order-api",
+      "to": "payment",
+      "label": "決済要求",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 80
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "関心ごと",
+      "items": [
+        "storefront: 画面とカート",
+        "orders: 注文の受付と保存"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "詳細図",
+      "items": [
+        "囲みかノードをダブルクリックで開く",
+        "横断リンクは全体図の線をたどる"
+      ]
+    }
+  ]
+}
