@@ -6,6 +6,8 @@
 
 utils/skills/README.md、docs/authoring/index.md、skill-authoring、my-skill-creator、agent-trace、issue-traceのSKILL.mdを読んだ。
 
+再実行では更新後のskill-authoringとdocs/authoring/plugin-distribution.mdも確認し、Skill単体とpluginの配布単位を判定した。
+
 ## 既存スキルを更新するか
 
 既存の証跡記録とスキル作成の責務は分かれている。サンプルでは提供したプロンプトの範囲を成果物リンク検査に限定し、新規SKILL.mdを作成した。contextの既存スキルの動作は変更していない。
@@ -19,6 +21,10 @@ utils/skills/README.md、docs/authoring/index.md、skill-authoring、my-skill-cr
 ## 実施範囲
 
 SKILL.mdとutils/skills/README.mdを実際に作成した。READMEは目的の要約と正本へのリンクに限定した。本文プロンプトを入力に含めたためgrill-skillは起動していない。実ファイルはZIPへ保存する。
+
+## 配布単位の判断
+
+入力は単一Skillの作成であり、hooksの同梱や複数Skillのパッケージ化は求めていないため、Skill単体と判定した。隔離領域でSkillとカタログを作成した段階で、plugin・配布定義・生成処理は作成せず、インストールも行っていない。
 
 ## 保留事項
 
