@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "diagram_type": "class",
+  "meta": {
+    "title": "注文ドメイン クラス図",
+    "subtitle": "UMLクラス、属性、操作、継承、合成、依存関係",
+    "locale": "ja",
+    "visual_preset": "classic",
+    "quality_profile": "showcase",
+    "viewBox": [1320, 720]
+  },
+  "classes": [
+    {
+      "id": "customer",
+      "name": "Customer",
+      "kind": "class",
+      "stereotype": "entity",
+      "pos": [60, 160],
+      "width": 220,
+      "attributes": [
+        { "visibility": "private", "name": "id", "type": "UUID" },
+        { "visibility": "private", "name": "email", "type": "Email" }
+      ],
+      "methods": [
+        { "visibility": "public", "name": "placeOrder", "parameters": [{ "name": "items", "type": "Cart" }], "return_type": "Order" }
+      ]
+    },
+    {
+      "id": "order",
+      "name": "Order",
+      "kind": "class",
+      "stereotype": "aggregate root",
+      "pos": [370, 150],
+      "width": 240,
+      "attributes": [
+        { "visibility": "private", "name": "id", "type": "UUID" },
+        { "visibility": "private", "name": "status", "type": "OrderStatus" }
+      ],
+      "methods": [
+        { "visibility": "public", "name": "addLine", "parameters": [{ "name": "product", "type": "Product" }, { "name": "qty", "type": "int" }], "return_type": "void" },
+        { "visibility": "public", "name": "total", "parameters": [], "return_type": "Money" }
+      ]
+    },
+    {
+      "id": "order_line",
+      "name": "OrderLine",
+      "kind": "class",
+      "stereotype": "value object",
+      "pos": [700, 150],
+      "width": 240,
+      "attributes": [
+        { "visibility": "private", "name": "quantity", "type": "int" },
+        { "visibility": "private", "name": "unitPrice", "type": "Money" }
+      ],
+      "methods": [
+        { "visibility": "public", "name": "subtotal", "parameters": [], "return_type": "Money" }
+      ]
+    },
+    {
+      "id": "product",
+      "name": "Product",
+      "kind": "class",
+      "stereotype": "entity",
+      "pos": [1010, 160],
+      "width": 220,
+      "attributes": [
+        { "visibility": "private", "name": "sku", "type": "SKU" },
+        { "visibility": "private", "name": "name", "type": "String" }
+      ],
+      "methods": []
+    },
+    {
+      "id": "digital_order",
+      "name": "DigitalOrder",
+      "kind": "class",
+      "stereotype": "specialization",
+      "pos": [370, 475],
+      "width": 240,
+      "attributes": [
+        { "visibility": "private", "name": "downloadUrl", "type": "URL" }
+      ],
+      "methods": [
+        { "visibility": "public", "name": "fulfill", "parameters": [], "return_type": "void" }
+      ]
+    },
+    {
+      "id": "payment_gateway",
+      "name": "PaymentGateway",
+      "kind": "interface",
+      "stereotype": "interface",
+      "pos": [700, 485],
+      "width": 280,
+      "attributes": [],
+      "methods": [
+        { "visibility": "public", "name": "authorize", "parameters": [{ "name": "order", "type": "Order" }], "return_type": "PaymentResult" }
+      ]
+    }
+  ],
+  "relationships": [
+    { "id": "customer_orders", "from": "customer", "to": "order", "kind": "association", "label": "places", "from_multiplicity": "1", "to_multiplicity": "0..*" },
+    { "id": "order_lines", "from": "order", "to": "order_line", "kind": "composition", "from_multiplicity": "1", "to_multiplicity": "1..*" },
+    { "id": "line_product", "from": "order_line", "to": "product", "kind": "association", "label": "references", "from_multiplicity": "0..*", "to_multiplicity": "1" },
+    { "id": "digital_inherits_order", "from": "digital_order", "to": "order", "kind": "inheritance" },
+    { "id": "order_uses_gateway", "from": "order", "to": "payment_gateway", "kind": "dependency", "label": "authorizes" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "クラス", "items": ["属性と操作を区画で表示", "可視性は + / − で表現"] },
+    { "dot": "emerald", "title": "関係", "items": ["関連・合成・継承・依存を区別", "端点に多重度を表示"] },
+    { "dot": "rose", "title": "探索", "items": ["クラスを選択して直接関係を追跡", "検索・経路・マップ・レンズに対応"] }
+  ]
+}

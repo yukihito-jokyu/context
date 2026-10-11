@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "インシデント対応Runbook",
+    "output": "examples/incident-response.html",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "detect-and-triage", "label": "検知と指揮体制の確立", "focus": ["alert", "page", "triage", "declare"], "note": "シグナルの発生から担当者が決まったインシデントになるまでの最初の数分を追跡します。" },
+      { "id": "mitigate-and-verify", "label": "影響緩和と復旧の証明", "focus": ["triage", "contain", "recover", "verify", "close"], "note": "影響緩和と、クローズに必要な証拠を分けて確認します。" },
+      { "id": "escalate-and-communicate", "label": "エスカレーションと連絡", "focus": ["declare", "escalate", "update", "rollback"], "note": "誰が呼び出され、関係者へ何が伝わり、いつロールバックが始まるかを確認します。" }
+    ]
+  },
+  "lanes": [
+    { "id": "signals", "label": "シグナル" },
+    { "id": "responders", "label": "インシデント指揮" },
+    { "id": "mitigation", "label": "サービスの影響緩和" },
+    { "id": "recovery", "label": "復旧の証拠" },
+    { "id": "communication", "label": "関係者への連絡" },
+    { "id": "exceptions", "label": "エスカレーション + ロールバック", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "detect", "label": "検知", "fromCol": 0, "toCol": 1 },
+    { "id": "respond", "label": "トリアージ + 影響緩和", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "recover", "label": "検証 + クローズ", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "command", "label": "インシデント指揮", "lane": "responders", "fromCol": 1, "toCol": 3, "variant": "emphasis" },
+    { "id": "exception_actions", "label": "影響が続く場合", "lane": "exceptions", "fromCol": 3, "toCol": 5, "variant": "security" }
+  ],
+  "mainPath": ["alert", "page", "triage", "contain", "recover", "verify", "close"],
+  "nodes": [
+    { "id": "alert", "lane": "signals", "col": 0, "type": "messagebus", "label": "SLOアラート", "sublabel": "バーンレート" },
+    { "id": "page", "lane": "responders", "col": 1, "width": 76, "type": "external", "label": "当番招集", "sublabel": "確認応答" },
+    { "id": "triage", "lane": "responders", "col": 2, "width": 64, "type": "backend", "label": "トリアージ", "sublabel": "影響範囲を特定" },
+    { "id": "declare", "lane": "responders", "col": 3, "type": "security", "label": "宣言", "sublabel": "指揮担当を任命", "tag": "SEV-1/2" },
+    { "id": "contain", "lane": "mitigation", "col": 3, "width": 72, "type": "backend", "label": "封じ込め", "sublabel": "影響拡大を停止" },
+    { "id": "recover", "lane": "mitigation", "col": 4, "width": 52, "type": "cloud", "label": "復旧", "sublabel": "サービス復旧" },
+    { "id": "verify", "lane": "recovery", "col": 5, "type": "database", "label": "検証", "sublabel": "SLO + トレース", "tag": "15分間安定" },
+    { "id": "close", "lane": "communication", "col": 5, "type": "external", "label": "解決", "sublabel": "最終更新" },
+    { "id": "update", "lane": "communication", "col": 3, "type": "frontend", "label": "状況更新", "sublabel": "影響 + ETA" },
+    { "id": "escalate", "lane": "exceptions", "col": 3, "width": 72, "type": "security", "label": "上位招集", "sublabel": "専門担当者" },
+    { "id": "rollback", "lane": "exceptions", "col": 5, "type": "messagebus", "label": "ロールバック", "sublabel": "直近の正常版" }
+  ],
+  "edges": [
+    { "from": "alert", "to": "page", "label": "呼び出し", "variant": "emphasis", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "page", "to": "triage", "route": "bottom-channel", "fromSide": "bottom", "toSide": "bottom" },
+    { "from": "triage", "to": "contain", "variant": "emphasis", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "contain", "to": "recover", "route": "bottom-channel", "fromSide": "bottom", "toSide": "bottom" },
+    { "from": "recover", "to": "verify", "variant": "emphasis", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "verify", "to": "close", "variant": "emphasis", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "triage", "to": "declare", "variant": "security" },
+    { "from": "declare", "to": "update", "variant": "dashed", "fromSide": "top", "toSide": "left", "via": [[430, 16], [20, 16], [20, 615]] },
+    { "from": "update", "to": "escalate", "variant": "security", "route": "drop", "fromSide": "bottom", "toSide": "top" },
+    { "from": "verify", "to": "rollback", "variant": "security", "role": "error", "route": "outside-right", "fromSide": "right", "toSide": "right" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "担当確立を最優先", "items": ["指揮を担当する人が決まるまで、呼び出しはインシデント対応になりません", "影響緩和を広げる前に重大度と影響範囲を明確にします", "エスカレーションでは不足している専門性を明示します"] },
+    { "dot": "emerald", "title": "復旧には証拠が必要", "items": ["影響緩和で被害を減らせても、復旧が証明されたとは限りません", "SLOとトレースは一定期間にわたり正常でなければなりません", "最終更新は楽観的判断ではなく検証後に行います"] },
+    { "dot": "cyan", "title": "連絡の契約", "items": ["関係者には影響、対応、次回更新時刻を伝えます", "ロールバックは意図的な対応として明示します", "すべての分岐に担当者と観測可能な出口があります"] }
+  ]
+}

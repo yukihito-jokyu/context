@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "デプロイリリースのライフサイクル",
+    "output": "examples/deployment-release.html",
+    "viewBox": [980, 680],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "promotion-rail", "label": "昇格経路", "focus": ["queued", "building", "verifying", "ready", "live"], "note": "変更の受け付けから正常な本番環境まで、デプロイオブジェクトを追跡します。" },
+      { "id": "approval-gate", "label": "承認ゲート", "focus": ["verifying", "approval", "cancelled", "ready"], "note": "承認は昇格を一時停止し、リリースを安全に終了させることもできます。" },
+      { "id": "rollback-outcomes", "label": "ロールバックの結果", "focus": ["ready", "rollback", "failed", "live", "paused", "rolled_back"], "note": "昇格前の失敗と昇格後の健全性低下を分けて確認します。" }
+    ]
+  },
+  "lanes": [
+    { "id": "main", "label": "リリースフェーズ" },
+    { "id": "waiting", "label": "承認 + 健全性の待機" },
+    { "id": "recovery", "label": "ロールバックコントローラー" },
+    { "id": "terminal", "label": "終了状態" }
+  ],
+  "states": [
+    { "id": "queued", "type": "start", "label": "待機中", "sublabel": "変更受付済み", "lane": "main", "col": 0, "step": "01", "tag": "保留中" },
+    { "id": "building", "type": "active", "label": "ビルド中", "sublabel": "不変イメージ", "lane": "main", "col": 1, "step": "02", "tag": "実行中" },
+    { "id": "verifying", "type": "decision", "label": "検証中", "sublabel": "テスト + ポリシー", "lane": "main", "col": 2, "step": "03", "tag": "ゲート" },
+    { "id": "ready", "type": "waiting", "label": "準備完了", "sublabel": "昇格待ち", "lane": "main", "col": 3, "step": "04", "tag": "承認済み" },
+    { "id": "live", "type": "success", "label": "稼働中", "sublabel": "本番環境は正常", "lane": "main", "col": 4, "step": "05", "tag": "成功" },
+    { "id": "approval", "type": "waiting", "label": "承認が必要", "sublabel": "リリース担当者", "lane": "waiting", "col": 0, "tag": "一時停止" },
+    { "id": "rollback", "type": "active", "label": "ロールバック中", "sublabel": "直近の正常イメージ", "lane": "recovery", "col": 1, "tag": "自動" },
+    { "id": "paused", "type": "waiting", "label": "健全性確認で一時停止", "sublabel": "SLO低下", "lane": "waiting", "col": 2, "tag": "監視" },
+    { "id": "cancelled", "type": "failure", "label": "キャンセル済み", "sublabel": "承認却下", "lane": "terminal", "col": 0, "tag": "終了" },
+    { "id": "failed", "type": "failure", "label": "失敗", "sublabel": "ロールバック失敗", "lane": "terminal", "col": 1, "tag": "終了" },
+    { "id": "rolled_back", "type": "success", "label": "ロールバック済み", "sublabel": "サービス復旧済み", "lane": "terminal", "col": 2, "tag": "終了" }
+  ],
+  "transitions": [
+    { "from": "verifying", "to": "approval", "variant": "security", "route": "straight", "fromSide": "bottom", "toSide": "top" },
+    { "from": "approval", "to": "cancelled", "variant": "security", "route": "straight", "fromSide": "bottom", "toSide": "top" },
+    { "from": "ready", "to": "rollback", "variant": "security", "route": "straight", "fromSide": "bottom", "toSide": "top" },
+    { "from": "rollback", "to": "failed", "variant": "security", "route": "straight", "fromSide": "bottom", "toSide": "top" },
+    { "from": "live", "to": "paused", "variant": "dashed", "route": "straight", "fromSide": "bottom", "toSide": "top" },
+    { "from": "paused", "to": "rolled_back", "variant": "emphasis", "route": "straight", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "昇格経路", "items": ["リリースオブジェクトは順序付けられた5つのフェーズを進みます", "検証と承認は別々の状態として維持されます", "稼働中は本番環境の健全性が現在確認済みであることを示します"] },
+    { "dot": "amber", "title": "待機状態", "items": ["人による承認ではワーカーを消費せずに一時停止できます", "健全性の低下により以降のロールアウトが一時停止します", "各待機状態は続行に必要なイベントを明示します"] },
+    { "dot": "rose", "title": "明示的な終了", "items": ["承認が却下されるとキャンセル済みとして終了します", "ロールバックコントローラーの失敗は失敗として終了します", "ロールバックの成功は復旧済みの終了状態です"] }
+  ]
+}
