@@ -30,7 +30,7 @@ description: Skill の追加・更新・配置判定を行い、対応する REA
 - Skill 本体の修正が明示的に許可され、`SKILL.md` が存在する場合はそれを正とし、差分最小で更新する。
 - `SKILL.md` が存在しない場合のみ新規作成する。
 - 配置先は再利用性で判定する。
-- 複数プロジェクトで再利用する Skill は `utils/skills/` 配下に関心ごとで分類して配置する。分類は最大2階層とし、直下配置も許容する。配置・候補名の一意性・同梱Skillのルールは Context Repository の `docs/requirements.md`「2.3 共通Skill管理」に従い、現在の分類と所属Skillは `utils/skills/README.md` を参照する。
+- 複数プロジェクトで再利用する Skill は `utils/skills/` 配下に関心ごとで分類して配置する。分類は最大2階層とし、直下配置も許容する。配置・候補名の一意性・同梱Skillのルールは Context Repository の `docs/authoring/index.md`「配置・候補探索のルール」に従い、現在の分類と所属Skillは `utils/skills/README.md` を参照する。
 - 特定プロジェクト専用の Skill は `projects/<repo-name>/skills/<skill-name>/SKILL.md` に配置する。
 - ユーザーがスキル本文として使えるプロンプトを持っている場合は、その内容を優先して Skill 化する。
 - ユーザーがプロンプトを持っていない場合は、`grill-skill` を使ってよいか一度だけ承認を取る。
