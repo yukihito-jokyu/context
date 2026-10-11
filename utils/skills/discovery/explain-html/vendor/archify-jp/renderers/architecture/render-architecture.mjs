@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { esc, renderDefinitions, renderSemanticSigil, textUnits } from '../shared/utils.mjs';
-import { animateAttr, focusEdgeAttrs, focusNodeAttrs, focusNodeTitle, loadDiagramWithBrandMarks, writeDiagram, svgAccessibleText, svgRootAttrs } from '../shared/cli.mjs';
+import { animateAttr, boundaryLinkAttrs, focusEdgeAttrs, focusNodeAttrs, focusNodeTitle, loadDiagramWithBrandMarks, writeDiagram, svgAccessibleText, svgRootAttrs } from '../shared/cli.mjs';
 import { componentBox, boundaryBox, connectionPath } from '../shared/layout-report.mjs';
 import { throwDiagnosticProblems } from '../shared/diagnostics.mjs';
 import { legendFootprint, relationshipLegendObstacles, resolveLegend, renderLegend as renderResolvedLegend } from '../shared/legend.mjs';
@@ -314,6 +314,13 @@ function resolveBoundaryTitles() {
 
 const resolvedBoundaryTitles = resolveBoundaryTitles();
 const boundaries = resolvedBoundaryTitles.boundaries;
+// Connection endpoints: components, plus boundaries with an id, so one
+// relation can join whole groups (e.g. every event script uses the mode
+// store). Obstacle checks keep iterating components only.
+const endpoints = new Map(components);
+for (const b of boundaries) {
+  if (b.id && !endpoints.has(b.id)) endpoints.set(b.id, { ...b, cx: b.x + b.width / 2, cy: b.y + b.height / 2, boundary: true });
+}
 const compositionFrames = boundaries.map((boundary, index) => ({
   ...boundary,
   id: boundary.id || index,
@@ -496,9 +503,9 @@ function validateArchitecture() {
   }
 
   for (const conn of asArray(arch.connections)) {
-    if (!components.has(conn.from)) problems.push(`接続 "${conn.label || conn.from}" が不明な接続元 "${conn.from}" を参照しています。`);
-    if (!components.has(conn.to)) problems.push(`接続 "${conn.label || conn.to}" が不明な接続先 "${conn.to}" を参照しています。`);
-    if (components.has(conn.from) && components.has(conn.to)) {
+    if (!endpoints.has(conn.from)) problems.push(`接続 "${conn.label || conn.from}" が不明な接続元 "${conn.from}" を参照しています。`);
+    if (!endpoints.has(conn.to)) problems.push(`接続 "${conn.label || conn.to}" が不明な接続先 "${conn.to}" を参照しています。`);
+    if (endpoints.has(conn.from) && endpoints.has(conn.to)) {
       const routed = pathFor(conn);
       const [start, end] = [routed.points[0], routed.points[routed.points.length - 1]];
       const distance = Math.hypot(end[0] - start[0], end[1] - start[1]);
@@ -508,7 +515,7 @@ function validateArchitecture() {
 
   problems.push(...cleanEndpointSideProblems({
     relations: arch.connections,
-    endpointIds: new Set(components.keys()),
+    endpointIds: new Set(endpoints.keys()),
     pathFor,
     diagramType: 'architecture',
     relationCollection: 'connections',
@@ -527,7 +534,7 @@ function validateArchitecture() {
   }));
   problems.push(...cleanCrossingProblems({
     relations: arch.connections,
-    endpointIds: new Set(components.keys()),
+    endpointIds: new Set(endpoints.keys()),
     pathFor,
     diagramType: 'architecture',
     relationCollection: 'connections',
@@ -536,7 +543,7 @@ function validateArchitecture() {
   }));
   problems.push(...cleanAmbiguousCorridorProblems({
     relations: arch.connections,
-    endpointIds: new Set(components.keys()),
+    endpointIds: new Set(endpoints.keys()),
     pathFor,
     diagramType: 'architecture',
     relationCollection: 'connections',
@@ -545,7 +552,7 @@ function validateArchitecture() {
   }));
   problems.push(...cleanBorderRunProblems({
     relations: arch.connections,
-    endpointIds: new Set(components.keys()),
+    endpointIds: new Set(endpoints.keys()),
     frames: compositionFrames,
     pathFor,
     diagramType: 'architecture',
@@ -555,7 +562,7 @@ function validateArchitecture() {
   }));
   problems.push(...cleanRouteRhythmProblems({
     relations: arch.connections,
-    endpointIds: new Set(components.keys()),
+    endpointIds: new Set(endpoints.keys()),
     pathFor,
     diagramType: 'architecture',
     relationCollection: 'connections',
@@ -566,7 +573,7 @@ function validateArchitecture() {
   // Connection labels must not land on top of components.
   const labelRects = [];
   for (const [connectionIndex, conn] of asArray(arch.connections).entries()) {
-    if (!conn.label || !components.has(conn.from) || !components.has(conn.to)) continue;
+    if (!conn.label || !endpoints.has(conn.from) || !endpoints.has(conn.to)) continue;
     const [lx, ly] = labelPoint(conn, pathFor(conn).points);
     const w = Math.max(30, textUnits(conn.label) * 4.8 + 10);
     labelRects.push({ relation: conn, relationIndex: connectionIndex, label: conn.label, x: lx - w / 2, y: ly - 10, width: w, height: 14, lx, ly });
@@ -589,7 +596,7 @@ function validateArchitecture() {
   problems.push(...cleanLabelRouteClearanceProblems({
     relations: arch.connections,
     labels: labelRects,
-    endpointIds: new Set(components.keys()),
+    endpointIds: new Set(endpoints.keys()),
     pathFor,
     diagramType: 'architecture',
     relationCollection: 'connections',
@@ -606,7 +613,7 @@ function validateArchitecture() {
 function buildLayoutReport() {
   const labels = [];
   for (const conn of asArray(arch.connections)) {
-    if (!conn.label || !components.has(conn.from) || !components.has(conn.to)) continue;
+    if (!conn.label || !endpoints.has(conn.from) || !endpoints.has(conn.to)) continue;
     const [lx, ly] = labelPoint(conn, pathFor(conn).points);
     const w = Math.max(30, textUnits(conn.label) * 4.8 + 10);
     labels.push({
@@ -626,7 +633,7 @@ function buildLayoutReport() {
     components: [...components.values()].map(componentBox),
     boundaries: boundaries.map(boundaryBox),
     connections: asArray(arch.connections)
-      .filter((conn) => components.has(conn.from) && components.has(conn.to))
+      .filter((conn) => endpoints.has(conn.from) && endpoints.has(conn.to))
       .map((conn) => {
         const routed = pathFor(conn);
         const labelAt = conn.label ? labelPoint(conn, routed.points) : null;
@@ -906,10 +913,10 @@ function routeVia(conn, from, to, start, end, fromSide, toSide) {
 }
 
 const pathCache = new Map();
-const automaticPorts = automaticPortSpread(arch.connections, components);
+const automaticPorts = automaticPortSpread(arch.connections, endpoints);
 function connectionSides(conn) {
-  const from = components.get(conn.from);
-  const to = components.get(conn.to);
+  const from = endpoints.get(conn.from);
+  const to = endpoints.get(conn.to);
   return {
     fromSide: chosenSide(conn.fromSide, defaultFromSide(from, to)),
     toSide: chosenSide(conn.toSide, defaultToSide(from, to)),
@@ -924,8 +931,8 @@ function connectionEndpointSide(conn, endpoint) {
 
 function pathFor(conn) {
   if (pathCache.has(conn)) return pathCache.get(conn);
-  const from = components.get(conn.from);
-  const to = components.get(conn.to);
+  const from = endpoints.get(conn.from);
+  const to = endpoints.get(conn.to);
   const ports = automaticPorts.get(conn);
   const { fromSide, toSide } = connectionSides(conn);
   const baseStart = ports?.from || anchor(from, fromSide);
@@ -950,7 +957,7 @@ function pathFor(conn) {
 function renderBoundaryFrame(b, index) {
   const cls = b.kind === 'security-group' ? 'c-security-group' : 'c-region';
   const rx = b.kind === 'security-group' ? 8 : 12;
-  return `        <rect data-graph-role="structural-frame" data-composition-frame-kind="${esc(b.kind || 'boundary')}" data-composition-frame-id="${index}" data-composition-frame-label="${esc(b.label)}" x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" rx="${rx}" class="${cls}" stroke-width="1"/>`;
+  return `        <rect data-graph-role="structural-frame" data-composition-frame-kind="${esc(b.kind || 'boundary')}" data-composition-frame-id="${index}" data-composition-frame-label="${esc(b.label)}"${boundaryLinkAttrs(b)} x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" rx="${rx}" class="${cls}" stroke-width="1"/>`;
 }
 
 function renderBoundaryLabel(b, index) {
@@ -992,7 +999,7 @@ function renderComponent(c) {
     : '';
   const brand = renderBrandMark(c, { x: c.x + c.width - 22, y: c.y + 6 });
   const labelFontSize = fittedNodeFontSize(c.label, brandLabelFitWidth(c, c.width), 11, 8);
-  const passport = { kind: c.type, sublabel: c.sublabel, tag: c.tag, context: componentContext(c), ...brandMetadataFor(c) };
+  const passport = { kind: c.type, sublabel: c.sublabel, tag: c.tag, context: componentContext(c), link: c.link, ...brandMetadataFor(c) };
   return `        <g ${focusNodeAttrs(c.id, c.label, passport, arch.meta.locale)}>
           ${focusNodeTitle(c.label, passport)}
           <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="6" class="c-mask"/>
