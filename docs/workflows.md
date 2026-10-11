@@ -45,7 +45,7 @@ flowchart TD
 
 ## 説明資料や図を作る
 
-[explanation-design](documentation/explanation-design.md)で読者の前提と説明順を整理します。構造や呼び出し順序を示す必要があれば[archify-jp](design/archify-jp.md)、似た仕組みの違いを追いたければ[compare](discovery/compare.md)を使います。
+[explanation-design](documentation/explanation-design.md)で読者の前提と説明順を整理します。構造や呼び出し順序を示す必要があれば[archify-jp](design/archify-jp.md)、似た仕組みの違いを追いたければ[compare](discovery/compare.md)、一つの題材を図と具体例から掘り下げたければ[explain-html](discovery/explain-html.md)を使います。
 
 図を作るために必要なのは、ノードの名前だけではありません。誰が何を呼ぶか、どのデータを渡すか、どこまで根拠を確認したかを、参照するコードや仕様と一緒に渡します。
 
