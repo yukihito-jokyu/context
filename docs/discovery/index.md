@@ -12,6 +12,7 @@ title: 調査・理解
 | [blindspot](blindspot.md) | 見落としや暗黙の前提を洗い出す |
 | [reference](reference.md) | 現物から合わせるべき仕様を抽出する |
 | [compare](compare.md) | 似た仕組みを図とコードで比較する |
+| [explain-html](explain-html.md) | 一つの題材を全体像・具体例・詳細から理解する |
 | [interview](interview.md) | 判断が必要な点を一問ずつ確認する |
 | [prototype](prototype.md) | 具体物から判断基準を引き出す |
 | [quiz](quiz.md) | 変更の判断と影響を理解できるか確認する |
