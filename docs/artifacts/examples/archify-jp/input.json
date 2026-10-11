@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "スキル実行成果物を閲覧・取得する",
+    "locale": "ja",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      560
+    ]
+  },
+  "participants": [
+    {
+      "id": "reader",
+      "type": "external",
+      "label": "読者"
+    },
+    {
+      "id": "guide",
+      "type": "frontend",
+      "label": "ガイド"
+    },
+    {
+      "id": "pages",
+      "type": "cloud",
+      "label": "公開ファイル"
+    },
+    {
+      "id": "local",
+      "type": "external",
+      "label": "取得先"
+    }
+  ],
+  "messages": [
+    {
+      "id": "visit",
+      "from": "reader",
+      "to": "guide",
+      "y": 180,
+      "label": "実行例のページを開く"
+    },
+    {
+      "id": "image",
+      "from": "guide",
+      "to": "pages",
+      "y": 220,
+      "label": "実際の画面画像を取得"
+    },
+    {
+      "id": "image-return",
+      "from": "pages",
+      "to": "guide",
+      "y": 260,
+      "label": "撮影済みのPNGを返す",
+      "variant": "return"
+    },
+    {
+      "id": "inspect",
+      "from": "guide",
+      "to": "reader",
+      "y": 300,
+      "label": "入力と成果物を表示",
+      "variant": "return"
+    },
+    {
+      "id": "download",
+      "from": "reader",
+      "to": "pages",
+      "y": 340,
+      "label": "原本をダウンロード"
+    },
+    {
+      "id": "save",
+      "from": "pages",
+      "to": "local",
+      "y": 380,
+      "label": "HTML・文章・ZIPを保存"
+    },
+    {
+      "id": "open",
+      "from": "reader",
+      "to": "local",
+      "y": 420,
+      "label": "取得した成果物を開く"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "画像で確認",
+      "items": [
+        "生成した成果物を実ブラウザで撮影する",
+        "説明から想像で画面を作り直さない"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "原本を取得",
+      "items": [
+        "HTMLは実際に生成したファイルを渡す",
+        "複数ファイルは相対参照を保つZIPにする"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "実行条件を残す",
+      "items": [
+        "入力・スキル・検証結果を同じ例に保存",
+        "未承認の段階を完成と表示しない"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+unknownsの実出力を読むReact画面案を、Design Systemのdetail-pageで作ってください。抜粋と全文の切り替え、Markdown原本取得を用意し、初回案のTSX・JSON・表示一式を保存して検証してください。
