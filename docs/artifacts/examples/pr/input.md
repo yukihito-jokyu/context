@@ -1,0 +1,1 @@
+commit-demoのmainとexample/57の実コミット差分を確認し、contextのPRテンプレートに沿って日本語のPR本文を作ってください。GitHubへの投稿前までに留めてください。
