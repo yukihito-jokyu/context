@@ -1,0 +1,37 @@
+{
+  "title": "問い合わせ分類の評価基準を確認する",
+  "description": "以下はテンプレート用の架空ケースです。実行結果はまだありません。",
+  "basis": "classification-v1",
+  "plan": "対象: 問い合わせ分類。採点: 期待するlabelとの一致を0/1で判定。実行回数・費用は利用者と確認してから記録する。",
+  "limitations": [
+    "架空の2例であり、本番の代表性は未確認。",
+    "人間との合意と正答の独立検証はまだ行っていない。"
+  ],
+  "cases": [
+    {
+      "id": "billing",
+      "label": "請求書の再発行",
+      "input": {
+        "message": "請求書を再発行して"
+      },
+      "expected": {
+        "label": "billing"
+      },
+      "basis": "業務上の分類定義を利用者と確認する必要がある",
+      "rule": "出力labelがbillingなら1、その他は0。"
+    },
+    {
+      "id": "login",
+      "label": "ログインの相談",
+      "input": {
+        "message": "ログインできません"
+      },
+      "expected": {
+        "label": "account"
+      },
+      "basis": "業務上の分類定義を利用者と確認する必要がある",
+      "rule": "出力labelがaccountなら1、その他は0。"
+    }
+  ],
+  "runs": []
+}
