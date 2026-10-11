@@ -1,0 +1,293 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Claude Code Hooksのライフサイクル",
+    "locale": "ja",
+    "quality_profile": "showcase",
+    "sources": [
+      {
+        "title": "Claude Code: Hook lifecycle",
+        "url": "https://code.claude.com/docs/en/hooks#hook-lifecycle",
+        "checked_on": "2026-10-11"
+      }
+    ],
+    "views": [
+      {
+        "id": "session",
+        "label": "セッション全体",
+        "focus": [
+          "start",
+          "prompt",
+          "stop",
+          "end"
+        ]
+      },
+      {
+        "id": "tools",
+        "label": "ツール反復",
+        "focus": [
+          "thinking",
+          "pre",
+          "execute",
+          "post"
+        ]
+      },
+      {
+        "id": "async",
+        "label": "独立したイベント",
+        "focus": [
+          "thinking",
+          "notification"
+        ]
+      }
+    ],
+    "output": "examples/lifecycle-claude-hooks.html",
+    "viewBox": [
+      1500,
+      750
+    ]
+  },
+  "subject": {
+    "label": "1つのClaude Codeセッション",
+    "beginning": "セッション開始",
+    "ending": "セッション終了",
+    "coverage": "complete"
+  },
+  "lanes": [
+    {
+      "id": "lifetime",
+      "label": "対象の生涯と変化"
+    }
+  ],
+  "states": [
+    {
+      "id": "start",
+      "kind": "event",
+      "label": "SessionStart",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": "prompt",
+      "kind": "event",
+      "label": "UserPromptSubmit",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": "thinking",
+      "kind": "activity",
+      "label": "モデルの処理",
+      "lane": "lifetime",
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": "pre",
+      "kind": "event",
+      "label": "PreToolUse",
+      "lane": "lifetime",
+      "col": 2,
+      "row": 1
+    },
+    {
+      "id": "execute",
+      "kind": "activity",
+      "label": "ツールを実行",
+      "lane": "lifetime",
+      "col": 2,
+      "row": 2
+    },
+    {
+      "id": "post",
+      "kind": "event",
+      "label": "結果の通知",
+      "lane": "lifetime",
+      "col": 1,
+      "row": 2,
+      "sublabel": "PostToolUse / Failure",
+      "description": "成功ならPostToolUse、失敗ならPostToolUseFailure。両方が毎回発火するわけではない。"
+    },
+    {
+      "id": "stop",
+      "kind": "event",
+      "label": "Stop",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 2
+    },
+    {
+      "id": "end",
+      "kind": "event",
+      "label": "SessionEnd",
+      "lane": "lifetime",
+      "col": 3,
+      "row": 2
+    },
+    {
+      "id": "notification",
+      "kind": "event",
+      "label": "Notification",
+      "lane": "lifetime",
+      "col": 3,
+      "row": 1,
+      "description": "セッションで通知が発生したとき。終了後や毎ターンに必ず発火するという順序を示す線ではない。"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "session",
+      "kind": "sequence",
+      "from": "start",
+      "to": "prompt"
+    },
+    {
+      "id": "turn",
+      "kind": "sequence",
+      "from": "prompt",
+      "to": "thinking"
+    },
+    {
+      "id": "tool",
+      "kind": "sequence",
+      "from": "thinking",
+      "to": "pre",
+      "condition": "ツール呼出し"
+    },
+    {
+      "id": "run",
+      "kind": "sequence",
+      "from": "pre",
+      "to": "execute"
+    },
+    {
+      "id": "result",
+      "kind": "sequence",
+      "from": "execute",
+      "to": "post"
+    },
+    {
+      "id": "continue",
+      "kind": "sequence",
+      "from": "post",
+      "to": "thinking",
+      "label": "次のモデル処理"
+    },
+    {
+      "id": "answer",
+      "kind": "sequence",
+      "from": "thinking",
+      "to": "stop",
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          390,
+          330
+        ],
+        [
+          390,
+          415
+        ],
+        [
+          215,
+          415
+        ]
+      ]
+    },
+    {
+      "id": "next-turn",
+      "kind": "sequence",
+      "from": "stop",
+      "to": "prompt",
+      "condition": "次の入力",
+      "fromSide": "left",
+      "toSide": "left",
+      "route": "left-channel",
+      "channelX": 42,
+      "labelAt": [
+        95,
+        396
+      ]
+    },
+    {
+      "id": "exit",
+      "kind": "sequence",
+      "from": "stop",
+      "to": "end",
+      "condition": "セッション終了",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "route": "bottom-channel",
+      "channelY": 605
+    },
+    {
+      "id": "notice",
+      "kind": "association",
+      "from": "end",
+      "to": "notification",
+      "label": "通知時",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "auto"
+    }
+  ],
+  "initial": [
+    "start"
+  ],
+  "terminal": [
+    "end"
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "セッションとターン",
+      "items": [
+        "Stopは応答完了。SessionEndがセッション全体の終了。",
+        "Notificationは関連付けとして示し、必須の実行順序に加えない。"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "反復と省略",
+      "items": [
+        "ターンの内側でツール実行とモデル処理を繰り返す。",
+        "権限判断、サブエージェント、圧縮等は省略。個々のHookの全順序を保証する図ではない。"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "turn-scope",
+      "kind": "repeat",
+      "label": "ターン",
+      "members": [
+        "prompt",
+        "thinking",
+        "pre",
+        "execute",
+        "post",
+        "stop"
+      ],
+      "condition": "次の入力がある間",
+      "note": "Stopで応答が完了してもセッションは続く。"
+    },
+    {
+      "id": "tool-loop",
+      "kind": "repeat",
+      "label": "ツール反復",
+      "members": [
+        "thinking",
+        "pre",
+        "execute",
+        "post"
+      ],
+      "condition": "ツール呼出しがある間",
+      "note": "ツール結果を受けてモデル処理へ戻る。",
+      "parent": "turn-scope"
+    }
+  ]
+}
