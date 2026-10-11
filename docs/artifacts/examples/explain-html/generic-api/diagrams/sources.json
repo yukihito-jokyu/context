@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "原文から説明と確認記録へ",
+    "locale": "ja",
+    "visual_preset": "editorial",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      700,
+      540
+    ]
+  },
+  "components": [
+    {
+      "id": "source",
+      "label": "架空仕様の原文",
+      "type": "external",
+      "pos": [
+        60,
+        110
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "content",
+      "label": "本文・図・通信例",
+      "type": "frontend",
+      "pos": [
+        410,
+        110
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "coverage",
+      "label": "項目対応表",
+      "type": "database",
+      "pos": [
+        410,
+        350
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "review",
+      "label": "静的検査・内容レビュー",
+      "type": "backend",
+      "pos": [
+        60,
+        350
+      ],
+      "size": [
+        190,
+        76
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e0",
+      "to": "content",
+      "label": "意味を保持",
+      "from": "source"
+    },
+    {
+      "id": "e1",
+      "to": "review",
+      "label": "原文と照合",
+      "from": "source",
+      "labelAt": [
+        155,
+        265
+      ]
+    },
+    {
+      "id": "e2",
+      "to": "coverage",
+      "label": "説明先を記録",
+      "from": "content",
+      "labelAt": [
+        505,
+        265
+      ]
+    },
+    {
+      "id": "e3",
+      "to": "coverage",
+      "label": "欠落を確認",
+      "from": "review"
+    }
+  ]
+}
