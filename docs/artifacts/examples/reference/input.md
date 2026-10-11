@@ -1,0 +1,1 @@
+ruleのdocusaurus.config.tsとcontextの設定・検索・utilsカタログを実際に読み、実成果物展示へ合わせるべき点と差分を抽出してください。

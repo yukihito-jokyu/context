@@ -1,0 +1,1 @@
+隔離したcommit-demoの実差分を確認し、READMEの原本リンクと生成HTMLを小さい粒度でコミットしてください。contextの.commit-templateを参照し、日本語と末尾#57を使ってください。pushは行わないでください。
