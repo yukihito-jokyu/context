@@ -1,6 +1,6 @@
 # 作成契約
 
-高速作成手順でさらに詳細が必要になった場合にのみ、このリファレンスを参照してください。schemaとexamplesが引き続き正本です。
+高速作成手順でさらに詳細が必要になった場合にのみ、このリファレンスを参照してください。入力形式はschema、ライフサイクルの意味と記述ルールは[lifecycle.md](lifecycle.md)を正本とし、examplesは適用例として扱います。
 
 ## schemaの参照
 
@@ -17,6 +17,8 @@
 新しいワークフローにはschema v2を使用し、既存ソースで固定ジオメトリを維持する必要がある場合はschema v1を維持します。どちらのバージョンでも `col` は `0..5` の範囲に留め、間隔修復のためにセマンティックなエッジラベルを削除してはいけません。絶対座標が存在する場合に `schema_version` だけを変更せず、正規の[移行とレイアウトレシート契約](../renderers/workflow/README.md#migration-and-layout-receipt)に従います。完全な規範的不変条件は、ワークフローレンダラーの[レイアウト契約](../renderers/workflow/README.md#layout-contracts)にあります。
 
 ## 凡例契約
+
+Lifecycle v2では[lifecycle.md](lifecycle.md)の意味・凡例・配色の規則を適用します。要素のkindと明示したtypeの配色を区別し、凡例を色の絞り込み操作にはしません。自動viewBoxは凡例の行数も確保し、明示viewBoxに収まらない凡例は省略時も診断します。以下の旧文書の互換表示はv1についての規則です。
 
 誠実な既定値には `meta.legend` を省略します。`auto` は型付きIRに存在するセマンティック種別だけを一覧表示します。レンダラーのリファレンスには `mode: "all"`、凡例全体の削除には `mode: "hidden"` を使用します。`entries` では、選択モードのschemaに列挙されたキーだけが有効です。各キーは `label`、`visible`、またはその両方を受け入れます。`visible: true` では未使用の対応規約を表示でき、`visible: false` では非表示にします。`hidden` は上書きできません。
 
