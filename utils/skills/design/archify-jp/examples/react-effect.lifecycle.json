@@ -1,0 +1,230 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "React Effectのライフサイクル",
+    "locale": "ja",
+    "quality_profile": "showcase",
+    "sources": [
+      {
+        "title": "React: Lifecycle of Reactive Effects",
+        "url": "https://react.dev/learn/lifecycle-of-reactive-effects",
+        "checked_on": "2026-10-11"
+      },
+      {
+        "title": "React: useEffect",
+        "url": "https://react.dev/reference/react/useEffect",
+        "checked_on": "2026-10-11"
+      }
+    ],
+    "views": [
+      {
+        "id": "sync",
+        "label": "依存値変更と再同期",
+        "focus": [
+          "setup",
+          "change",
+          "cleanup"
+        ]
+      },
+      {
+        "id": "exit",
+        "label": "アンマウント",
+        "focus": [
+          "setup",
+          "unmount",
+          "stop"
+        ]
+      }
+    ],
+    "output": "examples/lifecycle-react-effect.html",
+    "viewBox": [
+      1250,
+      680
+    ]
+  },
+  "subject": {
+    "label": "ChatRoomの1つのEffect",
+    "beginning": "マウント後の同期開始",
+    "ending": "アンマウント時の同期停止",
+    "coverage": "complete"
+  },
+  "lanes": [
+    {
+      "id": "lifetime",
+      "label": "対象の生涯と変化"
+    }
+  ],
+  "states": [
+    {
+      "id": "mount",
+      "kind": "event",
+      "label": "マウント",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": "setup",
+      "kind": "activity",
+      "label": "同期を開始",
+      "lane": "lifetime",
+      "col": 1,
+      "row": 0,
+      "sublabel": "接続を作る"
+    },
+    {
+      "id": "change",
+      "kind": "event",
+      "label": "依存値の変更",
+      "lane": "lifetime",
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": "cleanup",
+      "kind": "activity",
+      "label": "古い同期を停止",
+      "lane": "lifetime",
+      "col": 2,
+      "row": 1
+    },
+    {
+      "id": "unmount",
+      "kind": "event",
+      "label": "アンマウント",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": "stop",
+      "kind": "activity",
+      "label": "最後の同期を停止",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 2
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mounted",
+      "kind": "sequence",
+      "from": "mount",
+      "to": "setup"
+    },
+    {
+      "id": "dependency",
+      "kind": "sequence",
+      "from": "setup",
+      "to": "change",
+      "condition": "依存値が変わる",
+      "labelAt": [
+        620,
+        246
+      ]
+    },
+    {
+      "id": "old-cleanup",
+      "kind": "sequence",
+      "from": "change",
+      "to": "cleanup"
+    },
+    {
+      "id": "resync",
+      "kind": "sequence",
+      "from": "cleanup",
+      "to": "setup",
+      "fromSide": "top",
+      "toSide": "right",
+      "via": [
+        [
+          875,
+          68
+        ],
+        [
+          758,
+          68
+        ],
+        [
+          758,
+          160
+        ]
+      ]
+    },
+    {
+      "id": "leave",
+      "kind": "sequence",
+      "from": "setup",
+      "to": "unmount",
+      "fromSide": "left",
+      "toSide": "right",
+      "via": [
+        [
+          390,
+          160
+        ],
+        [
+          390,
+          250
+        ],
+        [
+          370,
+          250
+        ],
+        [
+          370,
+          330
+        ]
+      ],
+      "labelAt": [
+        380,
+        274
+      ]
+    },
+    {
+      "id": "last-cleanup",
+      "kind": "sequence",
+      "from": "unmount",
+      "to": "stop"
+    }
+  ],
+  "initial": [
+    "mount"
+  ],
+  "terminal": [
+    "stop"
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "対象を限定",
+      "items": [
+        "コンポーネント全体の生涯と、Effectの同期開始・停止を区別する。",
+        "依存値が同じなら再同期しない。この図は依存値変更がある経路を示す。"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "繰り返しと省略",
+      "items": [
+        "変更後はcleanup→setup。アンマウント時は最後のcleanupで終了。",
+        "開発時のStrict Modeの追加setup→cleanupは省略。paintとの固定順序は示さない。"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "synchronization",
+      "kind": "repeat",
+      "label": "再同期",
+      "members": [
+        "setup",
+        "change",
+        "cleanup"
+      ],
+      "condition": "依存値変更がある間",
+      "note": "同期の開始と停止の組を繰り返す。アンマウントはこの反復の外。"
+    }
+  ]
+}

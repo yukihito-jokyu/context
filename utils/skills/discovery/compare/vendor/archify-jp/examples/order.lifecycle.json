@@ -1,0 +1,155 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "注文のライフサイクル",
+    "locale": "ja",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "normal",
+        "label": "通常の注文",
+        "focus": [
+          "awaiting",
+          "paid",
+          "shipping",
+          "delivered"
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "キャンセル",
+        "focus": [
+          "awaiting",
+          "cancelled"
+        ]
+      }
+    ],
+    "output": "examples/lifecycle-order.html"
+  },
+  "subject": {
+    "label": "1件の注文",
+    "beginning": "注文を受け付ける",
+    "ending": "配送完了またはキャンセル",
+    "coverage": "complete"
+  },
+  "lanes": [
+    {
+      "id": "lifetime",
+      "label": "対象の生涯と変化"
+    }
+  ],
+  "states": [
+    {
+      "id": "awaiting",
+      "kind": "state",
+      "label": "支払待ち",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 0,
+      "type": "waiting"
+    },
+    {
+      "id": "paid",
+      "kind": "state",
+      "label": "支払済み",
+      "lane": "lifetime",
+      "col": 1,
+      "row": 0,
+      "type": "active"
+    },
+    {
+      "id": "shipping",
+      "kind": "state",
+      "label": "配送中",
+      "lane": "lifetime",
+      "col": 2,
+      "row": 0,
+      "type": "active"
+    },
+    {
+      "id": "cancelled",
+      "kind": "state",
+      "label": "キャンセル済み",
+      "lane": "lifetime",
+      "col": 0,
+      "row": 1,
+      "type": "failure"
+    },
+    {
+      "id": "delivered",
+      "kind": "state",
+      "label": "配送完了",
+      "lane": "lifetime",
+      "col": 2,
+      "row": 1,
+      "type": "success"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "payment",
+      "kind": "transition",
+      "from": "awaiting",
+      "to": "paid",
+      "event": "入金",
+      "condition": "金額一致",
+      "action": "領収書発行",
+      "labelAt": [
+        490,
+        100
+      ]
+    },
+    {
+      "id": "dispatch",
+      "kind": "transition",
+      "from": "paid",
+      "to": "shipping",
+      "event": "発送",
+      "labelAt": [
+        820,
+        100
+      ]
+    },
+    {
+      "id": "cancel",
+      "kind": "transition",
+      "from": "awaiting",
+      "to": "cancelled",
+      "event": "取消",
+      "condition": "未入金"
+    },
+    {
+      "id": "delivery",
+      "kind": "transition",
+      "from": "shipping",
+      "to": "delivered",
+      "event": "受取確認"
+    }
+  ],
+  "initial": [
+    "awaiting"
+  ],
+  "terminal": [
+    "cancelled",
+    "delivered"
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "記述の対象",
+      "items": [
+        "架空の業務ルールを持つ1件の注文。返品・返金は範囲外。",
+        "状態、出来事、条件、活動を分け、配置から順序を推測しない。"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "開始と終端",
+      "items": [
+        "開始は支払待ち。キャンセルと配送完了がこの例の終端。",
+        "「領収書発行」は状態ではなく、入金による遷移に伴う活動。"
+      ]
+    }
+  ]
+}

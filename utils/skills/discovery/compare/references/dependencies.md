@@ -13,14 +13,14 @@ python3 /path/to/compare/scripts/sync_vendor.py --check
 
 同期スクリプトは`dependencies.json`を読み、固定したskills CLI版で`npx skills@1.7.2 add ~/.agents/skills/archify-jp --skill archify-jp --agent codex --copy --yes`を実行する。スクリプトはvendor内の一時プロジェクトへ取得し、必須ファイルとコピー内容を確認した後に`vendor/archify-jp`へ移す。グローバルのスキルは変更しない。取得失敗・タイムアウト・不完全な導入では既存版を残す。同時同期は`.sync.lock`で防止する。プロセスを強制終了した場合は残ったロックや`.archify.previous`を確認して復旧する。
 
-`dependencies.lock.json`には実際の取得元、スキル名、パッケージ版、内容ハッシュ、実行引数、skills CLIのロックを記録する。`--check`はネットワークを使わず、その内容と必須ファイルを検査する。`--dry-run`は実行予定の引数を表示する。同期後にはvendorの指示を読み直し、スキーマ・配布・画像エクスポートの互換性を確認する。同期先は`~/.agents/skills/archify-jp`であり、ホームディレクトリは実行するユーザーの環境で解決する。英語版の公式リポジトリへ切り替えない。
+`dependencies.lock.json`には実際の取得元、スキル名、パッケージ版、内容ハッシュ、実行引数、skills CLIのロックを記録する。`--check`はネットワークを使わず、その内容と必須ファイルを検査する。`--dry-run`は実行予定の引数を表示する。同期後にはvendorの指示を読み直し、スキーマ・配布・画像エクスポートの互換性を確認する。既定の同期元は`~/.agents/skills/archify-jp`であり、ホームディレクトリは実行するユーザーの環境で解決する。英語版の公式リポジトリへ切り替えない。
 
-同梱版は`archify-jp` 2.16.0を、実際に`npx skills add`で導入したもの。ロックの`configured_source_sync_verified`は設定した日本語版の導入元から同期できたことを示す。vendorには元のMITライセンスを保持する。
+同梱版はContext Repositoryの正本`utils/skills/design/archify-jp`を明示的な同期元として、固定版skills CLIで取得した`archify-jp` 2.16.0です。ライフサイクルv2、意味の凡例、種類ごとの既定配色を含みます。取得元と内容ハッシュは`dependencies.lock.json`に記録しています。今回は既定のホーム配置を使っていないため、`configured_source_sync_verified`はfalseです。これは同期の失敗ではなく、明示した同期元が設定上の既定値と異なることを表します。vendorには元のMITライセンスを保持します。
 
 ローカルの日本語版から明示的に同期する場合は次を使う。スクリプトはネットワーク失敗を理由に勝手にローカル版へ切り替えない。
 
 ```sh
-python3 scripts/sync_vendor.py --source /path/to/archify-jp --skill archify-jp
+python3 scripts/sync_vendor.py --source /path/to/context/utils/skills/design/archify-jp --skill archify-jp
 ```
 
 固定版skills CLIが既にあるnpmプロジェクトをオフラインで利用する場合は`--cli-prefix /path/to/npm-project`を指定する。このパスは`node_modules/skills/package.json`を持つ必要がある。CLI版がmanifestと違えばスクリプトは停止する。
