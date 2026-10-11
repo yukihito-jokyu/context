@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "validate",
+  "stage": "render",
+  "type": "lifecycle",
+  "input": "<user-home>/Documents/github_projects/context/explain-html-workspace/iteration-1/async-api/with_skill/outputs/diagrams/states.json",
+  "error": "ライフサイクルのレイアウト検証に失敗しました:\n- [composition/micro-segment] showcase lifecycle transitions[1] id「success」「running」->「completed」のinterior区間1 [710, 153] -> [710, 160]は7pxで、8pxの微小区間下限を下回っています。ライフサイクルの各曲がり角に読み取れる助走区間ができるよう route/via またはチャネル座標を移動する。\n- ラベル \"[遷移] 変換成功\" が状態 \"running\" と重なっています。labelDx/labelDy/labelSegment を調整するか labelAt を設定してください。\n  labelの矩形: [637, 132, 86, 16]\n  state「running」の矩形: [440, 120, 210, 80]\n  修正案: labelAt [680, 214]またはlabelDy +71（下）、あるいはlabelAt [680, 116]またはlabelDy -27（上）",
+  "diagnostics": [
+    {
+      "code": "composition/micro-segment",
+      "severity": "error",
+      "message": "[composition/micro-segment] showcase lifecycle transitions[1] id「success」「running」->「completed」のinterior区間1 [710, 153] -> [710, 160]は7pxで、8pxの微小区間下限を下回っています。ライフサイクルの各曲がり角に読み取れる助走区間ができるよう route/via またはチャネル座標を移動する。",
+      "subject": {
+        "diagramType": "lifecycle",
+        "collection": "transitions",
+        "index": 1,
+        "id": "success",
+        "from": "running",
+        "to": "completed"
+      },
+      "evidence": {
+        "segmentIndex": 1,
+        "position": "interior",
+        "lengthPx": 7,
+        "minimumPx": 8,
+        "from": [
+          710,
+          153
+        ],
+        "to": [
+          710,
+          160
+        ]
+      },
+      "supportedFixes": [
+        "ライフサイクルの各曲がり角に読み取れる助走区間ができるよう route/via またはチャネル座標を移動する"
+      ]
+    },
+    {
+      "code": "layout/constraint",
+      "severity": "error",
+      "message": "ラベル \"[遷移] 変換成功\" が状態 \"running\" と重なっています。labelDx/labelDy/labelSegment を調整するか labelAt を設定してください。\n  labelの矩形: [637, 132, 86, 16]\n  state「running」の矩形: [440, 120, 210, 80]\n  修正案: labelAt [680, 214]またはlabelDy +71（下）、あるいはlabelAt [680, 116]またはlabelDy -27（上）",
+      "subject": {
+        "diagramType": "lifecycle"
+      },
+      "evidence": {},
+      "supportedFixes": []
+    }
+  ]
+}

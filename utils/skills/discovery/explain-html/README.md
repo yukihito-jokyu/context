@@ -20,3 +20,5 @@ python3 scripts/check_coverage.py output.html coverage.json
 ```
 
 依存更新はユーザーが同期を依頼した場合だけ行います。固定版CLIによる更新と標準画像出力は[dependencies.md](references/dependencies.md)を参照してください。補助SVG処理はブラウザのPNGエクスポートとの一致を保証しません。
+
+図は読者の問いに合わせて構成・通信・手順・状態・変換を使い分け、概要から同じ具体例を追える詳細へつなぎます。制作要件は`diagram-plan.json`へ保存し、図の表記と本文の対応を確認します。初期表示は図全体とし、文字を読むための表示切替は標準で追加しません。

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "依頼の受付と画像変換は別の仕事",
+    "locale": "ja",
+    "visual_preset": "editorial",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      700,
+      540
+    ]
+  },
+  "components": [
+    {
+      "id": "client",
+      "label": "クライアント",
+      "type": "frontend",
+      "pos": [
+        60,
+        110
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "server",
+      "label": "サーバー",
+      "type": "backend",
+      "pos": [
+        410,
+        110
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "job",
+      "label": "ジョブ記録",
+      "type": "database",
+      "pos": [
+        410,
+        360
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "worker",
+      "label": "ワーカー",
+      "type": "backend",
+      "pos": [
+        60,
+        360
+      ],
+      "size": [
+        190,
+        76
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e0",
+      "to": "server",
+      "label": "POST・GET",
+      "from": "client"
+    },
+    {
+      "id": "e1",
+      "to": "job",
+      "label": "作成・参照",
+      "from": "server",
+      "labelAt": [
+        505,
+        270
+      ]
+    },
+    {
+      "id": "e2",
+      "to": "job",
+      "label": "状態・結果を保存",
+      "from": "worker"
+    }
+  ]
+}
