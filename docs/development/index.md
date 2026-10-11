@@ -9,6 +9,7 @@ title: コミット・PR・レビュー
 | スキル | できること |
 | --- | --- |
 | [self-review-html](self-review-html.md) | 差分の評価をHTMLで確認する |
+| [llm-eval](llm-eval.md) | LLMの評価ケース・採点方法・実行基盤を作る |
 | [commit](commit.md) | 変更を小さな単位でコミットする |
 | [pr](pr.md) | 変更理由と確認結果をPRにまとめる |
 
