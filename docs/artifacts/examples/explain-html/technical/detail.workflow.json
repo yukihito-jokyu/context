@@ -1,0 +1,86 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "設定から判定と結果まで",
+    "visual_preset": "editorial",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "locale": "ja"
+  },
+  "lanes": [
+    {
+      "id": "process",
+      "label": "説明の流れ"
+    },
+    {
+      "id": "exception",
+      "label": "条件による停止",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "begin",
+    "check",
+    "finish"
+  ],
+  "nodes": [
+    {
+      "id": "begin",
+      "lane": "process",
+      "col": 0,
+      "type": "backend",
+      "label": "beforeFileの設定",
+      "width": 220,
+      "height": 96
+    },
+    {
+      "id": "check",
+      "lane": "process",
+      "col": 1,
+      "type": "backend",
+      "label": "runnerがbeforeを呼ぶ",
+      "width": 220,
+      "height": 96
+    },
+    {
+      "id": "finish",
+      "lane": "process",
+      "col": 2,
+      "type": "backend",
+      "label": "runnerがrunを呼ぶ",
+      "width": 220,
+      "height": 96
+    },
+    {
+      "id": "blocked",
+      "lane": "exception",
+      "col": 1,
+      "type": "security",
+      "label": "runnerが停止",
+      "width": 220,
+      "height": 96
+    }
+  ],
+  "edges": [
+    {
+      "id": "first",
+      "from": "begin",
+      "to": "check"
+    },
+    {
+      "id": "second",
+      "from": "check",
+      "to": "finish",
+      "label": "true"
+    },
+    {
+      "id": "reject",
+      "from": "check",
+      "to": "blocked",
+      "label": "false",
+      "variant": "security",
+      "role": "error"
+    }
+  ]
+}
