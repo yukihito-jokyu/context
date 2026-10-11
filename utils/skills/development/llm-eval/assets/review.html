@@ -1,0 +1,213 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>評価のすり合わせ</title><style>
+
+:root{--surface-0:#f5f4f0;--surface-1:#fcfcfb;--surface-2:#ffffff;--surface-3:#ffffff;
+--text-primary:#141413;--text-secondary:#52514e;--text-muted:#898781;
+--border:rgba(11,11,11,.10);--border-strong:rgba(11,11,11,.18);--border-stronger:rgba(11,11,11,.40);
+--text-accent:#185FA5;--bg-accent:#E6F1FB;--border-accent:#85B7EB;--fill-accent:#2a78d6;--on-accent:#ffffff;
+--text-danger:#A32D2D;--bg-danger:#FCEBEB;--border-danger:#F09595;--fill-danger:#E24B4A;--on-danger:#ffffff;
+--text-success:#3B6D11;--bg-success:#EAF3DE;--border-success:#97C459;--fill-success:#639922;--on-success:#141413;
+--text-warning:#854F0B;--bg-warning:#FAEEDA;--border-warning:#EF9F27;--fill-warning:#EF9F27;--on-warning:#141413;
+--font-sans:"Anthropic Sans",system-ui,-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+--font-voice:"Anthropic Serif",Georgia,"Hiragino Mincho ProN","Noto Serif JP",serif;
+--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+--radius:8px;--pad-sm:8px;--pad-md:12px;--pad-lg:16px;--pad-xl:24px;--gap-xs:4px;--gap-sm:8px;--gap-md:12px;--gap-lg:16px;--gap-xl:24px;
+--p:var(--text-primary);--s:var(--text-secondary);--t:var(--text-muted);--bg2:var(--surface-2);--b:var(--border-strong);color-scheme:light}
+[data-mode="dark"]{--surface-0:#141413;--surface-1:#1a1a19;--surface-2:#222221;--surface-3:#2a2a28;
+--text-primary:#f0efec;--text-secondary:#c3c2b7;--text-muted:#898781;
+--border:rgba(255,255,255,.10);--border-strong:rgba(255,255,255,.18);--border-stronger:rgba(255,255,255,.40);
+--text-accent:#85B7EB;--bg-accent:#0C447C;--border-accent:#185FA5;--fill-accent:#3987e5;
+--text-danger:#F09595;--bg-danger:#501313;--border-danger:#A32D2D;
+--text-success:#97C459;--bg-success:#173404;--border-success:#3B6D11;
+--text-warning:#EF9F27;--bg-warning:#412402;--border-warning:#854F0B;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-mode="light"]){--surface-0:#141413;--surface-1:#1a1a19;--surface-2:#222221;--surface-3:#2a2a28;
+--text-primary:#f0efec;--text-secondary:#c3c2b7;--text-muted:#898781;
+--border:rgba(255,255,255,.10);--border-strong:rgba(255,255,255,.18);--border-stronger:rgba(255,255,255,.40);
+--text-accent:#85B7EB;--bg-accent:#0C447C;--border-accent:#185FA5;--fill-accent:#3987e5;
+--text-danger:#F09595;--bg-danger:#501313;--border-danger:#A32D2D;
+--text-success:#97C459;--bg-success:#173404;--border-success:#3B6D11;
+--text-warning:#EF9F27;--bg-warning:#412402;--border-warning:#854F0B;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface-0);color:var(--text-primary);font-family:var(--font-sans);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.gcu-page{max-width:728px;margin:0 auto;padding:32px 24px 96px}
+.gcu-page h1{font-size:22px;font-weight:500;margin:0 0 16px}
+.gcu-page h2{font-size:18px;font-weight:500;margin:40px 0 8px}
+.gcu-page h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+.gcu-prose{font-family:var(--font-voice);font-size:16px;line-height:1.75;margin:12px 0;color:var(--text-primary)}
+.gcu-page table.gcu-table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+.gcu-table th,.gcu-table td{text-align:left;padding:8px 10px;border-bottom:.5px solid var(--border-strong);vertical-align:top}
+.gcu-table th{font-weight:500;color:var(--text-secondary)}
+.gcu-widget{width:100%;max-width:680px;margin:16px 0}
+.gcu-card{background:var(--surface-2);border:.5px solid var(--border);border-radius:12px;padding:16px}
+.gcu-widget h2,.gcu-widget h3{margin:0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+button{font:inherit;font-size:14px;line-height:1.4;padding:6px 14px;border-radius:var(--radius);border:.5px solid var(--border-strong);background:transparent;color:var(--text-primary);cursor:pointer;transition:background .15s}
+button:hover{background:var(--surface-1)}button:active{transform:scale(.98)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;box-shadow:0 0 0 2px var(--border-accent)}
+input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{font:inherit;font-size:14px;height:36px;padding:0 10px;border-radius:var(--radius);border:.5px solid var(--border-strong);background:var(--surface-2);color:var(--text-primary)}
+textarea{height:auto;min-height:72px;padding:8px 10px;width:100%}
+input[type=range]{accent-color:var(--fill-accent);height:18px}
+svg text{font-family:var(--font-sans)}
+.t{font-size:14px;font-weight:400;fill:var(--text-primary)}.ts{font-size:12px;font-weight:400;fill:var(--text-secondary)}.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
+.box{fill:var(--surface-1);stroke:var(--border-strong)}
+.node{cursor:pointer}.node:hover{opacity:.82}
+.arr{stroke:var(--text-secondary);stroke-width:1.5;fill:none}
+.leader{stroke:var(--text-muted);stroke-width:.5;stroke-dasharray:3 3;fill:none}
+.c-purple>rect,.c-purple>circle,.c-purple>ellipse,.c-purple>polygon,rect.c-purple,circle.c-purple,ellipse.c-purple,polygon.c-purple{fill:#EEEDFE;stroke:#534AB7}
+.c-purple>.t,.c-purple>.th{fill:#3C3489}.c-purple>.ts{fill:#534AB7}
+.c-teal>rect,.c-teal>circle,.c-teal>ellipse,.c-teal>polygon,rect.c-teal,circle.c-teal,ellipse.c-teal,polygon.c-teal{fill:#E1F5EE;stroke:#0F6E56}
+.c-teal>.t,.c-teal>.th{fill:#085041}.c-teal>.ts{fill:#0F6E56}
+.c-coral>rect,.c-coral>circle,.c-coral>ellipse,.c-coral>polygon,rect.c-coral,circle.c-coral,ellipse.c-coral,polygon.c-coral{fill:#FAECE7;stroke:#993C1D}
+.c-coral>.t,.c-coral>.th{fill:#712B13}.c-coral>.ts{fill:#993C1D}
+.c-pink>rect,.c-pink>circle,.c-pink>ellipse,.c-pink>polygon,rect.c-pink,circle.c-pink,ellipse.c-pink,polygon.c-pink{fill:#FBEAF0;stroke:#993556}
+.c-pink>.t,.c-pink>.th{fill:#72243E}.c-pink>.ts{fill:#993556}
+.c-gray>rect,.c-gray>circle,.c-gray>ellipse,.c-gray>polygon,rect.c-gray,circle.c-gray,ellipse.c-gray,polygon.c-gray{fill:#F1EFE8;stroke:#5F5E5A}
+.c-gray>.t,.c-gray>.th{fill:#444441}.c-gray>.ts{fill:#5F5E5A}
+.c-blue>rect,.c-blue>circle,.c-blue>ellipse,.c-blue>polygon,rect.c-blue,circle.c-blue,ellipse.c-blue,polygon.c-blue{fill:#E6F1FB;stroke:#185FA5}
+.c-blue>.t,.c-blue>.th{fill:#0C447C}.c-blue>.ts{fill:#185FA5}
+.c-green>rect,.c-green>circle,.c-green>ellipse,.c-green>polygon,rect.c-green,circle.c-green,ellipse.c-green,polygon.c-green{fill:#EAF3DE;stroke:#3B6D11}
+.c-green>.t,.c-green>.th{fill:#27500A}.c-green>.ts{fill:#3B6D11}
+.c-amber>rect,.c-amber>circle,.c-amber>ellipse,.c-amber>polygon,rect.c-amber,circle.c-amber,ellipse.c-amber,polygon.c-amber{fill:#FAEEDA;stroke:#854F0B}
+.c-amber>.t,.c-amber>.th{fill:#633806}.c-amber>.ts{fill:#854F0B}
+.c-red>rect,.c-red>circle,.c-red>ellipse,.c-red>polygon,rect.c-red,circle.c-red,ellipse.c-red,polygon.c-red{fill:#FCEBEB;stroke:#A32D2D}
+.c-red>.t,.c-red>.th{fill:#791F1F}.c-red>.ts{fill:#A32D2D}
+[data-mode="dark"] .c-purple>rect,[data-mode="dark"] .c-purple>circle,[data-mode="dark"] .c-purple>ellipse,[data-mode="dark"] .c-purple>polygon,[data-mode="dark"] rect.c-purple,[data-mode="dark"] circle.c-purple,[data-mode="dark"] ellipse.c-purple,[data-mode="dark"] polygon.c-purple{fill:#3C3489;stroke:#AFA9EC}
+[data-mode="dark"] .c-purple>.t,[data-mode="dark"] .c-purple>.th{fill:#CECBF6}[data-mode="dark"] .c-purple>.ts{fill:#AFA9EC}
+[data-mode="dark"] .c-teal>rect,[data-mode="dark"] .c-teal>circle,[data-mode="dark"] .c-teal>ellipse,[data-mode="dark"] .c-teal>polygon,[data-mode="dark"] rect.c-teal,[data-mode="dark"] circle.c-teal,[data-mode="dark"] ellipse.c-teal,[data-mode="dark"] polygon.c-teal{fill:#085041;stroke:#5DCAA5}
+[data-mode="dark"] .c-teal>.t,[data-mode="dark"] .c-teal>.th{fill:#9FE1CB}[data-mode="dark"] .c-teal>.ts{fill:#5DCAA5}
+[data-mode="dark"] .c-coral>rect,[data-mode="dark"] .c-coral>circle,[data-mode="dark"] .c-coral>ellipse,[data-mode="dark"] .c-coral>polygon,[data-mode="dark"] rect.c-coral,[data-mode="dark"] circle.c-coral,[data-mode="dark"] ellipse.c-coral,[data-mode="dark"] polygon.c-coral{fill:#712B13;stroke:#F0997B}
+[data-mode="dark"] .c-coral>.t,[data-mode="dark"] .c-coral>.th{fill:#F5C4B3}[data-mode="dark"] .c-coral>.ts{fill:#F0997B}
+[data-mode="dark"] .c-pink>rect,[data-mode="dark"] .c-pink>circle,[data-mode="dark"] .c-pink>ellipse,[data-mode="dark"] .c-pink>polygon,[data-mode="dark"] rect.c-pink,[data-mode="dark"] circle.c-pink,[data-mode="dark"] ellipse.c-pink,[data-mode="dark"] polygon.c-pink{fill:#72243E;stroke:#ED93B1}
+[data-mode="dark"] .c-pink>.t,[data-mode="dark"] .c-pink>.th{fill:#F4C0D1}[data-mode="dark"] .c-pink>.ts{fill:#ED93B1}
+[data-mode="dark"] .c-gray>rect,[data-mode="dark"] .c-gray>circle,[data-mode="dark"] .c-gray>ellipse,[data-mode="dark"] .c-gray>polygon,[data-mode="dark"] rect.c-gray,[data-mode="dark"] circle.c-gray,[data-mode="dark"] ellipse.c-gray,[data-mode="dark"] polygon.c-gray{fill:#444441;stroke:#B4B2A9}
+[data-mode="dark"] .c-gray>.t,[data-mode="dark"] .c-gray>.th{fill:#D3D1C7}[data-mode="dark"] .c-gray>.ts{fill:#B4B2A9}
+[data-mode="dark"] .c-blue>rect,[data-mode="dark"] .c-blue>circle,[data-mode="dark"] .c-blue>ellipse,[data-mode="dark"] .c-blue>polygon,[data-mode="dark"] rect.c-blue,[data-mode="dark"] circle.c-blue,[data-mode="dark"] ellipse.c-blue,[data-mode="dark"] polygon.c-blue{fill:#0C447C;stroke:#85B7EB}
+[data-mode="dark"] .c-blue>.t,[data-mode="dark"] .c-blue>.th{fill:#B5D4F4}[data-mode="dark"] .c-blue>.ts{fill:#85B7EB}
+[data-mode="dark"] .c-green>rect,[data-mode="dark"] .c-green>circle,[data-mode="dark"] .c-green>ellipse,[data-mode="dark"] .c-green>polygon,[data-mode="dark"] rect.c-green,[data-mode="dark"] circle.c-green,[data-mode="dark"] ellipse.c-green,[data-mode="dark"] polygon.c-green{fill:#27500A;stroke:#97C459}
+[data-mode="dark"] .c-green>.t,[data-mode="dark"] .c-green>.th{fill:#C0DD97}[data-mode="dark"] .c-green>.ts{fill:#97C459}
+[data-mode="dark"] .c-amber>rect,[data-mode="dark"] .c-amber>circle,[data-mode="dark"] .c-amber>ellipse,[data-mode="dark"] .c-amber>polygon,[data-mode="dark"] rect.c-amber,[data-mode="dark"] circle.c-amber,[data-mode="dark"] ellipse.c-amber,[data-mode="dark"] polygon.c-amber{fill:#633806;stroke:#EF9F27}
+[data-mode="dark"] .c-amber>.t,[data-mode="dark"] .c-amber>.th{fill:#FAC775}[data-mode="dark"] .c-amber>.ts{fill:#EF9F27}
+[data-mode="dark"] .c-red>rect,[data-mode="dark"] .c-red>circle,[data-mode="dark"] .c-red>ellipse,[data-mode="dark"] .c-red>polygon,[data-mode="dark"] rect.c-red,[data-mode="dark"] circle.c-red,[data-mode="dark"] ellipse.c-red,[data-mode="dark"] polygon.c-red{fill:#791F1F;stroke:#F09595}
+[data-mode="dark"] .c-red>.t,[data-mode="dark"] .c-red>.th{fill:#F7C1C1}[data-mode="dark"] .c-red>.ts{fill:#F09595}
+@media (prefers-color-scheme:dark){
+:root:not([data-mode="light"]) .c-purple>rect,:root:not([data-mode="light"]) .c-purple>circle,:root:not([data-mode="light"]) .c-purple>ellipse,:root:not([data-mode="light"]) .c-purple>polygon,:root:not([data-mode="light"]) rect.c-purple,:root:not([data-mode="light"]) circle.c-purple,:root:not([data-mode="light"]) ellipse.c-purple,:root:not([data-mode="light"]) polygon.c-purple{fill:#3C3489;stroke:#AFA9EC}
+:root:not([data-mode="light"]) .c-purple>.t,:root:not([data-mode="light"]) .c-purple>.th{fill:#CECBF6}:root:not([data-mode="light"]) .c-purple>.ts{fill:#AFA9EC}
+:root:not([data-mode="light"]) .c-teal>rect,:root:not([data-mode="light"]) .c-teal>circle,:root:not([data-mode="light"]) .c-teal>ellipse,:root:not([data-mode="light"]) .c-teal>polygon,:root:not([data-mode="light"]) rect.c-teal,:root:not([data-mode="light"]) circle.c-teal,:root:not([data-mode="light"]) ellipse.c-teal,:root:not([data-mode="light"]) polygon.c-teal{fill:#085041;stroke:#5DCAA5}
+:root:not([data-mode="light"]) .c-teal>.t,:root:not([data-mode="light"]) .c-teal>.th{fill:#9FE1CB}:root:not([data-mode="light"]) .c-teal>.ts{fill:#5DCAA5}
+:root:not([data-mode="light"]) .c-coral>rect,:root:not([data-mode="light"]) .c-coral>circle,:root:not([data-mode="light"]) .c-coral>ellipse,:root:not([data-mode="light"]) .c-coral>polygon,:root:not([data-mode="light"]) rect.c-coral,:root:not([data-mode="light"]) circle.c-coral,:root:not([data-mode="light"]) ellipse.c-coral,:root:not([data-mode="light"]) polygon.c-coral{fill:#712B13;stroke:#F0997B}
+:root:not([data-mode="light"]) .c-coral>.t,:root:not([data-mode="light"]) .c-coral>.th{fill:#F5C4B3}:root:not([data-mode="light"]) .c-coral>.ts{fill:#F0997B}
+:root:not([data-mode="light"]) .c-pink>rect,:root:not([data-mode="light"]) .c-pink>circle,:root:not([data-mode="light"]) .c-pink>ellipse,:root:not([data-mode="light"]) .c-pink>polygon,:root:not([data-mode="light"]) rect.c-pink,:root:not([data-mode="light"]) circle.c-pink,:root:not([data-mode="light"]) ellipse.c-pink,:root:not([data-mode="light"]) polygon.c-pink{fill:#72243E;stroke:#ED93B1}
+:root:not([data-mode="light"]) .c-pink>.t,:root:not([data-mode="light"]) .c-pink>.th{fill:#F4C0D1}:root:not([data-mode="light"]) .c-pink>.ts{fill:#ED93B1}
+:root:not([data-mode="light"]) .c-gray>rect,:root:not([data-mode="light"]) .c-gray>circle,:root:not([data-mode="light"]) .c-gray>ellipse,:root:not([data-mode="light"]) .c-gray>polygon,:root:not([data-mode="light"]) rect.c-gray,:root:not([data-mode="light"]) circle.c-gray,:root:not([data-mode="light"]) ellipse.c-gray,:root:not([data-mode="light"]) polygon.c-gray{fill:#444441;stroke:#B4B2A9}
+:root:not([data-mode="light"]) .c-gray>.t,:root:not([data-mode="light"]) .c-gray>.th{fill:#D3D1C7}:root:not([data-mode="light"]) .c-gray>.ts{fill:#B4B2A9}
+:root:not([data-mode="light"]) .c-blue>rect,:root:not([data-mode="light"]) .c-blue>circle,:root:not([data-mode="light"]) .c-blue>ellipse,:root:not([data-mode="light"]) .c-blue>polygon,:root:not([data-mode="light"]) rect.c-blue,:root:not([data-mode="light"]) circle.c-blue,:root:not([data-mode="light"]) ellipse.c-blue,:root:not([data-mode="light"]) polygon.c-blue{fill:#0C447C;stroke:#85B7EB}
+:root:not([data-mode="light"]) .c-blue>.t,:root:not([data-mode="light"]) .c-blue>.th{fill:#B5D4F4}:root:not([data-mode="light"]) .c-blue>.ts{fill:#85B7EB}
+:root:not([data-mode="light"]) .c-green>rect,:root:not([data-mode="light"]) .c-green>circle,:root:not([data-mode="light"]) .c-green>ellipse,:root:not([data-mode="light"]) .c-green>polygon,:root:not([data-mode="light"]) rect.c-green,:root:not([data-mode="light"]) circle.c-green,:root:not([data-mode="light"]) ellipse.c-green,:root:not([data-mode="light"]) polygon.c-green{fill:#27500A;stroke:#97C459}
+:root:not([data-mode="light"]) .c-green>.t,:root:not([data-mode="light"]) .c-green>.th{fill:#C0DD97}:root:not([data-mode="light"]) .c-green>.ts{fill:#97C459}
+:root:not([data-mode="light"]) .c-amber>rect,:root:not([data-mode="light"]) .c-amber>circle,:root:not([data-mode="light"]) .c-amber>ellipse,:root:not([data-mode="light"]) .c-amber>polygon,:root:not([data-mode="light"]) rect.c-amber,:root:not([data-mode="light"]) circle.c-amber,:root:not([data-mode="light"]) ellipse.c-amber,:root:not([data-mode="light"]) polygon.c-amber{fill:#633806;stroke:#EF9F27}
+:root:not([data-mode="light"]) .c-amber>.t,:root:not([data-mode="light"]) .c-amber>.th{fill:#FAC775}:root:not([data-mode="light"]) .c-amber>.ts{fill:#EF9F27}
+:root:not([data-mode="light"]) .c-red>rect,:root:not([data-mode="light"]) .c-red>circle,:root:not([data-mode="light"]) .c-red>ellipse,:root:not([data-mode="light"]) .c-red>polygon,:root:not([data-mode="light"]) rect.c-red,:root:not([data-mode="light"]) circle.c-red,:root:not([data-mode="light"]) ellipse.c-red,:root:not([data-mode="light"]) polygon.c-red{fill:#791F1F;stroke:#F09595}
+:root:not([data-mode="light"]) .c-red>.t,:root:not([data-mode="light"]) .c-red>.th{fill:#F7C1C1}:root:not([data-mode="light"]) .c-red>.ts{fill:#F09595}
+}
+.wg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:.5rem 0}
+.wt{background:var(--surface-1);border-radius:12px;padding:10px}
+.wf{background:var(--surface-2);border:.5px solid var(--border);border-radius:var(--radius);height:120px;position:relative;overflow:hidden;padding:8px}
+.wl{font-size:13px;margin-top:8px;color:var(--text-primary);line-height:1.4}
+.ws{font-size:11px;color:var(--text-secondary);line-height:1.4}
+.wb{background:var(--border-strong);border-radius:3px;height:6px;margin:4px 0}
+.wa{background:var(--text-accent)}
+.wp{background:var(--border);border-radius:3px}
+.wr{display:flex;align-items:center;gap:6px}
+.wk{min-width:16px;height:18px;font-size:11px;border:.5px solid var(--border-strong);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.wc{width:20px;height:20px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;border:.5px solid var(--border-strong);color:var(--text-secondary);flex-shrink:0}
+.wk.on,.wc.on{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}
+.wi{height:22px;border:.5px solid var(--border-strong);border-radius:4px;font-size:11px;display:flex;align-items:center;padding:0 6px;color:var(--text-secondary)}
+.wm{font-size:11px;padding:3px 6px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;line-height:1.4}
+.wd{width:7px;height:7px;border-radius:50%;background:var(--text-accent);flex-shrink:0}
+.wz{font-size:11px;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;background:var(--border);border-radius:3px}
+.wbt{font-size:11px;padding:2px 8px;border-radius:4px;border:.5px solid var(--border-strong);color:var(--text-secondary);line-height:1.4}
+.wcd{height:14px;background:var(--surface-2);border:.5px solid var(--border-strong);border-radius:3px;margin-bottom:4px}
+.elicit{background:var(--surface-2);border:.5px solid var(--border);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.elicit-header{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:.5px solid var(--border);font-size:14px;font-weight:500}
+.elicit-header svg{width:18px;height:18px;color:var(--text-secondary)}
+.elicit-body{padding:8px 20px}
+.elicit-group{padding:14px 0;border-bottom:.5px solid var(--border)}.elicit-group:last-child{border-bottom:0}
+.elicit-question{display:block;font-size:14px;font-weight:500;margin-bottom:10px}
+.elicit-pills{display:flex;flex-wrap:wrap;gap:8px}
+.elicit-pill{border-radius:999px;padding:6px 14px;font-size:13px;background:var(--surface-2);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.elicit-pill:hover{border-color:var(--border-stronger);background:var(--surface-2)}
+.elicit-pill[data-accent="warning"]{border-color:var(--border-warning)}.elicit-pill[data-accent="danger"]{border-color:var(--border-danger)}.elicit-pill[data-accent="success"]{border-color:var(--border-success)}
+.elicit-pill[aria-pressed="true"]{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent)}
+.elicit-pill[aria-pressed="true"] *{color:inherit}
+.elicit-other{margin-top:10px;width:100%}
+.elicit-date{width:200px}
+.elicit-group input[type=range]{width:100%}
+.elicit-dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px dashed var(--border-stronger);border-radius:12px;padding:20px;font-size:13px;color:var(--text-secondary);cursor:pointer}
+.elicit-dropzone svg{width:20px;height:20px}.elicit-dropzone input{display:none}
+.elicit-file-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.elicit-file{width:120px;height:120px;border:.5px solid var(--border-strong);border-radius:12px;padding:10px;font-size:12px;color:var(--text-secondary);word-break:break-all;background:var(--surface-1)}
+.elicit-textarea{margin-top:10px}
+.elicit-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:.5px solid var(--border)}
+.elicit-submit{background:var(--text-primary);color:var(--surface-2);border-color:var(--text-primary)}.elicit-submit:hover{background:var(--text-secondary)}
+.elicit-error{font-size:13px;color:var(--text-danger);margin-top:6px}
+.gcu-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,90vw);background:var(--text-primary);color:var(--surface-2);font-size:13px;padding:10px 16px;border-radius:var(--radius);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+.gcu-toast.on{opacity:1}
+.gcu-mermaid{white-space:pre;font-size:12px;color:var(--text-muted);overflow-x:auto}.gcu-mermaid svg{white-space:normal}.gcu-mermaid .row-rect-odd path,.gcu-mermaid .row-rect-even path,.gcu-mermaid .row-rect-odd rect,.gcu-mermaid .row-rect-even rect{stroke:none!important}.gcu-mermaid .divider path{stroke-opacity:.5}
+.gcu-toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.gcu-page{max-width:1040px}.gcu-widget{max-width:none}.intro{color:var(--text-secondary)}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.tabs{margin:24px 0}.tabs button[aria-pressed=true]{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}.notice{padding:14px 16px;background:var(--bg-warning);color:var(--text-warning);border-radius:8px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.summary p{margin:0;color:var(--text-secondary);font-size:13px}.summary output{font-size:22px;font-weight:500}.case{margin:16px 0;padding:20px;background:var(--surface-2);border:.5px solid var(--border);border-radius:12px}.case h3{margin:0 0 8px}.case p{font-size:14px;margin:8px 0}.case label{display:block;margin:12px 0 6px;font-size:14px}.case select{width:100%}.muted{color:var(--text-secondary);font-size:13px}.tag{display:inline-block;border:.5px solid var(--border);border-radius:8px;padding:3px 8px;font-size:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;font-family:var(--font-mono);margin:6px 0;padding:12px;background:var(--surface-1);border-radius:8px}details{margin:12px 0}summary{cursor:pointer}section[hidden]{display:none}.error{font-size:13px;color:var(--text-danger)}.ok{color:var(--text-success)}.wide{width:100%}svg{display:block;width:100%;height:auto}a{color:var(--text-accent)}button:disabled{opacity:.5;cursor:default}.chart-line{fill:none;stroke:var(--fill-accent);stroke-width:2}.chart-point{fill:var(--fill-accent)}.grid{stroke:var(--border-strong);stroke-width:.5}.progress-track{height:6px;background:var(--border);border-radius:8px}.progress-track span{display:block;height:6px;background:var(--fill-accent);border-radius:8px}footer{margin-top:32px;color:var(--text-secondary);font-size:13px}@media(max-width:600px){.pair,.summary{grid-template-columns:1fr}.gcu-page{padding:24px 16px}input[type=text]{width:100%}}
+</style></head><body><main class="gcu-page">
+<div class="gcu-toolbar"><button id="theme">表示を切り替える</button></div>
+<h1 id="page-title">評価のすり合わせ</h1><p class="intro" id="description"></p>
+<div class="notice" id="notice">基準への合意と結果への判断を分けて確認します。</div>
+<nav class="row tabs" aria-label="確認する内容"><button data-tab="criteria" aria-pressed="true">1. 評価基準を確認</button><button data-tab="results" aria-pressed="false">2. 結果を確認</button><button data-tab="history" aria-pressed="false">3. 点数の推移</button></nav>
+<section id="criteria"><h2>何を測るか</h2><p>ケースごとに入力、期待結果、根拠を確認し、「妥当」または「要修正」を選べます。変更案は既存の点数を書き換えません。</p>
+<div class="gcu-widget"><h2 class="sr-only">評価ケースの確認状況</h2><div class="gcu-card"><p id="progress"></p><div class="progress-track"><span id="progress-bar"></span></div></div></div>
+<details><summary>実行条件と測っていないこと</summary><pre id="plan"></pre><ul id="limitations"></ul></details>
+<label for="represent">ケースの代表性・不足している条件</label><textarea id="represent" placeholder="実際の利用を代表しているか、追加したいケースは何かを記入"></textarea>
+<div id="case-list"></div>
+<div class="case"><h3>基準案の確認を記録する</h3><p>全ケースの確認と代表性の説明を記録します。これはブラウザ上の自己申告です。エージェントへ共有するには、下の「確認内容を保存」でJSONを添付するか、「確認内容をコピー」で会話に貼り付けてください。</p><label for="reviewer">確認者</label><input type="text" id="reviewer" placeholder="名前または識別名"><label><input type="checkbox" id="consent"> この基準案を次回評価の候補として合意する</label><button id="approve">確認を記録</button><p id="approval" role="status"></p></div>
+</section>
+<section id="results" hidden><h2>ケースごとの実行結果</h2><p>期待結果と実際の出力を並べて確認できます。点数への異議や追加確認は、評価基準への確認と分けて記録します。</p><label for="run-select">実行を選択</label> <select id="run-select"></select><div class="summary" id="summary"></div><div id="result-list"></div><div class="case"><label for="result-decision">結果に対する判断</label><select id="result-decision"><option value="pending">未確認</option><option value="understood">結果とその限界を理解した</option><option value="question">採点・結果に疑問がある</option><option value="rerun">基準を修正して再評価したい</option></select><label for="result-note">結果についてのコメント</label><textarea id="result-note"></textarea></div></section>
+<section id="history" hidden><h2>点数の推移</h2><p>同じ基準・同じケース集合の保存済み実行を順に表示します。<span id="history-count"></span>基準が変わった場合は別の系列として扱います。</p><div class="gcu-widget"><h2 class="sr-only">保存済み評価の点数推移</h2><div class="gcu-card"><label for="series">表示する指標</label> <select id="series"><option value="overall">全ケースの平均</option></select><svg id="chart" viewBox="0 0 680 300" role="img"><title>評価点数の推移</title><desc>現在の実行結果とケース別点数を表示</desc><g id="chart-content"></g></svg><p class="muted" id="chart-note"></p></div></div><table class="gcu-table"><thead><tr><th>実行</th><th>基準</th><th>点数</th><th>採点ケース</th><th>実行エラー</th><th>未採点試行</th><th>用途</th></tr></thead><tbody id="history-table"></tbody></table></section>
+<footer><div class="row"><button id="export">確認内容を保存</button><button id="copy">確認内容をコピー</button><label>保存した確認内容を読込 <input type="file" id="import" accept="application/json,.json"></label></div><div id="manual-copy" hidden><label for="copy-text">コピー用の確認内容</label><textarea id="copy-text" readonly rows="10" spellcheck="false"></textarea></div><p id="message" role="status">編集内容は、このページを閉じると消えます。JSONで保存するか、コピーして会話に貼り付けてください。保存したJSONは次回読み込めます。</p></footer>
+</main><script type="application/json" id="review-data">{"title": "評価のすり合わせ・テンプレート見本", "description": "これは画面と操作を確かめるための架空のサンプルです。実際の評価結果ではありません。", "basis": "sample-v1", "plan": "架空の問い合わせ分類を例に、基準確認・結果確認・点数推移を試せます。ラベル一致0.5点、余分な項目のないJSONオブジェクトなら0.5点。2ケースを等重みで平均して100点換算。全ケース・全実行は架空です。", "limitations": ["ケース・実行・点数はすべて表示確認用の架空サンプル。", "この点数の上昇は実際の改善効果を表しません。", "保存・コピーした確認内容もサンプルへの記録であり、本番評価の承認には使えません。"], "cases": [{"id": "billing", "label": "請求書の再発行", "input": {"message": "請求書を再発行して"}, "expected": {"label": "billing"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}, {"id": "login", "label": "ログインの相談", "input": {"message": "ログインできません"}, "expected": {"label": "account"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}], "runs": [{"id": "sample-1", "basis": "sample-v1", "purpose": "exploratory", "errors": 0, "details": [{"case_id": "billing", "rep": 0, "status": "ok", "actual": {"label": "billing"}, "score": 1, "reason": "ラベルと構造の両方が条件を満たす（架空例）。"}, {"case_id": "login", "rep": 0, "status": "ok", "actual": "その他", "score": 0, "reason": "不一致0点 → ラベルのみ一致0.5点 → 両方一致1点の表示例。実測ではありません。"}], "cases": [{"id": "billing", "label": "請求書の再発行", "input": {"message": "請求書を再発行して"}, "expected": {"label": "billing"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}, {"id": "login", "label": "ログインの相談", "input": {"message": "ログインできません"}, "expected": {"label": "account"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}], "comparison_key": "5347a31798395b4400ddc6cdf4eeff8635aab45a448e39cd7469e3b164632bf8", "case_scores": {"billing": 1.0, "login": 0.0}, "score": 50.0, "scored": 2, "planned": 2, "excluded": 0}, {"id": "sample-2", "basis": "sample-v1", "purpose": "exploratory", "errors": 0, "details": [{"case_id": "billing", "rep": 0, "status": "ok", "actual": {"label": "billing"}, "score": 1, "reason": "ラベルと構造の両方が条件を満たす（架空例）。"}, {"case_id": "login", "rep": 0, "status": "ok", "actual": {"label": "account", "extra": true}, "score": 0.5, "reason": "不一致0点 → ラベルのみ一致0.5点 → 両方一致1点の表示例。実測ではありません。"}], "cases": [{"id": "billing", "label": "請求書の再発行", "input": {"message": "請求書を再発行して"}, "expected": {"label": "billing"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}, {"id": "login", "label": "ログインの相談", "input": {"message": "ログインできません"}, "expected": {"label": "account"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}], "comparison_key": "5347a31798395b4400ddc6cdf4eeff8635aab45a448e39cd7469e3b164632bf8", "case_scores": {"billing": 1.0, "login": 0.5}, "score": 75.0, "scored": 2, "planned": 2, "excluded": 0}, {"id": "sample-3", "basis": "sample-v1", "purpose": "exploratory", "errors": 0, "details": [{"case_id": "billing", "rep": 0, "status": "ok", "actual": {"label": "billing"}, "score": 1, "reason": "ラベルと構造の両方が条件を満たす（架空例）。"}, {"case_id": "login", "rep": 0, "status": "ok", "actual": {"label": "account"}, "score": 1, "reason": "不一致0点 → ラベルのみ一致0.5点 → 両方一致1点の表示例。実測ではありません。"}], "cases": [{"id": "billing", "label": "請求書の再発行", "input": {"message": "請求書を再発行して"}, "expected": {"label": "billing"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}, {"id": "login", "label": "ログインの相談", "input": {"message": "ログインできません"}, "expected": {"label": "account"}, "basis": "テンプレートの操作説明用に作成した架空の条件。", "rule": "ラベル一致で0.5点。余分な項目のないJSONオブジェクトで0.5点。合計0〜1点。"}], "comparison_key": "5347a31798395b4400ddc6cdf4eeff8635aab45a448e39cd7469e3b164632bf8", "case_scores": {"billing": 1.0, "login": 1.0}, "score": 100.0, "scored": 2, "planned": 2, "excluded": 0}], "is_sample": true, "fingerprint": "cd54fd474078537252bb906bd6321bd447c78803d06ac88b2c80a76686dd70d1"}</script>
+<script>
+(() => {
+const DATA=JSON.parse(document.getElementById("review-data").textContent);
+document.title=DATA.title;
+document.getElementById("page-title").textContent=DATA.title;
+document.getElementById("description").textContent=DATA.description;
+document.getElementById("notice").textContent=DATA.is_sample?"テンプレートの見本です。ケース・結果・点数推移は架空のサンプルで、実際の評価や改善を示しません。":DATA.runs.length?"実行ごとの用途と事前合意の参照を確認してください。点数だけでは品質や改善効果を保証しません。":"まだ評価を実行していません。ケースと採点基準をすり合わせてから実行します。";
+document.getElementById("history-count").textContent=DATA.runs.length<2?"実測が2回未満のため、改善の推移は判断できません。":"基準とケース集合が一致する実行だけを線で結びます。";
+const $=id=>document.getElementById(id), esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fresh=()=>({schema:'eval-review-v1',is_sample:DATA.is_sample===true,fingerprint:DATA.fingerprint,basis:DATA.basis,cases:Object.fromEntries(DATA.cases.map(c=>[c.id,{decision:'pending',note:''}])),represent:'',reviewer:'',approval:null,results:Object.fromEntries(DATA.runs.map(r=>[r.id,{decision:'pending',note:''}]))});
+let state=fresh();
+function message(text,bad=false){$('message').textContent=text;$('message').className=bad?'error':'';}
+function invalidate(){state.approval=null;$('consent').checked=false;updateProgress();}
+function updateProgress(){const done=Object.values(state.cases).filter(c=>c.decision!=='pending').length;$('progress').textContent=`${done} / ${DATA.cases.length} ケースを確認。基準: ${DATA.basis}`;$('progress-bar').style.width=`${Math.round(100*done/DATA.cases.length)}%`;$('approval').textContent=state.approval?`確認記録あり: ${state.approval.reviewer} / ${new Date(state.approval.at).toLocaleString('ja-JP')}。会話で共有して合意範囲を確認してください。過去の実行への事前承認にはなりません。`:'基準案は未合意です。';}
+function renderCriteria(){
+$('plan').textContent=DATA.plan;$('limitations').innerHTML=DATA.limitations.map(t=>`<li>${esc(t)}</li>`).join('');$('represent').value=state.represent;$('reviewer').value=state.reviewer;
+$('case-list').innerHTML=DATA.cases.map(c=>`<article class="case"><h3>${esc(c.label)} <span class="tag">${esc(c.id)}</span></h3><p>${esc(c.basis)}</p><div class="pair"><div><p>入力</p><pre>${esc(JSON.stringify(c.input,null,2))}</pre></div><div><p>期待結果</p><pre>${esc(JSON.stringify(c.expected,null,2))}</pre></div></div><p>採点: ${esc(c.rule)}</p><label for="decision-${esc(c.id)}">このケースと期待結果は妥当か</label><select id="decision-${esc(c.id)}" data-case="${esc(c.id)}"><option value="pending">未確認</option><option value="agree">妥当</option><option value="change">要修正</option></select><label for="note-${esc(c.id)}">理由・修正案</label><textarea id="note-${esc(c.id)}" data-note="${esc(c.id)}" placeholder="要修正の場合は理由を記入してください"></textarea></article>`).join('');
+for(const c of DATA.cases){$('decision-'+c.id).value=state.cases[c.id].decision;$('note-'+c.id).value=state.cases[c.id].note;}updateProgress();
+}
+function activeRun(){return DATA.runs.find(r=>r.id===$('run-select').value);}
+function renderResults(){const r=activeRun();$("result-decision").disabled=!r;$("result-note").disabled=!r;if(!r){$("summary").textContent="評価実行前です。結果はまだありません。";return;}const fmt=n=>n===null?'未採点':`${n.toFixed(1)}点`;$('summary').innerHTML=`<div class="gcu-card"><p>ケース平均 / 100</p><output>${fmt(r.score)}</output></div><div class="gcu-card"><p>採点ケース / 予定ケース</p><output>${r.scored} / ${r.planned}</output></div><div class="gcu-card"><p>実行エラー</p><output>${r.errors}</output></div>`;
+$('result-list').innerHTML=r.details.map(d=>{const c=r.cases.find(c=>c.id===d.case_id);return `<details class="case"><summary>${esc(c?.label||d.case_id)} / 反復${d.rep+1} / ${d.score===null?'未採点':`${(d.score*100).toFixed(1)}点`}</summary><div class="pair"><div><p>期待結果</p><pre>${esc(JSON.stringify(c?.expected,null,2))}</pre></div><div><p>実際の出力</p><pre>${esc(JSON.stringify(d.actual,null,2))}</pre></div></div><p>状態: ${esc(d.status)} / 採点根拠: ${esc(d.reason||"記録なし")}</p></details>`;}).join('');$('result-decision').value=state.results[r.id].decision;$('result-note').value=state.results[r.id].note;}
+function chart(){const series=$('series').value,points=DATA.runs.map((r,i)=>({r,x:DATA.runs.length===1?340:70+i*550/(DATA.runs.length-1),v:series==='overall'?r.score:(r.case_scores[series]??null)===null?null:r.case_scores[series]*100}));let svg='';for(let n=0;n<=100;n+=25){let y=245-n*2;svg+=`<line x1="60" x2="630" y1="${y}" y2="${y}" class="grid"/><text x="48" y="${y+4}" text-anchor="end" class="ts">${n}</text>`;}let previous=null;for(const p of points){if(p.v!==null){const y=245-p.v*2;if(previous&&previous.r.basis===p.r.basis&&previous.r.comparison_key===p.r.comparison_key)svg+=`<path d="M${previous.x} ${245-previous.v*2} L${p.x} ${y}" class="chart-line"/>`;svg+=`<circle cx="${p.x}" cy="${y}" r="5" class="chart-point"><title>${esc(p.r.id)}: ${p.v.toFixed(1)}点</title></circle><text x="${p.x}" y="${y-12}" text-anchor="middle" class="th">${p.v.toFixed(1)}</text>`;previous=p;}else previous=null;svg+=`<text x="${p.x}" y="275" text-anchor="middle" class="ts">${esc(p.r.id)}</text>`;}$('chart-content').innerHTML=svg;$('chart-note').textContent=`縦軸: 0〜100点。横軸: 保存した実行順。基準は実行ごとに表示。ケース内の反復平均をケース間で等重み平均し、100倍しています。欠測は0点にしません。区間推定はこのテンプレートでは計算しません。`;$('history-table').innerHTML=DATA.runs.map(r=>`<tr><td>${esc(r.id)}</td><td>${esc(r.basis)}</td><td>${r.score===null?'未採点':r.score.toFixed(1)}</td><td>${r.scored} / ${r.planned}</td><td>${r.errors}</td><td>${r.excluded}</td><td>${esc(DATA.is_sample?'架空サンプル':r.purpose==='evaluation'?'評価 / 合意参照: '+r.approval_ref:'動作確認・探索的')}</td></tr>`).join('');}
+$('run-select').innerHTML=DATA.runs.map(r=>`<option value="${esc(r.id)}">${esc(r.id)} / ${esc(r.basis)} / ${DATA.is_sample?'架空サンプル':r.purpose==='evaluation'?'評価':'動作確認'}</option>`).join('');const chartCases=[...new Map([...DATA.cases,...DATA.runs.flatMap(r=>r.cases)].map(c=>[c.id,c])).values()];$('series').innerHTML+=chartCases.map(c=>`<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+$('theme').onclick=()=>{let root=document.documentElement;root.dataset.mode=(root.dataset.mode||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))==='dark'?'light':'dark';};
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{for(const id of ['criteria','results','history'])$(id).hidden=id!==b.dataset.tab;document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+$('case-list').onchange=e=>{if(e.target.dataset.case){state.cases[e.target.dataset.case].decision=e.target.value;invalidate();}};
+$('case-list').oninput=e=>{if(e.target.dataset.note){state.cases[e.target.dataset.note].note=e.target.value;invalidate();}};
+$('represent').oninput=e=>{state.represent=e.target.value;invalidate();};$('reviewer').oninput=e=>{state.reviewer=e.target.value;invalidate();};
+$('approve').onclick=()=>{const all=Object.values(state.cases);let problem=all.some(c=>c.decision!=='agree')?'すべてのケースが「妥当」になるまで合意できません。':!state.represent.trim()?'ケースの代表性・不足について記入してください。':!state.reviewer.trim()?'確認者を記入してください。':!$('consent').checked?'合意のチェックを選択してください。':'';if(problem){$('approval').textContent=problem;$('approval').className='error';return;}$('approval').className='ok';state.approval={reviewer:state.reviewer.trim(),at:new Date().toISOString(),scope:'next_evaluation_candidate',fingerprint:DATA.fingerprint};updateProgress();};
+$('run-select').onchange=renderResults;$('series').onchange=chart;$('result-decision').onchange=e=>{const r=activeRun();if(r)state.results[r.id].decision=e.target.value;};$('result-note').oninput=e=>{const r=activeRun();if(r)state.results[r.id].note=e.target.value;};
+function reviewText(){if(Object.values(state.cases).some(c=>c.decision==='change'&&!c.note.trim())){message('「要修正」のケースには理由を記入してください。',true);return null;}return JSON.stringify(state,null,2);}
+$('copy').onclick=async()=>{const text=reviewText();if(text===null)return;$('copy-text').value=text;try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(text);$('manual-copy').hidden=true;message('確認内容をコピーしました。この会話に貼り付けてください。');}catch{$('manual-copy').hidden=false;$('copy-text').focus();$('copy-text').select();message('自動コピーを利用できません。選択した確認内容を Ctrl+C または Command+C でコピーしてください。');}};
+$('export').onclick=()=>{const text=reviewText();if(text===null)return;const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='evaluation-review.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);message('確認内容をJSONで保存しました。会話に添付すると、修正や次回評価に反映できます。');};
+$('import').onchange=async e=>{try{const f=e.target.files[0];if(!f)return;if(f.size>1000000)throw Error('ファイルが大きすぎます');const x=JSON.parse(await f.text());if(x.schema!=='eval-review-v1'||x.fingerprint!==DATA.fingerprint)throw Error('基準・結果がこのページと一致しません');if(typeof x.represent!=='string'||typeof x.reviewer!=='string')throw Error('形式が不正です');for(const c of DATA.cases){const v=x.cases?.[c.id];if(!v||!['pending','agree','change'].includes(v.decision)||typeof v.note!=='string')throw Error('ケースの確認形式が不正です');}for(const r of DATA.runs){const v=x.results?.[r.id];if(!v||!['pending','understood','question','rerun'].includes(v.decision)||typeof v.note!=='string')throw Error('結果の確認形式が不正です');}if(x.approval&&(x.approval.fingerprint!==DATA.fingerprint||!x.reviewer.trim()||!x.represent.trim()||Object.values(x.cases).some(c=>c.decision!=='agree')||typeof x.approval.reviewer!=='string'||!Number.isFinite(Date.parse(x.approval.at))))throw Error('確認記録が不整合です');state=x;renderCriteria();renderResults();message('確認内容を読み込みました。記録は自己申告であり、認証された承認ではありません。');}catch(err){message('読込できません: '+err.message,true);}e.target.value='';};
+$('run-select').value=DATA.runs[0]?.id||'';$('series').value='overall';renderCriteria();renderResults();chart();
+})();
+</script></body></html>
