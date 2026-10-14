@@ -23,38 +23,49 @@ explain-htmlで、この仕組みを初めて学ぶ読者向けに解説HTMLを�
 
 似た対象の違いを中心に理解したい場合は[compare](compare.md)を使います。explain-htmlはcompareの表示・説明品質を引き継ぎ、単一題材を扱います。
 
-実例は[技術題材のHTMLを開く](pathname:///examples/explain-html/technical/output.html)と[一般題材のHTMLを開く](pathname:///examples/explain-html/general/output.html)から直接確認できます。
+現在の手順で新規制作した[画像変換APIの解説HTML](pathname:///examples/explain-html/output.html)を確認できます。
 
 ## 成果物の例
 
-非同期API、備品貸出、水循環、CSV売上集計の4題材を独立したサブエージェントで生成しました。下の入力とHTMLは非同期APIの実出力で、他3題材の入力・HTML・モデル・検証記録はZIPに含みます。架空題材は説明用で、水循環はUSGS一次資料に基づきます。
+現在のexplain-html手順で、架空の画像変換APIを新規制作しました。全体構成・通信・状態・再送の4図は、それぞれ別の専任エージェントが調査・作図・解説を担当しています。過去の成果物・実行記録は削除しました。
 
-**到達点：4題材のHTML生成・静的検証・独立内容レビューを実施。図の意味に不一致あり。ブラウザ表示・操作は未検証。**
+**到達点：新規HTML生成・Archify再生成照合・PC/狭幅の表示と操作を確認。図内文字の狭幅可読性には未達が残る。**
 
 ### 実行した依頼
 
 ```text
 次の架空APIを初めて使う開発者向けに、仕組みを理解できる単体HTMLを作ってください。利用者は画像変換を依頼します。クライアントは同じ依頼の再送では同じrequestKeyを使い、POST /jobsへ画像IDとrequestKeyを送ります。サーバーは初回にjob_17を作り202とjobIdを返し、同じrequestKeyの再送では重複ジョブを作らず同じjobIdを返します。ワーカーはqueuedのジョブをrunningへ移し、成功ならcompletedとresultUrl、失敗ならfailedとreasonを保存します。クライアントはGET /jobs/job_17で状態を取得し、completedなら結果を表示、failedなら理由を表示します。POSTの202は完了ではありません。POSTが503なら同じrequestKeyで最大2回再試行し、なお503なら受付結果不明と表示します。図、具体的な通信例、条件、状態、資料まで説明してください。実在APIとして説明しないでください。
+
+現在のexplain-html手順で新規制作する。各図は別の専任担当が制作し、同梱Archify 2.16.0を無改変で使用する。PCと狭幅で確認し、図の横に短い対応解説を置く。
 ```
+
+### 実際の画面
+
+![新規画像変換API解説の全体像ページ](/examples/explain-html/page-overview-1440.png)
+
+[画像を原寸で開く](pathname:///examples/explain-html/page-overview-1440.png)
+
+新規制作したHTMLを1440px幅のChromeで撮影。狭幅の図中文字に課題が残るため、品質合格済みの見本とは扱いません。
 
 ### 成果物を取得する
 
-- [4題材の実出力・モデル・検証記録（ZIP）](pathname:///examples/explain-html/generic-examples.zip#download)
-- [更新したexplain-htmlスキル一式（ZIP）](pathname:///examples/explain-html/skill.zip#download)
-- [更新前の実例の実行記録（JSON）](pathname:///examples/explain-html/execution-before-issue72.json#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/explain-html/generic-api/index.html)
+- [新規解説HTML（単体）](pathname:///examples/explain-html/output.html#download)
+- [4図の専任担当と生成元（JSON）](pathname:///examples/explain-html/diagram-agent-manifest.json#download)
+- [入力仕様と説明先の対応（JSON）](pathname:///examples/explain-html/coverage.json#download)
+- [新規記事のブラウザ確認記録（JSON）](pathname:///examples/explain-html/browser-check.json#download)
+- [実際のHTMLをブラウザで開く](pathname:///examples/explain-html/output.html)
 - [実行入力の原本](pathname:///examples/explain-html/input.md#download)
 - [実行・検証記録（JSON）](pathname:///examples/explain-html/execution.json#download)
 
 ### 確認した結果
 
-- 各HTMLの全体図・項目対応、Archifyのモデル検証と標準SVG補助出力が成功。
-- 内部リンク、ID重複、埋込SVGと保存原図の一致を静的検査。
-- 表示や操作はブラウザのfile URLがポリシー拒否されたため未検証。別経路による回避はしていない。
-- 各題材・各版は1試行であり、生成の安定性や網羅的な品質は証明していない。
-- 前回の2題材実行・ブラウザ検証記録はexecution-before-issue72.jsonと既存ファイルに保持。現在の新版へ過去のブラウザ結果を流用していない。
-- 独立レビューで凡例の不一致、図に不足する結果・条件、空レーンや余白を確認。汎用指示を補足したが、その追加後の再生成は未実施。初回成果物を合格済みの完成見本とは扱わない。
-- 新版15/20・旧版13/20。表示方針も含む5条件の各1試行評価であり、図の理解だけの改善率や統計的な優位性ではない。
+- 別々の実エージェント4人の起動と返却を照合。各担当がRFC 9110の一次資料を実際に閲覧。架空API独自の約束とHTTP一般仕様を分離。
+- 同梱Archify 2.16.0は無改変。4図をshowcase配布し、検査器が再生成した標準SVG・記事埋込み・モデルhashを照合。
+- 5ページの全体図/文字による資料一覧、入力仕様8項目の説明先、ID重複とページ内参照を静的検査。これは説明の正しさや人間の理解を認証する検査ではありません。
+- 1440pxと390pxで5ページを新たに表示確認。ページ切替、コード行への直接リンクとdetails展開、戻る操作、説明の段階選択・再生・停止、JavaScript無効時の表示を確認。
+- 架空APIの実装・実通信、コード抜粋の実動作、ブラウザPNGと補助標準SVGの画像一致は未検証。
+- 通信ページの段階再生は解説を強調する操作です。図の矢印の動き・図と解説の動的同期は未実装。
+- 一部の図は390px幅で図内の文字が18px基準を満たしません。横解説19pxとは別の問題として各図review.jsonに記録。主観的な品質点数は付けていません。
 
 ## 確認するポイント
 

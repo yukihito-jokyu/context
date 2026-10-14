@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "受付と変換を分ける",
+    "quality_profile": "showcase",
+    "visual_preset": "editorial",
+    "locale": "ja",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "利用者"
+        },
+        "backend": {
+          "label": "処理"
+        },
+        "database": {
+          "label": "保存"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "frontend",
+      "label": "① 利用者",
+      "pos": [
+        10,
+        20
+      ],
+      "size": [
+        100,
+        36
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "② API",
+      "pos": [
+        10,
+        80
+      ],
+      "size": [
+        100,
+        36
+      ]
+    },
+    {
+      "id": "jobs",
+      "type": "database",
+      "label": "③ 保存",
+      "pos": [
+        10,
+        140
+      ],
+      "size": [
+        100,
+        36
+      ]
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "④ 変換",
+      "pos": [
+        10,
+        200
+      ],
+      "size": [
+        100,
+        36
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "request",
+      "from": "client",
+      "to": "api",
+      "label": "依頼",
+      "variant": "emphasis",
+      "labelAt": [
+        90,
+        67
+      ]
+    },
+    {
+      "id": "acceptance",
+      "from": "api",
+      "to": "client",
+      "label": "応答",
+      "variant": "dashed",
+      "labelAt": [
+        30,
+        67
+      ]
+    },
+    {
+      "id": "persist",
+      "from": "api",
+      "to": "jobs",
+      "label": "作成・参照",
+      "labelAt": [
+        60,
+        127
+      ]
+    },
+    {
+      "id": "run",
+      "from": "jobs",
+      "to": "worker",
+      "label": "取得",
+      "labelAt": [
+        30,
+        187
+      ]
+    },
+    {
+      "id": "save-result",
+      "from": "worker",
+      "to": "jobs",
+      "label": "保存",
+      "variant": "dashed",
+      "labelAt": [
+        90,
+        187
+      ]
+    }
+  ]
+}

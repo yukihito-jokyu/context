@@ -1,0 +1,29 @@
+{
+  "sources": [
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2",
+      "checked_at": "2026-10-14",
+      "location": "9.2.2 Idempotent Methods",
+      "finding": "非冪等メソッドの自動再送には、要求の意味が実際に冪等と知る手段等が必要。POSTに普遍的な重複防止を与えない。"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4",
+      "checked_at": "2026-10-14",
+      "location": "15.6.4 503 Service Unavailable",
+      "finding": "503は一時的過負荷や保守により要求を処理できない状態。Retry-Afterは待機時間を提案できる。キー・試行回数・ジョブ状態は定義しない。"
+    }
+  ],
+  "provided_source": "../../input.md",
+  "fictional_contract": [
+    "同じキーreq_42の再送は同じjob_17、重複生成なし",
+    "503だけを最大2回再試行、計3送信",
+    "3回目も503なら受付結果不明、failedとは別"
+  ],
+  "undefined": [
+    "再送待機時間",
+    "キー保存期間",
+    "異なるpayloadを同じキーで送る",
+    "202/503以外",
+    "通信断"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "topic": "架空画像変換APIの正常通信",
+  "checked_at": "2026-10-14",
+  "sources": [
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+      "checked_at": "2026-10-14",
+      "location": "RFC 9110 §15.3.3",
+      "finding": "202は処理を受け付けたが処理が完了していないことを示す。最終的な成功は保証しない。",
+      "classification": "確認したHTTP仕様"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1",
+      "checked_at": "2026-10-14",
+      "location": "RFC 9110 §9.3.1",
+      "finding": "GETは対象リソースの現在の表現の取得を要求する。",
+      "classification": "確認したHTTP仕様"
+    }
+  ],
+  "fictional_specification": {
+    "source": "../../input.md",
+    "input": {
+      "imageId": "img_42",
+      "requestKey": "req_42"
+    },
+    "jobId": "job_17",
+    "states": [
+      "queued",
+      "running",
+      "completed"
+    ],
+    "resultUrl": "https://example.invalid/results/job_17.png",
+    "scope": "初回受付が202となり、変換が成功する一例。HTTP自体がrequestKey、状態名、GETパス、再試行回数を規定するわけではない。"
+  },
+  "not_specified": [
+    "GET間隔",
+    "GET回数",
+    "処理時間",
+    "状態をすべて観測できる保証",
+    "ワーカー起動方式",
+    "保存実装"
+  ]
+}

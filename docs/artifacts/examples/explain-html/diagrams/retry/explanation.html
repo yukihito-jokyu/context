@@ -1,0 +1,5 @@
+<p data-diagram-intro>クライアントが503を受け取っても、この架空APIは同じrequestKeyの再送を同じジョブにまとめる。その約束のもとで、受付を確認できるまで最大3回だけ送る。</p><p data-diagram-reading>①→②から読み、202なら③、503なら④へ進む。④の回数は再試行回数ではなく、初回を含む送信回数である。</p><div data-diagram-explanation><p><strong>① 同じ依頼を送信</strong><br>クライアントは画像IDとrequestKey: req_42をPOST /jobsへ送る。再送でも同じ画像IDとキーを保持する。</p>
+<p><strong>② 応答で分岐</strong><br>202なら③へ、503なら④へ進む。ほかの応答や通信断の扱いは、この架空APIでは未定義。無条件では再送しない。</p>
+<p><strong>③ 受付を確認</strong><br>サーバーは同じreq_42から重複ジョブを作らず、同じjob_17を返す。クライアントはGETで状態を確認する。202は画像変換の完了を意味しない。</p>
+<p><strong>④・⑤ 503のときだけ再送</strong><br>1・2回目の送信が503なら、クライアントは同じreq_42で再送する。初回1回と再試行2回で、送信は最大3回となる。</p>
+<p><strong>⑥ 3回目も503なら停止</strong><br>クライアントは「受付結果不明」と表示する。ジョブが作られたか確認できない状態であり、ワーカーが保存するfailedとは区別する。</p></div><div data-diagram-conditions><p>この再送規則と重複防止は入力資料で定めた架空APIの約束である。HTTP全般の保証ではない。待機時間、キーの保存期間、同じキーで別の画像を送る場合、ほかの応答、通信断の扱いは未定義。</p><p>HTTPの一般原則では、POSTの自動再送には同じ意図した効果が保たれると知る手段などが必要となる。503は一時的な過負荷や保守で要求を処理できない状態を示し、Retry-Afterで待機を提案できる。RFCは、この例の2回再試行やjob_17の再利用を定義しない。<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2">RFC 9110 §9.2.2</a>、<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4">§15.6.4</a>。</p></div>
