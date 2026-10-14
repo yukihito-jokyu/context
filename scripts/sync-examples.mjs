@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import sourceVerification from './example-skill-source.cjs';
 
 // Read the saved execution result; never synthesize an example output here.
 const root = 'docs/artifacts/examples';
@@ -12,7 +13,7 @@ for (const category of fs.readdirSync('utils/skills', {withFileTypes: true}).fil
     if (!fs.existsSync(source)) continue;
     const dir = path.join(root, skill.name);
     const record = JSON.parse(fs.readFileSync(path.join(dir, 'execution.json'), 'utf8'));
-    if (record.skill_sha256 !== sha256(fs.readFileSync(source))) throw new Error(`${skill.name}: 正本が実行時から変わっています`);
+    sourceVerification.verifyExampleSkillSource({record, exampleDir: dir, currentSource: source});
     for (const file of record.artifacts) {
       if (file.sha256 !== sha256(fs.readFileSync(path.join(dir, file.file)))) throw new Error(`${skill.name}: 原本が記録と一致しません: ${file.file}`);
     }
@@ -20,6 +21,7 @@ for (const category of fs.readdirSync('utils/skills', {withFileTypes: true}).fil
     const prefix = `/examples/${skill.name}/`;
     const filePrefix = `pathname://${prefix}`;
     let section = `## 成果物の例\n\n${record.summary}\n\n**到達点：${record.stage}。**\n\n### 実行した依頼\n\n\`\`\`text\n${input.trim()}\n\`\`\`\n\n`;
+    if (record.skill_snapshot) section = section.replace('### 実行した依頼', `**実行版：${record.skill_version_note}**\n\n[実行時のSkill本文](${filePrefix}${record.skill_snapshot}#download)\n\n### 実行した依頼`);
     if (record.preview) section += `### 実際の画面\n\n![${record.preview_alt}](${prefix}${record.preview})\n\n[画像を原寸で開く](${filePrefix}${record.preview})\n\n${record.preview_note ? record.preview_note + '\n\n' : ''}`;
     if (record.text_output) {
       const output = fs.readFileSync(path.join(dir, record.text_output), 'utf8');
