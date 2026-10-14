@@ -35,10 +35,12 @@ test('全スキルの実例が入力・正本・実出力と対応し、原本�
       count++;
       const root = `docs/artifacts/examples/${skill.name}`;
       const record = JSON.parse(fs.readFileSync(`${root}/execution.json`, 'utf8'));
-      assert.equal(record.skill_sha256, digest(source));
+      const {verifyExampleSkillSource} = require('../scripts/example-skill-source.cjs');
+      const version = verifyExampleSkillSource({record, exampleDir: root, currentSource: source});
       assert.ok(record.stage && record.checks.length);
       assert.ok(fs.readFileSync(`${root}/input.md`, 'utf8').trim());
       const markdown = fs.readFileSync(`docs/${category.name}/${skill.name}.md`, 'utf8');
+      if (version === 'historical') assert.ok(markdown.includes(record.skill_version_note), `${skill.name}: 旧実行版の説明がない`);
       assert.ok(!markdown.includes('以下は架空の題材による説明用の抜粋'));
       if (record.text_output) {
         const excerpt = fs.readFileSync(`${root}/${record.text_output}`, 'utf8').trim().split('\n').slice(0, record.excerpt_lines || 16).join('\n');
@@ -67,7 +69,7 @@ test('全スキルの実例が入力・正本・実出力と対応し、原本�
       }
     }
   }
-  assert.equal(count, 25);
+  assert.equal(count, 26);
 });
 
 test('公開文書が検索索引に含まれ、公開ベースパスへ移動できる', () => {
