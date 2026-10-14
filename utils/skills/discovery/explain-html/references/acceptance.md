@@ -24,6 +24,7 @@
 
 ```sh
 python3 scripts/sync_vendor.py --check
+python3 scripts/check_diagram_delegation.py /path/to/diagram-agent-manifest.json --article /path/to/explanation.html
 python3 scripts/check_overviews.py /path/to/explanation.html
 python3 scripts/check_coverage.py /path/to/explanation.html /path/to/coverage.json
 ```
@@ -39,3 +40,14 @@ node evals/check-browser.mjs /path/to/example-directory
 ```
 
 別の場所へ導入したPlaywrightは第2引数にモジュールURLを渡す。既存ブラウザを使う場合はCHROME_PATH環境変数へ実行ファイルを指定する。この検査は実例の操作確認であり、新しい題材の正確性・スキルのトリガー精度・生成ベンチマークを証明しない。
+
+Archify必須条件は[archify-gate.md](archify-gate.md)に従う。宣言検査だけを呼び出した結果、独自SVGをArchifyではないと記載した結果は納品合格ではない。ゲート不通過は未完了として示し、人間が内容確認できる草稿・質問まで隠さない。
+
+## 改修時のコード保持
+
+```sh
+python3 scripts/render_html.py page-model.json output.html --manifest diagram-agent-manifest.json --baseline before.html
+python3 scripts/check_article_content.py before.html output.html --report content-review.json
+```
+
+`--baseline`は、前版のpre生テキストとcode-lineのID・文字列が新稿に残ること、重複ID・内部リンク切れがないことを出力前に検査する。不合格なら既存出力を上書きしない。HTMLのエンティティと表示用のタグは復号・除去して比較し、字下げは保持する。同じ内容の重複コードは1件へ統合できる。この検査は図の意味、コードの実行結果、文章の自然さを保証しない。意図的にコードを変更する場合は変更理由と前後をレビュー記録に残し、保持検査の不合格を合格と報告しない。

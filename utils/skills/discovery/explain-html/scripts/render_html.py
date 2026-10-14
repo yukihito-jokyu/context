@@ -33,7 +33,14 @@ def render(model):
     markup = ''
     for p in pages:
         pid, label = p['id'], escape(p['label'])
-        markup += f'<section id="{pid}" class="concern-page" data-page data-group="{escape(p.get("group", "start"))}" data-label="{label}" tabindex="-1" aria-labelledby="{pid}-title"><h2 id="{pid}-title">{label}</h2>'
+        mode = p.get('overview_mode', 'diagram')
+        if mode not in ('diagram', 'text'):
+            raise ValueError('Unknown overview mode')
+        reason = p.get('overview_reason', '').strip()
+        if mode == 'text' and not reason:
+            raise ValueError('Text overview requires an explicit reason')
+        attributes = f' data-overview-mode="text" data-overview-reason="{escape(reason, quote=True)}"' if mode == 'text' else ''
+        markup += f'<section id="{pid}" class="concern-page" data-page{attributes} data-group="{escape(p.get("group", "start"))}" data-label="{label}" tabindex="-1" aria-labelledby="{pid}-title"><h2 id="{pid}-title">{label}</h2>'
         markup += p.get('intro_html', '') + p['overview_html'] + p['body_html'] + '</section>'
     values = {'TITLE':escape(model['title']), 'SCOPE':escape(model['scope']),
               'CONCERN_NAV_HTML':concern, 'TOPIC_NAV_HTML':topic, 'PAGES_HTML':markup,
@@ -49,5 +56,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('model', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--manifest',type=Path,required=True)
+    parser.add_argument('--baseline',type=Path,help='Prior article: reject code loss and broken local references before writing')
     args = parser.parse_args()
-    args.output.write_text(render(json.loads(args.model.read_text())), encoding='utf-8')
+    from check_archify import check as check_archify
+    from check_diagram_delegation import check as check_delegation
+    root=args.manifest.resolve().parent
+    if not args.output.resolve().is_relative_to(root):raise SystemExit('Output must be inside manifest root')
+    manifest=json.loads(args.manifest.read_text())
+    candidate=render(json.loads(args.model.read_text()))
+    if args.baseline:
+        from check_article_content import check as check_content
+        retention=check_content(args.baseline.read_text(),candidate)
+        if not retention['pass']:
+            print(json.dumps({'content_retention':retention},ensure_ascii=False,indent=2))
+            raise SystemExit(1)
+    declarations=check_delegation(manifest,root)
+    provenance=check_archify(manifest,root,candidate)
+    if not declarations['pass'] or not provenance['pass']:
+        print(json.dumps({'delegation':declarations,'archify':provenance},ensure_ascii=False,indent=2))
+        raise SystemExit(1)
+    args.output.write_text(candidate, encoding='utf-8')

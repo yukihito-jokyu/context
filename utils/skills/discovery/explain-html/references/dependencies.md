@@ -15,13 +15,7 @@ python3 /path/to/explain-html/scripts/sync_vendor.py --check
 
 `dependencies.lock.json`には実際の取得元、スキル名、パッケージ版、内容ハッシュ、実行引数、skills CLIのロックを記録する。`--check`はネットワークを使わず、その内容と必須ファイルを検査する。`--dry-run`は実行予定の引数を表示する。同期後にはvendorの指示を読み直し、スキーマ・配布・画像エクスポートの互換性を確認する。既定の同期元は`~/.agents/skills/archify-jp`であり、ホームディレクトリは実行するユーザーの環境で解決する。英語版の公式リポジトリへ切り替えない。
 
-同梱版はContext Repositoryの正本`utils/skills/design/archify-jp`を明示的な同期元として、固定版skills CLIで取得した`archify-jp` 2.16.0です。ライフサイクルv2、意味の凡例、種類ごとの既定配色を含みます。取得元と内容ハッシュは`dependencies.lock.json`に記録しています。今回は既定のホーム配置を使っていないため、`configured_source_sync_verified`はfalseです。これは同期の失敗ではなく、明示した同期元が設定上の既定値と異なることを表します。vendorには元のMITライセンスを保持します。
-
-ローカルの日本語版から明示的に同期する場合は次を使う。スクリプトはネットワーク失敗を理由に勝手にローカル版へ切り替えない。
-
-```sh
-python3 scripts/sync_vendor.py --source /path/to/context/utils/skills/design/archify-jp --skill archify-jp
-```
+同梱版は元の`archify-jp` 2.16.0を無改変で保持します。`vendor`は直接編集・パッチ追加を禁止します。文字拡大や配置の都合で、スキーマ・renderer・版番号を独自変更しません。大元に正式な更新がない場合は、同期して差分を作りません。正式更新の出典と版を確認し、ユーザーから同期の指示を受けた場合だけ、その版をそのまま取得します。ローカルの独自拡張を大元の正式更新と取り違えません。取得元と内容ハッシュは`dependencies.lock.json`に記録し、MITライセンスを保持します。
 
 固定版skills CLIが既にあるnpmプロジェクトをオフラインで利用する場合は`--cli-prefix /path/to/npm-project`を指定する。このパスは`node_modules/skills/package.json`を持つ必要がある。CLI版がmanifestと違えばスクリプトは停止する。
 
@@ -40,7 +34,7 @@ node /path/to/explain-html/vendor/archify-jp/bin/archify.mjs deliver workflow mo
 
 第一選択は配布HTMLの標準エクスポート。読者がエクスポートするPNG/SVGと同じ表示を求める場合、制作者は実際の標準エクスポートを取得して埋め込み、確認した条件を記録する。画像生成器や独自のSVG描き直しで代用しない。
 
-ブラウザが利用できない場合、2.16.0用の補助スクリプトは同梱テンプレートの**変更していないserializeSvg関数**を限定DOMアダプターで実行できる。制作者はこれをブラウザでの操作やPNG一致の検証として報告しない。補助スクリプトは異なる版では停止する。更新後は標準ブラウザエクスポートを使い、必要なら互換性を検証してから補助スクリプトを更新する。
+ブラウザが利用できない場合、2.16.0用の補助スクリプトは同梱テンプレートの**変更していないserializeSvg関数**を限定DOMアダプターで実行できる。制作者はこれをブラウザでの操作やPNG一致の検証として報告しない。補助スクリプトは対応していない版と、固定したserializeSvgのハッシュが異なる場合に停止する。更新後は標準ブラウザエクスポートを使い、必要なら互換性を検証してから補助スクリプトを更新する。
 
 ```sh
 python3 scripts/export_standard_svg.py diagram.html diagram.svg --model model.json
