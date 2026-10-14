@@ -7,7 +7,7 @@ sidebar_label: Skillとpluginの配布・導入
 
 このリポジトリでは、CodexとClaude Codeを対象に、Skill単体の配布とplugin配布を使い分けます。Skillは作業手順と同梱資料、pluginは複数Skillやhooksを一つの導入単位にまとめるパッケージです。
 
-[Issue #63の合意](https://github.com/yukihito-jokyu/context/issues/63#issuecomment-6104876148)に基づく管理方針を説明します。現在は方針と案内を整備した段階で、plugin配布定義、生成処理、配布カタログは未作成です。以下のツリーは配置方針、plugin導入コマンドは公開後の例です。
+[Issue #63の合意](https://github.com/yukihito-jokyu/context/issues/63#issuecomment-6104876148)に基づく管理方針を説明します。現在は[skill-refiner](skill-refiner.md)と[explain-html](../discovery/explain-html.md)について、正本を参照する配布定義、Agent別のhooks設定、専用生成処理を作成しています。汎用の配布定義・生成処理と公開カタログは未作成です。以下のツリーは共通の配置方針、marketplaceコマンドは公開後の例です。
 
 ## 配布単位を選ぶ
 
@@ -23,6 +23,8 @@ sidebar_label: Skillとpluginの配布・導入
 
 Skill本文を一度だけ管理し、pluginごとの配布定義から参照します。
 
+ルートの`scripts/`にはプロジェクト全体で使う処理を置きます。特定pluginのビルドは`utils/plugins/<plugin-name>/build.py`、実行時のhook処理は同pluginの`scripts/`に置きます。ビルドは正本を配布形式へコピーするために必要で、インストールや有効化は行いません。
+
 ```text
 context/
 ├── utils/
@@ -33,6 +35,7 @@ context/
 │   │       └── references/
 │   └── plugins/
 │       └── <plugin-name>/
+│           ├── build.py              # このplugin専用のビルド
 │           ├── bundle.yaml           # 含めるSkill等の配布定義
 │           ├── scripts/              # このpluginのhooksが使う処理
 │           ├── claude-code/
@@ -139,6 +142,6 @@ plugin内のSkillとhooksはpluginを単位に更新・有効化・削除しま�
 
 [管理方針](https://github.com/yukihito-jokyu/context/blob/c916ae3683fc1153837e15288056f3eb0071ac2a/projects/context/AGENTS.md#L11-L16)は、Skillの分類付き正本配置と重複管理の回避を定めています。正本から配布物を生成することで、Skill本文の一元管理とAgent固有形式への対応を両立します。編集用ツリー自体は公式指定ではなく、この方針と[Issue #63で承認された設計](https://github.com/yukihito-jokyu/context/issues/63#issuecomment-6104876148)に基づきます。
 
-今回決めたのは構造と導入方針です。個別Skillと制御条件、`bundle.yaml`のスキーマ、生成先、カタログの公開先、配布バージョン・更新手順の実装は今後の作業です。plugin本体や生成処理を作成した状態ではありません。
+このガイドで決めたのは共通の構造と導入方針です。`bundle.yaml`の汎用スキーマ、カタログの公開先、共通の配布バージョン・更新手順は今後の作業です。skill-refinerでは専用の`bundle.json`と生成処理を使い、正本からローカル配布物を作成できます。導入・実環境でのhooksの有効化・公開は別に確認します。
 
 Skillの追加・整備では[skill-authoring](skill-authoring.md)を使い、配布方針の案内だけを頼まれた場合は、plugin作成やインストールまで依頼されたと解釈しません。

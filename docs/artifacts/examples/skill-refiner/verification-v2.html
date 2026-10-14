@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>キャッシュ説明スキルの検証状況</title>
+<style>body{max-width:900px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui;color:#17232e}h1{font-size:1.7rem}h2{margin-top:2rem;font-size:1.2rem}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccd4dc;padding:10px;text-align:left}blockquote{border-left:4px solid #547ca0;margin:12px 0;padding:10px 20px;background:#f2f6fa}code{overflow-wrap:anywhere}a{color:#145c9f}</style>
+<h1>キャッシュ説明スキルの検証状況</h1>
+<p>入力の固定と確認画面の作成まで完了しました。現在は入力確認の承認待ちです。人間の回答を受け取っていないため、生成・評価・改善には進んでいません。</p>
+<p><a href="review.html">入力を確認するHTML</a> ／ <a href="state.json">実際の工程記録</a> ／ <a href="input.json">指定した入力</a></p>
+<h2>今回の入力</h2>
+<table><tr><th>対象</th><td>/private/tmp/issue74-forward-target（short-note）</td></tr><tr><th>題材</th><td>キャッシュが役立つ理由を短く説明する</td></tr><tr><th>作業先</th><td>/private/tmp/issue74-forward-v2</td></tr></table>
+<p>対象の指示は次の3文指定です。固定版を作業先へコピーし、ハッシュを記録しました。</p>
+<blockquote>指定された題材の説明を3文で書く。</blockquote>
+<p><a href="skill-snapshot/short-note/SKILL.md">固定版の実際の記述</a>（6行目）</p>
+<h2>実際に到達した工程</h2>
+<table><tr><th>工程</th><th>結果</th></tr><tr><td>スキル・題材の特定</td><td>完了。対象は1つ、題材は1つ、添付入力ファイルは0件。</td></tr><tr><td>初期化</td><td>完了。state.jsonのstageはinput_review、revisionは1、iterationは0。</td></tr><tr><td>回答の確認</td><td>pending_responsesは空。承認・指摘は未受領。</td></tr><tr><td>HTML確認画面</td><td>提供された代替操作 --static を使いreview.htmlを作成。</td></tr><tr><td>独立生成</td><td>未実施。チケット未発行、エージェント未起動、runsは空。</td></tr><tr><td>人間の指摘・基準承認・独立評価</td><td>未実施。評価基準・採点結果は未作成。</td></tr><tr><td>改善・再評価・反映</td><td>未実施。候補版は未作成。指定に従い正本・プロジェクトコードは変更していない。</td></tr></table>
+<h2>ここで止めた理由</h2>
+<p>skill-refinerは入力確認後に新規担当の生成を始めるよう指示しています。また、草稿や無回答を承認として扱うことを禁止しています。このため、今回の依頼をHTML承認に読み替えたり、承認ファイルを自作したりしませんでした。</p>
+<blockquote>入力のHTML確認後、題材ごとに ticket --role generate を作る。</blockquote>
+<blockquote>草稿・初期値・無回答を承認と扱わない。</blockquote>
+<p><a href="<user-home>/Documents/github_projects/context/utils/skills/authoring/skill-refiner/SKILL.md">適用したSKILL.md</a>「独立実行と評価」1項、「人間の回答を先に処理する」。制御スクリプトもinput_reviewで生成を許可していません。</p>
+<h2>担当として残った不明点</h2>
+<ul><li>人間が今回の入力内容を承認するかどうかは未確認です。</li><li>説明を読む人の前提知識と、求める「短さ」の具体的な範囲は未指定です。対象スキルから確認できる条件は3文だけです。</li><li>成果物に対する人間の指摘がないため、評価の項目・重み・最低点・合格条件は未確定です。</li><li>新規担当の生成・評価、hooksによる制止は今回の到達工程では未検証です。設定を変更していません。</li></ul>
+<h2>再開の手順</h2>
+<p>まずreview.htmlで入力内容を確認してください。静的HTMLの回答を人間が明示的に共有した場合に限り、その実際の発言を添えてimport-responseで読み込みます。回答をstatusで確認しackで対応を返した後、チケットのpromptだけを履歴なしの新規制作担当へ渡します。評価と改善は、その後に受け取る指摘とHTML承認に従います。正本へ反映しないという今回の制限は継続します。</p>
+<p>この報告は実行済み工程の記録です。承認、指摘、説明成果物、点数、改善結果を補作していません。</p>
+</html>
