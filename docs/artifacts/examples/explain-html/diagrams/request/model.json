@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "受付から結果の表示まで",
+    "locale": "ja",
+    "viewBox": [
+      560,
+      760
+    ],
+    "column_fit": "spread",
+    "visual_preset": "editorial",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "client",
+      "type": "frontend",
+      "label": "クライアント"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API"
+    }
+  ],
+  "messages": [
+    {
+      "id": "request-m1",
+      "from": "client",
+      "to": "api",
+      "y": 180,
+      "label": "① POST /jobs",
+      "variant": "emphasis"
+    },
+    {
+      "id": "request-m2",
+      "from": "api",
+      "to": "client",
+      "y": 245,
+      "label": "② 202 + job_17",
+      "variant": "return"
+    },
+    {
+      "id": "request-m3",
+      "from": "client",
+      "to": "api",
+      "y": 330,
+      "label": "③ 状態をGET",
+      "variant": "default"
+    },
+    {
+      "id": "request-m4",
+      "from": "api",
+      "to": "client",
+      "y": 395,
+      "label": "③ queued",
+      "variant": "return"
+    },
+    {
+      "id": "request-m5",
+      "from": "client",
+      "to": "api",
+      "y": 470,
+      "label": "③ 状態をGET",
+      "variant": "default"
+    },
+    {
+      "id": "request-m6",
+      "from": "api",
+      "to": "client",
+      "y": 535,
+      "label": "③ running",
+      "variant": "return"
+    },
+    {
+      "id": "request-m7",
+      "from": "client",
+      "to": "api",
+      "y": 610,
+      "label": "④ 状態をGET",
+      "variant": "default"
+    },
+    {
+      "id": "request-m8",
+      "from": "api",
+      "to": "client",
+      "y": 675,
+      "label": "④ completed + URL",
+      "variant": "return"
+    }
+  ]
+}

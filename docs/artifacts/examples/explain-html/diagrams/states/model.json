@@ -1,0 +1,111 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "job_17 の状態",
+    "locale": "ja",
+    "quality_profile": "showcase",
+    "visual_preset": "editorial",
+    "viewBox": [
+      420,
+      840
+    ]
+  },
+  "subject": {
+    "label": "架空例：job_17",
+    "beginning": "初回受付",
+    "ending": "成功または失敗",
+    "coverage": "complete"
+  },
+  "lanes": [
+    {
+      "id": "job",
+      "label": "保存状態"
+    }
+  ],
+  "states": [
+    {
+      "id": "queued",
+      "kind": "state",
+      "label": "① queued",
+      "lane": "job",
+      "row": 0,
+      "col": 0,
+      "width": 150,
+      "description": "サーバーは初回受付でjob_17をqueuedとして作成する。同じrequestKeyの再送は同じjobIdを返す。"
+    },
+    {
+      "id": "running",
+      "kind": "state",
+      "label": "② running",
+      "lane": "job",
+      "row": 1,
+      "col": 0,
+      "width": 150,
+      "description": "ワーカーがqueuedのジョブをrunningへ移す。GETはこの遷移を起こさない。"
+    },
+    {
+      "id": "completed",
+      "kind": "state",
+      "label": "③ completed",
+      "lane": "job",
+      "row": 2,
+      "col": 0,
+      "width": 150,
+      "description": "ワーカーは成功時にcompletedとresultUrlを保存する。この例の終端。"
+    },
+    {
+      "id": "failed",
+      "kind": "state",
+      "label": "④ failed",
+      "lane": "job",
+      "row": 3,
+      "col": 0,
+      "width": 150,
+      "description": "ワーカーは失敗時にfailedとreasonを保存する。この例の終端。"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "start-work",
+      "kind": "transition",
+      "from": "queued",
+      "to": "running",
+      "event": "処理開始",
+      "labelAt": [
+        225,
+        240
+      ]
+    },
+    {
+      "id": "succeed",
+      "kind": "transition",
+      "from": "running",
+      "to": "completed",
+      "condition": "成功",
+      "labelAt": [
+        180,
+        410
+      ]
+    },
+    {
+      "id": "fail",
+      "kind": "transition",
+      "from": "running",
+      "to": "failed",
+      "condition": "失敗",
+      "route": "right-channel",
+      "labelAt": [
+        225,
+        580
+      ]
+    }
+  ],
+  "initial": [
+    "queued"
+  ],
+  "terminal": [
+    "completed",
+    "failed"
+  ]
+}
