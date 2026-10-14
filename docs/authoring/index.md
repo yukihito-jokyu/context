@@ -10,6 +10,7 @@ title: スキル作成・管理
 | --- | --- |
 | [skill-authoring](skill-authoring.md) | 正本とカタログを整えて配置する |
 | [my-skill-creator](my-skill-creator.md) | スキルを作成・改善して検証する |
+| [skill-refiner](skill-refiner.md) | 1つのスキルを独立実行し、HTMLで指摘・評価・改善を進める |
 
 組み合わせて使う場合は[ワークフロー](../workflows.md)を参照してください。各ページには入力と成果物の例を掲載しています。
 

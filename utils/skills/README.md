@@ -58,3 +58,6 @@
 |---|---|
 | [skill-authoring](authoring/skill-authoring/SKILL.md) | Skill の追加、更新、配置・配布単位の判定とカタログ整備を行う。 |
 | [my-skill-creator](authoring/my-skill-creator/SKILL.md) | Skill の作成、改善、評価、最適化を行う。 |
+| [skill-refiner](authoring/skill-refiner/SKILL.md) | 1つのSkillを題材別の新規担当で検証し、人間の指摘から独立評価・改善をHTMLで進める。 |
+
+explain-htmlのArchify必須ゲートは[契約と検査範囲](discovery/explain-html/references/archify-gate.md)を参照してください。hooksを使うClaude Code向け[plugin定義](../plugins/explain-html/README.md)はビルド可能ですが未導入です。

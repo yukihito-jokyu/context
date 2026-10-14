@@ -1,0 +1,114 @@
+{
+  "diagram_id": "request",
+  "diagram_type": "sequence",
+  "status": "complete",
+  "visual_review": "failed",
+  "correction_rounds": 0,
+  "validation": {
+    "showcase": "9/9",
+    "errors": 0,
+    "warnings": 0,
+    "standard_svg_export": "canonical-svg-offline-adapter",
+    "browser_export_verified": false,
+    "pixel_equivalence_verified": false
+  },
+  "semantics": {
+    "passed": true,
+    "scope": "正常例の外部通信のみ",
+    "preserved_values": [
+      "img_42",
+      "req_42",
+      "job_17",
+      "queued",
+      "running",
+      "completed",
+      "resultUrl"
+    ],
+    "identifiers": [
+      "①",
+      "②",
+      "③",
+      "④"
+    ],
+    "omitted_internal_details": "ワーカーがrunning/completedとresultUrlを保存することは③④の横解説に保持。キューや保存実装は指定がないため描かない。",
+    "conditions": "202は完了ではない。途中状態をすべてGETで観測できる保証はない。"
+  },
+  "browser": {
+    "executed": true,
+    "engine": "Chrome via Playwright",
+    "viewports": [
+      {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "figureBottom": 1033.234375,
+        "requiredReadingBottom": 789.109375,
+        "layout": "665.219px 458.781px",
+        "imgWidth": 665.21875,
+        "stageSelection": true,
+        "pausedStatus": "② 受付を確認",
+        "reset": true,
+        "smallest_svg_text_px": 10.691015625,
+        "smallest_message_text_px": 10.691015625
+      },
+      {
+        "width": 390,
+        "scrollWidth": 390,
+        "figureBottom": 648.4375,
+        "requiredReadingBottom": 1426.6875,
+        "layout": "366px",
+        "imgWidth": 366,
+        "stageSelection": true,
+        "pausedStatus": "② 受付を確認",
+        "reset": true,
+        "smallest_svg_text_px": 5.882142857142857,
+        "smallest_message_text_px": 5.882142857142857
+      }
+    ],
+    "images_inspected": [
+      "panel-1440.png",
+      "panel-390.png"
+    ],
+    "pc_side_by_side": true,
+    "narrow_stacked": true,
+    "horizontal_overflow": false,
+    "failure": "390pxの最小図中文字は約5.88px、1440pxでは約10.69px。18px基準を満たさず、1440pxの図と読み方の底も画面外へ続く。標準SVG無改変と横解説19pxは保持。",
+    "panel_css_recheck": "2026-10-14: previewの図専用CSSを除去し、panel内スコープCSSだけで1440px/390pxを再実行。配置と文字の問題は同一。390画像を再目視。"
+  },
+  "viewer_visual_check": {
+    "command_executed": true,
+    "status": "fail",
+    "exit_code": 1,
+    "receipt": "figure.visual-check.json",
+    "reason": "全デスクトップ幅でViewerの縦オーバーフロー。"
+  },
+  "motion": {
+    "implementation": "同梱assets/flow.jsの無改変をpreviewで実行し、aside説明だけを段階強調。panel統合時は親のflow.jsが必要。",
+    "checked": [
+      "段階選択",
+      "再生開始",
+      "一時停止",
+      "全体表示へ戻る"
+    ],
+    "unchecked": [
+      "再生完了",
+      "タブ非表示",
+      "reduced-motion",
+      "印刷"
+    ],
+    "diagram_synchronized": false,
+    "edge_motion": false,
+    "reason": "標準SVG overlayは現ゲートで未対応。"
+  },
+  "alternative_attempt": {
+    "type": "workflow v2",
+    "result": "不採用",
+    "reason": "標準出力864幅、主ラベル11px、補足8px、凡例7.5px。狭幅ではsequenceより文字が小さくなる。",
+    "additional_check": "幅100のworkflow v2候補でlayout-jsonを取得。未使用colも含む6列 [98,218,338,458,578,698] が保持されviewBox784×676。250〜350幅に縮められず不採用。"
+  },
+  "not_verified": [
+    "最終記事への統合後の表示",
+    "ブラウザ標準PNGエクスポートとの画素同一性"
+  ],
+  "completion_scope": "制作束の受領状態。visual_review failedを解消したことは意味しない。",
+  "panel_styles": "panel.html内の.request-panelスコープstyleでPC横配置・700px以下縦配置・img width100% max-width:none・notes19pxを設定。preview専用CSSへ依存しない。"
+}

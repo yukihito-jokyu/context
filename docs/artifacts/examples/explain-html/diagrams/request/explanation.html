@@ -1,0 +1,5 @@
+<p data-diagram-intro>画像変換の受付と完了は、別の通信で確認します。架空APIの成功例で、クライアントが受付番号を受け取り、同じジョブの状態を取得する流れを追います。</p>
+<p data-diagram-reading>①から④へ上から下に読みます。③のqueuedとrunningは、この例で観測した未完了状態です。</p>
+<div data-diagram-explanation><p>① クライアントの入力はimageId: img_42とrequestKey: req_42です。② APIが返すjobId: job_17を、③と④のGET /jobs/job_17で使います。④ completedの応答にはresultUrlが入り、クライアントは結果を表示します。</p></div>
+<p data-diagram-conditions>202だけでは結果を表示できません。クライアントがすべての途中状態を観測できるとは限らず、GETの間隔や処理時間は架空仕様で指定されていません。この図は503やfailedを含まない正常例です。</p>
+<p>HTTPの202の意味は<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">RFC 9110 §15.3.3</a>、GETの意味は<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1">§9.3.1</a>で確認しました。requestKey、状態名、パスは説明用の架空仕様です。</p>

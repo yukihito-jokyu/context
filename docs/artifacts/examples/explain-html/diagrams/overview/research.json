@@ -1,0 +1,30 @@
+{
+  "sources": [
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+      "checked_at": "2026-10-14",
+      "finding": "HTTP 202は処理の受付を示すが処理は完了していない。非同期処理の後にHTTPが同じ応答のステータスコードを送り直す仕組みはない。応答表現は現状と状態監視先を示すことが望ましい。",
+      "location": "§15.3.3 / lines 3327–3331",
+      "scope": "HTTPの一般的意味のみ"
+    }
+  ],
+  "fictional_spec": {
+    "source": "../../input.md",
+    "claims": [
+      "POST /jobsへ画像IDとrequestKeyを送る",
+      "APIはjob_17を作成し初回202とjobIdを返す",
+      "同じrequestKeyは同じjobIdを返す",
+      "queuedからワーカーがrunningへ進める",
+      "成功ならcompletedとresultUrl、失敗ならfailedとreasonを保存",
+      "GET /jobs/job_17で状態を確認する"
+    ],
+    "not_inferred": [
+      "データベース製品",
+      "物理テーブル",
+      "キュー製品",
+      "resultUrlの画像取得方式",
+      "処理時間",
+      "ワーカー起動方式"
+    ]
+  }
+}
