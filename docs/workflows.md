@@ -53,4 +53,6 @@ flowchart TD
 
 [my-skill-creator](authoring/my-skill-creator.md)で目的・構成を合意し、候補版を作成して検証します。その後、[skill-authoring](authoring/skill-authoring.md)で共通／プロジェクト固有の配置先とカタログを整備します。
 
+既存スキル1つの成果物を見ながら改善する場合は、[skill-refiner](authoring/skill-refiner.md)へスキル名と題材を渡します。HTMLで指摘・評価基準・改善案を確認し、新規の制作担当と評価担当で改善前後を比べます。
+
 新しい内容の作成、既存内容の改善、配置だけの変更は依頼の範囲が異なります。何を変えてよいかを明示しておくと、内容の変更と配置の変更を別々に確認できます。
