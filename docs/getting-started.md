@@ -26,7 +26,7 @@ unknownsを使って、依頼一覧画面を作る前の不明点を整理して
 
 スキルを利用できる環境では、スキル名を指定します。まだ利用環境に配置されていない場合は、リポジトリ内の該当`SKILL.md`をエージェントに読み込ませ、その手順で進めるよう依頼します。画面やサービスごとに呼び出し方が異なるため、名前の記法より、指示書が実際に読まれることを確認してください。
 
-Codex・Claude Codeへ導入する方法は[Skillとpluginの配布・導入](authoring/plugin-distribution.md)で確認できます。単一Skillは`npx skills add`、複数Skillのパッケージやhooks付き配布はpluginを使う方針です。このリポジトリのplugin配布は準備前のため、ガイド内のpluginコマンドは公開後の導入方法を示しています。
+Codex・Claude Codeへ導入する方法は[Skillとpluginの配布・導入](authoring/plugin-distribution.md)で確認できます。単一Skillは`npx skills add`、複数Skillのパッケージやhooks付き配布はpluginを使う方針です。skill-refiner用のローカル配布物は生成できますが、配布カタログは未公開のため、ガイド内のmarketplaceコマンドは公開後の導入方法を示しています。
 
 ## 3. 成果物を確認する
 

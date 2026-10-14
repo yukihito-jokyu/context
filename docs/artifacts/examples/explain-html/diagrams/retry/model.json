@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "503からの再送と停止",
+    "locale": "ja",
+    "visual_preset": "editorial",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "client",
+      "label": "クライアント：送信と受付確認"
+    },
+    {
+      "id": "retry",
+      "label": "クライアント：503時の判断",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "send",
+      "lane": "client",
+      "col": 0,
+      "type": "frontend",
+      "label": "① POST送信",
+      "sublabel": "同じキー",
+      "width": 116
+    },
+    {
+      "id": "response",
+      "lane": "client",
+      "col": 2,
+      "type": "frontend",
+      "label": "② 応答判定",
+      "width": 116
+    },
+    {
+      "id": "accepted",
+      "lane": "client",
+      "col": 4,
+      "type": "frontend",
+      "label": "③ 受付確認",
+      "sublabel": "job_17",
+      "width": 116
+    },
+    {
+      "id": "budget",
+      "lane": "retry",
+      "col": 2,
+      "type": "frontend",
+      "label": "④ 回数判定",
+      "sublabel": "送信は最大3回",
+      "width": 140
+    },
+    {
+      "id": "again",
+      "lane": "retry",
+      "col": 0,
+      "type": "frontend",
+      "label": "⑤ 再送へ",
+      "sublabel": "キーを保持",
+      "width": 116
+    },
+    {
+      "id": "unknown",
+      "lane": "retry",
+      "col": 4,
+      "type": "frontend",
+      "label": "⑥ 結果不明",
+      "sublabel": "再送を停止",
+      "width": 116
+    }
+  ],
+  "edges": [
+    {
+      "from": "send",
+      "to": "response"
+    },
+    {
+      "from": "response",
+      "to": "accepted",
+      "label": "202"
+    },
+    {
+      "from": "response",
+      "to": "budget",
+      "label": "503"
+    },
+    {
+      "from": "budget",
+      "to": "again",
+      "label": "1・2回目",
+      "route": "straight",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "from": "again",
+      "to": "send",
+      "route": "drop",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "budget",
+      "to": "unknown",
+      "label": "3回目"
+    }
+  ],
+  "mainPath": [
+    "send",
+    "response",
+    "accepted"
+  ],
+  "cards": []
+}

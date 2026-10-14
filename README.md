@@ -25,7 +25,7 @@ CodexとClaude Codeを対象に、配布する内容に応じて導入方法を�
 
 ### 編集するディレクトリ構造
 
-Skillの正本は`utils/skills/`に置き、pluginの配布定義から参照します。plugin用にSkill本文を手動複製せず、配布時に正本から生成します。以下は合意済みの編集用構造です。`utils/plugins/`と`build-plugins.*`は今後作成する部分です。
+Skillの正本は`utils/skills/`に置き、pluginの配布定義から参照します。plugin用にSkill本文を手動複製せず、配布時に正本から生成します。以下は合意済みの編集用構造です。現在は[skill-refiner](docs/authoring/skill-refiner.md)と[explain-html](docs/discovery/explain-html.md)に、対応Agent向けのhooks設定と専用生成処理を用意しています。汎用の`build-plugins.*`と配布カタログは未実装です。
 
 ```text
 context/
@@ -178,6 +178,8 @@ npm run serve
 `docs/`内のMarkdownを編集します。カテゴリは`_category_.json`、入口と分類の並びは`sidebars.ts`で管理します。スキルの実行手順を変更する場合は、`utils/skills/`配下の正本を先に更新し、対応するガイドを合わせてください。
 
 成果物例は`docs/artifacts/examples/<skill-name>/`の実行入力、実出力、画像、検証記録を正として保存します。`execution.json`には利用した正本と成果物のSHA-256、到達点を残します。実例を更新したら`npm run examples:sync`で各ページの「成果物の例」を原本から反映します。`npm run examples:check`は原本・正本・表示の不一致を検出し、CIでも実行します。
+
+正本更新後も過去の実例を保持する場合は、実行時の本文を成果物内へ保管し、`skill_snapshot`と`skill_version_note`で実行版と現在版の違いを明記します。元のSkillハッシュを保持し、保管本文も原本一覧へ登録します。検査は保管版の改変・説明の欠落・実例外の保存先を拒否し、公開ガイドに旧手順の実例であることを表示します。
 
 成果物のMarkdownは文書探索と検索索引から除外し、原本として静的配信します。ダウンロードには`[原本](pathname:///examples/<skill-name>/<file>#download)`を使います。ファイルの存在と同一性は実行記録とサイトテストで確認し、ベースパスはリンク部品で付加します。画像は通常のMarkdown画像として参照できます。複数ファイルの画面は参照関係を保ったZIPで配ります。
 

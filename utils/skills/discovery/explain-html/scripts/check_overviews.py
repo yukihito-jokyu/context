@@ -11,7 +11,9 @@ class Check(HTMLParser):
   if 'data-page' in a:self.pages[a['id']]=[]
   if 'data-concern-overview' in a:
    pages=[x for x in self.stack if 'data-page' in x['attrs']];pid=pages[-1]['attrs']['id'] if pages else None
-   n.update({'overview':True,'page':pid,'text':'','figure':False,'image':False,'links':0})
+   page=pages[-1]['attrs'] if pages else {}
+   n.update({'overview':True,'page':pid,'text':'','figure':False,'image':False,'links':0,
+    'text_mode':page.get('data-overview-mode')=='text','reason':page.get('data-overview-reason','').strip()})
    self.maps.append(n)
    if pid in self.pages:self.pages[pid].append(n)
    if a['data-concern-overview']!=pid:self.issues.append('Overview does not match containing page: '+str(pid))
@@ -35,7 +37,9 @@ class Check(HTMLParser):
   for pid,maps in self.pages.items():
    if len(maps)!=1:self.issues.append(pid+': expected one whole overview, got '+str(len(maps)))
    for m in maps:
-    if not m['figure'] or not m['image'] or m['links']==0 or not m['text'].strip():self.issues.append(pid+': missing diagram, context, or detail entry')
+    if m['text_mode']:
+     if not m['reason'] or not m['text'].strip() or m['links']==0:self.issues.append(pid+': text overview requires reason, context and detail entry')
+    elif not m['figure'] or not m['image'] or m['links']==0 or not m['text'].strip():self.issues.append(pid+': missing diagram, context, or detail entry')
   return {'pages':len(self.pages),'whole_overviews':len(self.maps),'issues':self.issues,'pass':bool(self.pages) and not self.issues,'semantic_review':'Review whether each diagram covers the concern and represents true relations; not established by this presence check.'}
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('html');a=p.parse_args();c=Check();c.feed(Path(a.html).read_text());r=c.result();print(json.dumps(r,ensure_ascii=False,indent=2));raise SystemExit(0 if r['pass'] else 1)

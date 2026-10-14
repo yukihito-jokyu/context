@@ -1,4 +1,4 @@
-"""Export a delivered Archify 2.16 viewer through its unchanged SVG serializer.
+"""Export a delivered supported Archify viewer through its unchanged SVG serializer.
 This bounded offline DOM adapter is not a browser export or PNG screenshot.
 """
 from pathlib import Path
@@ -56,8 +56,13 @@ def main():
  parser.add_argument('--model',type=Path,required=True)
  args=parser.parse_args()
  package=json.loads((ROOT/'vendor/archify-jp/package.json').read_text())
- if package['version']!='2.16.0':
-  raise SystemExit('Offline adapter supports Archify 2.16.0 only. Use browser export after dependency update; do not simplify the output.')
+ supported_versions={'2.16.0'}
+ if package['version'] not in supported_versions:
+  raise SystemExit('Unsupported Archify version. Review serializer compatibility before exporting.')
+ template=(ROOT/'vendor/archify-jp/assets/template.html').read_text()
+ start=template.find('      function serializeSvg(scale, opts) {');end=template.find('      function download(blob, filename)',start)
+ if start<0 or end<start or hashlib.sha256(template[start:end].encode()).hexdigest()!='b2eeb9cc9aff53294f9fce5c37783dc401404f8acd003cbf8f2b036f951a9dfd':
+  raise SystemExit('Archify standard serializer changed. Review adapter compatibility; do not simplify output.')
  model=json.loads(args.model.read_text())
  if model.get('meta',{}).get('visual_preset')!='editorial':raise SystemExit('Set meta.visual_preset to editorial and deliver again')
  doc=args.viewer.read_text();match=re.search(r'<svg\b[\s\S]*?</svg>',doc)
