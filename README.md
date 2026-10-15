@@ -9,7 +9,7 @@ AI Agent 向けコンテキストを一元管理するリポジトリです。
 - `projects/context/AGENTS.md` がこのリポジトリ自身の `AGENTS.md` 正本です。
 - ルート `AGENTS.md` は現時点ではその配布結果を手動で反映したものです。
 - [`utils/skills/` 配下の各Skillの `SKILL.md`](utils/skills/README.md) が共通 Skill の正本です。
-- 共通 Skill は関心ごとで分類し、分類は最大2階層まで、直下の配置も許容します。配置と候補探索のルールは[スキル作成・管理](docs/authoring/index.md#配置候補探索のルール)を参照してください。
+- 共通 Skill は関心ごとで分類し、分類は最大2階層まで、直下の配置も許容します。配置と候補探索のルールは[スキル作成・管理](docs/skills/authoring/index.md#配置候補探索のルール)を参照してください。
 - `.codex/skills/<skill-name>/` は当面の互換配置です。分類階層を含めず、対応する正本のSkillディレクトリと同一内容を保つ前提です。
 - `README.md` はカタログまたは概要文書であり、Skill の正本ではありません。
 
@@ -25,7 +25,7 @@ CodexとClaude Codeを対象に、配布する内容に応じて導入方法を�
 
 ### 編集するディレクトリ構造
 
-Skillの正本は`utils/skills/`に置き、pluginの配布定義から参照します。plugin用にSkill本文を手動複製せず、配布時に正本から生成します。以下は合意済みの編集用構造です。現在は[skill-refiner](docs/authoring/skill-refiner.md)と[explain-html](docs/discovery/explain-html.md)に、対応Agent向けのhooks設定と専用生成処理を用意しています。汎用の`build-plugins.*`と配布カタログは未実装です。
+Skillの正本は`utils/skills/`に置き、pluginの配布定義から参照します。plugin用にSkill本文を手動複製せず、配布時に正本から生成します。以下は合意済みの編集用構造です。現在は[skill-refiner](docs/skills/authoring/skill-refiner.md)と[explain-html](docs/skills/discovery/explain-html.md)に、対応Agent向けのhooks設定と専用生成処理を用意しています。汎用の`build-plugins.*`と配布カタログは未実装です。
 
 ```text
 context/
@@ -151,7 +151,7 @@ Skill単体の導入からpluginへ切り替えるときは、同じSkillが両�
 
 ## スキル活用ガイド
 
-[`docs/`](docs/index.md)に、スキルの使い方・ワークフロー・成果物の例をまとめています。`utils/skills/`と同じ6分類を使い、スキルごとの正本へリンクします。公開先は[GitHub Pages](https://yukihito-jokyu.github.io/context/)です（初回デプロイ前は閲覧できません）。
+[`docs/`](docs/index.md)に、Skillとpluginの導入方法・使い方・成果物の例をまとめています。Skillのガイドは`docs/skills/`、pluginのガイドは`docs/plugins/`に分けています。公開先は[GitHub Pages](https://yukihito-jokyu.github.io/context/)です（初回デプロイ前は閲覧できません）。
 
 ### ローカルで確認する
 
@@ -175,13 +175,15 @@ npm run serve
 
 ### 更新と公開
 
-`docs/`内のMarkdownを編集します。カテゴリは`_category_.json`、入口と分類の並びは`sidebars.ts`で管理します。スキルの実行手順を変更する場合は、`utils/skills/`配下の正本を先に更新し、対応するガイドを合わせてください。
+ガイドは`docs/skills/`と`docs/plugins/`のMarkdownを編集します。カテゴリと並びは`_category_.json`とfront matterで指定し、`sidebars.ts`が自動生成します。Skillを変更する場合は`utils/skills/`配下の正本を更新し、対応するガイドと実行成果物も更新します。
 
-成果物例は`docs/artifacts/examples/<skill-name>/`の実行入力、実出力、画像、検証記録を正として保存します。`execution.json`には利用した正本と成果物のSHA-256、到達点を残します。実例を更新したら`npm run examples:sync`で各ページの「成果物の例」を原本から反映します。`npm run examples:check`は原本・正本・表示の不一致を検出し、CIでも実行します。
+Skillの成果物は`docs/artifacts/skills/<skill-name>/`、pluginの配布・検証例は`docs/artifacts/plugins/<plugin-name>/`に保存します。Skill本文または同梱資料を更新した場合は、該当成果物を全削除し、更新後のSkillをサブエージェントで実行して作り直します。具体的な手順と保存する実行記録は[skill-authoringの成果物再作成手順](utils/skills/authoring/skill-authoring/references/docs-examples.md)を参照してください。
 
-正本更新後も過去の実例を保持する場合は、実行時の本文を成果物内へ保管し、`skill_snapshot`と`skill_version_note`で実行版と現在版の違いを明記します。元のSkillハッシュを保持し、保管本文も原本一覧へ登録します。検査は保管版の改変・説明の欠落・実例外の保存先を拒否し、公開ガイドに旧手順の実例であることを表示します。
+`execution.json`は正本全体のファイル一覧・SHA-256、実行担当、到達点、全成果物の一覧・SHA-256を持ちます。`npm run examples:sync`でSkillページへ反映し、`npm run examples:check`で正本の変更、未登録・欠落した成果物、ガイドとの不一致を検出します。pluginでは同梱Skillの変更も検査します。旧版の本文保存で再作成を省略する例外はありません。
 
-成果物のMarkdownは文書探索と検索索引から除外し、原本として静的配信します。ダウンロードには`[原本](pathname:///examples/<skill-name>/<file>#download)`を使います。ファイルの存在と同一性は実行記録とサイトテストで確認し、ベースパスはリンク部品で付加します。画像は通常のMarkdown画像として参照できます。複数ファイルの画面は参照関係を保ったZIPで配ります。
+今回移行した既存例には、過去の同梱資料全体の実行版を特定できないものがあります。`source_baseline`に移行時点の変更検知用の一覧とその限界を記録し、再実行済みとは表示しません。移行後の正本変更は検査で拒否します。
+
+成果物は文書探索と検索索引から除外し、`staticDirectories`に`docs/artifacts`を指定して、原本を`/skills/`と`/plugins/`以下へ直接配信します。ダウンロードには`[原本](pathname:///skills/<skill-name>/<file>#download)`を使います。画像は通常のMarkdown画像として参照でき、複数ファイルの画面は参照関係を保ったZIPで配ります。
 
 `npm run serve`はHTML原本の拡張子を維持するプレビューを起動します。標準の`docusaurus serve`はHTML URLを整形するため、成果物原本の取得確認には使いません。
 
