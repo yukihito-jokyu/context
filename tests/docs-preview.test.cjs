@@ -25,14 +25,16 @@ test('プレビューが全ガイドと全原本をリダイレクトせず配�
     assert.equal(response.status, 200, doc.permalink);
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), fs.readFileSync(path.join('build', relative, 'index.html')));
   }
-  for (const skill of fs.readdirSync('docs/artifacts/examples')) {
-    const root = `docs/artifacts/examples/${skill}`;
-    const record = JSON.parse(fs.readFileSync(`${root}/execution.json`));
-    for (const artifact of [...record.artifacts, {file: 'execution.json'}]) {
-      const relative = `examples/${skill}/${artifact.file}`;
-      const response = await fetch(base + relative, {redirect: 'error'});
-      assert.equal(response.status, 200, relative);
-      assert.deepEqual(Buffer.from(await response.arrayBuffer()), fs.readFileSync(`${root}/${artifact.file}`), relative);
+  for (const kind of ['skills', 'plugins']) {
+    for (const name of fs.readdirSync(`docs/artifacts/${kind}`)) {
+      const root = `docs/artifacts/${kind}/${name}`;
+      const record = JSON.parse(fs.readFileSync(`${root}/execution.json`));
+      for (const artifact of [...record.artifacts, {file: 'execution.json'}]) {
+        const relative = `${kind}/${name}/${artifact.file}`;
+        const response = await fetch(base + relative, {redirect: 'error'});
+        assert.equal(response.status, 200, relative);
+        assert.deepEqual(Buffer.from(await response.arrayBuffer()), fs.readFileSync(`${root}/${artifact.file}`), relative);
+      }
     }
   }
 });
