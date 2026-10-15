@@ -10,6 +10,18 @@ sidebar_position: 2
 
 「何が分からないか」を整理したいなら[unknowns](discovery/unknowns.md)、既存実装を参考にしたいなら[reference](discovery/reference.md)、Issueを調査から進めて記録したいなら[issue-trace](documentation/issue-trace.md)を選びます。スキルをすべて順番に実行する必要はありません。
 
+## Skill単体を導入する
+
+Node.jsとnpmが使える環境で、導入先のプロジェクトから実行します。`<skill-name>` は一覧で選んだ名前に置き換えてください。
+
+```sh
+npx skills add https://github.com/yukihito-jokyu/context/tree/main/utils/skills --skill <skill-name> --agent codex claude-code
+```
+
+CodexとClaude Codeの両方を指定した例です。利用するAgentだけを指定できます。プロジェクト単位の導入が既定で、全プロジェクト共通にする場合は `--global` を付けます。導入後はAgentでSkillが選択できることを確認し、以下の依頼例へ進みます。オプションは[Skills CLIの公式README](https://github.com/vercel-labs/skills/blob/main/README.md)で確認できます。
+
+この方法で導入するのはSkillです。hooksも使う場合は[Pluginの導入を始める](../plugins/getting-started.md)を参照してください。
+
 ## 2. 対象と期待する結果を渡す
 
 次の例は、チーム向け依頼一覧画面の検討を始める依頼です。
@@ -26,7 +38,7 @@ unknownsを使って、依頼一覧画面を作る前の不明点を整理して
 
 スキルを利用できる環境では、スキル名を指定します。まだ利用環境に配置されていない場合は、リポジトリ内の該当`SKILL.md`をエージェントに読み込ませ、その手順で進めるよう依頼します。画面やサービスごとに呼び出し方が異なるため、名前の記法より、指示書が実際に読まれることを確認してください。
 
-Codex・Claude Codeへ導入する方法は[Skillとpluginの配布・導入](authoring/plugin-distribution.md)で確認できます。単一Skillは`npx skills add`、複数Skillのパッケージやhooks付き配布はpluginを使う方針です。skill-refiner用のローカル配布物は生成できますが、配布カタログは未公開のため、ガイド内のmarketplaceコマンドは公開後の導入方法を示しています。
+Codex・Claude Codeへ導入する方法は[Skillとpluginの配布・導入](../plugins/distribution.md)で確認できます。単一Skillは`npx skills add`、複数Skillのパッケージやhooks付き配布はpluginを使う方針です。skill-refiner用のローカル配布物は生成できますが、配布カタログは未公開のため、ガイド内のmarketplaceコマンドは公開後の導入方法を示しています。
 
 ## 3. 成果物を確認する
 
