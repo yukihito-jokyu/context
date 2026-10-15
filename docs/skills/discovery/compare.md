@@ -29,6 +29,10 @@ compareを使って、WebSocketとServer-Sent Eventsを比較するHTMLを作っ
 
 **到達点：比較HTML生成・構造確認・実表示確認済み。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -37,18 +41,18 @@ contextのsearchDocumentsへタイトルだけを渡す場合と実本文も渡�
 
 ### 実際の画面
 
-![生成した比較HTMLの全体像ページ](/examples/compare/preview.jpg)
+![生成した比較HTMLの全体像ページ](/skills/compare/preview.jpg)
 
-[画像を原寸で開く](pathname:///examples/compare/preview.jpg)
+[画像を原寸で開く](pathname:///skills/compare/preview.jpg)
 
 ### 成果物を取得する
 
-- [生成した原本（HTML）](pathname:///examples/compare/output.html#download)
-- [成果物・入力の一式（ZIP）](pathname:///examples/compare/bundle.zip#download)
-- [実際の検索結果（JSON）](pathname:///examples/compare/search-results.json#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/compare/output.html)
-- [実行入力の原本](pathname:///examples/compare/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/compare/execution.json#download)
+- [生成した原本（HTML）](pathname:///skills/compare/output.html#download)
+- [成果物・入力の一式（ZIP）](pathname:///skills/compare/bundle.zip#download)
+- [実際の検索結果（JSON）](pathname:///skills/compare/search-results.json#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/compare/output.html)
+- [実行入力の原本](pathname:///skills/compare/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/compare/execution.json#download)
 
 ### 確認した結果
 
