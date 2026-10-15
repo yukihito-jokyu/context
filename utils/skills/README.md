@@ -47,7 +47,7 @@
 | Skill | 概要 |
 |---|---|
 | [agent-trace](documentation/agent-trace/SKILL.md) | エージェントの作業証跡を Markdown に記録し、最短経路の簡易手順書を作成する。 |
-| [issue-trace](documentation/issue-trace/SKILL.md) | Issueの調査・計画・実装や実行・人間のフィードバックへの対応を進め、各段階の結果と判断理由を記録する。計画と修正は承認後にまとめ、記録だけの依頼にも対応する。 |
+| [issue-trace](documentation/issue-trace/SKILL.md) | Issueの調査・計画・実装・人間の確認を進め、重要な判断と理由、結果、残課題を簡潔に記録する。計画と修正は承認後にまとめ、最新状態と終了理由を残す。記録だけの依頼にも対応する。 |
 | [notes](documentation/notes/SKILL.md) | 実装中の判断、逸脱、エッジケースを記録する。 |
 | [pitch](documentation/pitch/SKILL.md) | 実装の背景、変更、判断理由、レビュー観点を説明資料にまとめる。 |
 | [explanation-design](documentation/explanation-design/SKILL.md) | 読者が理解に到達できる説明構成を設計する。 |
