@@ -7,7 +7,7 @@ sidebar_label: Skillとpluginの配布・導入
 
 このリポジトリでは、CodexとClaude Codeを対象に、Skill単体の配布とplugin配布を使い分けます。Skillは作業手順と同梱資料、pluginは複数Skillやhooksを一つの導入単位にまとめるパッケージです。
 
-[Issue #63の合意](https://github.com/yukihito-jokyu/context/issues/63#issuecomment-6104876148)に基づく管理方針を説明します。現在は[skill-refiner](skill-refiner.md)と[explain-html](../discovery/explain-html.md)について、正本を参照する配布定義、Agent別のhooks設定、専用生成処理を作成しています。汎用の配布定義・生成処理と公開カタログは未作成です。以下のツリーは共通の配置方針、marketplaceコマンドは公開後の例です。
+[Issue #63の合意](https://github.com/yukihito-jokyu/context/issues/63#issuecomment-6104876148)に基づく管理方針を説明します。現在は[skill-refiner](skill-refiner.md)と[explain-html](../skills/discovery/explain-html.md)について、正本を参照する配布定義、Agent別のhooks設定、専用生成処理を作成しています。汎用の配布定義・生成処理と公開カタログは未作成です。以下のツリーは共通の配置方針、marketplaceコマンドは公開後の例です。
 
 ## 配布単位を選ぶ
 
@@ -48,9 +48,9 @@ context/
     └── build-plugins.*
 ```
 
-`utils/skills/`は既存の正本です。分類は[配置・候補探索のルール](index.md#配置候補探索のルール)に従い、Skillのscripts・referencesなどは必要な場合に置きます。
+`utils/skills/`は既存の正本です。分類は[配置・候補探索のルール](../skills/authoring/index.md#配置候補探索のルール)に従い、Skillのscripts・referencesなどは必要な場合に置きます。
 
-`utils/plugins/<plugin-name>/`はpluginごとの配布定義と固有処理の正本を置く予定の場所です。`bundle.yaml`は参照するSkill等を指定するリポジトリ独自の定義で、Agentの標準仕様ではありません。具体的なキーやスキーマは未決定です。
+`utils/plugins/<plugin-name>/`はpluginごとの配布定義と固有処理の正本です。`bundle.yaml`は参照するSkill等を指定するリポジトリ独自の定義で、Agentの標準仕様ではありません。具体的なキーやスキーマは未決定です。
 
 Agentごとの`plugin.json`と`hooks.json`は配布物を組み立てるための設定です。plugin固有のhooks処理はそのpluginの`scripts/`に置き、複数pluginで再利用する必要が出た時点で共通処理の切り出しを検討します。現段階では独立した`utils/hooks/`を設けません。
 
@@ -144,4 +144,4 @@ plugin内のSkillとhooksはpluginを単位に更新・有効化・削除しま�
 
 このガイドで決めたのは共通の構造と導入方針です。`bundle.yaml`の汎用スキーマ、カタログの公開先、共通の配布バージョン・更新手順は今後の作業です。skill-refinerでは専用の`bundle.json`と生成処理を使い、正本からローカル配布物を作成できます。導入・実環境でのhooksの有効化・公開は別に確認します。
 
-Skillの追加・整備では[skill-authoring](skill-authoring.md)を使い、配布方針の案内だけを頼まれた場合は、plugin作成やインストールまで依頼されたと解釈しません。
+Skillの追加・整備では[skill-authoring](../skills/authoring/skill-authoring.md)を使い、配布方針の案内だけを頼まれた場合は、plugin作成やインストールまで依頼されたと解釈しません。
