@@ -35,7 +35,7 @@ flowchart TD
 
 [grill-issue](planning/grill-issue.md)で要件と判断を詰め、[to-issues](planning/to-issues.md)で利用者が確認できる単位へ分割します。「DBだけ」「画面だけ」ではなく、「依頼を登録し一覧で確認できる」のように一連の動作を完結させます。
 
-分割案を承認した後にIssueを作成し、各Issueは[issue-trace](documentation/issue-trace.md)で調査・計画・実装・確認の記録を残しながら進められます。計画の承認時には、依存関係と各Issueの完了条件を確認します。
+分割案を承認した後にIssueを作成し、各Issueは[issue-trace](documentation/issue-trace.md)で調査・計画・実装・確認を進め、重要な発見・判断・結果を簡潔に記録できます。計画の承認時には、依存関係と各Issueの完了条件を確認し、終了時には到達点と残課題の扱いを残します。
 
 ## レビューして変更を共有する
 
