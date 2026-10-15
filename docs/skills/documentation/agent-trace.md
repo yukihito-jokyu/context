@@ -29,6 +29,10 @@ agent-traceを使って、依頼一覧の表示不具合調査を開始時点か
 
 **到達点：検証ログ・手順書作成／サイトの人間確認は未完了。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -60,10 +64,10 @@ agent-traceを使って、依頼一覧の表示不具合調査を開始時点か
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/agent-trace/output.md#download)
-- [実ログから整理した手順書](pathname:///examples/agent-trace/guide.md#download)
-- [実行入力の原本](pathname:///examples/agent-trace/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/agent-trace/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/agent-trace/output.md#download)
+- [実ログから整理した手順書](pathname:///skills/agent-trace/guide.md#download)
+- [実行入力の原本](pathname:///skills/agent-trace/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/agent-trace/execution.json#download)
 
 ### 確認した結果
 
