@@ -14,7 +14,7 @@ title: スキル作成・管理
 
 組み合わせて使う場合は[ワークフロー](../workflows.md)を参照してください。各ページには入力と成果物の例を掲載しています。
 
-Skill単体の導入と、複数Skill・hooksをまとめるplugin配布の使い分けは[Skillとpluginの配布・導入](plugin-distribution.md)を参照してください。Codex・Claude Code向けの編集用構造と配布物の関係も説明しています。
+Skill単体の導入と、複数Skill・hooksをまとめるplugin配布の使い分けは[Skillとpluginの配布・導入](../../plugins/distribution.md)を参照してください。Codex・Claude Code向けの編集用構造と配布物の関係も説明しています。
 
 ## 配置・候補探索のルール
 
@@ -34,4 +34,4 @@ utils/skills/<category>/<subcategory>/<skill-name>/SKILL.md
 
 リポジトリの配布用CLIでSkill単体をコピーする構想では、分類階層を含めず、選んだスキルのディレクトリ全体を`.claude/skills/<skill-name>/`と`.codex/skills/<skill-name>/`へ同じ内容でコピーします。このCLIは未実装です。`npx skills add`による導入先はSkills CLIが管理するため、このコピー先と同一とは限りません。
 
-plugin配布ではSkill正本を参照して配布物へコピーし、Agentごとのplugin管理から導入します。編集用のplugin定義と、利用者に届けるpluginの構造は[配布・導入ガイド](plugin-distribution.md)で区別しています。
+plugin配布ではSkill正本を参照して配布物へコピーし、Agentごとのplugin管理から導入します。編集用のplugin定義と、利用者に届けるpluginの構造は[配布・導入ガイド](../../plugins/distribution.md)で区別しています。
