@@ -3,8 +3,8 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Context — スキル活用ガイド',
-  tagline: '目的からスキルを選び、成果物を確かめる',
+  title: 'Context — Skill・plugin活用ガイド',
+  tagline: 'Skill・pluginを導入し、成果物を確かめる',
   url: 'https://yukihito-jokyu.github.io',
   baseUrl: '/context/',
   organizationName: 'yukihito-jokyu',
@@ -38,7 +38,7 @@ const config: Config = {
     navbar: {
       title: 'Context',
       items: [
-        {type: 'docSidebar', sidebarId: 'guideSidebar', label: 'スキル活用ガイド', position: 'left'},
+        {type: 'docSidebar', sidebarId: 'guideSidebar', label: '活用ガイド', position: 'left'},
         {href: 'https://github.com/yukihito-jokyu/context', label: 'GitHub', position: 'right'},
       ],
     },

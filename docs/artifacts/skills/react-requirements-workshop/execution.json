@@ -1,0 +1,727 @@
+{
+  "schema_version": 1,
+  "skill": "react-requirements-workshop",
+  "skill_source": "utils/skills/design/react-requirements-workshop/SKILL.md",
+  "skill_sha256": "e55ce0650ae8cb40ae6f20a0066a370b0479ea1e89b83717d7609662c616f261",
+  "recorded_at": "2026-10-11T11:09:02.367311+09:00",
+  "executor": "Codex（この会話のエージェント）",
+  "input": "input.md",
+  "summary": "Design System部品を導入して生成したReact画面案です。表示一式とソースを別々のZIPで取得できます。",
+  "stage": "初回画面案生成・検証済み／内容の承認待ち",
+  "checks": [
+    "公開Registryのdetail-page.jsonは404。提供元のローカル正本コピーをshadcn buildし、同じRegistryからview/addで導入。",
+    "validate_snapshot、typecheck、lint、freeze_snapshotのproduction build成功。",
+    "ブラウザ検証は初回に必要なChromium版を起動できず失敗。対応する設定で既存Chromeを指定して再実行。",
+    "1568×784、1280×800、1024×768、800×900の注釈、モード分離、画面枠の検証がすべてvalid。"
+  ],
+  "downloads": [
+    {
+      "file": "requirements.md",
+      "label": "生成した要件（Markdown）"
+    },
+    {
+      "file": "input.json",
+      "label": "生成に使った入力（JSON）"
+    },
+    {
+      "file": "rendered.zip",
+      "label": "生成した画面一式（ZIP）"
+    },
+    {
+      "file": "source.zip",
+      "label": "画面ソース一式（ZIP）"
+    },
+    {
+      "file": "browser-validation.json",
+      "label": "ブラウザ検証結果（環境パスを伏せたJSON）"
+    }
+  ],
+  "preview": "preview.png",
+  "preview_alt": "生成したReact画面案を1568×784で検証中の画面",
+  "preview_note": "表示ZIPは展開してローカルサーバーで開けます。ソースZIPには導入済み部品を含み、npm ci → npm run devで確認できます。公開Registryの404に対してローカル正本を使った経緯は検証記録に残しています。",
+  "artifacts": [
+    {
+      "file": "browser-validation.json",
+      "sha256": "5d6ae2c701cfc9399dcaa2390ee76adbff614443948fe94a43022dfbf1e1fa3c",
+      "bytes": 4419
+    },
+    {
+      "file": "input.json",
+      "sha256": "030ac6c1e1f409201816e1c217f9ac24d525c9d096af0eac8654540bfc55ea68",
+      "bytes": 4158
+    },
+    {
+      "file": "input.md",
+      "sha256": "66fea55b8ef699b76633972f60eb4dfb6fe5490c0881cb2d89c28542b09fde56",
+      "bytes": 251
+    },
+    {
+      "file": "preview.png",
+      "sha256": "7998586c548120bf44efdbf4d25345641811a86ad965f9c5a52b1c965f8f503c",
+      "bytes": 228916
+    },
+    {
+      "file": "rendered.zip",
+      "sha256": "18e691e41f2acd2051ecb34068fc98512e2b7545dce6c712a17d08132c083207",
+      "bytes": 97628
+    },
+    {
+      "file": "requirements.md",
+      "sha256": "ca9b7f28815f446407b9d4a2e76533deefc2806261c786a42d9e867864688002",
+      "bytes": 502
+    },
+    {
+      "file": "snapshot.tsx",
+      "sha256": "ae3e43a54af191e5b8e1437c4f508c634aecac0873aa514e89811801b3b314fb",
+      "bytes": 1333
+    },
+    {
+      "file": "source.zip",
+      "sha256": "ce362ebd82da86fe5c0fef59146f70544a6c43e0e590ecc50b9149c204bc6f90",
+      "bytes": 63894
+    }
+  ],
+  "source_files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "e55ce0650ae8cb40ae6f20a0066a370b0479ea1e89b83717d7609662c616f261"
+    },
+    {
+      "file": "assets/app/components.json",
+      "sha256": "7c51064deff6f7c90eb029ddc2e81b10e234bb0d1ca51d9fceb82bda5c3371be"
+    },
+    {
+      "file": "assets/app/eslint.config.js",
+      "sha256": "696e14e43ef5b5e30e573443547027633a3dc90e629ab276d08b1b8051a86d4d"
+    },
+    {
+      "file": "assets/app/index.html",
+      "sha256": "9cb452fe56e8e771422f85fc4cab39cbb690ec66237813281df98e995877f91d"
+    },
+    {
+      "file": "assets/app/package.json",
+      "sha256": "19173605df8223e74be520a0b8593528a3f248f5eac1c421cb2d80e97277d794"
+    },
+    {
+      "file": "assets/app/src/index.css",
+      "sha256": "42070e0b45bb201b2b838a52aaaa6e965f964e0b542d97f1fe517fe59c4b75a8"
+    },
+    {
+      "file": "assets/app/src/main.tsx",
+      "sha256": "e6cca68f37e9dd1747978c3cf2ec39b5834518598e539f94cd457c2c12c4b5d3"
+    },
+    {
+      "file": "assets/app/src/review/Review.tsx",
+      "sha256": "4b9a6e454fc5db86734cd7fdfc37ec0ace61a0ef2029270ad9fbfb12671424ba"
+    },
+    {
+      "file": "assets/app/src/review/review.css",
+      "sha256": "e046932d7cee0acb5e181b7df791c0ced0a5a4ddd97c73dc0638d1f61fecbcaf"
+    },
+    {
+      "file": "assets/app/tsconfig.json",
+      "sha256": "8eef3d4a29f36570e7568db45a9b7618db086f82aeff2f003a68f71838d4371e"
+    },
+    {
+      "file": "assets/app/vite.config.ts",
+      "sha256": "5f0b576075734910599db501864ebcf3a1cf0f86b88a9d2d85f02a2f6197b9b3"
+    },
+    {
+      "file": "references/input-schema.md",
+      "sha256": "c1f744bca9c6921b5d6dc57e7a6fc2144b35729beceae3350c5c99f7b222979f"
+    },
+    {
+      "file": "references/review-guidelines.md",
+      "sha256": "8bf2ddc853cb8c60f824a29c0fe091d2eee1dfabc8faec7ff1497e9cebee1204"
+    },
+    {
+      "file": "scripts/archive_approved.py",
+      "sha256": "94b1873c4e181ed3b7b70f239db954d7720a536ad99dada6e10ad7b49e989935"
+    },
+    {
+      "file": "scripts/common.py",
+      "sha256": "171f89b823b59d8c6bb8603ef786608c4e4abe5e2c0341ef330c316147374d30"
+    },
+    {
+      "file": "scripts/feedback.py",
+      "sha256": "69ad64f624d70c67bc58800119f98f6e53f48afa1fc6b2484df4c0fab3f76f02"
+    },
+    {
+      "file": "scripts/freeze_snapshot.py",
+      "sha256": "3023eec81fa474da2ba4f05e99c9c0114a4b0e3d480ba5a3b1c3d63e39bd2517"
+    },
+    {
+      "file": "scripts/init_workspace.py",
+      "sha256": "f370ba06d3b2d38548974a7cd2b9aeb17358a786755017ef07a3f2a6fa6d0ba7"
+    },
+    {
+      "file": "scripts/serve_review.py",
+      "sha256": "ae99d202ffea1fffca2eacc22776a435511de378649e7a0bf60f926b90f767c7"
+    },
+    {
+      "file": "scripts/serve_snapshot.py",
+      "sha256": "071dca9082ceca5d4bcbaee31b4f45cf1435bb54eb219bff68a4a660fdea2c6c"
+    },
+    {
+      "file": "scripts/validate_approved.py",
+      "sha256": "d784fce64b7544ea1b54581cfd5ed03d9025647a94bebdb10539b06204c673c9"
+    },
+    {
+      "file": "scripts/validate_snapshot.py",
+      "sha256": "194b620676ee7e420fe04dbbe3d3b8905f2ea61d749befcacc89ec94e9161580"
+    },
+    {
+      "file": "scripts/verify_rendered_annotations.py",
+      "sha256": "1bed8418ba89b6e961ffcd820b6bf129aec59d0b0370717c68450394a8c9d88c"
+    },
+    {
+      "file": "tests/test_workflow.py",
+      "sha256": "dc1b24d0d646ef898d5d12b2d57ad59d38bd195aaa1352c39d2ea4bb1012005b"
+    },
+    {
+      "file": "vendor/design-system/SKILL.md",
+      "sha256": "215f9d6162ec9f27661e8bb8fdfc162e91bc0c8cf10141bfb73e513952ffe7eb"
+    },
+    {
+      "file": "vendor/design-system/references/component-selection.md",
+      "sha256": "7233394c3312fbe6b5c240b7bed469ae4f1e42f0a4e407427409e33b8611f0df"
+    },
+    {
+      "file": "vendor/design-system/references/examples/character/assistant-card.md",
+      "sha256": "5f138ad0b11b973fa5ea5da6080e7736d96518cad3c60c29c7b718addb840258"
+    },
+    {
+      "file": "vendor/design-system/references/examples/character/character-icons.md",
+      "sha256": "d68f5c513b28a01d3692ebb294e7bd5e26952085350b5739925d2e942b600cb2"
+    },
+    {
+      "file": "vendor/design-system/references/examples/character/empty-state.md",
+      "sha256": "7ad5b2db940f256f930338c40dc18ce6e4215003e20d88558289fa5c9b87eefa"
+    },
+    {
+      "file": "vendor/design-system/references/examples/character/friendly-tooltip.md",
+      "sha256": "b405ef46343dbbfbe21b70309a94c49f06df06dc49ed21ec9e092246cc7b52df"
+    },
+    {
+      "file": "vendor/design-system/references/examples/character/message-bubble.md",
+      "sha256": "5e2d74035679695524ac8a2d9b4bc9edc1e51c90744da53b8d7c25b9e1b0fcaa"
+    },
+    {
+      "file": "vendor/design-system/references/examples/character/soft-notice.md",
+      "sha256": "492796e9c057f5ae845690a1bf1630a5e0dc8f4a25524127de8b6cad08c46644"
+    },
+    {
+      "file": "vendor/design-system/references/examples/character/suggestion-chip.md",
+      "sha256": "2d44ead33539b31f8b6b6d47bf13f11cafbf668236b5190dd2f10035c7310d14"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-document-feature-icon.md",
+      "sha256": "13da84fd80ec236d911270f6417e2e3275a1c75e0714e29b67d07c314c7fa4c0"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-history-feature-icon.md",
+      "sha256": "dcbdbf0e0b3dd817b1d0ee4bf813d338a4ef3935f091a7993c0c6137d8dd3377"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-idea-feature-icon.md",
+      "sha256": "c705fe3b284034c62710e676c15bae774ac5ac09e319a4357c97b3871ccd8eac"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-saved-status-icon.md",
+      "sha256": "048041f382a788bf42b254a9b61ed76eaa6399b485a0dc3d9046b663cac3fc4c"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-success-character-icon.md",
+      "sha256": "326635fa226c0dd6f99fc440ac558f9754f8b69abb7e68f524a6b7d4bd719cb8"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-thinking-character-icon.md",
+      "sha256": "ca19255f9ddd0755e4b0be580ad150f9b2167dbb3b3e4a41ec1d88dd22b2a9cd"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-thinking-status-icon.md",
+      "sha256": "562a63191de72dba469df522a0935ca088291b1a61d7e48a1240b3a1ec91c3db"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/assembly-welcome-character-icon.md",
+      "sha256": "47e234c1f7abd34070a577989fe4cce9c8a33bd8d9472e152c3d6146d6886829"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-document-feature-icon.md",
+      "sha256": "9b2a137b8f9ddd77a1012e48959ef55224e2435241b15adc48dbb52a1af36a15"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-history-feature-icon.md",
+      "sha256": "c57be35f22826219e030966272b755e878a73a58ef46fe2bd419241ab8dcbd5f"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-idea-feature-icon.md",
+      "sha256": "116dbceb8b53f5297718fadecdd58afec40d43163df8f9ca1ad3ae77f5077395"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-saved-status-icon.md",
+      "sha256": "e37d2d7477f368efe9b16e458e876b22042932341d14ca1d9f14b607746c4420"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-success-character-icon.md",
+      "sha256": "935edcb1a1bc901ba29753547f5bab416363aa0a7861fc29a36ac9f341065b59"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-thinking-character-icon.md",
+      "sha256": "2a3d7cac5a525cb8d45dbc8c46329c32e78bbd4f0fcb9f9d843bf8bcbeccc9bd"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-thinking-status-icon.md",
+      "sha256": "77d41622c2562d9d6a340ed28dc65f788b1e6a201b8dbac7a893476dbcda71af"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/fold-welcome-character-icon.md",
+      "sha256": "3a423fb38de2301aa95f69321754fddd5aa4894166e634a6e1cad6df0fc70529"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-document-feature-icon.md",
+      "sha256": "6caae256ebbad2d1e75cb654c53036a8e8ec67afcbcb232e143bc434bc43dec6"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-history-feature-icon.md",
+      "sha256": "ba89a3663e595ef481357cbe4f95ef4519b2199339dc2a4997b465ba54bd6af8"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-idea-feature-icon.md",
+      "sha256": "fcbb165f727520d1c1ba987f518846bfc3a101dbd8db337bccf1e6a88008149e"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-saved-status-icon.md",
+      "sha256": "45bd163e8cf466bb2134d695bf78f4c654fa2409d2c1851239384fe390e30e49"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-success-character-icon.md",
+      "sha256": "3645a465ce68f1ce5fa9aa97bfde53e36153b7b51e3140d05f2ca98eca5772f8"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-thinking-character-icon.md",
+      "sha256": "bdf65e48e890a719e380800b417d499f5af25f5ba8ff65edddd3a7e21b5bec42"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-thinking-status-icon.md",
+      "sha256": "c64fcd2d88403a291c5d1729f76e12255b30e0071bc6450f6ba0a1ff3c2613b0"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/impress-welcome-character-icon.md",
+      "sha256": "163d8a15fa574c256173524cbff7d4f4ac913f43f2bb8ed889d917b7fcb22d9a"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-document-feature-icon.md",
+      "sha256": "6cd0f1d5fc017156581ff678b0bd365fe3a95bb3b1d96be601678fe6a60fefff"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-history-feature-icon.md",
+      "sha256": "c5d4c18764a10854898fdbb975484a9087d2ebf7b5f27c118937d0b7b29a866b"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-idea-feature-icon.md",
+      "sha256": "34700f123dbbf3cf71ba103508cb65e7dce04bdff1f8a613962213175be561a5"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-saved-status-icon.md",
+      "sha256": "28fd4af7023fa5eaae3ff48c2d3beced4a0cae773e2d4b20c55438261b2d8ed6"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-success-character-icon.md",
+      "sha256": "6b8eabdf38ef538c620a08a278d6130075d8652337c37313118eabbbcf875ad4"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-thinking-character-icon.md",
+      "sha256": "fc3d8db33f1ea6cae3e81133e9d56a737cd046cc63486516780ad0a8bc409738"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-thinking-status-icon.md",
+      "sha256": "930eaa3484cc0d35968b90756fb905172ca31edde596f1121efca42e61638da3"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/ink-welcome-character-icon.md",
+      "sha256": "c35d88077ddefa237f2f849df9853f7c4fb720165e25a6f571d1c949ff762483"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-document-feature-icon.md",
+      "sha256": "9a8b73f950ebbc576f5c3762f516fadb2e2745e3934507d3ac50f6de4835cf6c"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-history-feature-icon.md",
+      "sha256": "6c510c2a7d5639db429cb08bec9def4ef92275a596b191843b6d08b304741cd8"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-idea-feature-icon.md",
+      "sha256": "5d3f66d431fe38ec535aeb33602243885674d88aa2ef1e0f493d7f142d5c4509"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-saved-status-icon.md",
+      "sha256": "d17aa4d0ae6ede6629995ba985fb3b85174043a2c7ca27f86b564a29e4993437"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-success-character-icon.md",
+      "sha256": "17aa694c95b01dcd2d535c24cc945a29866e9cce8e6a2c1727967c1c6dcffc1f"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-thinking-character-icon.md",
+      "sha256": "169180cf1d4fdda4c889d5aad013ab1217259d50b4cafbeb9768c7f4285ebfd5"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-thinking-status-icon.md",
+      "sha256": "92e14decd69015290c7c975e65669a0d2d18c2b45e9bcf9fadd6bd479a46b4a4"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/monolith-welcome-character-icon.md",
+      "sha256": "29b1c726f3a68fe47a253cef6f6ccc0ff4b7e71e2def6f24a599a986916a43ff"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-document-feature-icon.md",
+      "sha256": "0c4d94539615363595b6e06f71fa22c9c160bd99df9e7f56a079e33fcf2e371a"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-history-feature-icon.md",
+      "sha256": "3e9ee32e4caa4ec72dae47f53f4875bcd12d6f2989ca532555a59a554819e69e"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-idea-feature-icon.md",
+      "sha256": "178e8dbf81014eb42919b047e45f8a8b5a04bc6d1d4cb038ac3b4f531177227d"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-saved-status-icon.md",
+      "sha256": "5e270e62a3bd8c1df5ccd7107928d15cd36c86417163ddb67495dc012aec2b3c"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-success-character-icon.md",
+      "sha256": "d4aefdc9aad32e188fcf6dddd23d4906564b9f9a0adac1bb9828fb74f75e6ac8"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-thinking-character-icon.md",
+      "sha256": "009d565245cf2e56265e5afb3b096a6a3e1be5a7771762a46aff38bf0a705850"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-thinking-status-icon.md",
+      "sha256": "284f7c9d22511db54d72420bcb92896be7342f32ecbb269fbc56c9c066429a3c"
+    },
+    {
+      "file": "vendor/design-system/references/examples/icons/orbit-welcome-character-icon.md",
+      "sha256": "dff08c7c9c6d77b4d723c4c089f968f0e956edf430287ce132f197196a26dd41"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/app-shell.md",
+      "sha256": "f9fea7a94f2230d828be861732b937f5c7b542b80b345970849fb34c9885c499"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/assistant-panel.md",
+      "sha256": "fcdcf9789cf6ab8c7bf5e346ad5033513486e52654227df20e1b463dc8568133"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/collection-page.md",
+      "sha256": "4010558087133da44c5d4479b26efdfd579a2e8a55bd0cd3e32d0e368fc0cff4"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/dashboard-page.md",
+      "sha256": "e965e05a204a967735f99412e7cada5a77adade7bd1d7a94e161f8e216ea3543"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/data-table.md",
+      "sha256": "47efc298e21bae9959b2a914d93b0cbfeb6284974f8c54a65a1771520bdce926"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/detail-page.md",
+      "sha256": "00a946c46a089efa03c05df930beac962fbf4f46d9a8978588a1a2c1034fa4c0"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/edit-page.md",
+      "sha256": "cc842975325f450c730ed94ee1deace5812bdae796713a955178680dd530565f"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/error-state.md",
+      "sha256": "888c99353139a5fd8f5c0f56fd1cb384d8e1ad483bc57d9e08754dc36e3d7ceb"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/form-field.md",
+      "sha256": "08e8bdce60ca052c3afc3911ce1877ed8132c43b9d5c23758f9891226ee85d22"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/loading-state.md",
+      "sha256": "47cb968808cb6142235d2a058c102e2844baab691cc0ccbf08029ace16b7b601"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/page-header.md",
+      "sha256": "b9ace1b0e224ded3ee3dbf33891b70ad3c62e926fb787cd059d733d6f17f6e66"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/result-page.md",
+      "sha256": "3916d0c851f5de852c76a8e81a3cea93b89b4dc34213663e9e72b7a75d31be71"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/search-field.md",
+      "sha256": "0fffb8aa8c14c0cf96571825d5293e1687f518ca5a7c8a8079d4ef93c87fe2be"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/settings-page.md",
+      "sha256": "ed79b2f18915b03cf91b528e98531af5ed29ba7060b24174b51b9835318ea5ed"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/settings-section.md",
+      "sha256": "fe555c202084d8515997ddd22972ed5b18c5556f847ca42c462c4f367fbec40f"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/step-form.md",
+      "sha256": "1299dfe8888aefd3c9d94fd4caef0fa91a1f27ec1ffe9412046a0cc15967ce81"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/table-toolbar.md",
+      "sha256": "c688b9ae0e1e20809316718152dd6dec17f3eb890a33293797ef51ae2935ae7a"
+    },
+    {
+      "file": "vendor/design-system/references/examples/patterns/task-workflow-page.md",
+      "sha256": "cdec59490cbe312523b31f0486d57eede4aa166b741fdbd098240a4d128c9021"
+    },
+    {
+      "file": "vendor/design-system/references/examples/theme-provider.md",
+      "sha256": "69dae1e83afbe798240da468e1b9e2962559ba67b77cbce3b184777e7ce12b39"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/accordion.md",
+      "sha256": "21fb3fc33aca7399d731771fc6d6aad9fc4aba434d8bf84e903331e266d95f83"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/alert-dialog.md",
+      "sha256": "836b8b29825e56ae8618fcb00509b76caf94e5d7e0da9473e964977a8565c7e2"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/alert.md",
+      "sha256": "ea18b33d62df3cac574a1d5d159c91f399f0994a5e75135033f7fac60cdf77c4"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/avatar.md",
+      "sha256": "577f41c4aa3bb8c2546bd78c7fc6a00aaeada6629bc1fbaa0ecc4556f6766c78"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/badge.md",
+      "sha256": "1296925dbc6a536c4ba6a9e803e8bd559beb34f2fdccb7fb9c18cb11f1840788"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/breadcrumb.md",
+      "sha256": "a11c0feca6b61760754edecaecc865e2436796e097a30458ff82b216f82e1630"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/button.md",
+      "sha256": "c7181050f6fd0c103f388a77b1f3b05e0b1035e22f9505b2b217f57d7af50661"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/calendar.md",
+      "sha256": "8fc13a2e870ba02276bb3518dc6f86853ea38e0896c8eed5fe436c55a05a87d5"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/card.md",
+      "sha256": "fadcff9aa3534c6bca430ce2b931ea11c1cf46985f9c8f4f87a4500af650d8ce"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/checkbox.md",
+      "sha256": "dd2d13e0c8d3cd228fe83d8febdf120782ff765a95dcaf17c386ce9ce29223a2"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/collapsible.md",
+      "sha256": "f6f09df9b2e5f1ae3f4485fc0c8e5732bbc6603353a8a22b96c19ecbfe20f15b"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/combobox.md",
+      "sha256": "b690ef15e690d9d11435ee8e694b00fbb8dbef7617a39ef6cf4d3dacba254414"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/date-picker.md",
+      "sha256": "a71adff9c7e134bb44f0777132c8d460b63d51fe9eabdf5fa56591fd63a352ca"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/dialog.md",
+      "sha256": "15ab959e9ac28056d274d03e219857fd605a03e97d662dfd8f2a2651aa152dd8"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/dropdown-menu.md",
+      "sha256": "82ff113bf60eea7df2184a235a00174eac01a10be8a044e5ef58130d8f32118f"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/file-upload.md",
+      "sha256": "06298d6f44a33fbb093a216591d1923af31d663fcac697d1108ed6a8f06faaa7"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/icon-button.md",
+      "sha256": "f77145cab9e0e55da575c2ab3cb4435d58e74fc5ac1927df922397535d7dc117"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/input-group.md",
+      "sha256": "60593f0beab598ae958e0242c02cf334aadbd8d3ab0244500bd6e96d5ae445b1"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/input.md",
+      "sha256": "1986924184b1fd588fdcaab7c2884d5a081873011a4ae5ad6d26e0d56c432471"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/label.md",
+      "sha256": "39b0f43f19a702b4b61c36d16975f000961762bf44f9c62b14b1ad38b389bd39"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/navigation-menu.md",
+      "sha256": "4765290906a89a4ecd212f5b56026b8affde9cd21f9b3349c5f878fcb15447cf"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/pagination.md",
+      "sha256": "5a7df5c498d7d8bfac4c781af2540159c94ee7deb8b5619761a66a60746dc681"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/popover.md",
+      "sha256": "c9f0d190e3a00a024362ce80446479b84324b2f9028993ebf64e071f149e5ca2"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/progress.md",
+      "sha256": "c3321a3e656a05805680669c9071cc8af80c14498bd7d0dcb28381c89a96531f"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/radio-group.md",
+      "sha256": "14e8265001cf90ba0c5ffd57c103b95234c630e0271b51e1b3a2577397297f49"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/select.md",
+      "sha256": "c06d1da6465cf955b0ca9b401b1657084d79e3e252ea669f15e6b924ca190997"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/separator.md",
+      "sha256": "3330cb76fcb9db9132f857bccc29b58f9dc792d812b54abc44155f9a78427d8b"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/sheet.md",
+      "sha256": "645cf1013cfe207987c52d56d91dcc15da83036270775ff3896e287cbecba0eb"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/sidebar.md",
+      "sha256": "930f5e820843125006755e48b7e0fd4334f1d79ead8271af28fd19bae2ed82c1"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/skeleton.md",
+      "sha256": "109466569c31c81210e9f2a9f16c2496e8a3e1798c81dcc27ff761ea844eeed0"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/slider.md",
+      "sha256": "efa169a01710046a3f88d78665c1b3d56aa189d33a4c93e304fb1ca8aabdb1fb"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/sonner.md",
+      "sha256": "85139e4f0e5614a224884cfb5591a9c9ed0b44f1006091c0b7455f8a14451fc4"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/spinner.md",
+      "sha256": "bb1645216afbd9982600e3f084de80d8dee91474439601918bb10362bcb10a33"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/switch.md",
+      "sha256": "866c3e651718365b9ea1d3a3cd5e465b0d2671c5a7939c5a266089ea8f4ad50e"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/table.md",
+      "sha256": "142c23be258950b112e9e8c6da4ef9648e81b4a6a93d3bb6ef48794816d7b139"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/tabs.md",
+      "sha256": "299a4dcee06bac9bf3b16b4e8a54258d3c6d9a486dcac4795b0a533fe584940c"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/textarea.md",
+      "sha256": "66efc019fc8aea098b00e20001a0ab217a93059d587dd82da447906efbb17f87"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/toast.md",
+      "sha256": "fb91be3fdaae8c787fdfc515cd60f30b671e09dbc1d4caadb8ad2083f8713e51"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/toggle-group.md",
+      "sha256": "9c94837eb33a56aafda989a069256758b7429e713aa58d10372101fc6acebff3"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/toggle.md",
+      "sha256": "b2a7d87cc8582b79333f24e4b1c1a0280f3885782391ba6bdb7e5d051f205c08"
+    },
+    {
+      "file": "vendor/design-system/references/examples/ui/tooltip.md",
+      "sha256": "459f44b9d68e9122440bad0a0042fd18ca5f4c86f84eefdad0a4597dc2a4837c"
+    },
+    {
+      "file": "vendor/design-system/references/interactions/async-feedback.md",
+      "sha256": "27556e8314d4d760852ac9aae35f65329e15eea47434d33e4b70505252a2b686"
+    },
+    {
+      "file": "vendor/design-system/references/interactions/bulk-action.md",
+      "sha256": "de14b6ee6bb5f80f19cc4c25863bc96d6223dd3520b50294206a34836c436c1a"
+    },
+    {
+      "file": "vendor/design-system/references/interactions/destructive-action.md",
+      "sha256": "510124c4107335a2c90e8d92b5484aa900ed8b84c82491091fd1a2b40076b9a1"
+    },
+    {
+      "file": "vendor/design-system/references/interactions/empty-state.md",
+      "sha256": "5046e123d80099760449802889393b80dc1e4b9b4763ef05122bb6b634f1dc3d"
+    },
+    {
+      "file": "vendor/design-system/references/interactions/filtering.md",
+      "sha256": "3c82634a14121f90175f0f6397810532ffc454499abf01b281882214801ed96d"
+    },
+    {
+      "file": "vendor/design-system/references/interactions/navigation.md",
+      "sha256": "10102cd4669246a65d6990ae96b2999202462c0b04ae4e9fa27ae59563431bf4"
+    },
+    {
+      "file": "vendor/design-system/references/interactions/validation-recovery.md",
+      "sha256": "fbc9cb9aaa35d1f05295c45d3dbb4dc1023cc607c8d9fb0b560a3a2b63f6fddc"
+    },
+    {
+      "file": "vendor/design-system/references/pattern-selection.md",
+      "sha256": "11fadc699a6a88460a9dff8362c6513925cc5d469dfcdba4a5cb4b0b8cb309e5"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/collection-page.md",
+      "sha256": "f5c4b7bf983ef2b52e2ef67e4f124e228d79c6c3eb826efdcaababeb70e0fedc"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/dashboard-page.md",
+      "sha256": "e8fbd23a291cb082aa852b484976acd35302bdc36f58d81c10c62eaf1ed4e9fb"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/detail-page.md",
+      "sha256": "a2658548cd448654f099b13892d2d38edbfa70b013ecb7df2a874dd23cd3666a"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/edit-page.md",
+      "sha256": "0cdb055f1cd2ee42158825ae3c9c5c85eae21489e2f600d5f07c32df81e390ac"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/result-page.md",
+      "sha256": "af36babbab00618638b28dc1f208a3a99b4fa0f8a21e96cd2161c591343e372b"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/settings-page.md",
+      "sha256": "a10a0e3c22d0555e1ef6a33b3010bcd341fa3fd8f5e5872cba624b54c75c1530"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/step-form.md",
+      "sha256": "b8009aef722a7bf531bbe5cea67fa63b4d4cacdcd0016454ee1a51d8ac289c36"
+    },
+    {
+      "file": "vendor/design-system/references/patterns/task-workflow-page.md",
+      "sha256": "3be8a1efe3278d5b22f1faabc775e0f17d2817df05fd0702b5e51db450b254ff"
+    },
+    {
+      "file": "vendor/design-system/references/tokens.md",
+      "sha256": "9e7e06eede9290201ecf1b441a776854548797c5060b22dc0d1c45eaf88e1099"
+    },
+    {
+      "file": "vendor/design-system/references/validation.md",
+      "sha256": "807b97c238d43cdeac4c2ea8ddee52088f1b88a476919082b6559c76cb39f812"
+    }
+  ],
+  "source_sha256": "0ab52e9d27aac4d810e7c66ae7ec0ecb10a74d15b5e8315280583ce2c15a7bcb",
+  "source_baseline": {
+    "reason": "既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。",
+    "recorded_at": "2026-10-15T14:50:33.952Z"
+  }
+}

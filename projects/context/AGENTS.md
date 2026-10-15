@@ -14,6 +14,7 @@
 - プロジェクト固有 Skill は `projects/<repo-name>/skills/` に配置します。
 - Skill を中心に運用し、具体的な手順や実行フローは Skill または CLI に分離します。
 - 同じ情報を複数箇所で管理しないことを原則とします。
+- 共通Skillの追加・更新では、該当する公開成果物を全削除し、更新後のSkillをサブエージェントで実行して再作成します。本文だけでなく同梱資料の更新も対象です。具体的な手順は `utils/skills/authoring/skill-authoring/SKILL.md` に従います。
 
 ## 現時点で確定している構造
 
@@ -23,7 +24,8 @@
 - `cli/`: Go 製 `context` CLI を実装する予定のディレクトリ
 - `utils/README.md`: 共通 Skill カタログ
 - `utils/skills/` 配下の各Skillの `SKILL.md`: 共通 Skill の正本
-- `docs/`: スキルの使い方、ワークフロー、成果物例を掲載する利用者向けガイド
+- `docs/skills/`・`docs/plugins/`: Skillとpluginの導入方法・使い方を掲載する利用者向けガイド
+- `docs/artifacts/skills/`・`docs/artifacts/plugins/`: ガイドから参照する実行成果物・配布物と検証記録
 - `projects/context/README.md`: このプロジェクトの概要
 - `projects/context/skills/`: context 管理用 Skill の将来配置先
 

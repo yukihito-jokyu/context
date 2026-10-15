@@ -30,10 +30,10 @@ description: Skill の追加・更新・配置判定を行い、対応する REA
 - Skill 本体の修正が明示的に許可され、`SKILL.md` が存在する場合はそれを正とし、差分最小で更新する。
 - `SKILL.md` が存在しない場合のみ新規作成する。
 - 配置先は再利用性で判定する。
-- 複数プロジェクトで再利用する Skill は `utils/skills/` 配下に関心ごとで分類して配置する。分類は最大2階層とし、直下配置も許容する。配置・候補名の一意性・同梱Skillのルールは Context Repository の `docs/authoring/index.md`「配置・候補探索のルール」に従い、現在の分類と所属Skillは `utils/skills/README.md` を参照する。
+- 複数プロジェクトで再利用する Skill は `utils/skills/` 配下に関心ごとで分類して配置する。分類は最大2階層とし、直下配置も許容する。配置・候補名の一意性・同梱Skillのルールは Context Repository の `docs/skills/authoring/index.md`「配置・候補探索のルール」に従い、現在の分類と所属Skillは `utils/skills/README.md` を参照する。
 - 特定プロジェクト専用の Skill は `projects/<repo-name>/skills/<skill-name>/SKILL.md` に配置する。
 - 配置を決める際は配布単位も判定する。単一Skillでhooksの同梱が不要ならSkill単体として扱い、複数Skillをまとめる場合またはhooksを同梱する場合はplugin配布を選ぶ。すべてのSkillをpluginへ移行しない。
-- Context Repository のplugin管理では、Skill正本を移動・手動複製せず、`utils/plugins/<plugin-name>/` の配布定義から参照する。plugin固有のhooks処理はそのpluginに所有させる。Codex・Claude Code向けの編集用構造、生成する配布物、導入方法は `docs/authoring/plugin-distribution.md` を参照する。これは合意済みの管理方針であり、生成処理やpluginが実装・公開済みであることを意味しない。
+- Context Repository のplugin管理では、Skill正本を移動・手動複製せず、`utils/plugins/<plugin-name>/` の配布定義から参照する。plugin固有のhooks処理はそのpluginに所有させる。Codex・Claude Code向けの編集用構造、生成する配布物、導入方法は `docs/plugins/distribution.md` を参照する。これは合意済みの管理方針であり、生成処理やpluginが実装・公開済みであることを意味しない。
 - 配布方針の記録・案内を依頼された場合は、その範囲に限定する。plugin作成・生成処理の実装・公開・インストールを、情報整理の依頼から推測して実行しない。
 - ユーザーがスキル本文として使えるプロンプトを持っている場合は、その内容を優先して Skill 化する。
 - ユーザーがプロンプトを持っていない場合は、`grill-skill` を使ってよいか一度だけ承認を取る。
@@ -42,6 +42,7 @@ description: Skill の追加・更新・配置判定を行い、対応する REA
 - プロジェクト固有 Skill を追加または更新する場合は、対応する `projects/<repo-name>/skills/README.md` を整備する。
 - ルート `README.md` にはプロジェクト説明と、対応する GitHub URL を記載する。
 - ルート `README.md` には Skill 一覧を持ち込みすぎず、プロジェクトの入口として整理する。
+- Context Repository で共通Skillを新規追加・更新した場合は、[成果物の再作成手順](references/docs-examples.md)を必ず実行する。対象には本文・scripts・references・assets・同梱Skillを含む。該当する公開成果物を全削除し、更新後のSkillをサブエージェントで実行して作り直す。旧版保存やハッシュの書き換えだけで更新を済ませない。
 
 ## Task
 
@@ -54,7 +55,8 @@ description: Skill の追加・更新・配置判定を行い、対応する REA
 7. Skill 本体の修正が明示的に許可されている場合だけ、既存があれば更新し、なければ新規作成する。配置・移動だけの場合は内容を変更しない。
 8. 対応するスキル群の `README.md` を要約カタログとして更新する。
 9. プロジェクト固有 Skill を追加または整備した場合は、必要に応じてルート `README.md` にプロジェクト説明と GitHub URL を追加または更新する。
-10. 作成・更新内容と判断根拠を簡潔に報告する。
+10. Context Repository の共通Skillを新規追加・更新した場合は、成果物をサブエージェントで再作成し、ガイドと実行記録を検証する。
+11. 作成・更新内容と判断根拠を簡潔に報告する。
 
 ## Output
 
