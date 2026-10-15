@@ -40,18 +40,18 @@ PRには差分やCIの詳細を置き、Issueには結果の要約と参照先�
 
 ## 成果物の例
 
-この作業で実際にIssueへ投稿した計画コメントの原文です。新しい投稿を例のために捏造していません。
+現行のissue-traceを使い、実際のIssue #79と計画コメントを読み取り、対応範囲と未確認事項を整理しました。
 
-**到達点：計画コメント投稿済み・修正結果の確認前。**
-
-**実行版：旧版のissue-traceによる実投稿です。現行版は情報の選択と簡潔な記録に対応しており、この出力は現行版の実行例ではありません。**
-
-[実行時のSkill本文](pathname:///examples/issue-trace/run-SKILL.md#download)
+**到達点：調査済み・GitHub投稿と実装確認は未実施。**
 
 ### 実行した依頼
 
 ```text
-Issue 57を進め、合意された実成果物展示への変更計画と理由をIssueへ記録してください。未承認の修正結果は投稿しないでください。
+# 入力
+
+issue-traceを使い、yukihito-jokyu/contextのIssue #79の要件と承認済み計画を調査して、対応範囲と確認点を整理してください。
+
+調査のみです。Issueの本文・コメントと関連PRを読み、適用されるAGENTS.md、記録フォーマットを確認してください。GitHubへの投稿・本文更新・クローズ・実装・テスト実行は行わないでください。検証済みかどうかは今回実際に確認した範囲で区別してください。
 ```
 
 ### 実出力の抜粋
@@ -59,34 +59,36 @@ Issue 57を進め、合意された実成果物展示への変更計画と理由
 以下は保存した原本の冒頭です。全文は原本から取得できます。
 
 ````markdown
-## 計画記録：実際のスキル実行成果物を閲覧・取得できる例へ変更する
+Issue #79の対応範囲は、Skillとpluginのガイド・成果物を分け、Skill更新後の成果物をサブエージェントで作り直す運用を整えることです。今回は承認済み計画の調査まで進めました。
 
-### 要点
-[直前の実装記録](https://github.com/yukihito-jokyu/context/issues/57#issuecomment-6100169462)の成果物例は説明用の創作であり、利用者が実行結果を確認する用途には不十分だった。ユーザーの変更指示に従い、スキルの正本を実際に使用して得た成果物と入力・検証記録を保存し、画像と原本ダウンロードで展示する。
+[Issue本文](https://github.com/yukihito-jokyu/context/issues/79)は空ですが、[計画コメント](https://github.com/yukihito-jokyu/context/issues/79#issuecomment-6194863317)に要件と完了条件があります。
 
-### 対応する要件と完了条件
-文章は実際の出力と原本、HTMLなど画面のある成果物は実ブラウザのスクリーンショットと元ファイル、複数ファイルはZIPで提供する。実行した入力、利用したSKILL.md、到達点、検証結果を確認できること。作成物の一覧・ダウンロード・画像参照が/context/配下で動き、ビルドと検証が成功すること。
+> スキルとpluginの利用ガイド・導入案内・成果物を分ける。
 
-### 進め方と判断理由
-公開可能な題材として、このサイトの成果物閲覧と既存検索処理などを使う。正本や本作業を壊さないよう、サンプル実行は専用の作業領域へ分離する。実行時の入力と出力をそのまま保存し、表示のために出力を作り直さない。ファイル形式に合う画像・原本・ZIPをMarkdownから利用できる共通機構を作る。承認を要するスキルは実際に到達した段階を記載し、存在しない承認・投稿・検証を補作しない。
+計画が定める対応は次の5点です。
 
-### 作業順序と検証方法
-1. 各スキルの実行条件と保存物を確認する。
-2. 正本に従って文章・図・画面・レビュー等の実際のサンプルを生成する。
-3. 検証と画面撮影を行い、入力・出力・確認記録を保持する。
-4. 公開機構と各ページを更新し、原本取得、画像、ベースパス、リンク、型、ビルドを検証する。
+1. ガイドを `docs/skills/`・`docs/plugins/`、成果物を `docs/artifacts/skills/`・`docs/artifacts/plugins/` に分ける。
+2. 既存の6分類・26スキルを移し、リンク・検索・ダウンロード・検証処理を合わせる。
+3. Skill単体とpluginの導入案内を整え、skill-refiner・explain-htmlの用途、対応Agent、生成・導入、hooks、公開状況を説明する。
+4. 本文と同梱資料の変更、古い成果物、記録外ファイルを検出し、更新時は該当成果物を全削除して再実行する。
+5. 型検査・検索テスト・成果物検査・本番ビルド・サイトテストで確認する。
+
+同じコメントの承認根拠には、会話内のユーザー発言「計画をissueに登録して対応してください」が記録されています。計画を再承認する段階ではありません。この調査依頼自体には投稿許可がないため、追加コメントは投稿していません。
+
 ````
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/issue-trace/output.md#download)
-- [実行入力の原本](pathname:///examples/issue-trace/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/issue-trace/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/issue-trace/output.md#download)
+- [読み取ったIssueと計画コメント（JSON）](pathname:///skills/issue-trace/issue-source.json#download)
+- [読み取り結果と確認範囲（text）](pathname:///skills/issue-trace/verification.txt#download)
+- [実行入力の原本](pathname:///skills/issue-trace/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/issue-trace/execution.json#download)
 
 ### 確認した結果
 
-- 既存の実投稿をgh issue viewで再取得し、原文とURLを保存。
-- 投稿先: https://github.com/yukihito-jokyu/context/issues/57#issuecomment-6104295065
+- 実際のIssue本文・コメント・関連PR検索を読み取りで取得。
+- 投稿許可と計画承認を区別し、この実行例では追加投稿しない。
 
 ## 確認するポイント
 
