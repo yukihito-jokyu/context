@@ -29,6 +29,10 @@ commitを使って、今回の担当者フィルターの変更をコミット�
 
 **到達点：サンプル内のコミット作成済み・push未実施。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -54,12 +58,12 @@ commitを使って、今回の担当者フィルターの変更をコミット�
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/commit/output.md#download)
-- [成果物・入力の一式（ZIP）](pathname:///examples/commit/bundle.zip#download)
-- [実コミットの差分（patch）](pathname:///examples/commit/changes.patch#download)
-- [実コミット一覧（text）](pathname:///examples/commit/commits.txt#download)
-- [実行入力の原本](pathname:///examples/commit/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/commit/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/commit/output.md#download)
+- [成果物・入力の一式（ZIP）](pathname:///skills/commit/bundle.zip#download)
+- [実コミットの差分（patch）](pathname:///skills/commit/changes.patch#download)
+- [実コミット一覧（text）](pathname:///skills/commit/commits.txt#download)
+- [実行入力の原本](pathname:///skills/commit/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/commit/execution.json#download)
 
 ### 確認した結果
 
