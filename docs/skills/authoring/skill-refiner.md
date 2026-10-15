@@ -33,6 +33,10 @@ skill-refinerでexplain-htmlを検証・改善したいです。
 
 **到達点：入力確認HTML作成・人間の確認待ち。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -41,13 +45,13 @@ skill-refinerでexplain-htmlを検証・改善したいです。
 
 ### 成果物を取得する
 
-- [実際の入力確認HTML](pathname:///examples/skill-refiner/review.html#download)
-- [独立担当の検証報告HTML](pathname:///examples/skill-refiner/verification-report.html#download)
-- [修正後の入力確認HTML](pathname:///examples/skill-refiner/review-v2.html#download)
-- [修正後の独立検証報告HTML](pathname:///examples/skill-refiner/verification-v2.html#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/skill-refiner/review.html)
-- [実行入力の原本](pathname:///examples/skill-refiner/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/skill-refiner/execution.json#download)
+- [実際の入力確認HTML](pathname:///skills/skill-refiner/review.html#download)
+- [独立担当の検証報告HTML](pathname:///skills/skill-refiner/verification-report.html#download)
+- [修正後の入力確認HTML](pathname:///skills/skill-refiner/review-v2.html#download)
+- [修正後の独立検証報告HTML](pathname:///skills/skill-refiner/verification-v2.html#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/skill-refiner/review.html)
+- [実行入力の原本](pathname:///skills/skill-refiner/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/skill-refiner/execution.json#download)
 
 ### 確認した結果
 
@@ -72,7 +76,7 @@ python3 utils/plugins/skill-refiner/build.py --agent codex --output /tmp/skill-r
 python3 utils/plugins/skill-refiner/build.py --agent claude-code --output /tmp/skill-refiner-claude
 ```
 
-生成物は正本から作り、手動編集しません。公開・導入・ユーザー設定へのhooks登録は別の操作です。[Skillとpluginの配布・導入](plugin-distribution.md)も参照してください。
+生成物は正本から作り、手動編集しません。公開・導入・ユーザー設定へのhooks登録は別の操作です。[Skillとpluginの配布・導入](../../plugins/distribution.md)も参照してください。
 
 ## 正本を読む
 
