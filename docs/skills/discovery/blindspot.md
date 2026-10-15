@@ -29,6 +29,10 @@ blindspotを使って、依頼一覧に担当者フィルターを追加する�
 
 **到達点：盲点と確認事項の整理。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -60,9 +64,9 @@ blindspotを使って、依頼一覧に担当者フィルターを追加する�
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/blindspot/output.md#download)
-- [実行入力の原本](pathname:///examples/blindspot/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/blindspot/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/blindspot/output.md#download)
+- [実行入力の原本](pathname:///skills/blindspot/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/blindspot/execution.json#download)
 
 ### 確認した結果
 
