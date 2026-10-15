@@ -29,6 +29,10 @@ unknownsの実Markdownをそのまま表示し、同じ原本を取得する画�
 
 **到達点：初回プロトタイプ生成・人間の確認待ち。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -37,9 +41,9 @@ unknownsの実出力を、実行した依頼、抜粋、全文展開、原本ダ
 
 ### 実際の画面
 
-![unknownsの実出力を表示した初回プロトタイプ](/examples/prototype/preview.jpg)
+![unknownsの実出力を表示した初回プロトタイプ](/skills/prototype/preview.jpg)
 
-[画像を原寸で開く](pathname:///examples/prototype/preview.jpg)
+[画像を原寸で開く](pathname:///skills/prototype/preview.jpg)
 
 ### 実出力の抜粋
 
@@ -66,11 +70,11 @@ unknownsを実際に適用して作成したoutput.mdを使用する。バック
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/prototype/output.md#download)
-- [生成した原本（HTML）](pathname:///examples/prototype/output.html#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/prototype/output.html)
-- [実行入力の原本](pathname:///examples/prototype/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/prototype/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/prototype/output.md#download)
+- [生成した原本（HTML）](pathname:///skills/prototype/output.html#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/prototype/output.html)
+- [実行入力の原本](pathname:///skills/prototype/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/prototype/execution.json#download)
 
 ### 確認した結果
 
