@@ -30,6 +30,10 @@ llm-evalを使って、問い合わせ分類の評価を作ってください。
 
 **到達点：評価前の確認用HTML生成済み・基準合意とモデル評価は未実施。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -44,19 +48,19 @@ python3 scripts/build_review.py --data assets/example-review-data.json --output 
 
 ### 実際の画面
 
-![問い合わせ分類の2ケースと採点基準を表示した確認用HTML](/examples/llm-eval/preview.jpg)
+![問い合わせ分類の2ケースと採点基準を表示した確認用HTML](/skills/llm-eval/preview.jpg)
 
-[画像を原寸で開く](pathname:///examples/llm-eval/preview.jpg)
+[画像を原寸で開く](pathname:///skills/llm-eval/preview.jpg)
 
 同梱の架空ケースを使った評価前の画面です。実モデルの評価結果ではありません。
 
 ### 成果物を取得する
 
-- [確認用HTMLの原本](pathname:///examples/llm-eval/review.html#download)
-- [使用した入力データ（JSON）](pathname:///examples/llm-eval/review-data.json#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/llm-eval/review.html)
-- [実行入力の原本](pathname:///examples/llm-eval/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/llm-eval/execution.json#download)
+- [確認用HTMLの原本](pathname:///skills/llm-eval/review.html#download)
+- [使用した入力データ（JSON）](pathname:///skills/llm-eval/review-data.json#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/llm-eval/review.html)
+- [実行入力の原本](pathname:///skills/llm-eval/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/llm-eval/execution.json#download)
 
 ### 確認した結果
 
