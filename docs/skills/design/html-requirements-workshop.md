@@ -29,6 +29,10 @@ html-requirements-workshopを使って、依頼一覧のHTMLモックを作り�
 
 **到達点：run-001生成・検証済み／内容の承認待ち。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -37,22 +41,22 @@ archify-jpで生成した実HTMLと撮影画像を使い、実行依頼、実画
 
 ### 実際の画面
 
-![生成したHTMLモックを実ブラウザで検証中の画面](/examples/html-requirements-workshop/preview.png)
+![生成したHTMLモックを実ブラウザで検証中の画面](/skills/html-requirements-workshop/preview.png)
 
-[画像を原寸で開く](pathname:///examples/html-requirements-workshop/preview.png)
+[画像を原寸で開く](pathname:///skills/html-requirements-workshop/preview.png)
 
 正規のブラウザ検証中に撮影した画像です。注釈の検証操作を含み、人間の承認を示すものではありません。
 
 ### 成果物を取得する
 
-- [生成した原本（HTML）](pathname:///examples/html-requirements-workshop/output.html#download)
-- [生成した要件（Markdown）](pathname:///examples/html-requirements-workshop/requirements.md#download)
-- [生成に使った入力（JSON）](pathname:///examples/html-requirements-workshop/input.json#download)
-- [成果物・入力の一式（ZIP）](pathname:///examples/html-requirements-workshop/bundle.zip#download)
-- [ブラウザ検証結果（環境パスを伏せたJSON）](pathname:///examples/html-requirements-workshop/browser-validation.json#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/html-requirements-workshop/output.html)
-- [実行入力の原本](pathname:///examples/html-requirements-workshop/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/html-requirements-workshop/execution.json#download)
+- [生成した原本（HTML）](pathname:///skills/html-requirements-workshop/output.html#download)
+- [生成した要件（Markdown）](pathname:///skills/html-requirements-workshop/requirements.md#download)
+- [生成に使った入力（JSON）](pathname:///skills/html-requirements-workshop/input.json#download)
+- [成果物・入力の一式（ZIP）](pathname:///skills/html-requirements-workshop/bundle.zip#download)
+- [ブラウザ検証結果（環境パスを伏せたJSON）](pathname:///skills/html-requirements-workshop/browser-validation.json#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/html-requirements-workshop/output.html)
+- [実行入力の原本](pathname:///skills/html-requirements-workshop/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/html-requirements-workshop/execution.json#download)
 
 ### 確認した結果
 
