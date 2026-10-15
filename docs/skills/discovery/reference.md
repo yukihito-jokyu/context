@@ -29,6 +29,10 @@ referenceを使って、既存の顧客一覧を参考に依頼一覧の設計�
 
 **到達点：参照分析。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -60,9 +64,9 @@ ruleのdocusaurus.config.tsとcontextの設定・検索・utilsカタログを�
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/reference/output.md#download)
-- [実行入力の原本](pathname:///examples/reference/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/reference/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/reference/output.md#download)
+- [実行入力の原本](pathname:///skills/reference/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/reference/execution.json#download)
 
 ### 確認した結果
 
