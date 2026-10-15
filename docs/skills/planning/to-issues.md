@@ -29,6 +29,10 @@ to-issuesを使って、依頼管理の計画をIssueに分けてください。
 
 **到達点：分割案作成・分割承認とGitHub投稿前。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -60,9 +64,9 @@ https://github.com/yukihito-jokyu/context/issues/57
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/to-issues/output.md#download)
-- [実行入力の原本](pathname:///examples/to-issues/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/to-issues/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/to-issues/output.md#download)
+- [実行入力の原本](pathname:///skills/to-issues/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/to-issues/execution.json#download)
 
 ### 確認した結果
 
