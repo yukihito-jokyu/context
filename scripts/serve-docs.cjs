@@ -23,7 +23,7 @@ async function start() {
     // HTML artifacts are files. Keep their extensions and bytes intact.
     handler(request, response, {
       public: build,
-      cleanUrls: !request.url.startsWith('/examples/'),
+      cleanUrls: !url.pathname.endsWith('.html'),
       trailingSlash: undefined,
       directoryListing: false,
     }).catch(error => {
