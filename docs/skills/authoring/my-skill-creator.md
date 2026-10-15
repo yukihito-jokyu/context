@@ -29,6 +29,10 @@ my-skill-creatorの初回手順を実際に適用して得た構成提案です�
 
 **到達点：初回構成提案・構成確認待ち。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -60,9 +64,9 @@ artifact-examples/
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/my-skill-creator/output.md#download)
-- [実行入力の原本](pathname:///examples/my-skill-creator/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/my-skill-creator/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/my-skill-creator/output.md#download)
+- [実行入力の原本](pathname:///skills/my-skill-creator/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/my-skill-creator/execution.json#download)
 
 ### 確認した結果
 
