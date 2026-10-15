@@ -9,7 +9,9 @@ export default function ArtifactAnchor(props: ComponentProps<typeof OriginalA>) 
   const href = typeof props.href === 'string'
     ? props.href.replace(/^pathname:\/\//, '')
     : props.href;
-  const artifact = typeof href === 'string' && href.startsWith('/examples/');
+  const artifact = typeof href === 'string'
+    && /^\/(?:skills|plugins)\/[^/]+\//.test(href)
+    && (href.endsWith('#download') || /\.[^/?#]+(?:[?#].*)?$/.test(href));
   const resolvedHref = useBaseUrl(artifact ? href : '');
   if (artifact) {
     if (resolvedHref.endsWith('#download')) {
