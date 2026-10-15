@@ -29,6 +29,10 @@ interviewを使って、完了済み依頼の表示方針を決めたいです�
 
 **到達点：質問提示・回答待ち。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -60,9 +64,9 @@ PRやIssue作成を伴う実例の実行範囲が未確定です。実例の到�
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/interview/output.md#download)
-- [実行入力の原本](pathname:///examples/interview/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/interview/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/interview/output.md#download)
+- [実行入力の原本](pathname:///skills/interview/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/interview/execution.json#download)
 
 ### 確認した結果
 
