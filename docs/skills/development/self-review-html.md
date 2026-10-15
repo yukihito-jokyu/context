@@ -29,6 +29,10 @@ self-review-htmlを使って、mainとの差分をレビューしてください
 
 **到達点：差分評価・HTML生成・人間のレビュー待ち。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -37,17 +41,17 @@ self-review-htmlを使って、mainとの差分をレビューしてください
 
 ### 実際の画面
 
-![実Git差分とAI評価を表示したレビューHTML](/examples/self-review-html/preview.jpg)
+![実Git差分とAI評価を表示したレビューHTML](/skills/self-review-html/preview.jpg)
 
-[画像を原寸で開く](pathname:///examples/self-review-html/preview.jpg)
+[画像を原寸で開く](pathname:///skills/self-review-html/preview.jpg)
 
 ### 成果物を取得する
 
-- [レビュー原本（HTML）](pathname:///examples/self-review-html/report.html#download)
-- [成果物・入力の一式（ZIP）](pathname:///examples/self-review-html/bundle.zip#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/self-review-html/report.html)
-- [実行入力の原本](pathname:///examples/self-review-html/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/self-review-html/execution.json#download)
+- [レビュー原本（HTML）](pathname:///skills/self-review-html/report.html#download)
+- [成果物・入力の一式（ZIP）](pathname:///skills/self-review-html/bundle.zip#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/self-review-html/report.html)
+- [実行入力の原本](pathname:///skills/self-review-html/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/self-review-html/execution.json#download)
 
 ### 確認した結果
 
