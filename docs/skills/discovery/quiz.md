@@ -29,6 +29,10 @@ quizを使って、担当者フィルターの変更を理解するための問�
 
 **到達点：理解確認問題の作成。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -60,9 +64,9 @@ React成果物はなぜindex.htmlだけではなく、画面一式のZIPで渡�
 
 ### 成果物を取得する
 
-- [実出力の全文（Markdown）](pathname:///examples/quiz/output.md#download)
-- [実行入力の原本](pathname:///examples/quiz/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/quiz/execution.json#download)
+- [実出力の全文（Markdown）](pathname:///skills/quiz/output.md#download)
+- [実行入力の原本](pathname:///skills/quiz/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/quiz/execution.json#download)
 
 ### 確認した結果
 
