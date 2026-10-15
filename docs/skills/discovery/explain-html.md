@@ -23,13 +23,17 @@ explain-htmlで、この仕組みを初めて学ぶ読者向けに解説HTMLを�
 
 似た対象の違いを中心に理解したい場合は[compare](compare.md)を使います。explain-htmlはcompareの表示・説明品質を引き継ぎ、単一題材を扱います。
 
-現在の手順で新規制作した[画像変換APIの解説HTML](pathname:///examples/explain-html/output.html)を確認できます。
+現在の手順で新規制作した[画像変換APIの解説HTML](pathname:///skills/explain-html/output.html)を確認できます。
 
 ## 成果物の例
 
 現在のexplain-html手順で、架空の画像変換APIを新規制作しました。全体構成・通信・状態・再送の4図は、それぞれ別の専任エージェントが調査・作図・解説を担当しています。過去の成果物・実行記録は削除しました。
 
 **到達点：新規HTML生成・Archify再生成照合・PC/狭幅の表示と操作を確認。図内文字の狭幅可読性には未達が残る。**
+
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
 
 ### 実行した依頼
 
@@ -41,21 +45,21 @@ explain-htmlで、この仕組みを初めて学ぶ読者向けに解説HTMLを�
 
 ### 実際の画面
 
-![新規画像変換API解説の全体像ページ](/examples/explain-html/page-overview-1440.png)
+![新規画像変換API解説の全体像ページ](/skills/explain-html/page-overview-1440.png)
 
-[画像を原寸で開く](pathname:///examples/explain-html/page-overview-1440.png)
+[画像を原寸で開く](pathname:///skills/explain-html/page-overview-1440.png)
 
 新規制作したHTMLを1440px幅のChromeで撮影。狭幅の図中文字に課題が残るため、品質合格済みの見本とは扱いません。
 
 ### 成果物を取得する
 
-- [新規解説HTML（単体）](pathname:///examples/explain-html/output.html#download)
-- [4図の専任担当と生成元（JSON）](pathname:///examples/explain-html/diagram-agent-manifest.json#download)
-- [入力仕様と説明先の対応（JSON）](pathname:///examples/explain-html/coverage.json#download)
-- [新規記事のブラウザ確認記録（JSON）](pathname:///examples/explain-html/browser-check.json#download)
-- [実際のHTMLをブラウザで開く](pathname:///examples/explain-html/output.html)
-- [実行入力の原本](pathname:///examples/explain-html/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/explain-html/execution.json#download)
+- [新規解説HTML（単体）](pathname:///skills/explain-html/output.html#download)
+- [4図の専任担当と生成元（JSON）](pathname:///skills/explain-html/diagram-agent-manifest.json#download)
+- [入力仕様と説明先の対応（JSON）](pathname:///skills/explain-html/coverage.json#download)
+- [新規記事のブラウザ確認記録（JSON）](pathname:///skills/explain-html/browser-check.json#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/explain-html/output.html)
+- [実行入力の原本](pathname:///skills/explain-html/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/explain-html/execution.json#download)
 
 ### 確認した結果
 
