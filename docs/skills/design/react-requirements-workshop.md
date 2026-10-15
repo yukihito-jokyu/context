@@ -29,6 +29,10 @@ Design System部品を導入して生成したReact画面案です。表示一�
 
 **到達点：初回画面案生成・検証済み／内容の承認待ち。**
 
+**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
+
+このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+
 ### 実行した依頼
 
 ```text
@@ -37,21 +41,21 @@ unknownsの実出力を読むReact画面案を、Design Systemのdetail-pageで�
 
 ### 実際の画面
 
-![生成したReact画面案を1568×784で検証中の画面](/examples/react-requirements-workshop/preview.png)
+![生成したReact画面案を1568×784で検証中の画面](/skills/react-requirements-workshop/preview.png)
 
-[画像を原寸で開く](pathname:///examples/react-requirements-workshop/preview.png)
+[画像を原寸で開く](pathname:///skills/react-requirements-workshop/preview.png)
 
 表示ZIPは展開してローカルサーバーで開けます。ソースZIPには導入済み部品を含み、npm ci → npm run devで確認できます。公開Registryの404に対してローカル正本を使った経緯は検証記録に残しています。
 
 ### 成果物を取得する
 
-- [生成した要件（Markdown）](pathname:///examples/react-requirements-workshop/requirements.md#download)
-- [生成に使った入力（JSON）](pathname:///examples/react-requirements-workshop/input.json#download)
-- [生成した画面一式（ZIP）](pathname:///examples/react-requirements-workshop/rendered.zip#download)
-- [画面ソース一式（ZIP）](pathname:///examples/react-requirements-workshop/source.zip#download)
-- [ブラウザ検証結果（環境パスを伏せたJSON）](pathname:///examples/react-requirements-workshop/browser-validation.json#download)
-- [実行入力の原本](pathname:///examples/react-requirements-workshop/input.md#download)
-- [実行・検証記録（JSON）](pathname:///examples/react-requirements-workshop/execution.json#download)
+- [生成した要件（Markdown）](pathname:///skills/react-requirements-workshop/requirements.md#download)
+- [生成に使った入力（JSON）](pathname:///skills/react-requirements-workshop/input.json#download)
+- [生成した画面一式（ZIP）](pathname:///skills/react-requirements-workshop/rendered.zip#download)
+- [画面ソース一式（ZIP）](pathname:///skills/react-requirements-workshop/source.zip#download)
+- [ブラウザ検証結果（環境パスを伏せたJSON）](pathname:///skills/react-requirements-workshop/browser-validation.json#download)
+- [実行入力の原本](pathname:///skills/react-requirements-workshop/input.md#download)
+- [実行・検証記録（JSON）](pathname:///skills/react-requirements-workshop/execution.json#download)
 
 ### 確認した結果
 
