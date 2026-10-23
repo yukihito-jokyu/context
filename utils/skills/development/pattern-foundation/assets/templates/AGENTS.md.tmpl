@@ -1,0 +1,58 @@
+# {{name}}
+
+TODO(pattern-foundation): この基盤が何かを1〜2文で書く（分野、主な技術、目的）。
+
+## 作業の入口
+
+| やること | 使うもの |
+|---|---|
+| 実装・変更・追加・修正 | 実装用スキル `{{skills.impl}}`（`.claude/skills/{{skills.impl}}/SKILL.md`） |
+| レビュー | レビュー用スキル `{{skills.review}}`（`.claude/skills/{{skills.review}}/SKILL.md`） |
+| ルールを調べる | `docs/design/rules.md`（ルールIDで引く） |
+| 構造の理由を調べる | `docs/design/architecture.md`、`docs/design/adr/` |
+
+スキルを使えないエージェントは、上のファイルを直接読み、同じ手順に従う。
+
+## コマンド
+
+| 目的 | コマンド |
+|---|---|
+| 全検査（完了の条件） | `{{commands.check}}` |
+| 自動修正 | `{{commands.fix}}` |
+
+TODO(pattern-foundation): 依存の導入、開発サーバー、テストだけの実行、生成器などのコマンドを表に足す。
+
+## ディレクトリ構造
+
+TODO(pattern-foundation): tree と、各ディレクトリの役割を1行ずつ書く。
+
+## 守ること
+
+要約である。全文と理由は `docs/design/rules.md` にある。
+
+TODO(pattern-foundation): 最重要ルールを、ルールID付きで10〜15個書く。
+
+## してはいけないこと
+
+- 検査を通すために保護ファイルを変える。保護ファイルとは、検査の設定、`.foundation/`、`docs/design/rules.md` などで、一覧は `.foundation/manifest.json` の `protected` にある
+- 抑止コメントを書く。lint 無効化や型無視などで、一覧は manifest の `guard.suppressions` にある
+- 依頼に無い依存ライブラリを足す
+- 見本（参照実装）と違う形の新しいパターンを作る。必要なら実装せずに、提案として報告する
+
+TODO(pattern-foundation): 分野に固有の禁止事項を足す。
+
+## 完了の条件
+
+1. `{{commands.check}}` が通る
+2. 実装用スキルの完了前チェックリストを満たす
+3. 報告に、依頼から決まらなかった値とその根拠、check の結果を書く
+
+## ルールを変えたいとき
+
+ルールを勝手に変えない。変えるべき理由を報告し、承認されてから次の順で変える。
+
+1. ADR を書く
+2. `docs/design/rules.md` を変える
+3. 検査の設定と `.foundation/probes.json` を変える
+4. 参照実装を変える
+5. `python3 .foundation/bin/rules_check.py --root .` と `python3 .foundation/bin/violation_probe.py --root .` を通す

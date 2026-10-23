@@ -1,0 +1,65 @@
+{
+  "name": "<kebab-case の基盤名。intake.md の命名規則で決める>",
+  "status": "building",
+  "mode": "<new か retrofit>",
+  "domain": ["<domain-profiles.md の分野名。複数なら列挙>"],
+  "language": "<文書の言語。例: ja>",
+  "stack": [
+    {"name": "<指示で名指しされた技術>", "version": "", "role": "<役割>", "pinned": true},
+    {"name": "<名指しされた技術を動かすのに必須の部品>", "version": "", "role": "<役割>", "pinned": false}
+  ],
+  "tools": [
+    {"role": "runtime", "language": "<言語>", "name": "<実行環境>", "version": "", "pinned": false},
+    {"role": "package-manager", "language": "<言語>", "name": "<パッケージマネージャ>", "version": "", "pinned": false},
+    {"role": "formatter", "language": "<言語>", "name": "<formatter>", "version": "", "pinned": false},
+    {"role": "linter", "language": "<言語>", "name": "<linter>", "version": "", "pinned": false},
+    {"role": "typecheck", "language": "<言語>", "name": "<型検査>", "version": "", "pinned": false},
+    {"role": "test", "language": "<言語>", "name": "<テストランナー>", "version": "", "pinned": false},
+    {"role": "structure", "language": "<言語>", "name": "<構造検査スクリプトのパス>", "version": "", "pinned": false}
+  ],
+  "skills": {"impl": "impl", "review": "review"},
+  "commands": {"check": "<全検査のコマンド。intake.md の表で決める>", "fix": "<自動修正のコマンド>"},
+  "protected": [
+    "<検査の設定ファイルの glob>",
+    "<依存の一覧ファイルと lockfile>",
+    "<構造検査スクリプト>",
+    ".claude/settings.json",
+    ".foundation/**",
+    "docs/design/rules.md",
+    "docs/design/enforcement-matrix.md"
+  ],
+  "copy": {
+    "link_dirs": ["<依存のディレクトリ。既定に無いものだけ>"],
+    "skip_dirs": ["<ビルド成果物のディレクトリ。既定に無いものだけ>"]
+  },
+  "guard": {
+    "rule": "",
+    "include": ["<ソースとテストの glob>"],
+    "exclude": [],
+    "suppressions": [
+      {"pattern": "<抑止記法の正規表現>", "rule": ""}
+    ],
+    "allow": []
+  },
+  "hooks": {
+    "post_edit": [
+      {"glob": "<対象の glob>", "command": "<そのファイルだけを整形・lint するコマンド。{file} は相対パスに置き換わる>"}
+    ]
+  },
+  "convergence": {
+    "agents": 3,
+    "max_rounds": 3,
+    "parallel": 3,
+    "timeout_sec": 1800,
+    "runner": [
+      "claude", "-p", "{prompt}",
+      "--output-format", "json",
+      "--permission-mode", "acceptEdits",
+      "--no-session-persistence",
+      "--allowedTools", "Skill", "Bash(<commands.check>)", "Bash(<commands.fix>)", "Bash(<ファイル単位の検査の起動手段> *)",
+      "Bash(git diff *)", "Bash(git status *)"
+    ],
+    "ignore": [],
+    "thresholds": {"files": 1.0, "names": 0.8, "content": 0.0}
+  }
+}
