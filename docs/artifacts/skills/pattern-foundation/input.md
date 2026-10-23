@@ -1,0 +1,1 @@
+Python標準ライブラリだけを使う架空のCLI基盤 sample-cli-foundation を新規作成してください。日本語、実装スキル名 impl、レビュースキル名 review、check は python3 scripts/check.py、fix は python3 scripts/fix.py とします。今回は受付と骨組み生成（フェーズ0・1）だけを実行し、status: building で止めてください。バージョン調査、ルール確定、アプリ実装、hooks実動作確認、収束テストは実行対象外です。外部API/インストール/投稿は行わないでください。
