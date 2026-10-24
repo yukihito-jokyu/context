@@ -4,10 +4,11 @@ title: コミット・PR・レビュー
 
 # コミット・PR・レビュー
 
-変更を評価し、履歴とレビュー依頼を整えます。
+開発時の書き方を揃える基盤を作り、変更の評価から履歴・レビュー依頼までを整えます。
 
 | スキル | できること |
 | --- | --- |
+| [pattern-foundation](pattern-foundation.md) | 規約・検査・参照実装を揃え、独立した作者の出力が揃うか測る |
 | [self-review-html](self-review-html.md) | 差分の評価をHTMLで確認する |
 | [llm-eval](llm-eval.md) | LLMの評価ケース・採点方法・実行基盤を作る |
 | [commit](commit.md) | 変更を小さな単位でコミットする |

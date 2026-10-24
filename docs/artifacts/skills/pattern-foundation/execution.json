@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "skill": "pattern-foundation",
+  "skill_source": "utils/skills/development/pattern-foundation/SKILL.md",
+  "skill_sha256": "a342661a6c19de88d04ee0a74b98457fe9b85ca81382c86e12336c9c0d504af0",
+  "recorded_at": "2026-10-23T15:46:31.245Z",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "/root/pattern_foundation_example",
+    "task": "Python標準ライブラリだけを使う架空のCLI基盤 sample-cli-foundation を新規作成してください。日本語、実装スキル名 impl、レビュースキル名 review、check は python3 scripts/check.py、fix は python3 scripts/fix.py とします。今回は受付と骨組み生成（フェーズ0・1）だけを実行し、status: building で止めてください。バージョン調査、ルール確定、アプリ実装、hooks実動作確認、収束テストは実行対象外です。外部API/インストール/投稿は行わないでください。 生成後に再実行での既存ファイル保全と検査スクリプトのヘルプ表示を確認し、実入力・実出力・ZIP・実コマンドの検証記録を保存する。"
+  },
+  "input": "input.md",
+  "summary": "架空のPython CLI基盤に受付と骨組み生成だけを適用した例です。manifestを含む24ファイルを保存し、再実行時の既存ファイル保全を確認しました。ルール強制・hooks実動作・収束テストは未実施です。",
+  "stage": "受付と骨組み生成（フェーズ0・1）のみ完了・status: building",
+  "checks": [
+    "init_foundation.pyが終了コード0で23ファイルを生成し、manifestを合わせた24ファイルをZIPに保存。",
+    "再実行前後の全ファイルのSHA-256が一致。別コピーで変更したAGENTS.md・hooks設定・guard.pyも再実行で保全。",
+    "rules_check.py・violation_probe.py・guard.py・convergence.pyの--helpが終了コード0。補助ライブラリを含む生成Pythonスクリプト6本の構文解析も成功。",
+    "hooks.pyは--help非対応で、利用方法を表示し終了コード1。hooks実動作の検証は未実施。",
+    "manifestのstatusはbuildingのまま。TODOを残し、check/fix実装・probe・収束テスト・最終検査は未実施と記録。"
+  ],
+  "downloads": [
+    {
+      "file": "output.md",
+      "label": "受付・骨組み生成の実出力（Markdown）"
+    },
+    {
+      "file": "sample-cli-foundation.zip",
+      "label": "生成した骨組み一式（ZIP・未完成）"
+    },
+    {
+      "file": "validation.json",
+      "label": "実コマンドと検証結果（JSON）"
+    }
+  ],
+  "text_output": "output.md",
+  "excerpt_lines": 16,
+  "source_files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "a342661a6c19de88d04ee0a74b98457fe9b85ca81382c86e12336c9c0d504af0"
+    },
+    {
+      "file": "assets/templates/AGENTS.md.tmpl",
+      "sha256": "369fb6eb390a71fd65bff763b7c6103b579c665a1287a2ee40e5bccf39c2ccb5"
+    },
+    {
+      "file": "assets/templates/CLAUDE.md.tmpl",
+      "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+    },
+    {
+      "file": "assets/templates/README.md.tmpl",
+      "sha256": "f5eb06155d4838e3f3ecbc12e6b9633b5f02b2a0589758efbd5383682c04d58b"
+    },
+    {
+      "file": "assets/templates/adr-0001.md.tmpl",
+      "sha256": "13129882a0f88049ad9083da574c22495fdbdfde297ae05966cac95cdee140ac"
+    },
+    {
+      "file": "assets/templates/adr.md.tmpl",
+      "sha256": "2e745c2e1fc2807b0ea1ddd30d3fb32eab0b0e3e57699cff18c0badbcb42066f"
+    },
+    {
+      "file": "assets/templates/architecture.md.tmpl",
+      "sha256": "5429fcc42350405eddf15b97493d5fa2d237c0134d5e7f75eecde1509ee7c2ad"
+    },
+    {
+      "file": "assets/templates/convergence-report.md.tmpl",
+      "sha256": "ed30be4f89cae8afe9517e20e17e76aebfb20623eb58c42150e63b213fd3d036"
+    },
+    {
+      "file": "assets/templates/impl-SKILL.md.tmpl",
+      "sha256": "46a0fa3664fc03277ca4b93f26d84099a45578a9d2ad67d2fe6d1b1e5dde64f7"
+    },
+    {
+      "file": "assets/templates/impl-patterns.md.tmpl",
+      "sha256": "a4db2b6c2d77c8895eba01088a0fe7a37f14f390cf2b456ee5145cee9ec13494"
+    },
+    {
+      "file": "assets/templates/manifest.example.json",
+      "sha256": "4770cd6fad8cf938cb1ad03940285e5e9b1077b3da8dc57b71f68482b6bdbb81"
+    },
+    {
+      "file": "assets/templates/overview.md.tmpl",
+      "sha256": "703a4deeaad87ba88c93e8b5d68eec722fc8d94735415ea345ca350100cffd28"
+    },
+    {
+      "file": "assets/templates/probes.json.tmpl",
+      "sha256": "30163efb97ea008544369ce546fbcabd5d08214b116f045b540493fb2036f3c0"
+    },
+    {
+      "file": "assets/templates/research.md.tmpl",
+      "sha256": "ca3c9616f23c6a441b29d9e371c786444f759196b2fc8b140c6778eff222615f"
+    },
+    {
+      "file": "assets/templates/review-SKILL.md.tmpl",
+      "sha256": "927aa5fae650efac04a713c8f5a3ce424976bb69e7cbaf76c9c7a312979af9bb"
+    },
+    {
+      "file": "assets/templates/review-seeds.json.tmpl",
+      "sha256": "2a8d79c0a2a063631f604d7b8d2d9e8b58f19c0a439e31a616ab911f516a5a16"
+    },
+    {
+      "file": "assets/templates/rules.md.tmpl",
+      "sha256": "9a8d3aabd7e2fcb214a68497d726fc2f7ae9961f1f8b07c05660b73a42288f2a"
+    },
+    {
+      "file": "assets/templates/settings.json.tmpl",
+      "sha256": "39c0e0755b46509da76017ed1d8e5bf86d33d2312dc08ee332087714837d00d7"
+    },
+    {
+      "file": "assets/templates/tasks.json.tmpl",
+      "sha256": "8dcd9712b2a7ebf9c8f00a3b511a28e6c6da4680a06e775d6b3e72ac542022db"
+    },
+    {
+      "file": "references/agent-surface.md",
+      "sha256": "fa9d88c396174b7b18830604e422ca72cf36863f5e65a20a9d778dfaa464acfc"
+    },
+    {
+      "file": "references/convergence-test.md",
+      "sha256": "4c0258af80549955518b0390d56b2f89aa95e9819bdf945b39f55dd35c71dabf"
+    },
+    {
+      "file": "references/design-doc.md",
+      "sha256": "c219693ed8d3149ab5b471f3b1643c666edb2856b877cae1addfc56f63668da4"
+    },
+    {
+      "file": "references/domain-profiles.md",
+      "sha256": "e6b71338c87a92a2e248d696f06d0146f582b9ece448ee6ba90645350190144f"
+    },
+    {
+      "file": "references/enforcement-ladder.md",
+      "sha256": "771ccecdc0d18656d5039db2a3871e05f9a865b7392dc16b3089f3e871786e88"
+    },
+    {
+      "file": "references/intake.md",
+      "sha256": "d17c8c93ab57f169df949bbf19edda7d468350d11714d2b04e27a8aad2f51a74"
+    },
+    {
+      "file": "references/research.md",
+      "sha256": "8ce56e3107a6718df6c01e67d06515c189ca2ea68b6b79c578f0f3fdc7f32c20"
+    },
+    {
+      "file": "references/variance-axes.md",
+      "sha256": "0f511f569d41d6f9f1ee6fab14d0d8ae1e34e56c3d57b660eb67bff62516e75f"
+    },
+    {
+      "file": "scripts/_lib.py",
+      "sha256": "051c50b15b170611e58d576c22af3dbb700f770882f467e32ce6206f2bfb4479"
+    },
+    {
+      "file": "scripts/convergence.py",
+      "sha256": "130736cff76ef96f085414caed32fdbcb2823fc234b15f84301222192e5797d1"
+    },
+    {
+      "file": "scripts/guard.py",
+      "sha256": "3a0ec00830baa893859abb9aa0df1852271f84910af0ff257d9f731bfc7617c7"
+    },
+    {
+      "file": "scripts/hooks.py",
+      "sha256": "cff182260ca5fef5ec6ad61c1736c1eae14fd767977672114effb694271d229f"
+    },
+    {
+      "file": "scripts/init_foundation.py",
+      "sha256": "075bcd0817bc764641ab66116b0396e9b3a878ac15170fde0a2b61b034b2dcb5"
+    },
+    {
+      "file": "scripts/rules_check.py",
+      "sha256": "e15ac863d49f94d6283284e580bfe9fbe574ce66e5c59bde5b168d8640f5ab38"
+    },
+    {
+      "file": "scripts/violation_probe.py",
+      "sha256": "735964bf032fa07e2176c8dc1b13ca662f316015f6806d8f2bb1ac9e974f357f"
+    }
+  ],
+  "source_sha256": "27af1236e50729d88dc897268fb4c4b31ef220da6917f462c69b15eefec8e76b",
+  "artifacts": [
+    {
+      "file": "input.md",
+      "sha256": "c0b1c9847d759262aba140a50cb3312fcfabfa22cadd2f2b99e683db7f9531d9",
+      "bytes": 589
+    },
+    {
+      "file": "output.md",
+      "sha256": "379d49972e3bfcea77e5d301d6415f46204bb5865ab5b8fbd23937de5e68a02f",
+      "bytes": 3380
+    },
+    {
+      "file": "sample-cli-foundation.zip",
+      "sha256": "8009ccadac3ff5409acfe06a09b8277e05cad3f594f206cdb4c7393996f0fda4",
+      "bytes": 45757
+    },
+    {
+      "file": "validation.json",
+      "sha256": "2f5af8af181bfe4a551bbe36802ccdcfb172e369890b49bc88a31f005b05d8f3",
+      "bytes": 17694
+    }
+  ]
+}

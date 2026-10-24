@@ -37,6 +37,7 @@
 
 | Skill | 概要 |
 |---|---|
+| [pattern-foundation](development/pattern-foundation/SKILL.md) | 開発時の書き方を揃える基盤を作り、機械による強制と独立エージェントの収束テストで検証する。 |
 | [commit](development/commit/SKILL.md) | 変更を確認してコミットする。 |
 | [pr](development/pr/SKILL.md) | Pull Request を作成する。 |
 | [self-review-html](development/self-review-html/SKILL.md) | Git 差分と AI セルフレビューを HTML で提示し、指摘に基づいて修正する。 |
