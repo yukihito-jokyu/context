@@ -9,9 +9,9 @@ description: GitHub Actions のワークフロー（.github/workflows/*.yml）�
 
 | 資料・道具 | パス | 使い方 |
 |---|---|---|
-| ルールの全文 | `.claude/skills/gha-workflow/references/rules.md` | `<接頭辞>-<番号>` のルールIDで引く |
-| 型ごとの手順 | `.claude/skills/gha-workflow/references/patterns.md` | 1節の振り分け表の番号の節を読む |
-| 見本（参照実装の写し） | `.claude/skills/gha-workflow/references/examples/` | 一番近い見本を写して書き始める |
+| ルールの全文 | `.codex/skills/gha-workflow/references/rules.md` | `<接頭辞>-<番号>` のルールIDで引く |
+| 型ごとの手順 | `.codex/skills/gha-workflow/references/patterns.md` | 1節の振り分け表の番号の節を読む |
+| 見本（参照実装の写し） | `.codex/skills/gha-workflow/references/examples/` | 一番近い見本を写して書き始める |
 | 検査の CLI（以下 `gha`） | `uv run --locked --script .gha/gha.py <サブコマンド>` | `check`（検査）、`pin`（SHA の解決）、`intent`（棚卸し） |
 
 `.gha/gha.py` が無いリポジトリでは、ワークフローを書かずに、github-actions-kit の `python3 install.py <このリポジトリ>` を先に回すよう報告する。検査の無いまま書くと、ルールを守れたかを確かめられないからである。
