@@ -1,0 +1,72 @@
+{
+  "spec_version": 1,
+  "name": "<kebab-case のスキル名。references/intake.md の 2 章の命名規則で決める>",
+  "status": "building",
+  "mode": "new",
+  "kind": "<スキルの種類。名前の動詞と同じ（references/intake.md の 2 章、references/skill-profiles.md）>",
+  "language": "<ja か en。ユーザーとの会話の言語>",
+  "targets": [
+    "claude",
+    "codex"
+  ],
+  "title": "<スキルの表題。「〜を〜する」の形>",
+  "purpose": "<何を受け取り、何を出力するかを1文で>",
+  "triggers": {
+    "use_when": [
+      "<実際のユーザーの言い方 1>",
+      "<実際のユーザーの言い方 2>",
+      "<実際のユーザーの言い方 3>",
+      "<実際のユーザーの言い方 4>",
+      "<実際のユーザーの言い方 5>"
+    ],
+    "not_for": [
+      {
+        "when": "<このスキルを使わない依頼>",
+        "instead": "<代わりに使うもの>"
+      }
+    ],
+    "implicit": true
+  },
+  "inputs": [],
+  "excluded_inputs": [],
+  "outputs": [],
+  "together": [],
+  "decisions": [],
+  "extra_axes": [],
+  "excluded_axes": [],
+  "examples": [
+    {
+      "path": "<assets/examples/ からの相対パス>",
+      "shows": [
+        "<この見本が体現する決定の ID。OUT-* はすべて、どれかの見本に入れる>"
+      ]
+    }
+  ],
+  "control": {
+    "hooks": true,
+    "max_stop_blocks": 3,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "allow_changes": []
+  },
+  "report": {
+    "include_output": null
+  },
+  "convergence": {
+    "agents": 2,
+    "runners": [
+      "claude",
+      "codex"
+    ],
+    "max_rounds": 3,
+    "thresholds": {
+      "files": 1.0,
+      "structure": 1.0,
+      "names": 0.8
+    }
+  }
+}
