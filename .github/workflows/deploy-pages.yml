@@ -1,0 +1,53 @@
+# main への push と手動実行で、ドキュメントを GitHub Pages に公開する
+name: deploy-pages
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+jobs:
+  build-docs:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/reusable-build-docs.yml
+    permissions:
+      contents: read
+    with:
+      cache-dependencies: false
+      upload-pages-artifact: true
+  deploy:
+    needs:
+      - build-docs
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Configure pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Verify latest main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: bash .github/scripts/check-main-revision.sh
+      - name: Deploy pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
