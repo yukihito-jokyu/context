@@ -22,6 +22,7 @@ AIエージェントに作業を頼むとき、目的に合うスキルを選び
 | 差分をレビューし、コミットやPRを作る | [コミット・PR・レビュー](development/index.md) | [self-review-html](development/self-review-html.md) |
 | 判断と作業の根拠を残し、他者へ説明する | [記録・説明](documentation/index.md) | [notes](documentation/notes.md) |
 | スキルを作成・改善し、カタログに配置する | [スキル作成・管理](authoring/index.md) | [my-skill-creator](authoring/my-skill-creator.md) |
+| スキルの判断や出力を揃え、検査で確かめる | [スキル作成・管理](authoring/index.md) | [skill-foundation](authoring/skill-foundation.md) |
 
 ## ガイドと正本の関係
 
