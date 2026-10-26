@@ -1,0 +1,181 @@
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "skill-foundation",
+  "language": "ja",
+  "targets": [
+    "claude",
+    "codex"
+  ],
+  "inputs": [
+    {
+      "key": "name",
+      "label": "作るスキルの名前",
+      "impact": "target",
+      "type": "slug",
+      "aliases": [
+        "スキル名",
+        "名前",
+        "skill",
+        "skill name"
+      ],
+      "ask": true,
+      "question": "何を受け取り、何を出力するスキルですか（名前はこの答えから references/intake.md の2章の規則で決める）"
+    },
+    {
+      "key": "targets",
+      "label": "対象の製品",
+      "impact": "reversible",
+      "type": "list",
+      "aliases": [
+        "対象",
+        "製品",
+        "platform",
+        "platforms"
+      ],
+      "default": [
+        "claude",
+        "codex"
+      ]
+    },
+    {
+      "key": "language",
+      "label": "言語",
+      "impact": "reversible",
+      "type": "enum",
+      "enum": [
+        "ja",
+        "en"
+      ],
+      "aliases": [
+        "lang"
+      ],
+      "enum_aliases": {
+        "日本語": "ja",
+        "japanese": "ja",
+        "英語": "en",
+        "english": "en"
+      },
+      "default": "ja"
+    },
+    {
+      "key": "base",
+      "label": "本体の置き場",
+      "impact": "reversible",
+      "type": "enum",
+      "enum": [
+        ".claude/skills",
+        ".agents/skills"
+      ],
+      "aliases": [
+        "置き場",
+        "place"
+      ],
+      "default": ".claude/skills"
+    },
+    {
+      "key": "measure",
+      "label": "収束テストの実行",
+      "impact": "reversible",
+      "type": "enum",
+      "enum": [
+        "ask",
+        "run",
+        "skip"
+      ],
+      "aliases": [
+        "収束テスト",
+        "convergence"
+      ],
+      "enum_aliases": {
+        "確認": "ask",
+        "聞く": "ask",
+        "実行": "run",
+        "する": "run",
+        "省く": "skip",
+        "しない": "skip"
+      },
+      "default": "ask"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "skill-entry",
+      "label": "作ったスキルの SKILL.md",
+      "path": "{in:base}/{in:name}/SKILL.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "checks": [
+        {
+          "rule": "OUT-02",
+          "type": "front_matter",
+          "required_keys": [
+            "name",
+            "description"
+          ]
+        },
+        {
+          "rule": "OUT-02",
+          "type": "require",
+          "pattern": "^\\d+\\. .*run\\.py finish",
+          "min": 1,
+          "message": "「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する"
+        },
+        {
+          "rule": "STEP-01",
+          "type": "command",
+          "stage": "finish",
+          "timeout": 900,
+          "run": "python3 {skill}/scripts/skill_lint.py {root}/{in:base}/{in:name} --final --project {root} --rule STEP-01",
+          "rules": [
+            "OUT-01",
+            "OUT-03",
+            "OUT-04",
+            "OUT-05",
+            "STEP-02",
+            "STEP-04",
+            "OUT-06"
+          ]
+        }
+      ]
+    }
+  ],
+  "together": [],
+  "control": {
+    "hooks": true,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "tamper_rule": "CTL-02",
+    "scope_rule": "CTL-05",
+    "allow_changes": [
+      "{in:base}/{in:name}/**",
+      ".agents/skills/{in:name}",
+      ".claude/skills/{in:name}",
+      ".claude/settings.json",
+      ".codex/hooks.json"
+    ],
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": null,
+    "rule": "RPT-01",
+    "sections": [
+      {
+        "run": "python3 {skill}/scripts/report_skill.py {root}/{in:base}/{in:name} --project {root}",
+        "timeout": 900
+      },
+      {
+        "run": "python3 {skill}/scripts/report_skill.py {root}/{in:base}/{in:name} --project {root} --seal",
+        "timeout": 900,
+        "stage": "finish"
+      }
+    ]
+  }
+}

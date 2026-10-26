@@ -1,0 +1,860 @@
+# 収束テスト ラウンド 1
+
+convergence.py diff が生成する。揺れの分類（V1〜V8）と対処は dev/convergence-report.md に書く。
+
+基準: status が全員、課題の expect_status（既定 done）と同じ。check が全員通過。スキル自身や hooks の登録を変えたエージェントがいない。files ≥ 1.0、structure ≥ 1.0、names ≥ 0.8
+
+runner subagent は Agent ツールで実行した。一時プロジェクトの hooks は働かず、run.py の check と finish だけで検査された。自動の起動は、スキルの説明文を前置きで渡した近似である（convergence-test.md の3章）。
+
+## 指標
+
+| 課題 | status | files | structure | names | content | check | runner 別 files | 基準 |
+|---|---|---|---|---|---|---|---|---|
+| T1-typical | done | 0.535 | 0.391 | 0.212 | 0.644 | 全員通過 | subagent 0.535 | 満たさない |
+| T2-default | done | 0.500 | 0.429 | 0.163 | 0.622 | 全員通過 | subagent 0.500 | 満たさない |
+| T3-edge | done | 0.054 | 1.000 | 0.176 | 0.500 | 全員通過 | subagent 0.054 | 満たさない |
+
+## T1-typical
+
+### 実行の状態（期待: done）
+
+- subagent-1: done
+- subagent-2: done
+
+### 新しく作った名前（names。先頭 40 件）
+
+- subagent-1: `A-Z0-9_`, `API`, `ASCII`, `Alternatively`, `Apple`, `Atlassian`, `BLG-1`, `Backlog`, `COMMIT_EDITMSG`, `CTL-02-builtin-hooks-claude`, `CTL-02-builtin-hooks-codex`, `Closes`, `Co-authored-by`, `Commands`, `Developer`, `Exception`, `FULL_DIFF_MAX`, `Get`, `Git-155`, `GitError`, `Issue`, `Jira`, `NUL`, `OUT-02-c`, `OUT-02-d`, `OUT-02-e`, `OUT-03-b`, `OUT-04-b`, `OUT-05-b`, `OUT-07`, `OUT-07-a`, `PIPE`, `Project`, `R100`, `Redmine`, `SEPARATORS`, `STATUS_LABELS`, `Signed-off-by`, `Support`, `TICKET_RE`
+- subagent-2: `A-Z0-9_`, `ASCII`, `ASK_TICKET`, `Apple`, `Atlassian`, `BAD_TICKET`, `Backlog`, `CALC-12`, `CALC-34-sub`, `CALC-99`, `CTL-02-builtin-hooks-claude`, `CTL-02-builtin-hooks-codex`, `Changing`, `Cloud`, `Commit`, `Conventions`, `DESCRIPTION`, `Git-155`, `GitLab`, `Jira`, `MAX_DESCRIPTION`, `NO_STAGED`, `NUL`, `OUT-02-c`, `OUT-03-b`, `OUT-04-b`, `OUT-05-b`, `OUT-07`, `OUT-07-a`, `OUT-07-r1`, `PROJ-1`, `PROJ-123`, `PROJ-123-login`, `PROJ-5`, `Possible`, `R100`, `Redmine`, `RuntimeError`, `STATUS_LABELS`, `Signed-off-by`
+
+### 一部のエージェントだけが作った・変えたファイル
+
+- `.claude/skills/write-commit-message/dev/fixtures/basic/docs/usage.md`: subagent-1
+- `.claude/skills/write-commit-message/dev/fixtures/basic/src/legacy.py`: subagent-1
+- `.claude/skills/write-commit-message/dev/fixtures/basic/src/util.py`: subagent-2
+- `.claude/skills/write-commit-message/dev/fixtures/stage_changes.sh`: subagent-1
+- `.claude/skills/write-commit-message/dev/fixtures/stage_fix.sh`: subagent-1
+- `.claude/skills/write-commit-message/scripts/_changes.py`: subagent-1
+- `.skill-runs/skill-foundation/tmp/blank.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/extra.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/fx/README.md`: subagent-1
+- `.skill-runs/skill-foundation/tmp/fx/docs/guide.md`: subagent-1
+- `.skill-runs/skill-foundation/tmp/fx/src/calc.py`: subagent-1
+- `.skill-runs/skill-foundation/tmp/fx/tests/test_calc.py`: subagent-1
+- `.skill-runs/skill-foundation/tmp/gitexp/a.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/gitexp/d.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/gitexp/src dir/new file.py`: subagent-1
+- `.skill-runs/skill-foundation/tmp/gitexp/é.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/miss.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/swap.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/tick.txt`: subagent-1
+- `.skill-runs/skill-foundation/tmp/verb.txt`: subagent-1
+
+### 中身の違い（抜粋）
+
+#### `.claude/skills/write-commit-message/SKILL.md`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-commit-message/SKILL.md
++++ subagent-2/.claude/skills/write-commit-message/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: write-commit-message
+-description: "ステージした変更とチケットIDを受け取り、チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文からなるコミットメッセージを出力する。「チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文でコミットメッセージを書いて」、「コミットメッセージを書いて」、「この変更のコミットメッセージを考えてください」、「ステージした差分からコミットメッセージを作って」、「チケット番号付きでコミットメッセージをお願い」、「write a commit message for the staged changes」と頼まれたときに使う。コミットや push の実行には使わない（代わりにgit commit と git pushを使う）。プルリクエストの説明文の作成には使わない（代わりにリポジトリのプルリクエストのテンプレートを使う）。"
++description: "ステージした変更とチケットIDを受け取り、チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文からなるコミットメッセージを出力する。「コミットメッセージを書いて。チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文にしたい」、「ステージした変更のコミットメッセージを考えて」、「PROJ-123 のコミットメッセージを作ってください」、「この差分をコミットするので、メッセージをお願いします」、「commit message 書いて」、「Write a commit message for the staged changes」と頼まれたときに使う。プルリクエストの説明文やリリースノートを書くには使わない（代わりにその文書を直接書く依頼を使う）。変更を複数のコミットに分ける計画を立てるには使わない（代わりにコミットの分け方を直接相談する依頼を使う）。"
+ ---
+ 
+ # コミットメッセージを書く
+@@ -14,17 +14,17 @@
+ <!-- BEGIN GENERATED:triggers -->
+ 次のような依頼で使う。
+ 
+-- 「チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文でコミットメッセージを書いて」
+-- 「コミットメッセージを書いて」
+-- 「この変更のコミットメッセージを考えてください」
+-- 「ステージした差分からコミットメッセージを作って」
+-- 「チケット番号付きでコミットメッセージをお願い」
+-- 「write a commit message for the staged changes」
++- 「コミットメッセージを書いて。チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文にしたい」
++- 「ステージした変更のコミットメッセージを考えて」
++- 「PROJ-123 のコミットメッセージを作ってください」
++- 「この差分をコミットするので、メッセージをお願いします」
++- 「commit message 書いて」
++- 「Write a commit message for the staged changes」
+ 
+ 次の場合は使わない。
+ 
+-- コミットや push の実行 → 代わりに: git commit と git push
+-- プルリクエストの説明文の作成 → 代わりに: リポジトリのプルリクエストのテンプレート
++- プルリクエストの説明文やリリースノートを書く → 代わりに: その文書を直接書く依頼
++- 変更を複数のコミットに分ける計画を立てる → 代わりに: コミットの分け方を直接相談する依頼
+ 
+ 依頼の内容から自動で選ばれる。明示して呼ぶときは Claude Code では `/write-commit-message`、Codex では `$write-commit-message` と書く。
+ <!-- END GENERATED:triggers -->
+@@ -33,20 +33,19 @@
+ 
+ このファイルがあるディレクトリを `<skill>` と呼ぶ。スクリプトは Python 3.9 以上の標準ライブラリだけで動く。手順は番号の順に行い、飛ばさない。
+ 
+-1. 依頼からチケットID（`ticket`）を読み取る。依頼に無ければ、ここでユーザーに聞く（CTL-03）
+-2. `python3 <skill>/scripts/run.py start --set ticket=<チケットID> "<依頼文>"` を実行する。終了コード3なら、出力された質問をユーザーに聞き、答えを `--set` で渡してやり直す（CTL-01、STEP-01）
+-3. `python3 <skill>/scripts/collect_changes.py --ticket <start が出力した ticket の値>` を実行する。終了コード4なら、出力の「中断の理由:」の後の文を `python3 <skill>/scripts/run.py abort --reason <理由>` に渡し、abort が出力した本文をそのまま返答して終える。ファイルをステージし直さない（IN-01、STEP-02）
+-4. 手順3の出力の「差分の読み方」に書かれたコマンドだけを実行して差分を読む。「読まない」とあるファイルの差分は読まず、未ステージの変更と `git log` も読まない（IN-02）
+-5. 見本 `assets/examples/commit-message.txt` を写す元にして、`.skill-runs/write-commit-message/out/commit-message.txt` に書く（OUT-01）。1行目は「<チケットID> <要約>」、2行目は空行にし、3行目からは手順3の「本文の行頭」を同じ順のまま写して、各行の「: 」の後に説明を書く（OUT-02、OUT-04、STEP-02）。文末は「4. 決定表」の OUT-03 の表で決め、長さは OUT-05 に従い、OUT-06 と OUT-07 の記法を書かない。`git add` と `git commit` は実行しない
+-6. `python3 <skill>/scripts/run.py check` を実行する。指摘があれば、ルールIDを「4. 決定表」で引いて出力を直し、check をやり直す。check を3回実行しても指摘が残れば、`python3 <skill>/scripts/run.py abort --reason <残ったルールID>` で中断する（STEP-01）。検査や契約を変えて通さない（CTL-02）
+-7. 決めきれなかったことがあれば `.skill-runs/write-commit-message/notes.md` に「- 」の箇条書きで書き、`python3 <skill>/scripts/run.py finish` を実行する。終了コード1なら手順6に戻る。終了コード0なら、出力された本文をそのまま返答する（RPT-01）
++1. `python3 <skill>/scripts/collect_changes.py` を実行する。依頼にチケットIDがあれば `--ticket <依頼のチケットID>` を付ける。終了コードと出力の行から IN-01 の表で扱いを決める。チケットIDを聞くときは start の前にまとめて聞き、答えを `--ticket` に渡して実行し直す（IN-01、STEP-01、CTL-03）。`git add`、`git rm`、`git mv`、`git reset`、`git restore`、`git stash`、`git commit` は実行しない（STEP-03）
++2. `python3 <skill>/scripts/run.py start --set ticket=<手順1の「チケットID:」の値> "<依頼文>"` を実行する。終了コード3なら、出力された質問をユーザーに聞き、答えを `--set` で渡してやり直す（STEP-01、CTL-01）
++3. 手順1の「ファイル（本文の順）」のファイルごとに `git diff --cached -- <パス>` を読む。ステージしていない変更（`git diff`）、未追跡のファイル、`git log` は読まない（IN-02、STEP-03）
++4. 見本 `assets/examples/commit-message.txt` を写す元にして、`.skill-runs/write-commit-message/out/commit-message.txt` を書く（OUT-01）。1行目は `<チケットID> <説明>`、2行目は空行にする（OUT-02、OUT-04）。3行目からは手順1の「本文の行のひな形」を同じ順のまま写し、各行の「: 」の後に、手順3の差分にある変更だけを説明として書き足す（STEP-02、OUT-04、OUT-07）。説明は日本語の体言止めで、1行目と各説明を50文字以下にし、CI を止める記法を書かない（OUT-03、OUT-05、OUT-06）
++5. `python3 <skill>/scripts/run.py check` を実行する。指摘があれば、ルールIDを「4. 決定表」で引いて `commit-message.txt` を直す。検査や契約を変えて通さない（CTL-02）
++6. 決めきれなかったことがあれば `.skill-runs/write-commit-message/notes.md` に「- 」の箇条書きで書き、`python3 <skill>/scripts/run.py finish` を実行する。終了コード1なら手順5に戻る。終了コード0なら、出力された本文をそのまま返答する。コミットは実行しない（RPT-01、STEP-03）
+ 
+ ## 3. 入力
+ 
+ <!-- BEGIN GENERATED:inputs -->
+ | 項目 | キー | 受け付ける書き方 | 無いとき |
+ |---|---|---|---|
+-| チケットID | `ticket` | 文字列（大文字に揃える）。別名: チケット、チケット番号、課題キー、課題番号、ticket id、issue、issue key | start の前に聞く: 1行目の先頭に付けるチケットIDを教えてください（例: ABC-123） |
+```
+
+#### `.claude/skills/write-commit-message/assets/contract.json`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-commit-message/assets/contract.json
++++ subagent-2/.claude/skills/write-commit-message/assets/contract.json
+@@ -13,21 +13,21 @@
+         "チケット",
+         "チケット番号",
+         "課題キー",
+-        "課題番号",
++        "課題",
+         "ticket id",
+         "issue",
+         "issue key"
+       ],
+       "impact": "target",
+       "ask": true,
+-      "question": "1行目の先頭に付けるチケットIDを教えてください（例: ABC-123）"
++      "question": "コミットを紐づけるチケットID（例：PROJ-123）は何ですか"
+     }
+   ],
+   "outputs": [
+     {
+       "id": "commit-message",
+       "label": "コミットメッセージ",
+-      "path": "{run}/out/commit-message.txt",
++      "path": "{run}/out/*",
+       "rule": "OUT-01",
+       "count": {
+         "min": 1,
+@@ -48,75 +48,47 @@
+       ],
+       "checks": [
+         {
+-          "type": "require",
+-          "pattern": "^{in:ticket} \\S",
+-          "lines": "first",
+-          "rule": "OUT-02",
+-          "message": "1行目は、チケットIDと半角空白1つで始める"
++          "type": "command",
++          "run": "python3 {skill}/scripts/check_message.py {file} --root {root}",
++          "rule": "STEP-02",
++          "message": "行の形（OUT-02）、本文のファイルの一覧（STEP-02）、並べ順（OUT-04）、説明の長さ（OUT-05）をステージした変更と比べる"
+         },
+         {
+           "type": "forbid",
+-          "pattern": "^\\S+ (?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\([^)]*\\))?!?:",
++          "pattern": "(?i)^\\S+ (feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\([^)]*\\))?!?: ",
+           "lines": "first",
+           "rule": "OUT-02",
+           "message": "1行目に Conventional Commits の接頭辞を付けない"
+         },
+         {
+-          "type": "require",
+-          "pattern": "^$",
+-          "lines": [
+-            2
+-          ],
+-          "rule": "OUT-02",
+-          "message": "2行目は空行にする"
++          "type": "forbid",
++          "pattern": "^(?=.)[^\\u3040-\\u30ff\\u4e00-\\u9fff]*$",
++          "rule": "OUT-03",
+```
+
+#### `.claude/skills/write-commit-message/assets/examples/commit-message.txt`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-commit-message/assets/examples/commit-message.txt
++++ subagent-2/.claude/skills/write-commit-message/assets/examples/commit-message.txt
+@@ -1,6 +1,5 @@
+-ABC-12 計算モジュールに引き算の関数を追加する
++CALC-12 引き算の関数と使い方の文書を追加、util.py を改名
+ 
+-- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+-- src/calc.py: 引き算の関数 subtract を追加する
+-- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+-- tests/test_calc.py: subtract のテストを追加する
++- docs/usage.md: add と sub の呼び方を書いた文書を追加
++- src/calc.py: 引き算の関数 sub を追加
++- src/util.py -> src/helpers.py: ファイル名を helpers.py に変更
+```
+
+#### `.claude/skills/write-commit-message/assets/seal.json`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-commit-message/assets/seal.json
++++ subagent-2/.claude/skills/write-commit-message/assets/seal.json
+@@ -1,16 +1,15 @@
+ {
+   "runtime": "1.0.0",
+   "files": {
+-    "SKILL.md": "64ac6f169384e0ce4ff87904ede4ebeab6470a821c783e362f61fa395611d12f",
+-    "assets/contract.json": "c52dc4e2b3323d30c4c9f7a5123b544098c046b40382b18fadd9a5b03afb8b94",
+-    "assets/examples/commit-message.txt": "7b66be0dd3216d403307e5e2d3cd8165e782c4cd9b2417f19c910edbcdd6fbb7",
+-    "references/decisions.md": "932261a0735675428e50328c6186a8d37423f8da1af5e01d97b27bb685d8f4ec",
+-    "scripts/_changes.py": "ff79ffe7bfe1d3d2bb31e6b727582d7bba0cad0b89fd0ee2348d6f7dc6843578",
++    "SKILL.md": "9f4f175ef50298eaae9866cdfb3c79d9b21368dfce997c992d5c0a195942623b",
++    "assets/contract.json": "1ff7130be5a4678cabaa40cb9e24385fea036b476615053c865c3d66ee7e11b5",
++    "assets/examples/commit-message.txt": "47d3269a2c7e5a2e78bb70240adf22871c677994b6c71612f619d61d159fe81b",
++    "references/decisions.md": "54d6efc0af68bcb8e1e5e7293b8c5fabdb15220175bcdbef67266c02610fabcf",
+     "scripts/run.py": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76",
+     "scripts/_skillrt.py": "b76eceeda4fdcad10a4246a66a7d137d2400cec49cc62d95ec89fd463b784304",
+     "scripts/hook.py": "b0ccd614d242fcbbd2499da75d759b33b4cb8f7c7357563954570f15c3a7ef55",
+-    "scripts/collect_changes.py": "d56d9bded2fe8071a293ba5e73ff7715953db2e617b71efcb3b6cc9d02260c69",
++    "scripts/collect_changes.py": "4f788ce181ac4557de8df7df5307e3ffb8ac1af4f3d8a361ca9f6963b2140806",
+     "scripts/install.py": "38d335308dcf903e7a76e16aff4a94fdc119bbbb7423f98e66024c409de76695",
+-    "scripts/check_message.py": "9381ad13a31545630fa02b34b3393c17b02f612d14ec431e720b2b9f2cd5e308"
++    "scripts/check_message.py": "0b20a23aad3b8f0440ed2bfc575ca7a03a3219ab3f8e3f7d82635bd32089c2d1"
+   }
+ }
+```
+
+#### `.claude/skills/write-commit-message/dev/convergence-report.md`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-commit-message/dev/convergence-report.md
++++ subagent-2/.claude/skills/write-commit-message/dev/convergence-report.md
+@@ -6,23 +6,23 @@
+ 
+ | 項目 | 値 |
+ |---|---|
+-| runner | なし（収束テストを実行していない） |
++| runner | なし。利用者が依頼で収束テストを省くと指定した（skill-foundation の入力 `measure=skip`、STEP-02 の表の skip の行） |
+ | 1 runner あたりの人数 | なし |
+-| 課題 | `dev/evals.json`（T1-typical、T2-default、T3-edge、H1-holdout） |
++| 課題 | `dev/evals.json`（T1-typical、T2-default、T3-edge、H1-holdout。実行していない） |
+ | 合格基準 | status が全員、課題の expect_status と同じ。check が全員通過。スキル自身や hooks の登録を変えたエージェント（失格）がいない。files・structure・names が基準以上。最後のラウンドのレビューの検出率が全見本で 1.0。V1〜V7 の未対処が0件 |
+ 
+ ## ラウンドの一覧
+ 
+ | ラウンド | 課題 | status | files | structure | names | content | check | 失格 | V1〜V7 の未対処 |
+ |---|---|---|---|---|---|---|---|---|---|
+-| なし | | | | | | | | | |
++| なし（実行していない） | | | | | | | | | |
+ 
+ ## レビューの検出率（最後のラウンド）
+ 
+ | 見本 | 決定 | 検出率 | 余計な指摘 | 一致 |
+ |---|---|---|---|---|
+-| なし（`dev/probes.json` の reviews が無い） | | | | |
++| OUT-07-r1 | OUT-07 | 測っていない | | |
+ 
+ ## 結論
+ 
+-収束テストは実行していない。利用者が収束テストを省くと指定したため、spec の `convergence.skip_reason` にその理由を書いた（skill-foundation の STEP-02 の表の skip の行）。別の AI が同じ出力を作るかは測っていない。課題は `dev/evals.json` に用意してあるので、後で `convergence.py prepare` から実行できる。
++収束テストは実行していない。spec の `convergence.skip_reason` は「利用者が収束テストを省くと指定した」である。揺れの有無とレビューの検出率（OUT-07-r1）は測っていないので、別の AI が同じ依頼から同じメッセージを書くかは確かめていない。確かめたのは、`probe.py` の違反例 14 件、レビューの見本 1 件、標準の確認、Claude Code と Codex の hooks の配線である。
+```
+
+#### `.claude/skills/write-commit-message/dev/evals.json`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-commit-message/dev/evals.json
++++ subagent-2/.claude/skills/write-commit-message/dev/evals.json
+@@ -3,38 +3,47 @@
+     {
+       "id": "T1-typical",
+       "kind": "typical",
+-      "prompt": "ABC-12 のチケットで、ステージした変更のコミットメッセージを書いて",
++      "prompt": "CALC-12 のコミットメッセージを書いて",
+       "fixture": "dev/fixtures/basic",
+       "setup": [
+-        "sh {skill}/dev/fixtures/stage_changes.sh"
++        "printf '\\ndef sub(a, b):\\n    return a - b\\n' >> src/calc.py",
++        "git mv src/util.py src/helpers.py",
++        "mkdir -p docs && printf '# 使い方\\n\\nadd と sub を import して呼ぶ。\\n' > docs/usage.md",
++        "git add -A"
+       ],
+       "expect_status": "done"
+     },
+     {
+       "id": "T2-default",
+       "kind": "default",
+-      "prompt": "abc-12 のコミットメッセージをお願い",
++      "prompt": "ステージした変更のコミットメッセージを考えて",
+       "fixture": "dev/fixtures/basic",
+       "setup": [
+-        "sh {skill}/dev/fixtures/stage_changes.sh"
++        "git checkout -q -b feature/CALC-34-sub",
++        "printf '\\ndef sub(a, b):\\n    return a - b\\n' >> src/calc.py",
++        "git mv src/util.py src/helpers.py",
++        "mkdir -p docs && printf '# 使い方\\n\\nadd と sub を import して呼ぶ。\\n' > docs/usage.md",
++        "git add -A"
+       ],
+       "expect_status": "done"
+     },
+     {
+       "id": "T3-edge",
+       "kind": "edge",
+-      "prompt": "ABC-12 でコミットメッセージを書いてください",
++      "prompt": "PROJ-5 でコミットメッセージを作ってください",
+       "fixture": "dev/fixtures/basic",
+       "setup": [],
+-      "expect_status": "aborted"
++      "expect_status": "unused"
+     },
+     {
+       "id": "H1-holdout",
+       "kind": "holdout",
+-      "prompt": "WEB_APP-7 の README の修正をコミットしたいので、メッセージを作ってください",
++      "prompt": "calc-8 でコミットメッセージお願いします",
+       "fixture": "dev/fixtures/basic",
+       "setup": [
+-        "sh {skill}/dev/fixtures/stage_fix.sh"
++        "git rm -q src/util.py",
++        "printf '# calc\\n\\n足し算と引き算の関数を集めたプロジェクト。\\n' > README.md",
++        "git add -A"
+       ],
+       "expect_status": "done"
+     }
+```
+
+
+## T2-default
+
+### 実行の状態（期待: done）
+
+- subagent-1: done
+- subagent-2: done
+
+### 新しく作った名前（names。先頭 40 件）
+
+- subagent-1: `A-Za-z`, `API`, `Added`, `Apple`, `CHANGELOG`, `CI_DIRS`, `CODE_SPAN`, `CSV`, `CTL-02-builtin-hooks-claude`, `CTL-02-builtin-hooks-codex`, `Cargo`, `Changed`, `Changelogs`, `Deprecated`, `English`, `Gemfile`, `Git-155`, `Guiding`, `ISO`, `JA_CHARS`, `LOCK_FILES`, `MAX_DIFF_LINES_PER_FILE`, `MAX_ITEMS`, `OPTION_OUTSIDE_CODE`, `OUT-03-b`, `OUT-05-r1`, `OUT-06-b`, `OUT-07`, `OUT-07-a`, `OUT-07-b`, `OUT-07-c`, `OUT-07-r1`, `PIPE`, `POLITE`, `Pipfile`, `RUN_DIR`, `Removed`, `RuntimeError`, `STAGED_JSON`, `STEP-01-a`
+- subagent-2: `Added`, `Alice`, `All`, `Apple`, `BULLET_RE`, `Bug`, `CHANGELOG`, `CHANGES`, `CTL-02-builtin-hooks-claude`, `CTL-02-builtin-hooks-codex`, `Changed`, `Deprecated`, `ENTRY`, `Exception`, `Fixes`, `Git-155`, `H2_RE`, `H3_RE`, `HEADER`, `HISTORY`, `Initial`, `JA_RE`, `LINKREF_RE`, `MergeError`, `NAME`, `NUL`, `NotADirectoryError`, `OBr`, `OUT-03-b`, `OUT-04-b`, `OUT-04-r1`, `OUT-05-b`, `OUT-07`, `OUT-07-a`, `OUT-07-b`, `OUT-08`, `OUT-08-a`, `OUT-08-b`, `ROOT`, `RULES`
+
+### 一部のエージェントだけが作った・変えたファイル
+
+- `.claude/skills/write-changelog-entry/dev/fixtures/basic/CHANGELOG.md`: subagent-2
+- `.claude/skills/write-changelog-entry/dev/fixtures/basic/src/calc.py`: subagent-2
+- `.claude/skills/write-changelog-entry/dev/fixtures/basic/src/csvtool/__init__.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/basic/src/csvtool/cli.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/basic/src/csvtool/report.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/basic/tests/test_report.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/change/calc.py`: subagent-2
+- `.claude/skills/write-changelog-entry/dev/fixtures/change/src/csvtool/cli.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/change/src/csvtool/export.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/change/src/csvtool/report.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/change/tests/test_report.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/english/CHANGELOG.md`: subagent-2
+- `.claude/skills/write-changelog-entry/dev/fixtures/english/serve.py`: subagent-2
+- `.claude/skills/write-changelog-entry/dev/fixtures/holdout/README.md`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/holdout/src/csvtool/cli.py`: subagent-1
+- `.claude/skills/write-changelog-entry/dev/fixtures/nochangelog/README.md`: subagent-2
+- `.claude/skills/write-changelog-entry/dev/fixtures/nochangelog/greet.py`: subagent-2
+- `.claude/skills/write-changelog-entry/scripts/_changelog.py`: subagent-2
+- `.claude/skills/write-changelog-entry/scripts/apply_entry.py`: subagent-2
+- `.claude/skills/write-changelog-entry/scripts/collect_changes.py`: subagent-2
+- `.claude/skills/write-changelog-entry/scripts/collect_staged.py`: subagent-1
+
+### 中身の違い（抜粋）
+
+#### `.claude/skills/write-changelog-entry/SKILL.md`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-changelog-entry/SKILL.md
++++ subagent-2/.claude/skills/write-changelog-entry/SKILL.md
+@@ -1,12 +1,12 @@
+ ---
+ name: write-changelog-entry
+-description: "ステージ済みの差分を受け取り、CHANGELOG.md に足す1節を出力する。「変更履歴（CHANGELOG.md）に足す1節を、ステージ済みの差分から書いて」、「ステージした変更を CHANGELOG に追記する文を作ってください」、「git add した内容で、CHANGELOG.md の Unreleased に入れる項目をまとめて」、「今の staged diff から changelog の entry を書いて」、「Write a CHANGELOG entry for my staged changes」、「コミット前に、この変更を変更履歴に載せる文面を用意してほしい」と頼まれたときに使う。コミットメッセージを書くには使わない（代わりにコミットメッセージを書くスキル（write-commit-message など）を使う）。複数のコミットやタグの間の履歴からリリースノート全体を作るには使わない（代わりにgit log を読むリリースノート用の手順（このスキルはステージ済みの差分だけを読む）を使う）。"
++description: "ステージ済みの差分（git diff --cached）を受け取り、CHANGELOG.md の Unreleased に足す1節を Keep a Changelog の形で書く。「変更履歴（CHANGELOG.md）に足す1節を、ステージ済みの差分から書いて」、「ステージした変更から CHANGELOG のエントリを書いてください」、「git add した差分をもとに、CHANGELOG.md の Unreleased に追記して」、「今回の変更を変更履歴に足しておいて」、「Write a changelog entry from the staged diff」、「コミットする前に CHANGELOG.md を更新して」と頼まれたときに使う。コミットメッセージを書くには使わない（代わりにコミットメッセージを書くスキル（write-commit-message）を使う）。Unreleased を版番号の節に切り替えてリリースするには使わない（代わりにリリースの手順（版番号を決めて CHANGELOG.md の見出しを手で直す）を使う）。タグの間のコミット履歴から CHANGELOG.md 全体を作り直すには使わない（代わりに変更履歴の生成ツール（git-cliff）を使う）。"
+ ---
+ 
+-# ステージ済みの差分から CHANGELOG.md に足す1節を書く
++# ステージ済みの差分から変更履歴の1節を書く
+ 
+ <!-- BEGIN GENERATED:purpose -->
+-ステージ済みの差分を受け取り、CHANGELOG.md に足す1節を出力する
++ステージ済みの差分（git diff --cached）を受け取り、CHANGELOG.md の Unreleased に足す1節を Keep a Changelog の形で書く
+ <!-- END GENERATED:purpose -->
+ 
+ ## 1. 使う場面
+@@ -15,16 +15,17 @@
+ 次のような依頼で使う。
+ 
+ - 「変更履歴（CHANGELOG.md）に足す1節を、ステージ済みの差分から書いて」
+-- 「ステージした変更を CHANGELOG に追記する文を作ってください」
+-- 「git add した内容で、CHANGELOG.md の Unreleased に入れる項目をまとめて」
+-- 「今の staged diff から changelog の entry を書いて」
+-- 「Write a CHANGELOG entry for my staged changes」
+-- 「コミット前に、この変更を変更履歴に載せる文面を用意してほしい」
++- 「ステージした変更から CHANGELOG のエントリを書いてください」
++- 「git add した差分をもとに、CHANGELOG.md の Unreleased に追記して」
++- 「今回の変更を変更履歴に足しておいて」
++- 「Write a changelog entry from the staged diff」
++- 「コミットする前に CHANGELOG.md を更新して」
+ 
+ 次の場合は使わない。
+ 
+-- コミットメッセージを書く → 代わりに: コミットメッセージを書くスキル（write-commit-message など）
+-- 複数のコミットやタグの間の履歴からリリースノート全体を作る → 代わりに: git log を読むリリースノート用の手順（このスキルはステージ済みの差分だけを読む）
++- コミットメッセージを書く → 代わりに: コミットメッセージを書くスキル（write-commit-message）
++- Unreleased を版番号の節に切り替えてリリースする → 代わりに: リリースの手順（版番号を決めて CHANGELOG.md の見出しを手で直す）
++- タグの間のコミット履歴から CHANGELOG.md 全体を作り直す → 代わりに: 変更履歴の生成ツール（git-cliff）
+ 
+ 依頼の内容から自動で選ばれる。明示して呼ぶときは Claude Code では `/write-changelog-entry`、Codex では `$write-changelog-entry` と書く。
+ <!-- END GENERATED:triggers -->
+@@ -33,21 +34,21 @@
+ 
+ このファイルがあるディレクトリを `<skill>` と呼ぶ。スクリプトは Python 3.9 以上の標準ライブラリだけで動く。手順は番号の順に行い、飛ばさない。
+ 
+-1. 依頼から「3. 入力」の `language`（出力の言語）を読み取る。「3. 入力」に start の前に聞く項目は無いので、ユーザーに質問せずに進む。依頼に言語の指定が無ければ既定値 `ja` を使う（CTL-03）
+-2. プロジェクトのルートで `python3 <skill>/scripts/run.py start --set language=<言語> "<依頼文>"` を実行する。依頼に言語の指定が無ければ `--set` を付けない（CTL-01）
+-3. プロジェクトのルートで `python3 <skill>/scripts/collect_staged.py` を1回だけ実行する。終了コードが0でなければ、出力を書かずに IN-01 の表の理由で `python3 <skill>/scripts/run.py abort --reason <理由>` を実行し、abort が出力した本文をそのまま返答して終える。ステージの状態を変えるコマンド（`git add`、`git reset`、`git commit`、`git stash`）を実行しない（STEP-01、IN-01）
+-4. `collect_staged.py` の出力の「## 対象のファイル」と「## 差分」だけを読む。利用者から見える変更ごとに項目を1つ決め、STEP-02 の表で種類を決める。項目の数は出力の「項目の数の上限」以下にする（IN-02、STEP-02、OUT-06）
+-5. 見本 `assets/examples/changelog-entry.md` の形を写し、`.skill-runs/write-changelog-entry/out/changelog-entry.md` に節を書く。見出しの順は OUT-04、項目の順は OUT-05、文体は OUT-03、名前の書き方は OUT-07 に従う。プロジェクトの CHANGELOG.md は書き換えない（OUT-01、OUT-02）
+-6. `python3 <skill>/scripts/run.py check` を実行する。指摘があれば、ルールIDを「4. 決定表」で引いて出力を直す。検査や契約を変えて通さない（CTL-02）
+-7. 「6. 完了前チェックリスト」の項目を、出力と `collect_staged.py` の出力を見比べて確かめる。合わない項目があれば出力を直し、手順6に戻る（STEP-02、OUT-05、OUT-07）
+-8. 決めきれなかったことがあれば `.skill-runs/write-changelog-entry/notes.md` に「- 」の箇条書きで書き、`python3 <skill>/scripts/run.py finish` を実行する。終了コード1なら手順6に戻る。終了コード0なら、出力された本文をそのまま返答する（RPT-01）
++1. 依頼から「3. 入力」の項目を読み取る。表で「start の前に聞く」とある項目が依頼に無ければ、ここでまとめてユーザーに聞く（CTL-03）
++2. `python3 <skill>/scripts/run.py start --set <キー>=<値> "<依頼文>"` を実行する。終了コード3なら、出力された質問をユーザーに聞き、答えを `--set` で渡してやり直す（CTL-01）
++3. `python3 <skill>/scripts/collect_changes.py` を実行する。出力されたファイルの一覧、項目の言語、既存の Unreleased の項目、差分だけを材料にし、言語と一覧を自分で決め直さない（STEP-01、IN-02）。終了コード4か5なら、IN-01 の表の理由で `python3 <skill>/scripts/run.py abort --reason <理由>` を実行し、abort が出力した本文をそのまま返答して終える
++4. 差分の変更を、利用者から見た変更ごとにまとめ、STEP-02 の表で種類を決める。すべて「書かない」に当たれば、`python3 <skill>/scripts/run.py abort --reason 利用者に見える変更が無い` を実行し、abort が出力した本文をそのまま返答して終える（IN-01）
++5. 見本 `assets/examples/changelog-entry.md` を写して形をそろえ、`.skill-runs/write-changelog-entry/out/changelog-entry.md` に節を書く（OUT-01）。行の形は OUT-02、言語と文末は OUT-03、見出しと項目の並びは OUT-04、量は OUT-05、書かない項目は OUT-06 と OUT-08 に従う
+```
+
+#### `.claude/skills/write-changelog-entry/assets/contract.json`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-changelog-entry/assets/contract.json
++++ subagent-2/.claude/skills/write-changelog-entry/assets/contract.json
+@@ -6,13 +6,15 @@
+   "inputs": [
+     {
+       "key": "language",
+-      "label": "出力の言語",
++      "label": "項目の言語",
+       "type": "enum",
+       "enum": [
++        "auto",
+         "ja",
+         "en"
+       ],
+       "enum_aliases": {
++        "自動": "auto",
+         "日本語": "ja",
+         "japanese": "ja",
+         "英語": "en",
+@@ -25,13 +27,13 @@
+         "出力の言語"
+       ],
+       "impact": "reversible",
+-      "default": "ja"
++      "default": "auto"
+     }
+   ],
+   "outputs": [
+     {
+       "id": "changelog-entry",
+-      "label": "CHANGELOG.md に足す1節",
++      "label": "CHANGELOG.md に足す節",
+       "path": "{run}/out/changelog-entry.md",
+       "rule": "OUT-01",
+       "count": {
+@@ -46,92 +48,123 @@
+         {
+           "type": "final_newline",
+           "rule": "OUT-02"
+-        },
+-        {
+-          "type": "replace",
+-          "pattern": "^[*+] ",
+-          "with": "- ",
+-          "rule": "OUT-02",
+-          "message": "箇条書きの記号を `- ` に直した"
+         }
+       ],
+       "checks": [
+         {
+-          "type": "command",
+-          "run": "python3 {skill}/scripts/check_entry.py {file} --root {root} --language {in:language} --rule STEP-01",
+-          "rule": "STEP-01",
+-          "message": "collect_staged.py の記録があり、その後にステージの状態が変わっていない"
++          "type": "require",
++          "pattern": "^## \\[Unreleased\\]$",
++          "lines": "first",
++          "rule": "OUT-02",
++          "message": "1行目は `## [Unreleased]` にする"
+         },
+```
+
+#### `.claude/skills/write-changelog-entry/assets/examples/changelog-entry.md`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-changelog-entry/assets/examples/changelog-entry.md
++++ subagent-2/.claude/skills/write-changelog-entry/assets/examples/changelog-entry.md
+@@ -2,9 +2,9 @@
+ 
+ ### Added
+ 
+-- 列ごとの合計を JSON のファイルに書き出す `export` コマンドを追加した。
+-- `report` コマンドに、集計を始める日付を指定する `--since` オプションを追加した。
++- `calc sub` コマンドで2つの数の差を出せるようにした。
++- `calc mul` コマンドで2つの数の積を出せるようにした。
+ 
+ ### Fixed
+ 
+-- 空の CSV を読んだときに `report` コマンドが異常終了する不具合を直した。
++- `calc div` で0で割ったときに例外で止まらず、エラーを表示して終了コード1で終わるようにした。
+```
+
+#### `.claude/skills/write-changelog-entry/assets/seal.json`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-changelog-entry/assets/seal.json
++++ subagent-2/.claude/skills/write-changelog-entry/assets/seal.json
+@@ -1,15 +1,17 @@
+ {
+   "runtime": "1.0.0",
+   "files": {
+-    "SKILL.md": "f1f550f7f170c11f656de00afaf1961339dd4839af2a62dd10a4b93b2e216dcb",
+-    "assets/contract.json": "679cd6c2480735172c3a33f4402bde7728ae9f9c3270ddceee196abc4a48d52b",
+-    "assets/examples/changelog-entry.md": "2533ae67c311c3272cee052784ad6e7f5eea1af9f3f8f58873aad0fccb59f9fe",
+-    "references/decisions.md": "7af12a91e9387775467f5a5261001747f9ac69137c6ffa607cb9c8a6cde21cd6",
++    "SKILL.md": "d90768357c48ba5c69b014e3072a7f7636714d65a63b0a1cdcd23c56c10361d6",
++    "assets/contract.json": "31b4446a6790b3aabcca07d5399655b45a18cfcede92ff26650651f06ae44ec1",
++    "assets/examples/changelog-entry.md": "07f423b8f7aa53ee919047c29cf3398e7eba53f30ab400856d3e6d1469cb1c31",
++    "references/decisions.md": "88ba729e3237ef69fd673936693b2f9f400d4e6faabfbd50f90a880becad71cb",
+     "scripts/run.py": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76",
+-    "scripts/collect_staged.py": "c2ae4ddf3d5e3bb5d2584f34d95534d971de3987c1c22e57f3d211f9f3076a4f",
+     "scripts/_skillrt.py": "b76eceeda4fdcad10a4246a66a7d137d2400cec49cc62d95ec89fd463b784304",
+     "scripts/hook.py": "b0ccd614d242fcbbd2499da75d759b33b4cb8f7c7357563954570f15c3a7ef55",
+-    "scripts/check_entry.py": "afecad45df5e6e71be707d9a35edf2cba7aecf35e68ae96f25bd787da48713b4",
+-    "scripts/install.py": "38d335308dcf903e7a76e16aff4a94fdc119bbbb7423f98e66024c409de76695"
++    "scripts/collect_changes.py": "b4c3cee0240b93128d2f16a818adb9bb29cf1669b8a38778ee7831d416485a5d",
++    "scripts/apply_entry.py": "a55cf6f3dd133e5c04340a65d2f05e8e67ae0dd79ef0dac324736338169a0025",
++    "scripts/check_entry.py": "3d0ae44481063796021882b5593b2fbc6645f32875870ac105ab767e15c43fc9",
++    "scripts/install.py": "38d335308dcf903e7a76e16aff4a94fdc119bbbb7423f98e66024c409de76695",
++    "scripts/_changelog.py": "7164f003538562fa151e8247ba6df9382dca55a67d53ea3ee9d3016ba1848c27"
+   }
+ }
+```
+
+#### `.claude/skills/write-changelog-entry/dev/convergence-report.md`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-changelog-entry/dev/convergence-report.md
++++ subagent-2/.claude/skills/write-changelog-entry/dev/convergence-report.md
+@@ -1,13 +1,13 @@
+ # write-changelog-entry 収束テストの記録
+ 
+-このスキルの作成に関わっていない独立エージェント（Claude Code と Codex。起動できないときは Agent ツールの subagent）に同じ依頼を解かせ、出力の違い（揺れ）を測った記録である。生データは `dev/results/convergence/round-<R>/` にある。
++このスキルの作成に関わっていない独立エージェント（Claude Code と Codex。起動できないときは Agent ツールの subagent）に同じ依頼を解かせ、出力の違い（揺れ）を測るための記録である。生データは `dev/results/convergence/round-<R>/` に置く。
+ 
+ ## 条件
+ 
+ | 項目 | 値 |
+ |---|---|
+-| runner | なし。skill-foundation の入力 `measure` が `skip` だったので、STEP-02 の表の skip の行に従い実行していない |
+-| 1 runner あたりの人数 | なし（実行していない） |
++| runner | なし。skill-foundation の入力 `measure` が `skip` だったため、STEP-02 の表の skip の行に従い実行していない |
++| 1 runner あたりの人数 | 実行していない（spec の `convergence.agents` は 2） |
+ | 課題 | `dev/evals.json`（T1-typical、T2-default、T3-edge、H1-holdout） |
+ | 合格基準 | status が全員、課題の expect_status と同じ。check が全員通過。スキル自身や hooks の登録を変えたエージェント（失格）がいない。files・structure・names が基準以上。最後のラウンドのレビューの検出率が全見本で 1.0。V1〜V7 の未対処が0件 |
+ 
+@@ -21,16 +21,11 @@
+ 
+ | 見本 | 決定 | 検出率 | 余計な指摘 | 一致 |
+ |---|---|---|---|---|
+-| なし。収束テストを実行していないので、`STEP-02-r1`、`OUT-05-r1`、`OUT-07-r1` の検出率は測っていない | | | | |
+-
+-## ラウンド 1
+-
+-### 揺れと分類
+-
+-| # | 課題 | 揺れ | 分類 | 対処 |
+-|---|---|---|---|---|
+-| なし | 実行していない | | | |
++| STEP-02-r1 | STEP-02 | 測っていない | | |
++| OUT-04-r1 | OUT-04 | 測っていない | | |
+ 
+ ## 結論
+ 
+-収束テストは実行していない。理由は spec の `convergence.skip_reason` の「利用者が収束テストを省くと指定した」である。独立エージェントの間で出力が揃うか、段 review の決定（STEP-02、OUT-05、OUT-07）の見本をレビューで見つけられるかは確かめていない。決定の守らせ方は `probe.py` の違反例（13件）とレビューの見本（3件）、標準の確認、hooks の配線で確かめた。
++- 収束テストは実行していない。spec の `convergence.skip_reason` は「利用者が収束テストを省くと指定した」である
++- 機械で確かめたのは `probe.py` の違反例 15 件、レビューの見本 2 件、標準の確認と hooks の配線だけである。独立エージェントの出力が揃うかと、STEP-02・OUT-04 のレビューの検出率は確かめていない
++- 測るときは `python3 <skill-foundation>/scripts/convergence.py prepare .claude/skills/write-changelog-entry --round 1` から始める
+```
+
+#### `.claude/skills/write-changelog-entry/dev/evals.json`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.claude/skills/write-changelog-entry/dev/evals.json
++++ subagent-2/.claude/skills/write-changelog-entry/dev/evals.json
+@@ -3,48 +3,48 @@
+     {
+       "id": "T1-typical",
+       "kind": "typical",
+-      "prompt": "ステージ済みの差分から、CHANGELOG.md に足す1節を日本語で書いて",
++      "prompt": "ステージ済みの差分から、CHANGELOG.md に足す1節を書いて",
+       "fixture": "dev/fixtures/basic",
+       "setup": [
+-        "git add README.md src tests && git -c user.name=eval -c user.email=eval@example.com commit -q --allow-empty -m base",
+-        "cp -R {skill}/dev/fixtures/change/. .",
+-        "git add src tests"
++        "git add -A && (git -c user.name=eval -c user.email=eval@example.com commit -q -m base || true)",
++        "python3 -c \"import base64,pathlib;p=pathlib.Path('src/calc.py');p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(base64.b64decode('IiIiY2FsYyDjgrPjg57jg7Pjg4njgIIiIiIKCmltcG9ydCBzeXMKCgpkZWYgYWRkKGEsIGIpOgogICAgcmV0dXJuIGEgKyBiCgoKZGVmIHN1YihhLCBiKToKICAgIHJldHVybiBhIC0gYgoKCmRlZiBtdWwoYSwgYik6CiAgICByZXR1cm4gYSAqIGIKCgpkZWYgZGl2KGEsIGIpOgogICAgaWYgYiA9PSAwOgogICAgICAgIHJhaXNlIFplcm9EaXZpc2lvbkVycm9yKCIwIOOBp+OBr+WJsuOCjOOBquOBhCIpCiAgICByZXR1cm4gYSAvIGIKCgpkZWYgbWFpbihhcmd2KToKICAgIG9wLCBhLCBiID0gYXJndlsxXSwgZmxvYXQoYXJndlsyXSksIGZsb2F0KGFyZ3ZbM10pCiAgICB0cnk6CiAgICAgICAgaWYgb3AgPT0gImFkZCI6CiAgICAgICAgICAgIHByaW50KGFkZChhLCBiKSkKICAgICAgICBlbGlmIG9wID09ICJzdWIiOgogICAgICAgICAgICBwcmludChzdWIoYSwgYikpCiAgICAgICAgZWxpZiBvcCA9PSAibXVsIjoKICAgICAgICAgICAgcHJpbnQobXVsKGEsIGIpKQogICAgICAgIGVsaWYgb3AgPT0gImRpdiI6CiAgICAgICAgICAgIHByaW50KGRpdihhLCBiKSkKICAgIGV4Y2VwdCBaZXJvRGl2aXNpb25FcnJvciBhcyBleGM6CiAgICAgICAgcHJpbnQoZiLjgqjjg6njg7w6IHtleGN9IiwgZmlsZT1zeXMuc3RkZXJyKQogICAgICAgIHJldHVybiAxCiAgICByZXR1cm4gMAoKCmlmIF9fbmFtZV9fID09ICJfX21haW5fXyI6CiAgICBzeXMuZXhpdChtYWluKHN5cy5hcmd2KSkK'))\"",
++        "git add src/calc.py"
+       ],
+       "expect_status": "done"
+     },
+     {
+       "id": "T2-default",
+       "kind": "default",
+-      "prompt": "今ステージしてある変更を、変更履歴に載せる文にまとめてほしい",
+-      "fixture": "dev/fixtures/basic",
++      "prompt": "今回ステージした変更を変更履歴に足しておいて",
++      "fixture": "dev/fixtures/nochangelog",
+       "setup": [
+-        "git add README.md src tests && git -c user.name=eval -c user.email=eval@example.com commit -q --allow-empty -m base",
+-        "cp -R {skill}/dev/fixtures/change/. .",
+-        "git add src tests"
++        "git add -A && (git -c user.name=eval -c user.email=eval@example.com commit -q -m base || true)",
++        "python3 -c \"import base64,pathlib;p=pathlib.Path('greet.py');p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(base64.b64decode('IiIiZ3JlZXQg44Kz44Oe44Oz44OJ44CCIiIiCgppbXBvcnQgc3lzCgoKZGVmIG1haW4oYXJndik6CiAgICBhcmdzID0gYXJndlsxOl0KICAgIHVwcGVyID0gIi0tdXBwZXIiIGluIGFyZ3MKICAgIGlmIHVwcGVyOgogICAgICAgIGFyZ3MucmVtb3ZlKCItLXVwcGVyIikKICAgIG5hbWUgPSBhcmdzWzBdIGlmIGFyZ3MgZWxzZSAid29ybGQiCiAgICBtZXNzYWdlID0gZiJoZWxsbywge25hbWV9IgogICAgcHJpbnQobWVzc2FnZS51cHBlcigpIGlmIHVwcGVyIGVsc2UgbWVzc2FnZSkKICAgIHJldHVybiAwCgoKaWYgX19uYW1lX18gPT0gIl9fbWFpbl9fIjoKICAgIHN5cy5leGl0KG1haW4oc3lzLmFyZ3YpKQo='))\"",
++        "git add greet.py"
+       ],
+       "expect_status": "done"
+     },
+     {
+       "id": "T3-edge",
+       "kind": "edge",
+-      "prompt": "git add した内容で、CHANGELOG の Unreleased に入れる項目を書いて",
++      "prompt": "git add した差分をもとに、CHANGELOG.md の Unreleased に追記して",
+       "fixture": "dev/fixtures/basic",
+       "setup": [
+-        "git add README.md src tests && git -c user.name=eval -c user.email=eval@example.com commit -q --allow-empty -m base",
+-        "cp -R {skill}/dev/fixtures/change/. .",
+-        "git add tests"
++        "git add -A && (git -c user.name=eval -c user.email=eval@example.com commit -q -m base || true)",
++        "python3 -c \"import base64,pathlib;p=pathlib.Path('tests/test_calc.py');p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(base64.b64decode('ZnJvbSBzcmMuY2FsYyBpbXBvcnQgYWRkLCBkaXYKCgpkZWYgdGVzdF9hZGQoKToKICAgIGFzc2VydCBhZGQoMSwgMikgPT0gMwoKCmRlZiB0ZXN0X2RpdigpOgogICAgYXNzZXJ0IGRpdig2LCAzKSA9PSAyCg=='))\"",
++        "git add tests/test_calc.py"
+       ],
+       "expect_status": "aborted"
+     },
+     {
+       "id": "H1-holdout",
+       "kind": "holdout",
+-      "prompt": "Write a CHANGELOG entry in English for the changes I have staged.",
+-      "fixture": "dev/fixtures/basic",
++      "prompt": "Write a changelog entry from the staged diff",
++      "fixture": "dev/fixtures/english",
+       "setup": [
+```
+
+
+## T3-edge
+
+### 実行の状態（期待: done）
+
+- subagent-1: done
+- subagent-2: done
+
+### 新しく作った名前（names。先頭 40 件）
+
+- subagent-1: `ANGLE`, `Apple`, `BLOCK`, `BOM`, `BULLET_LABELS`, `Backlog`, `CMakeLists`, `CTL-02-builtin-hooks-codex`, `C_LIKE`, `Comments`, `DASH`, `Dockerfile`, `EMPTY_SENTENCE`, `ESLint`, `EXIT_FINDINGS`, `EXIT_HANDWRITTEN`, `EXIT_SOURCE`, `EXIT_USAGE`, `FIX`, `FIXME`, `FROM`, `Flavored`, `GFM`, `GIT_CEILING_DIRECTORIES`, `GNUmakefile`, `Gemfile`, `Git-155`, `Google`, `Guide`, `HACK`, `HASH`, `HTML`, `IN-02-a`, `IsADirectoryError`, `Issues`, `Last`, `MARKER_REGEX`, `Make`, `Makefile`, `NOTE`
+- subagent-2: `A-Z0-9_`, `About`, `Apple`, `BINARY_PROBE`, `COMMENT_TOKEN`, `CTL-02-builtin-hooks-codex`, `Codetags`, `Comments`, `Creating`, `DEFAULTS`, `Documentation`, `ESLint`, `EXCLUDE`, `Example`, `Exception`, `FILE`, `FIRST_FEW_BYTES`, `FIXME`, `Flavored`, `Git`, `Git-155`, `Google`, `Guide`, `HACK`, `HEAD_CONDITIONS`, `HEAD_LIST`, `HEAD_UNREADABLE`, `IN-02-a`, `Include`, `Informational`, `InputError`, `L14`, `LABELS`, `LOCATION`, `LOOSE_LOCATION`, `Last`, `List`, `MARKER_FORM`, `NAME`, `NUL`
+
+### 一部のエージェントだけが作った・変えたファイル
+
+- `.agents/skills/analyze-todo-comment/SKILL.md`: subagent-2
+- `.agents/skills/analyze-todo-comment/assets/contract.json`: subagent-2
+- `.agents/skills/analyze-todo-comment/assets/examples/todo-comments.md`: subagent-2
+- `.agents/skills/analyze-todo-comment/assets/seal.json`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/convergence-report.md`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/evals.json`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/.github/ci.yml`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/.gitignore`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/README.md`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/assets/logo.bin`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/build/bundle.js`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/src/app.py`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/src/legacy.txt`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/fixtures/basic/src/util.js`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/probes.json`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/research.md`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/results/probe-results.json`: subagent-2
+- `.agents/skills/analyze-todo-comment/dev/spec.json`: subagent-2
+- `.agents/skills/analyze-todo-comment/references/decisions.md`: subagent-2
+- `.agents/skills/analyze-todo-comment/scripts/_skillrt.py`: subagent-2
+- `.agents/skills/analyze-todo-comment/scripts/collect_todo.py`: subagent-2
+- `.agents/skills/analyze-todo-comment/scripts/hook.py`: subagent-2
+- `.agents/skills/analyze-todo-comment/scripts/install.py`: subagent-2
+- `.agents/skills/analyze-todo-comment/scripts/run.py`: subagent-2
+- `.agents/skills/convert-todo-comment/SKILL.md`: subagent-1
+- `.agents/skills/convert-todo-comment/assets/contract.json`: subagent-1
+- `.agents/skills/convert-todo-comment/assets/examples/todo-comments.md`: subagent-1
+- `.agents/skills/convert-todo-comment/assets/seal.json`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/convergence-report.md`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/evals.json`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/basic/README.md`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/basic/src/app.py`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/basic/src/legacy.py`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/basic/src/page.html`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/basic/src/query.sql`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/basic/src/util.ts`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/handwritten/TODO.md`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/handwritten/src/main.py`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/mixed/Dockerfile`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/mixed/NOTES.txt`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/mixed/cmd/server/main.go`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/mixed/deploy/app.yaml`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/fixtures/mixed/web/src/index.js`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/probes.json`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/research.md`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/results/probe-results.json`: subagent-1
+- `.agents/skills/convert-todo-comment/dev/spec.json`: subagent-1
+- `.agents/skills/convert-todo-comment/references/decisions.md`: subagent-1
+- `.agents/skills/convert-todo-comment/scripts/_skillrt.py`: subagent-1
+- `.agents/skills/convert-todo-comment/scripts/collect_todo.py`: subagent-1
+- `.agents/skills/convert-todo-comment/scripts/hook.py`: subagent-1
+- `.agents/skills/convert-todo-comment/scripts/install.py`: subagent-1
+- `.agents/skills/convert-todo-comment/scripts/run.py`: subagent-1
+
+### 中身の違い（抜粋）
+
+#### `.codex/hooks.json`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.codex/hooks.json
++++ subagent-2/.codex/hooks.json
+@@ -16,7 +16,7 @@
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/convert-todo-comment/scripts/hook.py\" --platform codex pre-tool",
++            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex pre-tool",
+             "timeout": 30
+           }
+         ]
+@@ -38,7 +38,7 @@
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/convert-todo-comment/scripts/hook.py\" --platform codex post-tool",
++            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex post-tool",
+             "timeout": 120
+           }
+         ]
+@@ -58,7 +58,7 @@
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/convert-todo-comment/scripts/hook.py\" --platform codex stop",
++            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex stop",
+             "timeout": 300
+           }
+         ]
+@@ -78,7 +78,7 @@
+         "hooks": [
+           {
+             "type": "command",
+-            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/convert-todo-comment/scripts/hook.py\" --platform codex prompt",
++            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex prompt",
+             "timeout": 10
+           }
+         ]
+```
+
+#### `.skill-runs/skill-foundation/notes.md`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.skill-runs/skill-foundation/notes.md
++++ subagent-2/.skill-runs/skill-foundation/notes.md
+@@ -1,6 +1,6 @@
+-- 種類（kind）は、出力が「ソースコードの TODO コメントを形式を変えて写した一覧」であると読み、intake.md の2章の表で convert にした。write（人が読む文章）と analyze（調べた結果の要約）とも読める境目である
+-- Codex だけで使う指定に合わせ、targets を codex、置き場を .agents/skills にした。手順10の `install.py --project .` は --targets を省くと Claude Code 側（.claude/skills/convert-todo-comment のリンクと .claude/settings.json の hooks）も足したので、`install.py --project . --targets claude --uninstall` で外した
+-- render_skill.py が生成する SKILL.md の「1. 使う場面」には、Codex だけのスキルでも Claude Code での呼び方 `/convert-todo-comment` が出る（生成部分なので手で直していない）
+-- 一覧の既定の置き場 `todo-comments.md` は好みで決めた（OUT-01）。手書きされやすい TODO.md と名前を分けた
+-- 一覧が前回と同じ中身だと出力が「変わっていない」扱いになり件数に数えられないため、契約の件数を 0〜1 件にし、一覧があることと最新であることは finish のときに report.sections の `collect_todo.py --report` で確かめる
+-- Codex で hooks を動かすには、利用者が Codex の `/hooks` で .codex/hooks.json に足した hooks を信頼する必要がある
++- 名前の動詞は analyze にした。出力の「一覧の Markdown」は intake.md の2章の表の write（人が読む文書）・convert（形式を変えた写し）にも読めるが、中身は文章を書くのでなくソースコードを調べて集めた結果なので、analyze（調べた結果の要約や数値）を選んだ
++- 入力 `source` の既定値は `.`（プロジェクト全体）にした。analyze の入力の候補の impact は target だが、全体を調べても出力を作り直せば済むので reversible にした
++- 入力 `markers` の既定値は、依頼の「TODO コメント」に合わせて `TODO` だけにした。FIXME・XXX・HACK は入力で足す
++- 手順10の `install.py --project .` は `--targets` の既定が claude,codex のため、`.claude/skills/analyze-todo-comment` と `.claude/settings.json` の hooks も作った。`install.py --uninstall --targets claude` で外し、Codex だけ（`.agents/skills` と `.codex/hooks.json`）に置いた
++- 作ったスキルの SKILL.md の生成部分（「1. 使う場面」、CTL-04、「8. 制御の仕組み」）は Claude Code の起動方法と設定にも触れる。render_skill.py が生成する文なので変えていない
++- Codex では、足した hooks を `/hooks` で信頼するまで hooks は動かない。信頼するまでは run.py の check と finish だけが検査する
+```
+
+#### `.skill-runs/skill-foundation/report.md`（subagent-1 と subagent-2）
+
+```diff
+--- subagent-1/.skill-runs/skill-foundation/report.md
++++ subagent-2/.skill-runs/skill-foundation/report.md
+@@ -4,38 +4,38 @@
+ 
+ ## 作ったスキル
+ 
+-- 名前: `convert-todo-comment`（ソースコードの TODO コメントを一覧の Markdown にする）
+-- 目的: ソースコードを受け取り、その中の TODO コメントをファイル・行・本文の一覧にした Markdown を出力する
+-- 本体の置き場: `.agents/skills/convert-todo-comment`
++- 名前: `analyze-todo-comment`（ソースコードの TODO コメントを一覧の Markdown にする）
++- 目的: ソースコードのディレクトリを受け取り、その中の TODO コメントを集めて、ファイルと行番号を付けた一覧の Markdown を出力する
++- 本体の置き場: `.agents/skills/analyze-todo-comment`
+ - 対象の製品: Codex
+ - 言語: 日本語（ja）
+-- 起動: 依頼の内容から自動で選ばれる。明示は `$convert-todo-comment`（Codex）
+-- 入力: `source`（変換元。既定値 "."）、`output`（出力のファイル。既定値 "todo-comments.md"）
++- 起動: 依頼の内容から自動で選ばれる。明示は `$analyze-todo-comment`（Codex）
++- 入力: `source`（調べる対象。既定値 "."）、`markers`（拾う目印。既定値 ["TODO"]）、`output`（出力のパス。既定値 "todo-comments.md"）
+ - 出力: `todo-list`（TODO コメントの一覧。`{in:output}`）
+ 
+ ## 決定と守らせ方
+ 
+ | 区分 | 決定の数 | ID |
+ |---|---|---|
+-| スキル固有・機械が守ったかを確かめる（runtime・format・validate のどれかを含む） | 7 | IN-02、STEP-01、STEP-02、OUT-01、OUT-02、OUT-03、OUT-05 |
+-| スキル固有・機械で確かめない（review か doc で確かめる） | 3 | IN-01、STEP-03、OUT-04 |
++| スキル固有・機械が守ったかを確かめる（runtime・format・validate のどれかを含む） | 9 | IN-02、STEP-01、STEP-02、OUT-01、OUT-02、OUT-03、OUT-04、OUT-05、OUT-07 |
++| スキル固有・機械で確かめない（review か doc で確かめる） | 3 | IN-01、STEP-03、OUT-06 |
+ | 標準（全スキル共通） | 6 | CTL-01、CTL-02、CTL-03、CTL-04、CTL-05、RPT-01 |
+-| 対象外にした軸 | 5 | P1（手順は start、collect_todo.py の実行、check、finish の4つで、順序は CTL-01 と STEP-02 で決まる）、O3（一覧の文言は collect_todo.py が出す固定の語だけで、AI が文を書かない（STEP-02））、O5（一覧の行数は TODO コメントの件数で決まり、collect_todo.py が全件を書く（STEP-02）。AI が件数を絞る余地が無い）、O7（出力は一覧の Markdown 1つだけで、一緒に変えるファイルが無い）、O8（出力はコードでなく一覧の Markdown で、lint やテストを止める記法を書く場所が無い） |
++| 対象外にした軸 | 4 | P1（手順は start、collect_todo.py、check、finish の4つで、順序は SKILL.md の「2. 手順」と CTL-01 で決まり、並べ替えられる作業が残っていない）、P4（使うコマンドは run.py と collect_todo.py（中で git ls-files を使う）だけで、STEP-02 と IN-02 が決める）、O7（出力は1ファイルだけで、一緒に変えるファイルが無い）、O8（出力は TODO コメントの一覧の Markdown で、lint の無効化コメントやテストの skip を書く場所が無い） |
+ 
+-- 段（control）: runtime 8、format 0、validate 10、script 9、template 0、review 1、doc 4
+-- 答えの決め方（スキル固有）: 出力を使う道具や形式の公式の決まり 2、機械で守らせられる答え 5、AI の判断と覚える概念が少ない答え 2、最も普及している答え（好みで決めた） 1
++- 段（control）: runtime 6、format 0、validate 13、script 11、template 0、review 1、doc 4
++- 答えの決め方（スキル固有）: 依頼の指定 1、出力を使う道具や形式の公式の決まり 2、機械で守らせられる答え 5、AI の判断と覚える概念が少ない答え 3、最も普及している答え（好みで決めた） 1
+ 
+ 機械で守らせない決定と理由（spec の why_not_machine）:
+-- IN-01: 痕跡が残らない：依頼をどう読んだかは一覧に残らない。読み違えて足した行は STEP-01 と STEP-02 の検査が止める
+-- STEP-03: 痕跡が残らない：abort したときは一覧が無く、どの終了コードで止まったかは出力に残らない
+-- OUT-04: 痕跡が残らない：上書きした後の一覧からは、元のファイルが手で書かれていたかを判定できない
++- IN-01: 痕跡が残らない：中断したときは出力を書かないので、検査する出力が無い
++- STEP-03: 痕跡が残らない：失敗したときの扱いは実行したコマンドに残り、出力には残らない
++- OUT-06: 費用が見合わない：上書きする前の中身は検査の時点で残っておらず、比べるには写しを取る仕組みが要る
+ 
+ ## 作ったスキルの検証
+ 
+ | 検証 | 結果 |
+ |---|---|
+ | `skill_lint.py --final` | エラー 0 件、警告 1 件 |
+-| `probe.py` | 違反例 17 件中 失敗 0 件／配線 10 件中 失敗 0 件（Codex） |
++| `probe.py` | 違反例 19 件中 失敗 0 件／配線 10 件中 失敗 0 件（Codex） |
+ 
+ ## 収束テスト
+ 
+@@ -48,17 +48,17 @@
+ 
+ ## プロジェクトに置いたもの
+ 
+-- `.agents/skills/convert-todo-comment/`: スキルの本体（ファイル 28 個）
+```

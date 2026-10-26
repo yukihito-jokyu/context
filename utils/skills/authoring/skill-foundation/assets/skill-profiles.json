@@ -1,0 +1,442 @@
+{
+  "_note": "スキルの種類（spec の kind。名前の動詞）ごとの観点。references/skill-profiles.md は render_skill.py がここから生成する。extra_axes は init_skill.py が spec の extra_axes の先頭に入れ、skill_lint.py が確かめる。inputs は spec の inputs に同じ key で入れるか、excluded_inputs に理由を書く（skill_lint.py）。research は dev/research.md の当たり先",
+  "write": {
+    "label": "人が読む文章で、AI が文を組み立てるもの（メッセージ、説明、文書）",
+    "readings": {
+      "O2": "見出しの並び、1行目の形、段落と箇条書きの使い分け",
+      "O3": "文末（です・ます／である）、人称、用語の表",
+      "O5": "全体の行数、1行の文字数、箇条書きの項目数の上限"
+    },
+    "extra_axes": [
+      {
+        "prefix": "OUT",
+        "name": {
+          "ja": "引用と根拠の示し方（何を引用し、どこへのリンクを付けるか）",
+          "en": "How quotations and evidence are shown (what to quote, what to link)"
+        }
+      }
+    ],
+    "focus": [
+      "O2",
+      "O3",
+      "O5"
+    ],
+    "inputs": [
+      {
+        "key": "language",
+        "label": {
+          "ja": "出力の言語",
+          "en": "Output language"
+        },
+        "impact": "reversible"
+      }
+    ],
+    "research": {
+      "ja": "出力を読む場所の公式の書式（例：`git help commit`、Keep a Changelog）と、プロジェクトの文書の決まり（CLAUDE.md、AGENTS.md）",
+      "en": "The official format of where the output is read (e.g. `git help commit`, Keep a Changelog) and the project's writing rules (CLAUDE.md, AGENTS.md)"
+    },
+    "checks": [
+      "headings（見出しの並び）",
+      "line_length（1行の長さ）",
+      "max_lines（全体の行数）",
+      "forbid（使わない語、使わない書き方）"
+    ],
+    "evals": {
+      "typical": "最もよくある題材で、材料がそろった依頼",
+      "default": "文体や長さを指定しない依頼",
+      "edge": "材料が極端に少ない、または多い依頼",
+      "holdout": "別の題材の依頼"
+    }
+  },
+  "review": {
+    "label": "指摘の一覧（レビュー結果）",
+    "readings": {
+      "P2": "指摘にするか、しないかの境目",
+      "O2": "指摘1件の形（ルールID、パス:行、説明）と節の並び",
+      "O4": "指摘の並べ順と、重大度の区分"
+    },
+    "extra_axes": [
+      {
+        "prefix": "OUT",
+        "name": {
+          "ja": "指摘の根拠の示し方（ルールID と、根拠の記述の引用）",
+          "en": "How each finding shows its basis (rule ID and quoted evidence)"
+        }
+      },
+      {
+        "prefix": "OUT",
+        "name": {
+          "ja": "判定（承認・差し戻し）の決め方",
+          "en": "How the verdict (approve or request changes) is decided"
+        }
+      }
+    ],
+    "focus": [
+      "P2",
+      "O2",
+      "O4"
+    ],
+    "inputs": [
+      {
+        "key": "target",
+        "label": {
+          "ja": "レビューする対象（差分、ファイル、ブランチ）",
+          "en": "What to review (diff, files, branch)"
+        },
+        "impact": "target"
+      }
+    ],
+    "research": {
+      "ja": "レビューで使う決まりの一覧（プロジェクトの規約、使う linter のルールの一覧）",
+      "en": "The list of rules used in the review (project conventions, the rule list of the linter in use)"
+    },
+    "checks": [
+      "require（各指摘の行がルールIDで始まる）",
+      "headings（節の並び）",
+      "command（指摘のルールIDが決まりの一覧にあるかをスクリプトで確かめる）"
+    ],
+    "evals": {
+      "typical": "違反を1つ含む差分のレビュー",
+      "default": "指摘の基準を指定しない依頼",
+      "edge": "違反が無い差分（指摘0件で承認になる）",
+      "holdout": "違反を複数含む、別の種類の差分"
+    }
+  },
+  "fix": {
+    "label": "既存のコードや文書の修正",
+    "readings": {
+      "P5": "直せないときの扱い（直さずに報告する、途中まで直す）",
+      "O1": "変更してよいファイルの範囲",
+      "O6": "既存の内容のうち、変えない部分",
+      "O8": "検査を通すための skip、無効化コメント、設定の緩和"
+    },
+    "extra_axes": [
+      {
+        "prefix": "STEP",
+        "name": {
+          "ja": "直した後に回す検査（どのコマンドが通れば直ったとするか）",
+          "en": "Checks run after the fix (which commands must pass)"
+        }
+      }
+    ],
+    "focus": [
+      "P5",
+      "O1",
+      "O6",
+      "O8"
+    ],
+    "inputs": [
+      {
+        "key": "target",
+        "label": {
+          "ja": "直す対象（ファイル、エラー）",
+          "en": "What to fix (files, errors)"
+        },
+        "impact": "target"
+      }
+    ],
+    "research": {
+      "ja": "直した後に回す検査コマンドの公式の文書と `--help`（終了コード、対象の指定）",
+      "en": "Official docs and `--help` of the check command run after the fix (exit codes, how to select targets)"
+    },
+    "checks": [
+      "command（直した後の検査コマンドが通る）",
+      "control.allow_changes で変更してよい範囲を絞る（CTL-05）"
+    ],
+    "evals": {
+      "typical": "1か所の不具合を直す依頼",
+      "default": "直す範囲を指定しない依頼",
+      "edge": "直せない依頼（材料が足りない、範囲の外）",
+      "holdout": "複数のファイルにまたがる修正の依頼"
+    }
+  },
+  "convert": {
+    "label": "入力の全体を、要素を落とさずに別の形式へ写したもの（入力の要素と出力の要素が1対1）",
+    "readings": {
+      "P5": "対応の無い値の扱い",
+      "O2": "変換先の形式（スキーマ、見出し、列）",
+      "O4": "値の対応表（型、日付、空の値、文字コード）"
+    },
+    "extra_axes": [
+      {
+        "prefix": "OUT",
+        "name": {
+          "ja": "変換で失われる情報の扱い（落とす、注記する、中断する）",
+          "en": "What happens to information lost in conversion (drop, annotate, abort)"
+        }
+      }
+    ],
+    "focus": [
+      "P5",
+      "O2",
+      "O4"
+    ],
+    "inputs": [
+      {
+        "key": "source",
+        "label": {
+          "ja": "変換元のファイル",
+          "en": "Source file"
+        },
+        "impact": "target"
+      }
+    ],
+    "research": {
+      "ja": "変換元と変換先の形式の公式の仕様（スキーマ、文字コード、日付の形式）",
+      "en": "Official specifications of the source and target formats (schema, encoding, date format)"
+    },
+    "checks": [
+      "json_schema（変換先が JSON のとき）",
+      "command（変換先を読み戻し、元と比べるスクリプト）"
+    ],
+    "evals": {
+      "typical": "標準的な入力の変換",
+      "default": "変換先の版や細かい形式を指定しない依頼",
+      "edge": "対応の無い値を含む入力",
+      "holdout": "構造の違う入力"
+    }
+  },
+  "analyze": {
+    "label": "入力を調べて、条件に合う部分を集めたもの、数えたもの、要約したもの",
+    "readings": {
+      "I4": "読むデータの範囲（期間、対象）",
+      "P3": "数える・集める・並べる処理（すべてスクリプトにする）",
+      "O4": "数値の丸め、単位、並べ順"
+    },
+    "extra_axes": [
+      {
+        "prefix": "OUT",
+        "name": {
+          "ja": "数値の根拠の示し方（数えたコマンドと対象）",
+          "en": "How each number shows its source (the command and the data counted)"
+        }
+      }
+    ],
+    "focus": [
+      "I4",
+      "P3",
+      "O4"
+    ],
+    "inputs": [
+      {
+        "key": "source",
+        "label": {
+          "ja": "調べるデータ",
+          "en": "Data to analyze"
+        },
+        "impact": "target"
+      },
+      {
+        "key": "period",
+        "label": {
+          "ja": "対象の期間",
+          "en": "Period"
+        },
+        "impact": "reversible"
+      }
+    ],
+    "research": {
+      "ja": "データを出す道具の公式の文書（出力の形式、期間の指定、件数の上限）",
+      "en": "Official docs of the tool that produces the data (output format, period options, limits)"
+    },
+    "checks": [
+      "command（出力の数値をスクリプトで数え直し、一致を確かめる）",
+      "require（数値に単位がある）"
+    ],
+    "evals": {
+      "typical": "よくある範囲のデータを調べる依頼",
+      "default": "期間や対象を指定しない依頼",
+      "edge": "データが0件の依頼",
+      "holdout": "別の種類のデータを調べる依頼"
+    }
+  },
+  "report": {
+    "label": "定期的な報告書",
+    "readings": {
+      "O2": "節の並び",
+      "O4": "期間の区切り（開始と終了、タイムゾーン）",
+      "O6": "前回の報告の扱い（上書き、別名で保存）"
+    },
+    "extra_axes": [
+      {
+        "prefix": "OUT",
+        "name": {
+          "ja": "前回との比較の示し方",
+          "en": "How the comparison with the previous report is shown"
+        }
+      }
+    ],
+    "focus": [
+      "O2",
+      "O4",
+      "O6"
+    ],
+    "inputs": [
+      {
+        "key": "period",
+        "label": {
+          "ja": "報告の期間",
+          "en": "Reporting period"
+        },
+        "impact": "target"
+      }
+    ],
+    "research": {
+      "ja": "報告を載せる場所の書式と、前回までの報告（プロジェクトの既存の出力）",
+      "en": "The format of where the report is posted, and previous reports (existing outputs of the project)"
+    },
+    "checks": [
+      "headings（節の並び）",
+      "require（期間の行の形）",
+      "name_pattern（日付を含むファイル名）"
+    ],
+    "evals": {
+      "typical": "前回の報告がある、よくある期間の報告",
+      "default": "期間を指定しない依頼",
+      "edge": "期間の中に材料が無い依頼",
+      "holdout": "初回（前回の報告が無い）の依頼"
+    }
+  },
+  "setup": {
+    "label": "環境や設定ファイル",
+    "readings": {
+      "P5": "途中で失敗したときに元に戻すか",
+      "O1": "設定ファイルの置き場",
+      "O6": "既にある設定の扱い（残す、足す、置き換える）"
+    },
+    "extra_axes": [
+      {
+        "prefix": "STEP",
+        "name": {
+          "ja": "設定が効いたことの確かめ方（実行して確かめるコマンド）",
+          "en": "How to confirm the setting works (the command that proves it)"
+        }
+      }
+    ],
+    "focus": [
+      "P5",
+      "O1",
+      "O6"
+    ],
+    "inputs": [
+      {
+        "key": "target",
+        "label": {
+          "ja": "設定する対象（道具、環境）",
+          "en": "What to set up (tool, environment)"
+        },
+        "impact": "target"
+      }
+    ],
+    "research": {
+      "ja": "設定する道具の公式の設定リファレンスと、設定が効いたことを確かめるコマンド",
+      "en": "The official configuration reference of the tool, and a command that confirms the setting took effect"
+    },
+    "checks": [
+      "json_schema（設定ファイルの形）",
+      "command（設定を読み込ませて確かめる）"
+    ],
+    "evals": {
+      "typical": "設定が無いプロジェクトでの依頼",
+      "default": "指定の少ない依頼",
+      "edge": "既に設定があるプロジェクトでの依頼",
+      "holdout": "別の構成のプロジェクトでの依頼"
+    }
+  },
+  "generate": {
+    "label": "新しいコードやファイル（文章以外）",
+    "readings": {
+      "O1": "生成するファイルのパスと名前の完全な一覧",
+      "O2": "ファイルの骨組み（ひな形）",
+      "O6": "同じ名前のファイルがあるときの扱い",
+      "O8": "lint の無効化コメント、型検査の無視、テストの skip"
+    },
+    "extra_axes": [
+      {
+        "prefix": "STEP",
+        "name": {
+          "ja": "生成した後に回す検査（format、lint、テスト）",
+          "en": "Checks run after generation (format, lint, tests)"
+        }
+      }
+    ],
+    "focus": [
+      "O1",
+      "O2",
+      "O6",
+      "O8"
+    ],
+    "inputs": [
+      {
+        "key": "name",
+        "label": {
+          "ja": "生成する単位の名前",
+          "en": "Name of the unit to generate"
+        },
+        "impact": "target"
+      }
+    ],
+    "research": {
+      "ja": "生成するものの公式のひな形と、format・lint・テストの道具の公式の文書（検査を止める記法の一覧）",
+      "en": "Official templates of what is generated, and official docs of the format/lint/test tools (their suppression notations)"
+    },
+    "checks": [
+      "name_pattern（ファイル名）",
+      "headings か require（骨組み）",
+      "forbid（lint の無効化コメント、テストの skip）",
+      "command（format・lint・テスト）"
+    ],
+    "evals": {
+      "typical": "よくある単位を1つ生成する依頼",
+      "default": "置き場や名前を指定しない依頼",
+      "edge": "同じ名前のファイルが既にある依頼",
+      "holdout": "別の種類の単位を生成する依頼"
+    }
+  },
+  "run": {
+    "label": "上のどれでもない（コマンドの実行など）",
+    "readings": {
+      "I3": "実行してはいけない状況",
+      "P4": "実行するコマンドの一覧と引数",
+      "P5": "失敗したときの再試行と中断"
+    },
+    "extra_axes": [
+      {
+        "prefix": "OUT",
+        "name": {
+          "ja": "実行の記録の残し方（コマンド、終了コード、時刻）",
+          "en": "How runs are recorded (command, exit code, time)"
+        }
+      }
+    ],
+    "focus": [
+      "I3",
+      "P4",
+      "P5"
+    ],
+    "inputs": [
+      {
+        "key": "target",
+        "label": {
+          "ja": "実行の対象",
+          "en": "Target of the run"
+        },
+        "impact": "target"
+      }
+    ],
+    "research": {
+      "ja": "実行するコマンドの公式の文書と `--help`（引数、終了コード、副作用）",
+      "en": "Official docs and `--help` of the commands to run (arguments, exit codes, side effects)"
+    },
+    "checks": [
+      "require（記録の行の形）",
+      "command（記録とコマンドの結果の一致）"
+    ],
+    "evals": {
+      "typical": "よくある条件での実行の依頼",
+      "default": "引数を指定しない依頼",
+      "edge": "実行してはいけない状況での依頼",
+      "holdout": "別の対象での実行の依頼"
+    }
+  }
+}

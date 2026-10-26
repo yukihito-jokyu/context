@@ -1,0 +1,3788 @@
+=== .agents/skills/analyze-todo-comment/SKILL.md
+---
+name: analyze-todo-comment
+description: "ソースコードのディレクトリを受け取り、その中の TODO コメントを集めて、ファイルと行番号つきの一覧の Markdown を出力する。「ソースコードの TODO コメントを一覧の Markdown にして」、「このリポジトリに残っている TODO を全部洗い出して、一覧にまとめてほしい」、「src 配下の TODO コメントを、ファイルと行番号つきの Markdown にしてください」、「コードのどこに TODO が何件あるか一覧で見たい」、「List all TODO comments in this codebase as Markdown」、「TODO コメントの一覧を Markdown の表で出して」と頼まれたときに使う。TODO コメントに書かれた作業を実装して解消するには使わない（代わりにコードの直接の編集を使う）。TODO コメントを Issue やチケットとして登録するには使わない（代わりにIssue 管理ツール（例：`gh issue create`）を使う）。コードの問題点をレビューして指摘するには使わない（代わりにコードレビュー用のスキルを使う）。"
+---
+
+# ソースコードの TODO コメントを一覧の Markdown にする
+
+<!-- BEGIN GENERATED:purpose -->
+ソースコードのディレクトリを受け取り、その中の TODO コメントを集めて、ファイルと行番号つきの一覧の Markdown を出力する
+<!-- END GENERATED:purpose -->
+
+## 1. 使う場面
+
+<!-- BEGIN GENERATED:triggers -->
+次のような依頼で使う。
+
+- 「ソースコードの TODO コメントを一覧の Markdown にして」
+- 「このリポジトリに残っている TODO を全部洗い出して、一覧にまとめてほしい」
+- 「src 配下の TODO コメントを、ファイルと行番号つきの Markdown にしてください」
+- 「コードのどこに TODO が何件あるか一覧で見たい」
+- 「List all TODO comments in this codebase as Markdown」
+- 「TODO コメントの一覧を Markdown の表で出して」
+
+次の場合は使わない。
+
+- TODO コメントに書かれた作業を実装して解消する → 代わりに: コードの直接の編集
+- TODO コメントを Issue やチケットとして登録する → 代わりに: Issue 管理ツール（例：`gh issue create`）
+- コードの問題点をレビューして指摘する → 代わりに: コードレビュー用のスキル
+
+依頼の内容から自動で選ばれる。明示して呼ぶときは Codex では `$analyze-todo-comment` と書く。
+<!-- END GENERATED:triggers -->
+
+## 2. 手順
+
+このファイルがあるディレクトリを `<skill>` と呼ぶ。スクリプトは Python 3.9 以上の標準ライブラリだけで動く。手順は番号の順に行い、飛ばさない。
+
+1. 依頼を「4. 決定表」の IN-01 の表に当てはめ、扱いを決める。依頼から「3. 入力」の `source`（調べるディレクトリ）を読み取る。表で「start の前に聞く」とある項目は無いので、ユーザーに質問せずに進む（CTL-03）
+2. プロジェクトのルートで `python3 <skill>/scripts/run.py start --set source=<調べるディレクトリ> "<依頼文>"` を実行する。依頼にディレクトリが無ければ `--set` を付けない（既定値 `.`）。終了コード3なら、出力された質問をユーザーに聞き、答えを `--set` で渡してやり直す（CTL-01）
+3. プロジェクトのルートで `python3 <skill>/scripts/collect_todo.py collect --source <start が出力した source の値> --out .skill-runs/analyze-todo-comment/out/todo-comments.md` を実行する。一覧は `collect_todo.py` が見本 `assets/examples/todo-comments.md` と同じ形で書く。TODO コメントを `grep` や `rg` で探さず、一覧を手で書いたり書き足したりしない（STEP-01、OUT-01）
+4. 手順3の `collect_todo.py` が終了コード0以外で終わったら、`python3 <skill>/scripts/run.py abort --reason "<collect_todo.py が出力した1行目>"` を実行し、abort が出力した本文をそのまま返答して終える（STEP-02）
+5. `python3 <skill>/scripts/run.py check` を実行する。指摘があれば、ルールIDを「4. 決定表」で引き、手順3のコマンドで一覧を書き直す。検査や契約を変えて通さない（CTL-02）
+6. 手順1で IN-01 の表が notes.md に書くとしたことを `.skill-runs/analyze-todo-comment/notes.md` に「- 」の箇条書きで書き、`python3 <skill>/scripts/run.py finish` を実行する。終了コード1なら手順5に戻る。終了コード0なら、出力された本文をそのまま返答する（RPT-01）
+
+## 3. 入力
+
+<!-- BEGIN GENERATED:inputs -->
+| 項目 | キー | 受け付ける書き方 | 無いとき |
+|---|---|---|---|
+| 調べるディレクトリ | `source` | パス。別名: 対象、調べるデータ、ディレクトリ、フォルダ、dir、directory、path、target | 既定値 `.` |
+
+入力は `run.py start --set <キー>=<値>` で渡す。キーは表のキー・項目名・別名のどれでもよく、全角と半角、大文字と小文字、`-`・`_`・空白の違いは吸収される。契約に無いキーは無視して記録する。依頼文そのものは最後の引数に渡す。依頼文の中の「キー: 値」の行も読む。
+<!-- END GENERATED:inputs -->
+
+## 4. 決定表
+
+<!-- BEGIN GENERATED:decisions -->
+| ID | 決定 | 守らせ方 |
+|---|---|---|
+| IN-01 | 依頼を次の表で扱う。表の行を上から当てはめ、最初に当たった行に従う。 | doc: SKILL.md の手順1と手順6 |
+| IN-02 | 読むファイルは、入力 `source`（プロジェクトのルートからの相対パス）の下の、次の表で決まるファイルだけにする。どの行の場合も、シンボリックリンク、NUL バイトのあるファイル（バイナリ）、文書の拡張子（`.md`、`.markdown`、`.mdx`、`.rst`、`.txt`、`.adoc`）のファイルは読まない。読むファイルの一覧は `scripts/collect_todo.py` が決め、AI は別にファイルを開いて探さない。 | script, validate: scripts/collect_todo.py の collect が読むファイルを決める。契約の command 検査（collect_todo.py verify）が、読む範囲の外のファイルの行を IN-02 で指摘する |
+| STEP-01 | TODO コメントを探す、判定する、数える、並べる処理は、`python3 <skill>/scripts/collect_todo.py collect` だけで行う。`grep`、`rg`、`git grep`、`find` で探さず、一覧を手で書いたり書き足したりしない。TODO コメントの判定の規則は次のとおりである。行の先頭か空白の直後にコメントの印（`//`、`/*`、`*`、`#`、`--`、`;`、`<!--`、`%`）があり、その直後（空白とタブは挟んでよい）に大文字の `TODO` が1語として続く行を、TODO コメントとする。小文字の `todo`、コメントの途中にある `TODO`、`TODOS` は TODO コメントにしない。 | script, validate: scripts/collect_todo.py の collect が判定して集める。契約の command 検査（collect_todo.py verify）が、規則に当たらない行を STEP-01 で指摘する |
+| STEP-02 | `collect_todo.py collect` が終了コード0以外で終わったら、一覧を手で作らずに、`python3 <skill>/scripts/run.py abort --reason "<collect_todo.py が出力した1行目>"` を実行して中断する。 | doc: SKILL.md の手順4 |
+| OUT-01 | 一覧は `.skill-runs/analyze-todo-comment/out/todo-comments.md` に1つだけ書く。`collect_todo.py collect` の `--out` にこのパスを渡して書かせる。毎回このファイルを書き直し、リポジトリの中のほかのファイルには書かない。 | validate: 契約の outputs.todo-list の path と count |
+| OUT-02 | 一覧は、見本 `assets/examples/todo-comments.md` と同じ形にする。1行目は見出し `# TODO コメントの一覧`、空行の後に `- 対象: `、`- 件数: `、`- 数えたコマンド: ` の3行、空行の後に見出しの行 `\| ファイル \| 行 \| 識別子 \| 内容 \|` と区切りの行 `\|---\|---\|---\|---\|` と TODO コメント1つにつき1行の表を置く。これ以外の行（前置き、まとめ、空行の追加）を書かない。セルの中の `\|` は `\\|` と書く。TODO が0件のときも、表の見出しの行と区切りの行は書く。行末に空白を置かず、ファイルの末尾は改行1つで終える。 | format, script, validate: scripts/collect_todo.py の collect が形を出す。契約の format が行末の空白と末尾の改行を直し、headings と forbid の検査と collect_todo.py verify が、形の違いを OUT-02 で指摘する |
+| OUT-03 | 表の「識別子」の列には `TODO(` と `)` の間の文字列を、「内容」の列には `TODO` と識別子の後の文から、先頭の空白と `:`、末尾の `*/` と `-->` を除いた文字列を、元のコメントのまま写す。訳したり、要約したり、言い換えたりしない。識別子か内容が空なら `-` と書く。見出しと項目の名前は、`collect_todo.py` が出す日本語の文言から変えない。 | script, validate: scripts/collect_todo.py の collect がコメントから写す。collect_todo.py verify が、元のコメントと違うセルを OUT-03 で指摘する |
+| OUT-04 | 表の行は、ファイルのパス（プロジェクトのルートからの相対パス。区切りは `/`）の文字コード順に並べ、同じファイルの中は行番号（1 から数える）の小さい順に並べる。件数の行は `- 件数: <表の行の数> 件（<表に出たファイルの数> ファイル）` と書く。 | script, validate: scripts/collect_todo.py の collect が並べて数える。契約の require 検査と collect_todo.py verify が、並べ順と件数の違いを OUT-04 で指摘する |
+| OUT-05 | `collect_todo.py` が見つけた TODO コメントを、件数の上限を設けずにすべて載せる。1つの TODO コメントは表の1行にし、同じ行を2回載せない。内容は TODO のある1行だけを写し、続く行は載せない。 | script, validate: scripts/collect_todo.py の collect がすべてを出す。collect_todo.py verify が、載っていない TODO コメントと重なった行を OUT-05 で指摘する |
+| OUT-06 | `- 対象: ` の行には入力 `source` の値を `` ` `` で囲んで書き、`- 数えたコマンド: ` の行には `python3 <プロジェクトのルートからの collect_todo.py のパス> collect --source <source>` を `` ` `` で囲んで書く。どちらも `collect_todo.py collect` が出した行から変えない。 | script, validate: scripts/collect_todo.py の collect が2行を出す。契約の require 検査と collect_todo.py verify が、2行の違いを OUT-06 で指摘する |
+| RPT-01 | 最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。 | runtime, validate, review: scripts/run.py の finish と abort が本文を組み立て、.skill-runs/<name>/report.md にも保存する。check と finish が notes.md の形を検査する |
+| CTL-01 | 手順の最初に `run.py start`、出力を書いた後に `run.py check`、最後に `run.py finish` を実行する。`finish` が終了コード0で終わるまで、完了と返答しない。 | runtime, validate: scripts/run.py。finish は契約の検査に通らないと終了コード1で終わる |
+| CTL-02 | `run.py start` から `run.py finish` までの間、スキルの保護ファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`）と、プロジェクトに登録したこのスキルの hooks を変えない。出力が契約に合わないときは、出力の方を直す。保護ファイルが封印（`assets/seal.json`）と違うと `run.py start` が終了コード1で止まるので、そのときは出力された指摘をユーザーに伝えて止まる。 | runtime, validate: scripts/run.py の start が保護ファイルのハッシュと hooks の登録を記録し、check と finish が比べる。`start --restart` は記録を最初の start から引き継ぐ。hooks が編集の前に止める。start は封印と保護ファイルを比べ、違えば始めない |
+| CTL-03 | ユーザーに聞くことは `run.py start` の前にまとめて聞く。start の後に聞く必要が出たときは、`run.py wait --question <質問>` を実行してから聞く。聞けない状況では既定値を使い、報告の「既定値で決めた値」に載せる。 | runtime, doc: scripts/run.py の start は、聞くべき入力が無いと終了コード3で止まり、質問を出力する。wait は hooks の強制を止める |
+| CTL-04 | hooks は、このスキルの実行中（status: active）に、編集の後の検査、応答を終える前の検査、保護ファイルの編集の停止の3つを行う。実行していないときは、封印したスキル（`assets/seal.json` がある）の保護ファイルの編集に、Claude Code で確認を求めることだけを行う。ユーザーの発言を止めたり書き換えたりしない。 | runtime: scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する |
+| CTL-05 | `run.py start` から `run.py finish` までの間に作る・変えるファイルは、「5. 出力の契約」の出力と `control.allow_changes` に挙げたものだけにする。作業用のメモや一時ファイルも、出力の置き場の外に作らない。 | runtime, validate: scripts/run.py の start が git の作業ツリーの状態を記録し、check と finish が比べる。編集の直後には hooks が知らせる |
+
+#### IN-01 の決定表
+
+| 依頼 | 扱い |
+|---|---|
+| `TODO` のほかの印（`FIXME`、`XXX`、`HACK`）も集めるよう求める | `TODO` だけを集める（STEP-01）。集めなかった印を、finish の前に `.skill-runs/analyze-todo-comment/notes.md` に「- <印> は集めていない（TODO だけを集める）」の形で1行ずつ書く |
+| TODO の作業の実装、Issue への登録、一覧を `.skill-runs/` の外のファイル（例：`TODO.md`）に書くことを求める | 一覧を `.skill-runs/analyze-todo-comment/out/todo-comments.md` に作るだけにする（OUT-01）。しなかったことを notes.md に「- <求められたこと> はしていない（一覧を作るだけ）」の形で書く |
+| 上のどれでもない | 手順に進む |
+
+#### IN-02 の決定表
+
+| プロジェクトのルート | 読むファイル |
+|---|---|
+| git の作業ツリーの中 | `git ls-files -z --cached --others --exclude-standard -- <source>` が出すファイル（追跡しているファイルと、`.gitignore` で無視されていない未追跡のファイル） |
+| 上のどれでもない（git が無い） | `source` の下のすべてのファイル。ただし `.git`、`.skill-runs`、`node_modules` という名前のディレクトリの中は読まない |
+
+理由・良い例・悪い例は [references/decisions.md](references/decisions.md) にある。
+<!-- END GENERATED:decisions -->
+
+## 5. 出力の契約
+
+<!-- BEGIN GENERATED:contract -->
+| 出力 | 置き場 | 件数 | 検査（ルールID） |
+|---|---|---|---|
+| todo-list TODO コメントの一覧 | `{run}/out/todo-comments.md` | 1〜1 件（OUT-01） | ファイル名が `^todo-comments\.md$` に一致（OUT-01）。自動で直す: 行末の空白を消す（OUT-02）。自動で直す: 末尾の改行を1つにする（OUT-02）。見出し（レベル *）が 「TODO コメントの一覧」 の順で過不足なく並ぶ（見出しは1行目の `# TODO コメントの一覧` だけにする）（OUT-02）。`^(?!(?:# TODO コメントの一覧\|- 対象: .*\|- 件数: .*\|- 数えたコマンド: .*\|\\|.*)$).+` に一致する行が無い（見出し、3つの項目の行、表の行のほかに行を書かない）（OUT-02）。`^- 件数: \d+ 件（\d+ ファイル）$` に一致する行がある（件数は `- 件数: <数> 件（<数> ファイル）` と書く）（OUT-04）。`^- 対象: `{in:source}`$` に一致する行がある（対象の行には入力 source の値を書く）（OUT-06）。`python3 {skill}/scripts/collect_todo.py verify --root {root} --file {file} --source {in:source}` が通る。IN-02、STEP-01、OUT-02、OUT-03、OUT-04、OUT-05、OUT-06 の指摘も出す（collect_todo.py collect で一覧を書き直す）（STEP-01） |
+
+`{run}` は実行記録の置き場 `.skill-runs/analyze-todo-comment` を指す。`run.py start` の前からあったファイルで、内容が変わっていないものは検査しない。
+
+- 保護ファイルが実行中に変わっていない（CTL-02）
+- 上の出力のほかに、start の後に変わったファイルが無い（CTL-05。git の作業ツリーで判定し、git が無いときは検査しない）
+<!-- END GENERATED:contract -->
+
+## 6. 完了前チェックリスト
+
+<!-- BEGIN GENERATED:checklist -->
+- [ ] RPT-01 最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。
+- [ ] `python3 <skill>/scripts/run.py finish` が終了コード0で終わった
+<!-- END GENERATED:checklist -->
+
+## 7. 報告
+
+<!-- BEGIN GENERATED:report -->
+最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない（RPT-01）。決めきれなかったことは、finish の前に `.skill-runs/analyze-todo-comment/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを「## 補足」に入れる。中断するときは `run.py abort --reason <理由>` を実行し、abort が出力した本文を同じようにそのまま使う。本文の形は次のとおり。
+
+```text
+<出力 todo-list の本文>
+
+---
+
+## 結果
+
+analyze-todo-comment: 完了（検証に合格）
+
+## 出力
+
+- `<パス>`（<出力ID> <出力の名前>）
+
+## 既定値で決めた値
+
+- <項目>（<キー>）: <値>（無ければ「- なし」）
+
+## 入力で読めなかった値
+
+- <内容>（無ければ「- なし」）
+
+## 検証
+
+- `run.py finish`: 指摘 0 件
+
+## 補足
+
+- <notes.md の箇条書き。無ければ「- なし」>
+```
+<!-- END GENERATED:report -->
+
+## 8. 制御の仕組み
+
+<!-- BEGIN GENERATED:control -->
+| 仕組み | いつ働くか | 何をするか |
+|---|---|---|
+| `scripts/run.py start` | 手順の始め | 入力を正規化し（表記ゆれ・全角・未知のキーを受け入れる）、既定値で補い、保護ファイルのハッシュと git の作業ツリーの状態を記録する。保護ファイルが封印（`assets/seal.json`）と違えば始めない（終了コード1） |
+| `scripts/run.py check` と `finish` | 出力を書いた後と最後 | 契約（`assets/contract.json`）の format で出力を直してから検査する。finish は通ったときだけ実行を終える |
+| hooks の pre-tool | ファイルを編集する前 | 保護ファイルと実行記録の編集を止める（Claude Code は確認を求め、Codex は拒否する）。実行していないときも、封印したスキルの保護ファイルの編集に Claude Code で確認を求める |
+| hooks の post-tool | ファイルを編集した後 | 出力に当たるファイルを format で直し、検査し、指摘を返す。出力でも変えてよいファイルでもなければ CTL-05 の指摘を返す |
+| hooks の stop | 応答を終える前 | 出力全体を検査し、通るまで応答を終えさせない（最大 3 回。超えると status: failed） |
+| hooks の prompt | ユーザーが発言したとき | 質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない |
+
+hooks は、このスキルの実行中（`.skill-runs/analyze-todo-comment/state.json` の status が active）だけ出力を検査する。hooks が無い環境でも、`run.py check` と `finish` が同じ検査をする。
+
+hooks の登録: `python3 <skill>/scripts/install.py --project <プロジェクトのルート>`（Codex は `.codex/hooks.json` に追記する。Codex では、追記した hooks を `/hooks` で信頼するまで動かない）
+
+保護ファイル（スキルのディレクトリからの相対パス）: `SKILL.md`、`scripts/**`、`assets/**`、`references/**`
+
+このスキル（決定、契約、手順、スクリプト）を変えるときは、次の順にする。保護ファイルだけを直接書き換えると、封印と違うため次の `run.py start` が止まる（CTL-02）。`<skill-foundation>` は skill-foundation のディレクトリを指す。
+
+1. 実行中なら `python3 <skill>/scripts/run.py abort --reason <理由>` で止める
+2. `dev/spec.json` を直す。手で書く部分（この SKILL.md の「2. 手順」、`scripts/` のスキル固有のスクリプト、`references/`、`assets/examples/`）は直接直す
+3. `python3 <skill-foundation>/scripts/render_skill.py --dir <skill>` で生成した部分を作り直す
+4. 決定や契約を変えたなら `dev/probes.json` の違反例も合わせ、`python3 <skill-foundation>/scripts/probe.py <skill>` を通す
+5. `python3 <skill-foundation>/scripts/skill_lint.py <skill> --final --seal` を通す。通ると封印し直す
+<!-- END GENERATED:control -->
+
+=== .agents/skills/analyze-todo-comment/assets/contract.json
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "analyze-todo-comment",
+  "language": "ja",
+  "targets": [
+    "codex"
+  ],
+  "inputs": [
+    {
+      "key": "source",
+      "label": "調べるディレクトリ",
+      "type": "path",
+      "aliases": [
+        "対象",
+        "調べるデータ",
+        "ディレクトリ",
+        "フォルダ",
+        "dir",
+        "directory",
+        "path",
+        "target"
+      ],
+      "impact": "reversible",
+      "default": "."
+    }
+  ],
+  "outputs": [
+    {
+      "id": "todo-list",
+      "label": "TODO コメントの一覧",
+      "path": "{run}/out/todo-comments.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "name_pattern": "^todo-comments\\.md$",
+      "format": [
+        {
+          "type": "trailing_space",
+          "rule": "OUT-02"
+        },
+        {
+          "type": "final_newline",
+          "rule": "OUT-02"
+        }
+      ],
+      "checks": [
+        {
+          "type": "headings",
+          "equals": [
+            "TODO コメントの一覧"
+          ],
+          "rule": "OUT-02",
+          "message": "見出しは1行目の `# TODO コメントの一覧` だけにする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^(?!(?:# TODO コメントの一覧|- 対象: .*|- 件数: .*|- 数えたコマンド: .*|\\|.*)$).+",
+          "rule": "OUT-02",
+          "message": "見出し、3つの項目の行、表の行のほかに行を書かない"
+        },
+        {
+          "type": "require",
+          "pattern": "^- 件数: \\d+ 件（\\d+ ファイル）$",
+          "min": 1,
+          "max": 1,
+          "rule": "OUT-04",
+          "message": "件数は `- 件数: <数> 件（<数> ファイル）` と書く"
+        },
+        {
+          "type": "require",
+          "pattern": "^- 対象: `{in:source}`$",
+          "min": 1,
+          "max": 1,
+          "rule": "OUT-06",
+          "message": "対象の行には入力 source の値を書く"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/collect_todo.py verify --root {root} --file {file} --source {in:source}",
+          "timeout": 120,
+          "rule": "STEP-01",
+          "message": "collect_todo.py collect で一覧を書き直す",
+          "rules": [
+            "IN-02",
+            "STEP-01",
+            "OUT-02",
+            "OUT-03",
+            "OUT-04",
+            "OUT-05",
+            "OUT-06"
+          ]
+        }
+      ]
+    }
+  ],
+  "together": [],
+  "control": {
+    "hooks": true,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "tamper_rule": "CTL-02",
+    "scope_rule": "CTL-05",
+    "allow_changes": [],
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": "todo-list",
+    "rule": "RPT-01",
+    "sections": []
+  }
+}
+
+=== .agents/skills/analyze-todo-comment/assets/examples/todo-comments.md
+# TODO コメントの一覧
+
+- 対象: `src`
+- 件数: 5 件（3 ファイル）
+- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src`
+
+| ファイル | 行 | 識別子 | 内容 |
+|---|---|---|---|
+| `src/app.py` | 5 | alice | handle empty input |
+| `src/app.py` | 16 | - | 合計の桁あふれを確かめる |
+| `src/lib/util.js` | 1 | bug 12345 | remove the "Last visitors" feature. |
+| `src/lib/util.js` | 3 | - | 全角の幅を数える \| 2 列 |
+| `src/sql/schema.sql` | 1 | db-team | 索引を足す |
+
+=== .agents/skills/analyze-todo-comment/assets/seal.json
+{
+  "runtime": "1.0.0",
+  "files": {
+    "SKILL.md": "ba87cf3623c8ea4a2bd02499cb28ecf970848237beca57f424c545e1f1a91e35",
+    "assets/contract.json": "4bf24fa30bdbd49cdff4f19819856aed16e83472791814f6982c133c0856a106",
+    "assets/examples/todo-comments.md": "2ac9eae060318c68b041b8abbe4b6ba84c99d75305b1e2a92c3ef79d8802720b",
+    "references/decisions.md": "4710c91d57fe004958e3c1b05fb93916519646f05317c0e6f55a6858292d0200",
+    "scripts/run.py": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76",
+    "scripts/_skillrt.py": "b76eceeda4fdcad10a4246a66a7d137d2400cec49cc62d95ec89fd463b784304",
+    "scripts/hook.py": "b0ccd614d242fcbbd2499da75d759b33b4cb8f7c7357563954570f15c3a7ef55",
+    "scripts/install.py": "286effaa9680fd4f8a03816b37252e36b62172301ef9d64c8debd4646d91ea19",
+    "scripts/collect_todo.py": "7232bc85d76ba250b38f8cb53811e99a0e49c9bc2fa6faef0f0f6138a62ead78"
+  }
+}
+
+=== .agents/skills/analyze-todo-comment/dev/convergence-report.md
+# analyze-todo-comment 収束テストの記録
+
+このスキルの作成に関わっていない独立エージェント（Claude Code と Codex。起動できないときは Agent ツールの subagent）に同じ依頼を解かせ、出力の違い（揺れ）を測った記録である。生データは `dev/results/convergence/round-<R>/` にある。
+
+このスキルでは収束テストを実行していない。作成の依頼に「収束テスト: しない」とあり、skill-foundation の入力 `measure` が `skip` になったためである（skill-foundation の STEP-02）。省いた理由は `dev/spec.json` の `convergence.skip_reason` にある。
+
+## 条件
+
+| 項目 | 値 |
+|---|---|
+| runner | なし。`measure` が `skip` のため、STEP-03 の表で runner を選んでいない |
+| 1 runner あたりの人数 | なし |
+| 課題 | `dev/evals.json`（作ったが、実行していない） |
+| 合格基準 | status が全員、課題の expect_status と同じ。check が全員通過。スキル自身や hooks の登録を変えたエージェント（失格）がいない。files・structure・names が基準以上。最後のラウンドのレビューの検出率が全見本で 1.0。V1〜V7 の未対処が0件 |
+
+## ラウンドの一覧
+
+| ラウンド | 課題 | status | files | structure | names | content | check | 失格 | V1〜V7 の未対処 |
+|---|---|---|---|---|---|---|---|---|---|
+| なし | | | | | | | | | |
+
+## レビューの検出率（最後のラウンド）
+
+| 見本 | 決定 | 検出率 | 余計な指摘 | 一致 |
+|---|---|---|---|---|
+| なし（`dev/probes.json` に reviews が無い） | | | | |
+
+## 結論
+
+収束テストを省いたため、合格基準を満たしたかは確かめていない。決定の守らせ方は、`probe.py` の違反例 9 件と標準の確認がすべて成功したことで確かめた（`dev/results/probe-results.json`）。
+
+=== .agents/skills/analyze-todo-comment/dev/evals.json
+{
+  "tasks": [
+    {"id": "T1-typical", "kind": "typical", "prompt": "src の TODO コメントを一覧の Markdown にして", "fixture": "dev/fixtures/basic", "setup": [], "expect_status": "done"},
+    {"id": "T2-default", "kind": "default", "prompt": "このリポジトリに残っている TODO コメントを全部洗い出して、一覧にまとめてほしい", "fixture": "dev/fixtures/basic", "setup": [], "expect_status": "done"},
+    {"id": "T3-edge", "kind": "edge", "prompt": "tools ディレクトリの TODO コメントを Markdown の一覧にしてください", "fixture": "dev/fixtures/basic", "setup": ["mkdir -p tools", "printf '#!/bin/sh\\n# 起動するだけのスクリプト\\necho hello\\n' > tools/run.sh"], "expect_status": "done"},
+    {"id": "H1-holdout", "kind": "holdout", "prompt": "web 配下の TODO と FIXME を、ファイルと行番号つきの Markdown にして", "fixture": "dev/fixtures/basic", "setup": [], "expect_status": "done"}
+  ]
+}
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/.gitignore
+src/generated/
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/README.md
+# sample
+
+TODO コメントの一覧を試すための見本のプロジェクト。
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/src/NOTES.md
+# TODO
+
+- 一覧の見本のための文書。見出しはコメントではない。
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/src/app.py
+"""見本のアプリ。"""
+
+
+def main(argv):
+    # TODO(alice): handle empty input
+    if not argv:
+        return 1
+    # FIXME: 例外を握りつぶさない
+    try:
+        return run(argv)
+    except Exception:  # todo: 後で見る
+        return 2
+
+
+def run(argv):
+    total = 0  # TODO: 合計の桁あふれを確かめる
+    for item in argv:
+        total += int(item)
+    return total
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/src/generated/schema.py
+# TODO: 生成物なので一覧に載らない
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/src/lib/util.js
+// TODO(bug 12345): remove the "Last visitors" feature.
+export function pad(text, width) {
+  /* TODO: 全角の幅を数える | 2 列 */
+  return text.padStart(width);
+}
+// This is not a TODO comment.
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/src/sql/schema.sql
+-- TODO(db-team): 索引を足す
+CREATE TABLE item (id INTEGER);
+
+=== .agents/skills/analyze-todo-comment/dev/fixtures/basic/web/index.html
+<!doctype html>
+<html>
+  <!-- TODO: 見出しを直す -->
+  <h1>sample</h1>
+  <!-- FIXME: リンク切れを直す -->
+  <a href="/old">old</a>
+</html>
+
+=== .agents/skills/analyze-todo-comment/dev/probes.json
+{
+  "baseline": {
+    "fixture": "dev/fixtures/basic",
+    "setup": [],
+    "input": {
+      "source": "src"
+    },
+    "text": "src の TODO コメントを一覧の Markdown にして",
+    "files": [
+      {
+        "path": "{run}/out/todo-comments.md",
+        "mode": "create",
+        "from": "assets/examples/todo-comments.md"
+      }
+    ],
+    "commands": []
+  },
+  "probes": [
+    {
+      "id": "IN-02-a",
+      "rule": "IN-02",
+      "description": "文書のファイル src/NOTES.md の見出し `# TODO` を一覧に載せる",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "replace",
+          "content": "# TODO コメントの一覧\n\n- 対象: `src`\n- 件数: 6 件（4 ファイル）\n- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src`\n\n| ファイル | 行 | 識別子 | 内容 |\n|---|---|---|---|\n| `src/NOTES.md` | 1 | - | - |\n| `src/app.py` | 5 | alice | handle empty input |\n| `src/app.py` | 16 | - | 合計の桁あふれを確かめる |\n| `src/lib/util.js` | 1 | bug 12345 | remove the \"Last visitors\" feature. |\n| `src/lib/util.js` | 3 | - | 全角の幅を数える \\| 2 列 |\n| `src/sql/schema.sql` | 1 | db-team | 索引を足す |\n"
+        }
+      ],
+      "expect": "IN-02"
+    },
+    {
+      "id": "STEP-01-a",
+      "rule": "STEP-01",
+      "description": "grep で拾った `# FIXME:` の行を TODO として載せる",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "replace",
+          "content": "# TODO コメントの一覧\n\n- 対象: `src`\n- 件数: 6 件（3 ファイル）\n- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src`\n\n| ファイル | 行 | 識別子 | 内容 |\n|---|---|---|---|\n| `src/app.py` | 5 | alice | handle empty input |\n| `src/app.py` | 8 | - | 例外を握りつぶさない |\n| `src/app.py` | 16 | - | 合計の桁あふれを確かめる |\n| `src/lib/util.js` | 1 | bug 12345 | remove the \"Last visitors\" feature. |\n| `src/lib/util.js` | 3 | - | 全角の幅を数える \\| 2 列 |\n| `src/sql/schema.sql` | 1 | db-team | 索引を足す |\n"
+        }
+      ],
+      "expect": "STEP-01"
+    },
+    {
+      "id": "OUT-01-a",
+      "rule": "OUT-01",
+      "description": "一覧を別の名前 todo-list.md で書く",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "delete"
+        },
+        {
+          "path": "{run}/out/todo-list.md",
+          "mode": "create",
+          "from": "assets/examples/todo-comments.md"
+        }
+      ],
+      "expect": "OUT-01"
+    },
+    {
+      "id": "OUT-02-a",
+      "rule": "OUT-02",
+      "description": "表の後にまとめの文を書き足す",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "append",
+          "content": "\n以上、5 件の TODO が見つかりました。\n"
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-02-b",
+      "rule": "OUT-02",
+      "description": "表の行の末尾に空白を残す（format が直す）",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "replace",
+          "content": "# TODO コメントの一覧\n\n- 対象: `src`\n- 件数: 5 件（3 ファイル）\n- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src`\n\n| ファイル | 行 | 識別子 | 内容 |\n|---|---|---|---|\n| `src/app.py` | 5 | alice | handle empty input |   \n| `src/app.py` | 16 | - | 合計の桁あふれを確かめる |\n| `src/lib/util.js` | 1 | bug 12345 | remove the \"Last visitors\" feature. |\n| `src/lib/util.js` | 3 | - | 全角の幅を数える \\| 2 列 |\n| `src/sql/schema.sql` | 1 | db-team | 索引を足す |\n"
+        }
+      ],
+      "expect": "OUT-02",
+      "fixed": "[ \\t]$"
+    },
+    {
+      "id": "OUT-03-a",
+      "rule": "OUT-03",
+      "description": "内容の英語を日本語に訳して書く",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "replace",
+          "content": "# TODO コメントの一覧\n\n- 対象: `src`\n- 件数: 5 件（3 ファイル）\n- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src`\n\n| ファイル | 行 | 識別子 | 内容 |\n|---|---|---|---|\n| `src/app.py` | 5 | alice | 空の入力を処理する |\n| `src/app.py` | 16 | - | 合計の桁あふれを確かめる |\n| `src/lib/util.js` | 1 | bug 12345 | remove the \"Last visitors\" feature. |\n| `src/lib/util.js` | 3 | - | 全角の幅を数える \\| 2 列 |\n| `src/sql/schema.sql` | 1 | db-team | 索引を足す |\n"
+        }
+      ],
+      "expect": "OUT-03"
+    },
+    {
+      "id": "OUT-04-a",
+      "rule": "OUT-04",
+      "description": "識別子のある行を先に並べる",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "replace",
+          "content": "# TODO コメントの一覧\n\n- 対象: `src`\n- 件数: 5 件（3 ファイル）\n- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src`\n\n| ファイル | 行 | 識別子 | 内容 |\n|---|---|---|---|\n| `src/app.py` | 5 | alice | handle empty input |\n| `src/lib/util.js` | 1 | bug 12345 | remove the \"Last visitors\" feature. |\n| `src/lib/util.js` | 3 | - | 全角の幅を数える \\| 2 列 |\n| `src/sql/schema.sql` | 1 | db-team | 索引を足す |\n| `src/app.py` | 16 | - | 合計の桁あふれを確かめる |\n"
+        }
+      ],
+      "expect": "OUT-04"
+    },
+    {
+      "id": "OUT-05-a",
+      "rule": "OUT-05",
+      "description": "識別子の無い TODO を一覧から落とし、件数もそれに合わせる",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "replace",
+          "content": "# TODO コメントの一覧\n\n- 対象: `src`\n- 件数: 4 件（3 ファイル）\n- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src`\n\n| ファイル | 行 | 識別子 | 内容 |\n|---|---|---|---|\n| `src/app.py` | 5 | alice | handle empty input |\n| `src/lib/util.js` | 1 | bug 12345 | remove the \"Last visitors\" feature. |\n| `src/lib/util.js` | 3 | - | 全角の幅を数える \\| 2 列 |\n| `src/sql/schema.sql` | 1 | db-team | 索引を足す |\n"
+        }
+      ],
+      "expect": "OUT-05"
+    },
+    {
+      "id": "OUT-06-a",
+      "rule": "OUT-06",
+      "description": "数えたコマンドを grep で書く",
+      "files": [
+        {
+          "path": "{run}/out/todo-comments.md",
+          "mode": "replace",
+          "content": "# TODO コメントの一覧\n\n- 対象: `src`\n- 件数: 5 件（3 ファイル）\n- 数えたコマンド: `grep -rn TODO src`\n\n| ファイル | 行 | 識別子 | 内容 |\n|---|---|---|---|\n| `src/app.py` | 5 | alice | handle empty input |\n| `src/app.py` | 16 | - | 合計の桁あふれを確かめる |\n| `src/lib/util.js` | 1 | bug 12345 | remove the \"Last visitors\" feature. |\n| `src/lib/util.js` | 3 | - | 全角の幅を数える \\| 2 列 |\n| `src/sql/schema.sql` | 1 | db-team | 索引を足す |\n"
+        }
+      ],
+      "expect": "OUT-06"
+    }
+  ],
+  "reviews": []
+}
+
+=== .agents/skills/analyze-todo-comment/dev/research.md
+# analyze-todo-comment の調査
+
+スキルが前提にする事実（ツールのバージョン、コマンドの引数、入出力の形式、公式の書き方）を、出典付きで記録する。記憶で書かない。「確認の状態」は「確認済み」「確かめられない」「未確認」のどれかを書く（skill-foundation の references/research.md の3章）。「未確認」の項目が残っている間は、`skill_lint.py --final` が通らない。
+
+## ユーザーの依頼
+
+- 確認方法：依頼文「Codex だけで使う、ソースコードの TODO コメントを一覧の Markdown にするスキルを作成して。収束テスト: しない」（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - 対象の製品は Codex だけである。本体は `.agents/skills/analyze-todo-comment/` に置く
+  - 集めるのは TODO コメントであり、FIXME などほかの印は依頼に無い
+  - 出力は一覧の Markdown である
+- 使った決定：IN-01
+
+## git 2.50.1（ファイルの一覧）
+
+- 確認方法：`git --version` → git version 2.50.1 (Apple Git-155)、`git ls-files -h`（2026-10-26）、[git-ls-files Documentation](https://git-scm.com/docs/git-ls-files)
+- 確認の状態：確認済み
+- 分かったこと：
+  - `--cached` は index にあるすべての追跡ファイルを出す。`--others` は追跡していないファイルを出す。`--exclude-standard` は `.git/info/exclude`、各ディレクトリの `.gitignore`、利用者の全体の除外ファイルを除外に加える（[git-ls-files Documentation](https://git-scm.com/docs/git-ls-files)）
+  - `-z` を付けると、パスを引用符で囲まずにそのまま出し、NUL で区切る。付けないと、特殊な文字を含むパスは `core.quotePath` に従って引用される（同 OUTPUT）
+  - サブディレクトリで実行すると、パスは今のディレクトリからの相対で出る。`--full-name` を付けるとリポジトリのルートからの相対になる（同 `--full-name`）
+- 使った決定：IN-02
+
+## Python 3.9.6（集める処理）
+
+- 確認方法：`python3 --version` → Python 3.9.6（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - この環境の python3 は 3.9.6 である。集める処理のスクリプトは 3.9 の標準ライブラリだけで書く（skill-foundation の STEP-03 と同じ前提）
+  - `rg`（ripgrep 14.1.1）はこの環境にあるが、利用者の環境にあるとは限らないので使わない
+- 使った決定：STEP-01、STEP-02
+
+## GitHub Flavored Markdown の表（出力の形式）
+
+- 確認方法：[GitHub Flavored Markdown Spec 0.29-gfm, Tables (extension)](https://github.github.com/gfm/#tables-extension-)（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - 表は、見出しの行、区切りの行、0 行以上のデータの行から成る。見出しの行と区切りの行のセルの数が合わないと、表として認識されない（Example 203）
+  - セルの中の `|` は `\|` と書く。コードスパンの中でも同じである（Example 200）
+- 使った決定：OUT-02
+
+## TODO コメントの書き方（Google C++ Style Guide）
+
+- 確認方法：[Google C++ Style Guide, TODO Comments](https://google.github.io/styleguide/cppguide.html#TODO_Comments)（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - TODO コメントは、すべて大文字の `TODO` の後に、バグの ID、名前、メールアドレスなどの識別子を続ける。例：`// TODO(bug 12345): remove the "Last visitors" feature.`
+  - 目的は、検索できる揃った形の `TODO` にすることである
+- 使った決定：STEP-01
+
+## TODO の検出の規則（ESLint no-warning-comments）
+
+- 確認方法：[ESLint no-warning-comments](https://eslint.org/docs/latest/rules/no-warning-comments)（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - `terms` の既定は `["todo", "fixme", "xxx"]` である。`location` の既定は `"start"`（コメントの先頭だけを見る）
+  - 語は大文字と小文字を区別せず、語全体で一致させる（`fix` は `FIX` に一致し、`fixing` には一致しない）
+  - Google の書き方（大文字の `TODO`）と ESLint の既定（大文字と小文字を区別しない、FIXME と XXX も含む）は食い違う。依頼は TODO だけを求めているので、STEP-01 は、Google に合わせて大文字の `TODO` だけを、ESLint の既定の `location: "start"` に合わせてコメントの先頭の1語だけを TODO コメントとする
+- 使った決定：STEP-01
+
+=== .agents/skills/analyze-todo-comment/dev/results/probe-results.json
+{
+  "hash": "716b7b8b1211d837455e853ea18d829b556c195204de8ea0a28da025702f21d1",
+  "results": [
+    {
+      "id": "RPT-01-builtin",
+      "rule": "RPT-01",
+      "passed": true,
+      "detail": "finish が報告の本文（## 結果 から ## 補足 まで）を出す",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "IN-02-a",
+      "rule": "IN-02",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "STEP-01-a",
+      "rule": "STEP-01",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-01-a",
+      "rule": "OUT-01",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-02-a",
+      "rule": "OUT-02",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-02-b",
+      "rule": "OUT-02",
+      "passed": true,
+      "detail": "check の終了コード 0、expect 一致 あり、自動で直った はい",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-03-a",
+      "rule": "OUT-03",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-04-a",
+      "rule": "OUT-04",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-05-a",
+      "rule": "OUT-05",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-06-a",
+      "rule": "OUT-06",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-01-builtin",
+      "rule": "CTL-01",
+      "passed": true,
+      "detail": "出力が無いと finish が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "保護ファイルを変えると check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-restart",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "保護ファイルを変えてから start --restart しても check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-seal",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "封印の後に保護ファイルを変えると start が始めない（封印どおりの start 0、変えた後の start 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-between",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "abort の後に保護ファイルを変えて start し直すと、報告の「検証」に出る（終了コード 0）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-hooks-codex",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": ".codex/hooks.json からこのスキルの hooks を外すと check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-05-builtin",
+      "rule": "CTL-05",
+      "passed": true,
+      "detail": "契約の外にファイルを作ると check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "RPT-01-builtin-notes",
+      "rule": "RPT-01",
+      "passed": true,
+      "detail": "notes.md が箇条書きでないと check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "RPT-01-builtin-abort",
+      "rule": "RPT-01",
+      "passed": true,
+      "detail": "abort が中断の本文を出し、次の start が前の中断を記録に残す",
+      "output_tail": "",
+      "others": []
+    }
+  ],
+  "wiring": [
+    {
+      "platform": "codex",
+      "check": "registered",
+      "passed": true,
+      "detail": ".codex/hooks.json に4つの hook がある"
+    },
+    {
+      "platform": "codex",
+      "check": "matcher",
+      "passed": true,
+      "detail": "matcher が編集ツール apply_patch に当たる"
+    },
+    {
+      "platform": "codex",
+      "check": "inactive",
+      "passed": true,
+      "detail": "実行していないセッションでは何もしない（CTL-04）"
+    },
+    {
+      "platform": "codex",
+      "check": "post-tool",
+      "passed": true,
+      "detail": "IN-02-a の出力を編集した後に指摘を返す"
+    },
+    {
+      "platform": "codex",
+      "check": "post-tool-scope",
+      "passed": true,
+      "detail": "契約の外のファイルを編集した後に指摘を返す（CTL-05）"
+    },
+    {
+      "platform": "codex",
+      "check": "prompt",
+      "passed": true,
+      "detail": "ユーザーの発言は止めない（CTL-04）"
+    },
+    {
+      "platform": "codex",
+      "check": "stop",
+      "passed": true,
+      "detail": "finish の前に応答を終えようとすると差し戻す"
+    },
+    {
+      "platform": "codex",
+      "check": "wait",
+      "passed": true,
+      "detail": "wait 中は応答の終了を止めない（CTL-03）"
+    },
+    {
+      "platform": "codex",
+      "check": "pre-tool",
+      "passed": true,
+      "detail": "保護ファイルの編集の前に止める（期待 deny、結果 deny）"
+    },
+    {
+      "platform": "codex",
+      "check": "pre-tool-sealed",
+      "passed": true,
+      "detail": "実行していないとき、封印した保護ファイルの編集の前に 何もしない（結果 None。CTL-04）"
+    }
+  ]
+}
+
+=== .agents/skills/analyze-todo-comment/dev/spec.json
+{
+  "spec_version": 1,
+  "name": "analyze-todo-comment",
+  "status": "ready",
+  "mode": "new",
+  "kind": "analyze",
+  "language": "ja",
+  "targets": [
+    "codex"
+  ],
+  "title": "ソースコードの TODO コメントを一覧の Markdown にする",
+  "purpose": "ソースコードのディレクトリを受け取り、その中の TODO コメントを集めて、ファイルと行番号つきの一覧の Markdown を出力する",
+  "triggers": {
+    "use_when": [
+      "ソースコードの TODO コメントを一覧の Markdown にして",
+      "このリポジトリに残っている TODO を全部洗い出して、一覧にまとめてほしい",
+      "src 配下の TODO コメントを、ファイルと行番号つきの Markdown にしてください",
+      "コードのどこに TODO が何件あるか一覧で見たい",
+      "List all TODO comments in this codebase as Markdown",
+      "TODO コメントの一覧を Markdown の表で出して"
+    ],
+    "not_for": [
+      {
+        "when": "TODO コメントに書かれた作業を実装して解消する",
+        "instead": "コードの直接の編集"
+      },
+      {
+        "when": "TODO コメントを Issue やチケットとして登録する",
+        "instead": "Issue 管理ツール（例：`gh issue create`）"
+      },
+      {
+        "when": "コードの問題点をレビューして指摘する",
+        "instead": "コードレビュー用のスキル"
+      }
+    ],
+    "implicit": true
+  },
+  "inputs": [
+    {
+      "key": "source",
+      "label": "調べるディレクトリ",
+      "type": "path",
+      "aliases": [
+        "対象",
+        "調べるデータ",
+        "ディレクトリ",
+        "フォルダ",
+        "dir",
+        "directory",
+        "path",
+        "target"
+      ],
+      "impact": "reversible",
+      "default": "."
+    }
+  ],
+  "excluded_inputs": [
+    {
+      "key": "period",
+      "reason": "TODO コメントは今のソースの状態から集め、コメントに日付が無いので、期間で絞る値が無い"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "todo-list",
+      "label": "TODO コメントの一覧",
+      "path": "{run}/out/todo-comments.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "name_pattern": "^todo-comments\\.md$",
+      "format": [
+        {
+          "type": "trailing_space",
+          "rule": "OUT-02"
+        },
+        {
+          "type": "final_newline",
+          "rule": "OUT-02"
+        }
+      ],
+      "checks": [
+        {
+          "type": "headings",
+          "equals": [
+            "TODO コメントの一覧"
+          ],
+          "rule": "OUT-02",
+          "message": "見出しは1行目の `# TODO コメントの一覧` だけにする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^(?!(?:# TODO コメントの一覧|- 対象: .*|- 件数: .*|- 数えたコマンド: .*|\\|.*)$).+",
+          "rule": "OUT-02",
+          "message": "見出し、3つの項目の行、表の行のほかに行を書かない"
+        },
+        {
+          "type": "require",
+          "pattern": "^- 件数: \\d+ 件（\\d+ ファイル）$",
+          "min": 1,
+          "max": 1,
+          "rule": "OUT-04",
+          "message": "件数は `- 件数: <数> 件（<数> ファイル）` と書く"
+        },
+        {
+          "type": "require",
+          "pattern": "^- 対象: `{in:source}`$",
+          "min": 1,
+          "max": 1,
+          "rule": "OUT-06",
+          "message": "対象の行には入力 source の値を書く"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/collect_todo.py verify --root {root} --file {file} --source {in:source}",
+          "timeout": 120,
+          "rule": "STEP-01",
+          "message": "collect_todo.py collect で一覧を書き直す",
+          "rules": [
+            "IN-02",
+            "STEP-01",
+            "OUT-02",
+            "OUT-03",
+            "OUT-04",
+            "OUT-05",
+            "OUT-06"
+          ]
+        }
+      ]
+    }
+  ],
+  "together": [],
+  "decisions": [
+    {
+      "id": "IN-01",
+      "axes": [
+        "I3"
+      ],
+      "title": "TODO の一覧を作るほかの求めには応じず、notes.md に書く",
+      "decision": "依頼を次の表で扱う。表の行を上から当てはめ、最初に当たった行に従う。",
+      "table": [
+        [
+          "依頼",
+          "扱い"
+        ],
+        [
+          "`TODO` のほかの印（`FIXME`、`XXX`、`HACK`）も集めるよう求める",
+          "`TODO` だけを集める（STEP-01）。集めなかった印を、finish の前に `.skill-runs/analyze-todo-comment/notes.md` に「- <印> は集めていない（TODO だけを集める）」の形で1行ずつ書く"
+        ],
+        [
+          "TODO の作業の実装、Issue への登録、一覧を `.skill-runs/` の外のファイル（例：`TODO.md`）に書くことを求める",
+          "一覧を `.skill-runs/analyze-todo-comment/out/todo-comments.md` に作るだけにする（OUT-01）。しなかったことを notes.md に「- <求められたこと> はしていない（一覧を作るだけ）」の形で書く"
+        ],
+        [
+          "上のどれでもない",
+          "手順に進む"
+        ]
+      ],
+      "reason": "依頼が TODO コメントの一覧だけを求めている。ほかの印やほかの作業に応じるかが AI ごとに分かれると、一覧の行が変わり、リポジトリにファイルが増えたり減ったりする。応じなかったことを notes.md に書けば、利用者が報告の「## 補足」で気づける。",
+      "basis": "user",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順1と手順6",
+      "why_not_machine": "痕跡が残らない：依頼に書かれた印や作業は出力に残らず、出力だけでは判定できない",
+      "probes": [],
+      "good": "「TODO と FIXME を一覧にして」に、TODO だけの一覧を作り、notes.md に「- FIXME は集めていない（TODO だけを集める）」と書く",
+      "bad": "「TODO と FIXME を一覧にして」に、grep で FIXME も探して表に足す"
+    },
+    {
+      "id": "IN-02",
+      "axes": [
+        "I4"
+      ],
+      "title": "読むファイルは collect_todo.py が git の除外に従って決める",
+      "decision": "読むファイルは、入力 `source`（プロジェクトのルートからの相対パス）の下の、次の表で決まるファイルだけにする。どの行の場合も、シンボリックリンク、NUL バイトのあるファイル（バイナリ）、文書の拡張子（`.md`、`.markdown`、`.mdx`、`.rst`、`.txt`、`.adoc`）のファイルは読まない。読むファイルの一覧は `scripts/collect_todo.py` が決め、AI は別にファイルを開いて探さない。",
+      "table": [
+        [
+          "プロジェクトのルート",
+          "読むファイル"
+        ],
+        [
+          "git の作業ツリーの中",
+          "`git ls-files -z --cached --others --exclude-standard -- <source>` が出すファイル（追跡しているファイルと、`.gitignore` で無視されていない未追跡のファイル）"
+        ],
+        [
+          "上のどれでもない（git が無い）",
+          "`source` の下のすべてのファイル。ただし `.git`、`.skill-runs`、`node_modules` という名前のディレクトリの中は読まない"
+        ]
+      ],
+      "reason": "読む範囲が AI ごとに違うと、一覧の行が変わる。git の標準の除外に従えば、生成物や依存のパッケージをプロジェクトの決まりどおりに外せる。文書のファイルの `# TODO` は Markdown の見出しで、コメントではないので外す。",
+      "basis": "official",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/collect_todo.py の collect が読むファイルを決める。契約の command 検査（collect_todo.py verify）が、読む範囲の外のファイルの行を IN-02 で指摘する",
+      "why_not_machine": "",
+      "probes": [
+        "IN-02-a"
+      ],
+      "good": "`.gitignore` にある `src/generated/` と、`src/NOTES.md` の `# TODO` の見出しが一覧に無い",
+      "bad": "`src/NOTES.md` の見出し `# TODO` を、TODO コメントとして一覧に載せる"
+    },
+    {
+      "id": "STEP-01",
+      "axes": [
+        "P3",
+        "P4"
+      ],
+      "title": "TODO コメントの判定と集計は collect_todo.py だけで行う",
+      "decision": "TODO コメントを探す、判定する、数える、並べる処理は、`python3 <skill>/scripts/collect_todo.py collect` だけで行う。`grep`、`rg`、`git grep`、`find` で探さず、一覧を手で書いたり書き足したりしない。TODO コメントの判定の規則は次のとおりである。行の先頭か空白の直後にコメントの印（`//`、`/*`、`*`、`#`、`--`、`;`、`<!--`、`%`）があり、その直後（空白とタブは挟んでよい）に大文字の `TODO` が1語として続く行を、TODO コメントとする。小文字の `todo`、コメントの途中にある `TODO`、`TODOS` は TODO コメントにしない。",
+      "reason": "探し方と判定の規則が AI ごとに違うと、同じソースから違う行が集まる。スクリプトにすれば、同じソースからは同じ一覧が出る。Google C++ Style Guide は `TODO` をすべて大文字で書くよう定め、ESLint の no-warning-comments はコメントの先頭の語を1語として見る。この2つに合わせる。",
+      "basis": "official",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/collect_todo.py の collect が判定して集める。契約の command 検査（collect_todo.py verify）が、規則に当たらない行を STEP-01 で指摘する",
+      "why_not_machine": "",
+      "probes": [
+        "STEP-01-a"
+      ],
+      "good": "`# FIXME: 例外を握りつぶさない` と `# todo: 後で見る` の行が一覧に無い",
+      "bad": "`grep -rn -i todo src` の結果から、`# FIXME:` の行や小文字の `todo` の行も一覧に入れる"
+    },
+    {
+      "id": "STEP-02",
+      "axes": [
+        "P5"
+      ],
+      "title": "collect_todo.py が失敗したら一覧を手で作らずに中断する",
+      "decision": "`collect_todo.py collect` が終了コード0以外で終わったら、一覧を手で作らずに、`python3 <skill>/scripts/run.py abort --reason \"<collect_todo.py が出力した1行目>\"` を実行して中断する。",
+      "reason": "スクリプトが失敗した後に grep で一覧を作ると、判定の規則と読む範囲が AI ごとに変わる。中断すれば、利用者が `source` を直してやり直せる。",
+      "basis": "fewer-tools",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順4",
+      "why_not_machine": "痕跡が残らない：中断したときは出力が無く、検査する対象が無い",
+      "probes": [],
+      "good": "`source が見つからない: srcc` で終わったので、その1行を `--reason` に渡して abort する",
+      "bad": "`source が見つからない` と出たので、`grep -rn TODO .` の結果から一覧を手で書く"
+    },
+    {
+      "id": "OUT-01",
+      "axes": [
+        "O1"
+      ],
+      "title": "一覧は .skill-runs の out/todo-comments.md に1つだけ書く",
+      "decision": "一覧は `.skill-runs/analyze-todo-comment/out/todo-comments.md` に1つだけ書く。`collect_todo.py collect` の `--out` にこのパスを渡して書かせる。毎回このファイルを書き直し、リポジトリの中のほかのファイルには書かない。",
+      "reason": "置き場とファイル名が AI ごとに違うと、検査と報告が出力を見つけられない。実行記録の置き場に書けば、利用者のリポジトリにファイルが増えない。",
+      "basis": "fewer-concepts",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の outputs.todo-list の path と count",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-01-a"
+      ],
+      "good": "`.skill-runs/analyze-todo-comment/out/todo-comments.md` が1つある",
+      "bad": "一覧を `.skill-runs/analyze-todo-comment/out/todo-list.md` に書く"
+    },
+    {
+      "id": "OUT-02",
+      "axes": [
+        "O2"
+      ],
+      "title": "一覧は見出し、3つの項目、4列の表の形にする",
+      "decision": "一覧は、見本 `assets/examples/todo-comments.md` と同じ形にする。1行目は見出し `# TODO コメントの一覧`、空行の後に `- 対象: `、`- 件数: `、`- 数えたコマンド: ` の3行、空行の後に見出しの行 `| ファイル | 行 | 識別子 | 内容 |` と区切りの行 `|---|---|---|---|` と TODO コメント1つにつき1行の表を置く。これ以外の行（前置き、まとめ、空行の追加）を書かない。セルの中の `|` は `\\|` と書く。TODO が0件のときも、表の見出しの行と区切りの行は書く。行末に空白を置かず、ファイルの末尾は改行1つで終える。",
+      "reason": "形が AI ごとに違うと、読む人も検査も行を見つけられない。GitHub Flavored Markdown の表は、見出しの行と区切りの行で表になり、セルの中の `|` は `\\|` と書く。0件でも同じ形にすれば、分岐が無い。",
+      "basis": "official",
+      "control": [
+        "format",
+        "script",
+        "validate"
+      ],
+      "how": "scripts/collect_todo.py の collect が形を出す。契約の format が行末の空白と末尾の改行を直し、headings と forbid の検査と collect_todo.py verify が、形の違いを OUT-02 で指摘する",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-02-a",
+        "OUT-02-b"
+      ],
+      "good": "`| ファイル | 行 | 識別子 | 内容 |` の表の後に、何も書かずにファイルが終わる",
+      "bad": "表の後に「以上、4 件の TODO が見つかりました。」と書き足す"
+    },
+    {
+      "id": "OUT-03",
+      "axes": [
+        "O3"
+      ],
+      "title": "識別子と内容はコメントの文をそのまま写す",
+      "decision": "表の「識別子」の列には `TODO(` と `)` の間の文字列を、「内容」の列には `TODO` と識別子の後の文から、先頭の空白と `:`、末尾の `*/` と `-->` を除いた文字列を、元のコメントのまま写す。訳したり、要約したり、言い換えたりしない。識別子か内容が空なら `-` と書く。見出しと項目の名前は、`collect_todo.py` が出す日本語の文言から変えない。",
+      "reason": "内容を訳したり要約したりすると、AI ごとに文が変わり、元のコメントを検索で見つけられなくなる。そのまま写せば、スクリプトの出力と比べて確かめられる。",
+      "basis": "machine",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/collect_todo.py の collect がコメントから写す。collect_todo.py verify が、元のコメントと違うセルを OUT-03 で指摘する",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-03-a"
+      ],
+      "good": "`# TODO(alice): handle empty input` の行を `| alice | handle empty input |` と書く",
+      "bad": "`# TODO(alice): handle empty input` の行を `| alice | 空の入力を処理する |` と訳して書く"
+    },
+    {
+      "id": "OUT-04",
+      "axes": [
+        "O4"
+      ],
+      "title": "行はパスと行番号の順に並べ、件数を単位つきで書く",
+      "decision": "表の行は、ファイルのパス（プロジェクトのルートからの相対パス。区切りは `/`）の文字コード順に並べ、同じファイルの中は行番号（1 から数える）の小さい順に並べる。件数の行は `- 件数: <表の行の数> 件（<表に出たファイルの数> ファイル）` と書く。",
+      "reason": "並べ順と件数の書き方が AI ごとに違うと、同じソースから違う一覧になる。パスと行番号の順は、ファイルを上から読む順と同じで、判断が要らない。",
+      "basis": "fewer-concepts",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/collect_todo.py の collect が並べて数える。契約の require 検査と collect_todo.py verify が、並べ順と件数の違いを OUT-04 で指摘する",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-04-a"
+      ],
+      "good": "`- 件数: 4 件（3 ファイル）` の後に、`src/app.py` の 3 行目、12 行目、`src/lib/util.js` の 1 行目の順に並ぶ",
+      "bad": "識別子ごとにまとめて並べ、件数を `- 件数: 4件` と書く"
+    },
+    {
+      "id": "OUT-05",
+      "axes": [
+        "O5"
+      ],
+      "title": "見つけた TODO コメントをすべて1行ずつ載せる",
+      "decision": "`collect_todo.py` が見つけた TODO コメントを、件数の上限を設けずにすべて載せる。1つの TODO コメントは表の1行にし、同じ行を2回載せない。内容は TODO のある1行だけを写し、続く行は載せない。",
+      "reason": "件数が多いときに一部だけを載せるかどうかが AI ごとに分かれると、一覧の行が変わる。続く行を載せるかどうかも、コメントの終わりの判断が分かれる。",
+      "basis": "fewer-concepts",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/collect_todo.py の collect がすべてを出す。collect_todo.py verify が、載っていない TODO コメントと重なった行を OUT-05 で指摘する",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-05-a"
+      ],
+      "good": "見つけた 120 件をすべて表に載せる",
+      "bad": "「主なもの」として 20 件だけを載せ、残りを「ほか 100 件」とまとめる"
+    },
+    {
+      "id": "OUT-06",
+      "axes": [
+        "X1"
+      ],
+      "title": "対象と数えたコマンドを一覧の項目に書く",
+      "decision": "`- 対象: ` の行には入力 `source` の値を `` ` `` で囲んで書き、`- 数えたコマンド: ` の行には `python3 <プロジェクトのルートからの collect_todo.py のパス> collect --source <source>` を `` ` `` で囲んで書く。どちらも `collect_todo.py collect` が出した行から変えない。",
+      "reason": "件数の根拠が書かれていないと、読む人が数え直せない。数えたコマンドを書けば、同じコマンドで同じ一覧を出して確かめられる。",
+      "basis": "machine",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/collect_todo.py の collect が2行を出す。契約の require 検査と collect_todo.py verify が、2行の違いを OUT-06 で指摘する",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-06-a"
+      ],
+      "good": "`- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src``",
+      "bad": "`- 数えたコマンド: `grep -rn TODO src``"
+    },
+    {
+      "id": "CTL-01",
+      "axes": [
+        "C1"
+      ],
+      "title": "実行は run.py で始めて終える",
+      "decision": "手順の最初に `run.py start`、出力を書いた後に `run.py check`、最後に `run.py finish` を実行する。`finish` が終了コード0で終わるまで、完了と返答しない。",
+      "reason": "始まりと終わりをスクリプトで区切ると、検査が必ず走り、hooks が実行中かどうかを判定できる。完了の基準が AI ごとに分かれない。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate"
+      ],
+      "how": "scripts/run.py。finish は契約の検査に通らないと終了コード1で終わる",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "`run.py finish` が終了コード0で終わってから、その本文で返答する",
+      "bad": "出力を書いた直後に「完了しました」と返答する"
+    },
+    {
+      "id": "CTL-02",
+      "axes": [
+        "C2"
+      ],
+      "title": "実行中はスキル自身のファイルを変えない",
+      "decision": "`run.py start` から `run.py finish` までの間、スキルの保護ファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`）と、プロジェクトに登録したこのスキルの hooks を変えない。出力が契約に合わないときは、出力の方を直す。保護ファイルが封印（`assets/seal.json`）と違うと `run.py start` が終了コード1で止まるので、そのときは出力された指摘をユーザーに伝えて止まる。",
+      "reason": "検査や契約を緩めて通すと、検査が無いのと同じになる。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate"
+      ],
+      "how": "scripts/run.py の start が保護ファイルのハッシュと hooks の登録を記録し、check と finish が比べる。`start --restart` は記録を最初の start から引き継ぐ。hooks が編集の前に止める。start は封印と保護ファイルを比べ、違えば始めない",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "指摘されたルールIDを決定表で引き、出力のファイルを直す",
+      "bad": "検査に通すために `assets/contract.json` の正規表現を緩める"
+    },
+    {
+      "id": "CTL-03",
+      "axes": [
+        "C3",
+        "I2"
+      ],
+      "title": "質問は start の前に済ませる",
+      "decision": "ユーザーに聞くことは `run.py start` の前にまとめて聞く。start の後に聞く必要が出たときは、`run.py wait --question <質問>` を実行してから聞く。聞けない状況では既定値を使い、報告の「既定値で決めた値」に載せる。",
+      "reason": "実行の途中で質問するかどうかが AI ごとに分かれると、出力が揃わない。wait を挟むと、質問のために応答を終えることを hooks が止めない。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "doc"
+      ],
+      "how": "scripts/run.py の start は、聞くべき入力が無いと終了コード3で止まり、質問を出力する。wait は hooks の強制を止める",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "start の終了コード3で出た質問をユーザーに聞き、答えを `--set` で渡して start をやり直す",
+      "bad": "出力を半分書いたところで、形式をユーザーに尋ねる"
+    },
+    {
+      "id": "CTL-04",
+      "axes": [
+        "C4"
+      ],
+      "title": "hooks は出力の検査だけに使い、入力を止めない",
+      "decision": "hooks は、このスキルの実行中（status: active）に、編集の後の検査、応答を終える前の検査、保護ファイルの編集の停止の3つを行う。実行していないときは、封印したスキル（`assets/seal.json` がある）の保護ファイルの編集に、Claude Code で確認を求めることだけを行う。ユーザーの発言を止めたり書き換えたりしない。",
+      "reason": "縛る対象は AI の出力であり、ユーザーの入力ではない。このスキルを使っていないセッションの邪魔をしない。ただし、実行していない間にスキル自身が変わると、次の実行の検査が緩んだままになるので、封印したファイルの編集だけは人に確かめさせる。",
+      "basis": "machine",
+      "control": [
+        "runtime"
+      ],
+      "how": "scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "Stop の hook が、検査に通るまで応答の終了を差し戻す",
+      "bad": "UserPromptSubmit の hook で、依頼文の書き方が違うと拒否する"
+    },
+    {
+      "id": "CTL-05",
+      "axes": [
+        "C5"
+      ],
+      "title": "契約の出力のほかにファイルを変えない",
+      "decision": "`run.py start` から `run.py finish` までの間に作る・変えるファイルは、「5. 出力の契約」の出力と `control.allow_changes` に挙げたものだけにする。作業用のメモや一時ファイルも、出力の置き場の外に作らない。",
+      "reason": "出力の外に作るファイル（メモ、控え、別名の写し）は AI ごとに違い、利用者のリポジトリに残る。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate"
+      ],
+      "how": "scripts/run.py の start が git の作業ツリーの状態を記録し、check と finish が比べる。編集の直後には hooks が知らせる",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "下書きも出力の置き場（`.skill-runs/<name>/`）の中に書く",
+      "bad": "リポジトリの直下に `notes.md` を作って下書きする"
+    },
+    {
+      "id": "RPT-01",
+      "axes": [
+        "R1"
+      ],
+      "title": "最終の返答は finish の本文をそのまま使う",
+      "decision": "最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。",
+      "reason": "報告の形と中身が AI ごとに分かれない。既定値で決めた値と検証の結果を、読み手が必ず見られる。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate",
+        "review"
+      ],
+      "how": "scripts/run.py の finish と abort が本文を組み立て、.skill-runs/<name>/report.md にも保存する。check と finish が notes.md の形を検査する",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "決めきれなかった既定値を notes.md に「- 」で書き、finish の本文をそのまま返答する",
+      "bad": "finish の本文を要約し直し、最後に自由な文で補足を足して返答する"
+    }
+  ],
+  "extra_axes": [
+    {
+      "axis": "X1",
+      "prefix": "OUT",
+      "name": "数値の根拠の示し方（数えたコマンドと対象）"
+    }
+  ],
+  "excluded_axes": [
+    {
+      "axis": "P1",
+      "reason": "手順は start、collect_todo.py の実行、check、finish の4つだけで、順序は CTL-01 と STEP-01 が決めている"
+    },
+    {
+      "axis": "P2",
+      "reason": "出力の形は TODO の件数によらず同じで（OUT-02）、分岐は IN-01、IN-02、STEP-02 の決定表で決めている"
+    },
+    {
+      "axis": "O6",
+      "reason": "一覧は毎回 collect_todo.py が実行記録の置き場のファイルに書き直し（OUT-01）、利用者の既存のファイルには書かない"
+    },
+    {
+      "axis": "O7",
+      "reason": "出力は一覧のファイル1つだけで、一緒に変えるファイルが無い"
+    },
+    {
+      "axis": "O8",
+      "reason": "出力は TODO コメントの一覧の Markdown で、コードや設定を書かないので、lint の無効化や skip の記法を書く場所が無い"
+    }
+  ],
+  "examples": [
+    {
+      "path": "todo-comments.md",
+      "shows": [
+        "OUT-01",
+        "OUT-02",
+        "OUT-03",
+        "OUT-04",
+        "OUT-05",
+        "OUT-06"
+      ]
+    }
+  ],
+  "control": {
+    "hooks": true,
+    "max_stop_blocks": 3,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "allow_changes": []
+  },
+  "report": {
+    "include_output": "todo-list"
+  },
+  "convergence": {
+    "agents": 2,
+    "runners": [
+      "codex"
+    ],
+    "max_rounds": 3,
+    "thresholds": {
+      "files": 1.0,
+      "structure": 1.0,
+      "names": 0.8
+    },
+    "skip_reason": "利用者が収束テストを省くと指定した"
+  }
+}
+
+=== .agents/skills/analyze-todo-comment/references/decisions.md
+<!-- このファイルは render_skill.py が dev/spec.json から生成する。手で編集しない。 -->
+
+# ソースコードの TODO コメントを一覧の Markdown にする の決定
+
+## IN-01 TODO の一覧を作るほかの求めには応じず、notes.md に書く
+
+- 軸: I3
+- 決定: 依頼を次の表で扱う。表の行を上から当てはめ、最初に当たった行に従う。
+- 理由: 依頼が TODO コメントの一覧だけを求めている。ほかの印やほかの作業に応じるかが AI ごとに分かれると、一覧の行が変わり、リポジトリにファイルが増えたり減ったりする。応じなかったことを notes.md に書けば、利用者が報告の「## 補足」で気づける。
+- 決め方: 依頼の指定
+- 守らせ方: doc: SKILL.md の手順1と手順6
+- 機械化しない理由: 痕跡が残らない：依頼に書かれた印や作業は出力に残らず、出力だけでは判定できない
+
+決定表:
+
+| 依頼 | 扱い |
+|---|---|
+| `TODO` のほかの印（`FIXME`、`XXX`、`HACK`）も集めるよう求める | `TODO` だけを集める（STEP-01）。集めなかった印を、finish の前に `.skill-runs/analyze-todo-comment/notes.md` に「- <印> は集めていない（TODO だけを集める）」の形で1行ずつ書く |
+| TODO の作業の実装、Issue への登録、一覧を `.skill-runs/` の外のファイル（例：`TODO.md`）に書くことを求める | 一覧を `.skill-runs/analyze-todo-comment/out/todo-comments.md` に作るだけにする（OUT-01）。しなかったことを notes.md に「- <求められたこと> はしていない（一覧を作るだけ）」の形で書く |
+| 上のどれでもない | 手順に進む |
+
+- 良い例:
+
+  ```text
+  「TODO と FIXME を一覧にして」に、TODO だけの一覧を作り、notes.md に「- FIXME は集めていない（TODO だけを集める）」と書く
+  ```
+- 悪い例:
+
+  ```text
+  「TODO と FIXME を一覧にして」に、grep で FIXME も探して表に足す
+  ```
+
+## IN-02 読むファイルは collect_todo.py が git の除外に従って決める
+
+- 軸: I4
+- 決定: 読むファイルは、入力 `source`（プロジェクトのルートからの相対パス）の下の、次の表で決まるファイルだけにする。どの行の場合も、シンボリックリンク、NUL バイトのあるファイル（バイナリ）、文書の拡張子（`.md`、`.markdown`、`.mdx`、`.rst`、`.txt`、`.adoc`）のファイルは読まない。読むファイルの一覧は `scripts/collect_todo.py` が決め、AI は別にファイルを開いて探さない。
+- 理由: 読む範囲が AI ごとに違うと、一覧の行が変わる。git の標準の除外に従えば、生成物や依存のパッケージをプロジェクトの決まりどおりに外せる。文書のファイルの `# TODO` は Markdown の見出しで、コメントではないので外す。
+- 決め方: 出力を使う道具や形式の公式の決まり
+- 守らせ方: script, validate: scripts/collect_todo.py の collect が読むファイルを決める。契約の command 検査（collect_todo.py verify）が、読む範囲の外のファイルの行を IN-02 で指摘する
+
+決定表:
+
+| プロジェクトのルート | 読むファイル |
+|---|---|
+| git の作業ツリーの中 | `git ls-files -z --cached --others --exclude-standard -- <source>` が出すファイル（追跡しているファイルと、`.gitignore` で無視されていない未追跡のファイル） |
+| 上のどれでもない（git が無い） | `source` の下のすべてのファイル。ただし `.git`、`.skill-runs`、`node_modules` という名前のディレクトリの中は読まない |
+
+- 良い例:
+
+  ```text
+  `.gitignore` にある `src/generated/` と、`src/NOTES.md` の `# TODO` の見出しが一覧に無い
+  ```
+- 悪い例:
+
+  ```text
+  `src/NOTES.md` の見出し `# TODO` を、TODO コメントとして一覧に載せる
+  ```
+
+## STEP-01 TODO コメントの判定と集計は collect_todo.py だけで行う
+
+- 軸: P3, P4
+- 決定: TODO コメントを探す、判定する、数える、並べる処理は、`python3 <skill>/scripts/collect_todo.py collect` だけで行う。`grep`、`rg`、`git grep`、`find` で探さず、一覧を手で書いたり書き足したりしない。TODO コメントの判定の規則は次のとおりである。行の先頭か空白の直後にコメントの印（`//`、`/*`、`*`、`#`、`--`、`;`、`<!--`、`%`）があり、その直後（空白とタブは挟んでよい）に大文字の `TODO` が1語として続く行を、TODO コメントとする。小文字の `todo`、コメントの途中にある `TODO`、`TODOS` は TODO コメントにしない。
+- 理由: 探し方と判定の規則が AI ごとに違うと、同じソースから違う行が集まる。スクリプトにすれば、同じソースからは同じ一覧が出る。Google C++ Style Guide は `TODO` をすべて大文字で書くよう定め、ESLint の no-warning-comments はコメントの先頭の語を1語として見る。この2つに合わせる。
+- 決め方: 出力を使う道具や形式の公式の決まり
+- 守らせ方: script, validate: scripts/collect_todo.py の collect が判定して集める。契約の command 検査（collect_todo.py verify）が、規則に当たらない行を STEP-01 で指摘する
+- 良い例:
+
+  ```text
+  `# FIXME: 例外を握りつぶさない` と `# todo: 後で見る` の行が一覧に無い
+  ```
+- 悪い例:
+
+  ```text
+  `grep -rn -i todo src` の結果から、`# FIXME:` の行や小文字の `todo` の行も一覧に入れる
+  ```
+
+## STEP-02 collect_todo.py が失敗したら一覧を手で作らずに中断する
+
+- 軸: P5
+- 決定: `collect_todo.py collect` が終了コード0以外で終わったら、一覧を手で作らずに、`python3 <skill>/scripts/run.py abort --reason "<collect_todo.py が出力した1行目>"` を実行して中断する。
+- 理由: スクリプトが失敗した後に grep で一覧を作ると、判定の規則と読む範囲が AI ごとに変わる。中断すれば、利用者が `source` を直してやり直せる。
+- 決め方: 道具・スクリプト・入力を増やさない答え
+- 守らせ方: doc: SKILL.md の手順4
+- 機械化しない理由: 痕跡が残らない：中断したときは出力が無く、検査する対象が無い
+- 良い例:
+
+  ```text
+  `source が見つからない: srcc` で終わったので、その1行を `--reason` に渡して abort する
+  ```
+- 悪い例:
+
+  ```text
+  `source が見つからない` と出たので、`grep -rn TODO .` の結果から一覧を手で書く
+  ```
+
+## OUT-01 一覧は .skill-runs の out/todo-comments.md に1つだけ書く
+
+- 軸: O1
+- 決定: 一覧は `.skill-runs/analyze-todo-comment/out/todo-comments.md` に1つだけ書く。`collect_todo.py collect` の `--out` にこのパスを渡して書かせる。毎回このファイルを書き直し、リポジトリの中のほかのファイルには書かない。
+- 理由: 置き場とファイル名が AI ごとに違うと、検査と報告が出力を見つけられない。実行記録の置き場に書けば、利用者のリポジトリにファイルが増えない。
+- 決め方: AI の判断と覚える概念が少ない答え
+- 守らせ方: validate: 契約の outputs.todo-list の path と count
+- 良い例:
+
+  ```text
+  `.skill-runs/analyze-todo-comment/out/todo-comments.md` が1つある
+  ```
+- 悪い例:
+
+  ```text
+  一覧を `.skill-runs/analyze-todo-comment/out/todo-list.md` に書く
+  ```
+
+## OUT-02 一覧は見出し、3つの項目、4列の表の形にする
+
+- 軸: O2
+- 決定: 一覧は、見本 `assets/examples/todo-comments.md` と同じ形にする。1行目は見出し `# TODO コメントの一覧`、空行の後に `- 対象: `、`- 件数: `、`- 数えたコマンド: ` の3行、空行の後に見出しの行 `| ファイル | 行 | 識別子 | 内容 |` と区切りの行 `|---|---|---|---|` と TODO コメント1つにつき1行の表を置く。これ以外の行（前置き、まとめ、空行の追加）を書かない。セルの中の `|` は `\|` と書く。TODO が0件のときも、表の見出しの行と区切りの行は書く。行末に空白を置かず、ファイルの末尾は改行1つで終える。
+- 理由: 形が AI ごとに違うと、読む人も検査も行を見つけられない。GitHub Flavored Markdown の表は、見出しの行と区切りの行で表になり、セルの中の `|` は `\|` と書く。0件でも同じ形にすれば、分岐が無い。
+- 決め方: 出力を使う道具や形式の公式の決まり
+- 守らせ方: format, script, validate: scripts/collect_todo.py の collect が形を出す。契約の format が行末の空白と末尾の改行を直し、headings と forbid の検査と collect_todo.py verify が、形の違いを OUT-02 で指摘する
+- 良い例:
+
+  ```text
+  `| ファイル | 行 | 識別子 | 内容 |` の表の後に、何も書かずにファイルが終わる
+  ```
+- 悪い例:
+
+  ```text
+  表の後に「以上、4 件の TODO が見つかりました。」と書き足す
+  ```
+
+## OUT-03 識別子と内容はコメントの文をそのまま写す
+
+- 軸: O3
+- 決定: 表の「識別子」の列には `TODO(` と `)` の間の文字列を、「内容」の列には `TODO` と識別子の後の文から、先頭の空白と `:`、末尾の `*/` と `-->` を除いた文字列を、元のコメントのまま写す。訳したり、要約したり、言い換えたりしない。識別子か内容が空なら `-` と書く。見出しと項目の名前は、`collect_todo.py` が出す日本語の文言から変えない。
+- 理由: 内容を訳したり要約したりすると、AI ごとに文が変わり、元のコメントを検索で見つけられなくなる。そのまま写せば、スクリプトの出力と比べて確かめられる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: script, validate: scripts/collect_todo.py の collect がコメントから写す。collect_todo.py verify が、元のコメントと違うセルを OUT-03 で指摘する
+- 良い例:
+
+  ```text
+  `# TODO(alice): handle empty input` の行を `| alice | handle empty input |` と書く
+  ```
+- 悪い例:
+
+  ```text
+  `# TODO(alice): handle empty input` の行を `| alice | 空の入力を処理する |` と訳して書く
+  ```
+
+## OUT-04 行はパスと行番号の順に並べ、件数を単位つきで書く
+
+- 軸: O4
+- 決定: 表の行は、ファイルのパス（プロジェクトのルートからの相対パス。区切りは `/`）の文字コード順に並べ、同じファイルの中は行番号（1 から数える）の小さい順に並べる。件数の行は `- 件数: <表の行の数> 件（<表に出たファイルの数> ファイル）` と書く。
+- 理由: 並べ順と件数の書き方が AI ごとに違うと、同じソースから違う一覧になる。パスと行番号の順は、ファイルを上から読む順と同じで、判断が要らない。
+- 決め方: AI の判断と覚える概念が少ない答え
+- 守らせ方: script, validate: scripts/collect_todo.py の collect が並べて数える。契約の require 検査と collect_todo.py verify が、並べ順と件数の違いを OUT-04 で指摘する
+- 良い例:
+
+  ```text
+  `- 件数: 4 件（3 ファイル）` の後に、`src/app.py` の 3 行目、12 行目、`src/lib/util.js` の 1 行目の順に並ぶ
+  ```
+- 悪い例:
+
+  ```text
+  識別子ごとにまとめて並べ、件数を `- 件数: 4件` と書く
+  ```
+
+## OUT-05 見つけた TODO コメントをすべて1行ずつ載せる
+
+- 軸: O5
+- 決定: `collect_todo.py` が見つけた TODO コメントを、件数の上限を設けずにすべて載せる。1つの TODO コメントは表の1行にし、同じ行を2回載せない。内容は TODO のある1行だけを写し、続く行は載せない。
+- 理由: 件数が多いときに一部だけを載せるかどうかが AI ごとに分かれると、一覧の行が変わる。続く行を載せるかどうかも、コメントの終わりの判断が分かれる。
+- 決め方: AI の判断と覚える概念が少ない答え
+- 守らせ方: script, validate: scripts/collect_todo.py の collect がすべてを出す。collect_todo.py verify が、載っていない TODO コメントと重なった行を OUT-05 で指摘する
+- 良い例:
+
+  ```text
+  見つけた 120 件をすべて表に載せる
+  ```
+- 悪い例:
+
+  ```text
+  「主なもの」として 20 件だけを載せ、残りを「ほか 100 件」とまとめる
+  ```
+
+## OUT-06 対象と数えたコマンドを一覧の項目に書く
+
+- 軸: X1
+- 決定: `- 対象: ` の行には入力 `source` の値を `` ` `` で囲んで書き、`- 数えたコマンド: ` の行には `python3 <プロジェクトのルートからの collect_todo.py のパス> collect --source <source>` を `` ` `` で囲んで書く。どちらも `collect_todo.py collect` が出した行から変えない。
+- 理由: 件数の根拠が書かれていないと、読む人が数え直せない。数えたコマンドを書けば、同じコマンドで同じ一覧を出して確かめられる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: script, validate: scripts/collect_todo.py の collect が2行を出す。契約の require 検査と collect_todo.py verify が、2行の違いを OUT-06 で指摘する
+- 良い例:
+
+  ```text
+  `- 数えたコマンド: `python3 .agents/skills/analyze-todo-comment/scripts/collect_todo.py collect --source src``
+  ```
+- 悪い例:
+
+  ```text
+  `- 数えたコマンド: `grep -rn TODO src``
+  ```
+
+## RPT-01 最終の返答は finish の本文をそのまま使う
+
+- 軸: R1
+- 決定: 最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。
+- 理由: 報告の形と中身が AI ごとに分かれない。既定値で決めた値と検証の結果を、読み手が必ず見られる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate, review: scripts/run.py の finish と abort が本文を組み立て、.skill-runs/<name>/report.md にも保存する。check と finish が notes.md の形を検査する
+- 良い例:
+
+  ```text
+  決めきれなかった既定値を notes.md に「- 」で書き、finish の本文をそのまま返答する
+  ```
+- 悪い例:
+
+  ```text
+  finish の本文を要約し直し、最後に自由な文で補足を足して返答する
+  ```
+
+## CTL-01 実行は run.py で始めて終える
+
+- 軸: C1
+- 決定: 手順の最初に `run.py start`、出力を書いた後に `run.py check`、最後に `run.py finish` を実行する。`finish` が終了コード0で終わるまで、完了と返答しない。
+- 理由: 始まりと終わりをスクリプトで区切ると、検査が必ず走り、hooks が実行中かどうかを判定できる。完了の基準が AI ごとに分かれない。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate: scripts/run.py。finish は契約の検査に通らないと終了コード1で終わる
+- 良い例:
+
+  ```text
+  `run.py finish` が終了コード0で終わってから、その本文で返答する
+  ```
+- 悪い例:
+
+  ```text
+  出力を書いた直後に「完了しました」と返答する
+  ```
+
+## CTL-02 実行中はスキル自身のファイルを変えない
+
+- 軸: C2
+- 決定: `run.py start` から `run.py finish` までの間、スキルの保護ファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`）と、プロジェクトに登録したこのスキルの hooks を変えない。出力が契約に合わないときは、出力の方を直す。保護ファイルが封印（`assets/seal.json`）と違うと `run.py start` が終了コード1で止まるので、そのときは出力された指摘をユーザーに伝えて止まる。
+- 理由: 検査や契約を緩めて通すと、検査が無いのと同じになる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate: scripts/run.py の start が保護ファイルのハッシュと hooks の登録を記録し、check と finish が比べる。`start --restart` は記録を最初の start から引き継ぐ。hooks が編集の前に止める。start は封印と保護ファイルを比べ、違えば始めない
+- 良い例:
+
+  ```text
+  指摘されたルールIDを決定表で引き、出力のファイルを直す
+  ```
+- 悪い例:
+
+  ```text
+  検査に通すために `assets/contract.json` の正規表現を緩める
+  ```
+
+## CTL-03 質問は start の前に済ませる
+
+- 軸: C3, I2
+- 決定: ユーザーに聞くことは `run.py start` の前にまとめて聞く。start の後に聞く必要が出たときは、`run.py wait --question <質問>` を実行してから聞く。聞けない状況では既定値を使い、報告の「既定値で決めた値」に載せる。
+- 理由: 実行の途中で質問するかどうかが AI ごとに分かれると、出力が揃わない。wait を挟むと、質問のために応答を終えることを hooks が止めない。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, doc: scripts/run.py の start は、聞くべき入力が無いと終了コード3で止まり、質問を出力する。wait は hooks の強制を止める
+- 良い例:
+
+  ```text
+  start の終了コード3で出た質問をユーザーに聞き、答えを `--set` で渡して start をやり直す
+  ```
+- 悪い例:
+
+  ```text
+  出力を半分書いたところで、形式をユーザーに尋ねる
+  ```
+
+## CTL-04 hooks は出力の検査だけに使い、入力を止めない
+
+- 軸: C4
+- 決定: hooks は、このスキルの実行中（status: active）に、編集の後の検査、応答を終える前の検査、保護ファイルの編集の停止の3つを行う。実行していないときは、封印したスキル（`assets/seal.json` がある）の保護ファイルの編集に、Claude Code で確認を求めることだけを行う。ユーザーの発言を止めたり書き換えたりしない。
+- 理由: 縛る対象は AI の出力であり、ユーザーの入力ではない。このスキルを使っていないセッションの邪魔をしない。ただし、実行していない間にスキル自身が変わると、次の実行の検査が緩んだままになるので、封印したファイルの編集だけは人に確かめさせる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime: scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する
+- 良い例:
+
+  ```text
+  Stop の hook が、検査に通るまで応答の終了を差し戻す
+  ```
+- 悪い例:
+
+  ```text
+  UserPromptSubmit の hook で、依頼文の書き方が違うと拒否する
+  ```
+
+## CTL-05 契約の出力のほかにファイルを変えない
+
+- 軸: C5
+- 決定: `run.py start` から `run.py finish` までの間に作る・変えるファイルは、「5. 出力の契約」の出力と `control.allow_changes` に挙げたものだけにする。作業用のメモや一時ファイルも、出力の置き場の外に作らない。
+- 理由: 出力の外に作るファイル（メモ、控え、別名の写し）は AI ごとに違い、利用者のリポジトリに残る。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate: scripts/run.py の start が git の作業ツリーの状態を記録し、check と finish が比べる。編集の直後には hooks が知らせる
+- 良い例:
+
+  ```text
+  下書きも出力の置き場（`.skill-runs/<name>/`）の中に書く
+  ```
+- 悪い例:
+
+  ```text
+  リポジトリの直下に `notes.md` を作って下書きする
+  ```
+
+=== .agents/skills/analyze-todo-comment/scripts/_skillrt.py
+"""skill-foundation の実行時ランタイム。run.py と hook.py が使う。
+
+Python 3.9 以上の標準ライブラリだけで動く。skill-foundation が作ったすべてのスキルに、同じ内容のまま
+写される。スキルごとに書き換えない（skill_lint.py がハッシュで確かめる）。スキル固有の決まりは
+assets/contract.json に書く。
+
+方針: 入力（ユーザーの依頼・既存のファイル）には寛容に、出力（AI が書いたもの）には厳格にする。
+  - 入力: キーの表記ゆれ・全角・大文字小文字・未知のキーを受け入れ、既定値で補い、補ったことを記録する
+  - 出力: 契約（contract.json）に合わないものは、ルールID付きのエラーにする
+"""
+
+from __future__ import annotations
+
+import datetime
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import unicodedata
+from pathlib import Path
+
+RUNTIME_VERSION = "1.0.0"
+SKILL_DIR = Path(__file__).resolve().parent.parent
+CONTRACT_REL = "assets/contract.json"
+SEAL_REL = "assets/seal.json"  # 封印。skill_lint.py --seal と、skill-foundation の finish が書く（CTL-02）
+RUNS_DIRNAME = ".skill-runs"
+HOOK_CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
+# 出力の探索で入らないディレクトリ（パターンの固定部分に含まれる場合は入る）
+SKIP_DIRS = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache",
+             ".mypy_cache", ".ruff_cache", ".tox", ".next", ".turbo", ".cache", RUNS_DIRNAME}
+CHECK_TYPES = ["headings", "require", "forbid", "max_lines", "min_lines", "line_length", "json_schema",
+               "front_matter", "command"]
+FORMAT_TYPES = ["trailing_space", "final_newline", "replace", "command"]
+STATUSES = ["active", "waiting", "done", "failed", "aborted"]
+ENFORCING = ("active",)
+MAX_NOTES = 10
+
+
+# ---------------------------------------------------------------- 基本
+
+def now() -> str:
+    return datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_json(path: Path, data: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def load_contract(skill_dir: Path = SKILL_DIR) -> dict:
+    return load_json(skill_dir / CONTRACT_REL)
+
+
+def project_root(start: Path) -> Path:
+    """プロジェクトのルート。start から親へ辿って最初に .git がある場所、無ければ start 自身。"""
+    current = start.resolve()
+    if current.is_file():
+        current = current.parent
+    for candidate in [current, *current.parents]:
+        if (candidate / ".git").exists():
+            return candidate
+    return current
+
+
+def run_rel(name: str) -> str:
+    return f"{RUNS_DIRNAME}/{name}"
+
+
+def state_path(root: Path, name: str) -> Path:
+    return root / RUNS_DIRNAME / name / "state.json"
+
+
+def load_state(root: Path, name: str) -> dict | None:
+    path = state_path(root, name)
+    if not path.is_file():
+        return None
+    try:
+        return load_json(path)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def save_state(root: Path, state: dict) -> None:
+    runs = root / RUNS_DIRNAME
+    runs.mkdir(parents=True, exist_ok=True)
+    ignore = runs / ".gitignore"
+    if not ignore.exists():
+        ignore.write_text("*\n", encoding="utf-8")  # 利用者の .gitignore を変えずに、実行記録を git から外す
+    write_json(state_path(root, state["skill"]), state)
+
+
+def log_event(state: dict, event: str, detail: str = "") -> None:
+    state.setdefault("history", []).append({"at": now(), "event": event, "detail": detail[:500]})
+
+
+# ---------------------------------------------------------------- パスと glob
+
+def glob_to_regex(pattern: str) -> re.Pattern:
+    """`**`、`*`、`?`、`{a,b}` に対応する glob を、ルートからの相対パス全体に一致する正規表現にする。"""
+    out, i = [], 0
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "*":
+            if pattern.startswith("**/", i):
+                out.append("(?:.*/)?")
+                i += 3
+                continue
+            if pattern.startswith("**", i):
+                out.append(".*")
+                i += 2
+                continue
+            out.append("[^/]*")
+        elif c == "?":
+            out.append("[^/]")
+        elif c == "{" and "}" in pattern[i:]:
+            end = pattern.index("}", i)
+            out.append("(?:" + "|".join(re.escape(a) for a in pattern[i + 1:end].split(",")) + ")")
+            i = end + 1
+            continue
+        else:
+            out.append(re.escape(c))
+        i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+
+def matches_any(rel: str, patterns: list[str]) -> str | None:
+    for pattern in patterns:
+        if glob_to_regex(pattern).match(rel):
+            return pattern
+    return None
+
+
+IN_PLACEHOLDER = re.compile(r"\{in:([A-Za-z0-9_]+)\}")
+
+
+def expand(pattern: str, name: str, values: dict | None = None) -> str:
+    """契約のパスの {run} を実行記録の置き場（.skill-runs/<name>）に、{in:キー} を入力の値に置き換える。"""
+    expanded = pattern.replace("{run}", run_rel(name))
+    expanded = IN_PLACEHOLDER.sub(lambda m: str((values or {}).get(m.group(1)) or m.group(0)), expanded)
+    return expanded[2:] if expanded.startswith("./") else expanded
+
+
+def static_prefix(pattern: str) -> str:
+    parts = []
+    for part in pattern.split("/")[:-1]:
+        if any(ch in part for ch in "*?{["):
+            break
+        parts.append(part)
+    return "/".join(parts)
+
+
+def iter_glob(root: Path, pattern: str) -> list[str]:
+    """pattern に一致するファイルの相対パス（POSIX 形式、昇順）。シンボリックリンクは辿らない。"""
+    regex = glob_to_regex(pattern)
+    prefix = static_prefix(pattern)
+    base = root / prefix if prefix else root
+    if not base.is_dir():
+        return []
+    found = []
+    for dirpath, dirnames, filenames in os.walk(base, followlinks=False):
+        rel_dir = Path(dirpath).relative_to(root).as_posix()
+        rel_dir = "" if rel_dir == "." else rel_dir
+        dirnames[:] = sorted(d for d in dirnames
+                             if d not in SKIP_DIRS and not (Path(dirpath) / d).is_symlink())
+        for f in filenames:
+            rel = f"{rel_dir}/{f}" if rel_dir else f
+            if regex.match(rel) and not (Path(dirpath) / f).is_symlink():
+                found.append(rel)
+    return sorted(found)
+
+
+def snapshot(root: Path, contract: dict, name: str, values: dict | None = None) -> dict:
+    files = {}
+    for out in contract.get("outputs", []):
+        for rel in iter_glob(root, expand(out["path"], name, values)):
+            files[rel] = sha256(root / rel)
+    return files
+
+
+def protected_hashes(skill_dir: Path, contract: dict) -> dict:
+    globs = contract.get("control", {}).get("protected", [])
+    hashes = {}
+    for dirpath, dirnames, filenames in os.walk(skill_dir):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+        for f in filenames:
+            rel = (Path(dirpath) / f).relative_to(skill_dir).as_posix()
+            if matches_any(rel, globs):
+                hashes[rel] = sha256(Path(dirpath) / f)
+    return hashes
+
+
+def seal_hashes(skill_dir: Path, contract: dict) -> dict:
+    """封印に書く保護ファイルのハッシュ。封印のファイル自身は除く。"""
+    return {rel: digest for rel, digest in protected_hashes(skill_dir, contract).items() if rel != SEAL_REL}
+
+
+def write_seal(skill_dir: Path, contract: dict) -> int:
+    hashes = seal_hashes(skill_dir, contract)
+    write_json(skill_dir / SEAL_REL, {"runtime": RUNTIME_VERSION, "files": hashes})
+    return len(hashes)
+
+
+def seal_findings(skill_dir: Path, contract: dict) -> list[dict]:
+    """封印（assets/seal.json）と今の保護ファイルの違い。封印の無いスキル（作っている途中）では何も返さない。
+    hooks は実行していない間の変更を止められないので、次の start がここで見つける（CTL-02）。"""
+    path = skill_dir / SEAL_REL
+    if not path.is_file():
+        return []
+    rule = contract.get("control", {}).get("tamper_rule", "CTL")
+    try:
+        sealed = load_json(path).get("files", {})
+    except (OSError, ValueError, AttributeError):
+        return [finding(rule, f"{skill_dir.name}/{SEAL_REL}", 0, "封印が読めません")]
+    current = seal_hashes(skill_dir, contract)
+    result = []
+    for rel in sorted(set(sealed) | set(current)):
+        if sealed.get(rel) != current.get(rel):
+            what = "変わりました" if rel in sealed and rel in current else ("足されました" if rel in current else "消されました")
+            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0, f"封印の後に{what}"))
+    return result
+
+
+# ---------------------------------------------------------------- 入力の正規化（寛容）
+
+def canon(text: str) -> str:
+    """キーや選択肢を比べるための形。全角→半角、小文字、空白・-・_ を除く。"""
+    return re.sub(r"[\s\-_]+", "", unicodedata.normalize("NFKC", str(text)).strip().lower())
+
+
+TRUE_WORDS = {canon(w) for w in ["true", "yes", "y", "on", "1", "はい", "する", "あり", "有効"]}
+FALSE_WORDS = {canon(w) for w in ["false", "no", "n", "off", "0", "いいえ", "しない", "なし", "無効"]}
+KV_LINE = re.compile(r"^\s*([^:=：＝\s][^:=：＝]{0,40}?)\s*[:=：＝]\s*(.+?)\s*$")
+
+
+def convert(value, spec: dict):
+    """値を型に合わせて変換し、case（upper / lower）があれば文字列の大文字・小文字を揃える。変換できなければ ValueError。"""
+    result = convert_type(value, spec)
+    if isinstance(result, str) and spec.get("case") in ("upper", "lower"):
+        result = result.upper() if spec["case"] == "upper" else result.lower()
+    return result
+
+
+def convert_type(value, spec: dict):
+    kind = spec.get("type", "string")
+    if isinstance(value, str):
+        value = value.strip()
+    if kind == "string":
+        return str(value)
+    if kind == "int":
+        return int(unicodedata.normalize("NFKC", str(value)).replace(",", ""))
+    if kind == "bool":
+        if isinstance(value, bool):
+            return value
+        word = canon(value)
+        if word in TRUE_WORDS:
+            return True
+        if word in FALSE_WORDS:
+            return False
+        raise ValueError(f"真偽値として読めません: {value!r}")
+    if kind == "list":
+        if isinstance(value, list):
+            return [str(v).strip() for v in value if str(v).strip()]
+        return [v.strip() for v in re.split(r"[,、，\n]+", str(value)) if v.strip()]
+    if kind == "enum":
+        choices = spec.get("enum", [])
+        aliases = {canon(k): v for k, v in spec.get("enum_aliases", {}).items()}
+        for choice in choices:
+            if canon(choice) == canon(value):
+                return choice
+        if canon(value) in aliases:
+            return aliases[canon(value)]
+        raise ValueError(f"{choices} のどれでもありません: {value!r}")
+    if kind == "path":
+        return Path(str(value)).as_posix()
+    if kind == "slug":
+        slug = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKC", str(value)).lower()).strip("-")
+        if not slug:
+            raise ValueError(f"英数字を含まないので slug にできません: {value!r}")
+        return slug
+    raise ValueError(f"未知の type: {kind}")
+
+
+def normalize_input(raw: dict, text: str, contract: dict) -> dict:
+    """依頼から受け取った値を契約の inputs に合わせる。エラーにせず、補ったこと・読めなかったことを記録する。"""
+    specs = contract.get("inputs", [])
+    by_canon = {}
+    for spec in specs:
+        for word in [spec["key"], spec.get("label", ""), *spec.get("aliases", [])]:
+            if word:
+                by_canon[canon(word)] = spec["key"]
+    given, extra = {}, {}
+    # 自由記述の中の「キー: 値」の行も拾う（明示の指定が優先）
+    for line in text.splitlines():
+        match = KV_LINE.match(line)
+        if match and canon(match.group(1)) in by_canon:
+            given.setdefault(by_canon[canon(match.group(1))], match.group(2))
+    for key, value in raw.items():
+        target = by_canon.get(canon(key))
+        if target:
+            given[target] = value
+        else:
+            extra[key] = value
+    values, defaulted, questions, warnings = {}, [], [], []
+    for spec in specs:
+        key = spec["key"]
+        if key in given and str(given[key]).strip() != "":
+            try:
+                values[key] = convert(given[key], spec)
+                continue
+            except ValueError as exc:
+                warnings.append(f"{key}: {exc}。既定値で補います" if "default" in spec else f"{key}: {exc}。そのまま使います")
+                if "default" not in spec:
+                    values[key] = given[key]
+                    continue
+        if "default" in spec and spec["default"] is not None:
+            values[key] = spec["default"]
+            defaulted.append(key)
+        elif spec.get("ask"):
+            questions.append(f"{spec.get('label', key)}（{key}）: {spec.get('question', '値を確かめる')}")
+        else:
+            values[key] = None
+    return {"values": values, "defaulted": defaulted, "questions": questions, "warnings": warnings,
+            "extra": extra, "text": text}
+
+
+# ---------------------------------------------------------------- 出力の検査（厳格）
+
+HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
+FENCE = re.compile(r"^\s*(```|~~~)")
+
+
+def finding(rule: str, path: str, line: int, message: str) -> dict:
+    return {"rule": rule, "path": path, "line": line, "message": message}
+
+
+def format_finding(f: dict) -> str:
+    where = f"{f['path']}:{f['line']}" if f["line"] else f["path"]
+    return f"{f['rule']} {where} {f['message']}"
+
+
+def code_mask(lines: list[str]) -> list[bool]:
+    """各行がコードフェンスの中（フェンス行を含む）かどうか。"""
+    mask, inside = [], False
+    for line in lines:
+        if FENCE.match(line):
+            mask.append(True)
+            inside = not inside
+            continue
+        mask.append(inside)
+    return mask
+
+
+def headings(lines: list[str]) -> list[tuple[int, int, str]]:
+    mask = code_mask(lines)
+    result = []
+    for i, line in enumerate(lines):
+        if mask[i]:
+            continue
+        match = HEADING.match(line)
+        if match:
+            result.append((i + 1, len(match.group(1)), match.group(2)))
+    return result
+
+
+def front_matter(lines: list[str]) -> dict | None:
+    if not lines or lines[0].strip() != "---":
+        return None
+    keys = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return keys
+        match = re.match(r"^([A-Za-z0-9_\-]+)\s*:\s*(.*)$", line)
+        if match:
+            keys[match.group(1)] = match.group(2).strip()
+    return None
+
+
+def schema_errors(value, schema: dict, where: str = "$") -> list[str]:
+    """JSON Schema の部分集合（type, enum, const, required, properties, additionalProperties, items,
+    pattern, minLength, maxLength, minimum, maximum, minItems, maxItems）で検査する。"""
+    errors = []
+    types = schema.get("type")
+    if types:
+        names = types if isinstance(types, list) else [types]
+        checks = {"object": lambda v: isinstance(v, dict), "array": lambda v: isinstance(v, list),
+                  "string": lambda v: isinstance(v, str), "boolean": lambda v: isinstance(v, bool),
+                  "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+                  "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+                  "null": lambda v: v is None}
+        if not any(checks.get(n, lambda v: False)(value) for n in names):
+            return [f"{where}: 型が {names} ではありません"]
+    if "enum" in schema and value not in schema["enum"]:
+        errors.append(f"{where}: {schema['enum']} のどれでもありません")
+    if "const" in schema and value != schema["const"]:
+        errors.append(f"{where}: {schema['const']!r} ではありません")
+    if isinstance(value, str):
+        if "pattern" in schema and not re.search(schema["pattern"], value):
+            errors.append(f"{where}: /{schema['pattern']}/ に一致しません")
+        if len(value) < schema.get("minLength", 0):
+            errors.append(f"{where}: {schema['minLength']} 文字以上必要です")
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            errors.append(f"{where}: {schema['maxLength']} 文字以下にしてください")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            errors.append(f"{where}: {schema['minimum']} 以上にしてください")
+        if "maximum" in schema and value > schema["maximum"]:
+            errors.append(f"{where}: {schema['maximum']} 以下にしてください")
+    if isinstance(value, dict):
+        for key in schema.get("required", []):
+            if key not in value:
+                errors.append(f"{where}: キー {key} がありません")
+        props = schema.get("properties", {})
+        for key, item in value.items():
+            if key in props:
+                errors += schema_errors(item, props[key], f"{where}.{key}")
+            elif schema.get("additionalProperties") is False:
+                errors.append(f"{where}: 決められていないキー {key} があります")
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0):
+            errors.append(f"{where}: {schema['minItems']} 件以上必要です")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            errors.append(f"{where}: {schema['maxItems']} 件以下にしてください")
+        if "items" in schema:
+            for i, item in enumerate(value):
+                errors += schema_errors(item, schema["items"], f"{where}[{i}]")
+    return errors
+
+
+def format_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path,
+                values: dict | None = None) -> tuple[list[dict], list[dict]]:
+    """契約の format で出力ファイル1つを自動で直す（段 format）。戻り値は（直したもの, 直せなかった指摘）。"""
+    path, fixes, problems = root / rel, [], []
+    for fix in out.get("format", []):
+        rule, kind = fix["rule"], fix["type"]
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            return fixes, problems
+        if kind == "command":
+            before = sha256(path)
+            code, output = run_shell(fill_command(fix["run"], root, name, skill_dir, values, rel), root, int(fix.get("timeout", 60)))
+            if code != 0:
+                problems.append(finding(rule, rel, 0, f"整形のコマンドが失敗しました: {tail(output, 5)}"))
+            elif path.is_file() and sha256(path) != before:
+                fixes.append(finding(rule, rel, 0, fix.get("message") or f"`{fix['run']}` で整えました"))
+            continue
+        if kind == "trailing_space":
+            new, what = re.sub(r"[ \t]+$", "", text, flags=re.M), "行末の空白を消しました"
+        elif kind == "final_newline":
+            new, what = (text.rstrip("\n") + "\n") if text.strip() else text, "末尾の改行を1つにしました"
+        else:
+            source = IN_PLACEHOLDER.sub(lambda m: re.escape(str((values or {}).get(m.group(1), ""))), fix["pattern"])
+            new, what = re.sub(source, fix.get("with", ""), text, flags=re.M), f"/{fix['pattern']}/ を「{fix.get('with', '')}」に置き換えました"
+        if new != text:
+            path.write_text(new, encoding="utf-8")
+            fixes.append(finding(rule, rel, 0, fix.get("message") or what))
+    return fixes, problems
+
+
+def format_fix(f: dict) -> str:
+    """自動で直したことの1行。指摘（ルールIDで始まる行）と見分けられるよう「整形」で始める。"""
+    return f"整形 {f['rule']} {f['path']} {f['message']}"
+
+
+def record_fixes(state: dict, fixes: list[dict]) -> None:
+    done = state.setdefault("formatted", [])
+    for f in fixes:
+        item = f"{f['rule']} {f['path']}"
+        if item not in done:
+            done.append(item)
+
+
+def selected_lines(spec, count: int) -> list[int]:
+    if spec in (None, "all"):
+        return list(range(1, count + 1))
+    if spec == "first":
+        return [1] if count else []
+    return [n for n in spec if 1 <= n <= count]
+
+
+def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, values: dict | None = None,
+               edit: bool = False) -> list[dict]:
+    """出力ファイル1つを、契約の checks で検査する。edit（編集の直後の検査）では stage: finish の検査を飛ばす。"""
+    path = root / rel
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return [finding(out.get("rule", "OUT"), rel, 0, "UTF-8 のテキストとして読めません")]
+    lines = text.splitlines()
+    findings = []
+    pattern = out.get("name_pattern")
+    if pattern and not re.search(pattern, Path(rel).name):
+        findings.append(finding(out.get("rule", "OUT"), rel, 0, f"ファイル名が /{pattern}/ に一致しません"))
+    for check in out.get("checks", []):
+        if edit and check.get("stage") == "finish":
+            continue
+        rule, kind = check["rule"], check["type"]
+        message = check.get("message", "")
+        suffix = f"（{message}）" if message else ""
+        if kind == "headings":
+            level = check.get("level")
+            found = [(n, t) for n, lv, t in headings(lines) if level is None or lv == level]
+            titles = [t for _, t in found]
+            if "equals" in check and titles != check["equals"]:
+                findings.append(finding(rule, rel, found[0][0] if found else 0,
+                                        f"見出し（レベル {level}）が {check['equals']} と一致しません。今: {titles}{suffix}"))
+            if "includes" in check:
+                it = iter(titles)
+                if not all(any(t == want for t in it) for want in check["includes"]):
+                    findings.append(finding(rule, rel, 0, f"見出し {check['includes']} がこの順で揃っていません。今: {titles}{suffix}"))
+        elif kind in ("require", "forbid"):
+            source = IN_PLACEHOLDER.sub(lambda m: re.escape(str((values or {}).get(m.group(1), ""))), check["pattern"])
+            regex = re.compile(source, re.M)
+            mask = code_mask(lines) if check.get("ignore_code") else [False] * len(lines)
+            scope = set(selected_lines(check.get("lines"), len(lines)))
+            hits = [i + 1 for i, line in enumerate(lines) if i + 1 in scope and not mask[i] and regex.search(line)]
+            if check.get("multiline"):
+                body = "\n".join("" if mask[i] else line for i, line in enumerate(lines))
+                hits = [body[:m.start()].count("\n") + 1 for m in regex.finditer(body)]
+            if kind == "forbid":
+                for n in hits:
+                    findings.append(finding(rule, rel, n, f"/{check['pattern']}/ は使えません{suffix}: {lines[n - 1].strip()[:80]}"))
+            else:
+                low, high = check.get("min", 1), check.get("max")
+                if len(hits) < low or (high is not None and len(hits) > high):
+                    span = f"{low} 回以上" + (f" {high} 回以下" if high is not None else "")
+                    findings.append(finding(rule, rel, 0, f"/{check['pattern']}/ が {span} 必要です（今 {len(hits)} 回）{suffix}"))
+        elif kind == "max_lines" and len(lines) > check["value"]:
+            findings.append(finding(rule, rel, check["value"] + 1, f"{check['value']} 行以下にしてください（今 {len(lines)} 行）{suffix}"))
+        elif kind == "min_lines" and len(lines) < check["value"]:
+            findings.append(finding(rule, rel, 0, f"{check['value']} 行以上必要です（今 {len(lines)} 行）{suffix}"))
+        elif kind == "line_length":
+            for n in selected_lines(check.get("lines"), len(lines)):
+                width = len(lines[n - 1])
+                if width > check["max"]:
+                    findings.append(finding(rule, rel, n, f"1行は {check['max']} 文字以下にしてください（今 {width} 文字）{suffix}"))
+        elif kind == "json_schema":
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError as exc:
+                findings.append(finding(rule, rel, exc.lineno, f"JSON として読めません: {exc.msg}"))
+                continue
+            for error in schema_errors(data, check["schema"]):
+                findings.append(finding(rule, rel, 0, error + suffix))
+        elif kind == "front_matter":
+            keys = front_matter(lines)
+            if keys is None:
+                findings.append(finding(rule, rel, 1, f"先頭に --- で囲んだ front matter が必要です{suffix}"))
+            else:
+                for key in check.get("required_keys", []):
+                    if not keys.get(key):
+                        findings.append(finding(rule, rel, 1, f"front matter に {key} がありません{suffix}"))
+        elif kind == "command":
+            command = fill_command(check["run"], root, name, skill_dir, values, rel)
+            code, output = run_shell(command, root, int(check.get("timeout", 60)))
+            if code != 0:
+                passed = [l for l in output.splitlines() if re.match(r"^[A-Z]{2,6}-\d{2,3}\s", l)]
+                if passed:
+                    findings += [{"rule": l.split()[0], "path": rel, "line": 0, "message": l, "raw": True} for l in passed]
+                else:
+                    findings.append(finding(rule, rel, 0, f"検査コマンドが失敗しました{suffix}: {tail(output, 5)}"))
+    return findings
+
+
+def check_outputs(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
+                  only: str | None = None, fixes: list | None = None) -> tuple[list[dict], dict]:
+    """契約の出力を、format で直してから検査する。only を渡すとそのファイルだけを検査し、件数と改ざんは見ない。
+    戻り値は（指摘の一覧, 出力ID → 変わったファイルの一覧）。直したものは fixes に足す。"""
+    fixes = [] if fixes is None else fixes
+    name = state["skill"]
+    values = state.get("input", {})
+    baseline = state.get("baseline", {})
+    findings, changed_by_output, matched = [], {}, False
+    for out in contract.get("outputs", []):
+        pattern = expand(out["path"], name, values)
+        rule = out.get("rule", "OUT")
+        if only is not None:
+            if glob_to_regex(pattern).match(only) and (root / only).is_file():
+                fixed, problems = format_file(root, only, out, name, skill_dir, values)
+                fixes += fixed
+                findings += problems + check_file(root, only, out, name, skill_dir, values, edit=True)
+                matched = True
+            continue
+        changed = [rel for rel in iter_glob(root, pattern) if baseline.get(rel) != sha256(root / rel)]
+        changed_by_output[out["id"]] = changed
+        count = out.get("count", {})
+        low = count.get("min", 1 if out.get("required", True) else 0)
+        high = count.get("max")
+        if len(changed) < low:
+            findings.append(finding(rule, pattern, 0, f"出力 {out['id']}（{out.get('label', '')}）を {low} 件以上作ってください（今 {len(changed)} 件）"))
+        if high is not None and len(changed) > high:
+            findings.append(finding(rule, pattern, 0, f"出力 {out['id']} は {high} 件以下です（今 {len(changed)} 件: {', '.join(changed[:5])}）"))
+        for rel in changed:
+            fixed, problems = format_file(root, rel, out, name, skill_dir, values)
+            fixes += fixed
+            findings += problems + check_file(root, rel, out, name, skill_dir, values)
+    if only is None:
+        for group in contract.get("together", []):
+            ids = group.get("outputs", [])
+            touched = [i for i in ids if changed_by_output.get(i)]
+            if touched and len(touched) < len(ids):
+                missing = [i for i in ids if i not in touched]
+                note = f"（{group['message']}）" if group.get("message") else ""
+                findings.append(finding(group.get("rule", "OUT"), ", ".join(missing), 0,
+                                        f"出力 {', '.join(touched)} を変えたので、{', '.join(missing)} も一緒に変えてください{note}"))
+        findings += tamper_findings(root, state, contract, skill_dir)
+        findings += scope_findings(root, state, contract, skill_dir)
+        findings += notes_findings(root, name, contract)
+    elif only == notes_rel(name):
+        findings += notes_findings(root, name, contract)
+    elif not matched:
+        findings += scope_findings(root, state, contract, skill_dir, only=only)
+    return findings, changed_by_output
+
+
+def notes_rel(name: str) -> str:
+    """決めきれなかったことを AI が書くファイル。finish が報告の「## 補足」に入れる（RPT-01）。"""
+    return f"{run_rel(name)}/notes.md"
+
+
+def read_notes(root: Path, name: str) -> list[str]:
+    path = root / notes_rel(name)
+    if not path.is_file():
+        return []
+    return [line.rstrip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def notes_findings(root: Path, name: str, contract: dict) -> list[dict]:
+    """notes.md は「- 」で始まる箇条書きだけで、MAX_NOTES 項目まで。自由な文や見出しを報告に混ぜない。"""
+    rule = contract.get("report", {}).get("rule", "RPT")
+    rel = notes_rel(name)
+    if not (root / rel).is_file():
+        return []
+    try:
+        lines = (root / rel).read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError:
+        return [finding(rule, rel, 0, "UTF-8 のテキストとして読めません")]
+    result = [finding(rule, rel, n, f"補足は「- 」で始まる箇条書きの行だけにしてください: {line.strip()[:60]}")
+              for n, line in enumerate(lines, 1) if line.strip() and not re.match(r"^- \S", line)]
+    items = sum(1 for line in lines if line.strip())
+    if items > MAX_NOTES:
+        result.append(finding(rule, rel, 0, f"補足は {MAX_NOTES} 項目以下にしてください（今 {items} 項目）"))
+    return result
+
+
+def fill_command(template: str, root: Path, name: str, skill_dir: Path, values: dict | None, rel: str | None = None) -> str:
+    """契約のコマンドの {file}・{skill}・{root}・{run}・{in:キー} を、シェルで安全な形に置き換える。"""
+    command = (template.replace("{skill}", shell_quote(str(skill_dir))).replace("{root}", shell_quote(str(root)))
+               .replace("{run}", shell_quote(run_rel(name))))
+    if rel is not None:
+        command = command.replace("{file}", shell_quote(rel))
+    return IN_PLACEHOLDER.sub(lambda m: shell_quote(str((values or {}).get(m.group(1), ""))), command)
+
+
+def report_sections(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
+                    stage: str = "finish") -> tuple[list[str], list[dict]]:
+    """契約の report.sections のコマンドを実行し、その出力（Markdown の節）を返す。失敗は指摘にする。
+    stage: finish の節（封印のように、終えるときだけ行うもの）は、check からは実行しない。"""
+    rule = contract.get("report", {}).get("rule", "RPT")
+    texts, findings = [], []
+    for i, section in enumerate(contract.get("report", {}).get("sections", []), 1):
+        if section.get("stage") == "finish" and stage != "finish":
+            continue
+        command = fill_command(section["run"], root, state["skill"], skill_dir, state.get("input", {}))
+        code, output = run_shell(command, root, int(section.get("timeout", 120)))
+        if code != 0:
+            findings.append(finding(rule, f"report.sections[{i}]", 0, f"報告の節を作るコマンドが失敗しました: {tail(output, 5)}"))
+        else:
+            texts.append(output.strip())
+    return texts, findings
+
+
+def worktree(root: Path) -> dict | None:
+    """git が変更・未追跡と見なすファイルとそのハッシュ。git が使えないときは None（CTL-05 の検査をしない）。"""
+    try:
+        proc = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"], cwd=root,
+                              capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    files, entries, i = {}, proc.stdout.split("\0"), 0
+    while i < len(entries):
+        entry, i = entries[i], i + 1
+        if len(entry) < 4:
+            continue
+        if entry[0] in "RC":
+            i += 1  # 移動・複写の元のパスを読み飛ばす
+        rel = entry[3:]
+        files[rel] = sha256(root / rel) if (root / rel).is_file() else "missing"
+    return files
+
+
+def scope_findings(root: Path, state: dict, contract: dict, skill_dir: Path, only: str | None = None) -> list[dict]:
+    """契約の出力と allow_changes の外で、start の後に変わったファイル。"""
+    control = contract.get("control", {})
+    rule = control.get("scope_rule")
+    if not rule or state.get("worktree") is None:
+        return []
+    name, values = state["skill"], state.get("input", {})
+    allowed = [expand(o["path"], name, values) for o in contract.get("outputs", [])]
+    allowed += [expand(g, name, values) for g in control.get("allow_changes", [])] + [f"{RUNS_DIRNAME}/**"]
+    if only is not None:
+        path = root / only
+        ignored = subprocess.run(["git", "check-ignore", "-q", "--", only], cwd=root, capture_output=True).returncode == 0
+        current = {} if ignored else {only: sha256(path) if path.is_file() else "missing"}  # 全体の検査と同じく無視されたファイルは見ない
+    else:
+        current = worktree(root) or {}
+    before = state["worktree"]
+    inside = skill_dir.resolve()
+    stray = []
+    for rel, digest in sorted(current.items()):
+        if before.get(rel) == digest or matches_any(rel, allowed):
+            continue
+        if (root / rel).resolve() == inside or inside in (root / rel).resolve().parents:
+            continue  # スキル自身の変更は CTL-02 が扱う
+        stray.append(finding(rule, rel, 0, "契約の出力に無いファイルを変えています。元に戻すか削除してください"))
+    return stray
+
+
+def hook_registrations(root: Path, name: str) -> list[str]:
+    """プロジェクトに登録された、このスキルの hook.py を呼ぶ項目（「platform event matcher command」の並び）。"""
+    result = []
+    for platform, rel in HOOK_CONFIGS.items():
+        try:
+            data = load_json(root / rel)
+        except (OSError, ValueError):
+            continue
+        events = data.get("hooks", {}) if isinstance(data, dict) else {}
+        for event, groups in (events.items() if isinstance(events, dict) else []):
+            for group in groups if isinstance(groups, list) else []:
+                if not isinstance(group, dict):
+                    continue
+                for handler in group.get("hooks", []) if isinstance(group.get("hooks"), list) else []:
+                    command = str(handler.get("command", "")) if isinstance(handler, dict) else ""
+                    if f"/{name}/scripts/hook.py" in command:
+                        result.append(f"{platform} {event} {group.get('matcher') or '-'} {command}")
+    return sorted(result)
+
+
+def tamper_findings(root: Path, state: dict, contract: dict, skill_dir: Path) -> list[dict]:
+    rule = contract.get("control", {}).get("tamper_rule", "CTL")
+    before = state.get("protected", {})
+    after = protected_hashes(skill_dir, contract)
+    result = []
+    for rel in sorted(set(before) | set(after)):
+        if before.get(rel) != after.get(rel):
+            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0,
+                                  "スキル自身のファイル（保護対象）が実行中に変わりました。元に戻してください"))
+    if "hooks" in state:
+        current = set(hook_registrations(root, state["skill"]))
+        for entry in state["hooks"]:
+            if entry not in current:
+                platform = entry.split(" ", 1)[0]
+                result.append(finding(rule, HOOK_CONFIGS.get(platform, platform), 0,
+                                      f"このスキルの hooks の登録が実行中に外されたか変えられました（{entry}）。元に戻してください"))
+    return result
+
+
+# ---------------------------------------------------------------- 外部コマンド
+
+def shell_quote(text: str) -> str:
+    if os.name == "nt":
+        return '"' + text.replace('"', '\\"') + '"'
+    return "'" + text.replace("'", "'\"'\"'") + "'"
+
+
+def run_shell(command: str, cwd: Path, timeout: int) -> tuple[int, str]:
+    try:
+        proc = subprocess.run(command, cwd=cwd, shell=True, capture_output=True, text=True, timeout=timeout)
+        return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+    except subprocess.TimeoutExpired:
+        return 124, f"[timeout] {timeout} 秒で打ち切りました"
+
+
+def tail(text: str, lines: int = 20) -> str:
+    return "\n".join(text.rstrip().splitlines()[-lines:])
+
+
+def emit(text: str, stream=None) -> None:
+    (stream or sys.stdout).write(text if text.endswith("\n") else text + "\n")
+
+=== .agents/skills/analyze-todo-comment/scripts/collect_todo.py
+#!/usr/bin/env python3
+"""ソースコードの TODO コメントを集め、一覧の Markdown を書く・検査する。
+
+決定: IN-02（読むファイル）、STEP-01（判定と集計）、OUT-02（形）、OUT-03（そのまま写す）、
+OUT-04（並べ順と件数）、OUT-05（すべて載せる）、OUT-06（対象と数えたコマンド）
+
+使い方:
+  python3 collect_todo.py collect --source <dir> [--out <file>] [--root <dir>]
+      一覧の Markdown を --out に書く（無ければ標準出力に出す）。
+  python3 collect_todo.py verify --file <file> --source <dir> [--root <dir>]
+      一覧のファイルを、今のソースから collect した結果と比べる。
+      違いを「<ルールID> <説明>」の行で出す。
+
+--source と --out と --file の相対パスは、プロジェクトのルートからの相対である。
+プロジェクトのルートは --root、無ければ今のディレクトリから親へ辿って最初に .git がある場所、
+それも無ければ今のディレクトリである。
+
+出力（collect）: 見本 assets/examples/todo-comments.md と同じ形の Markdown。
+
+終了コード:
+  0 成功（verify は違いが無い）
+  1 verify で違いがある
+  2 実行の誤り（source が見つからない、git が失敗した）
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+TITLE = "# TODO コメントの一覧"
+HEADER = "| ファイル | 行 | 識別子 | 内容 |"
+DELIMITER = "|---|---|---|---|"
+DOC_SUFFIXES = {".md", ".markdown", ".mdx", ".rst", ".txt", ".adoc"}
+SKIP_DIRS = {".git", ".skill-runs", "node_modules"}
+TODO_RE = re.compile(r"(?:^|(?<=\s))(?://+|/\*+|\*+|#+|--+|;+|<!--|%+)[ \t]*TODO\b(?P<rest>.*)$")
+OWNER_RE = re.compile(r"\((?P<owner>[^)]*)\)")
+ROW_RE = re.compile(r"^\| `(?P<path>.+)` \| (?P<line>\d+) \| (?P<owner>.*?) \| (?P<text>.*) \|$")
+COUNT_RE = re.compile(r"^- 件数: (?P<n>\d+) 件（(?P<files>\d+) ファイル）$")
+
+
+class Failure(Exception):
+    """実行の誤り（終了コード2）。"""
+
+
+def project_root(start: Path) -> Path:
+    current = start.resolve()
+    for candidate in [current, *current.parents]:
+        if (candidate / ".git").exists():
+            return candidate
+    return current
+
+
+def posix(path: str) -> str:
+    return Path(path).as_posix()
+
+
+def in_git(root: Path) -> bool:
+    try:
+        proc = subprocess.run(["git", "-C", str(root), "rev-parse", "--is-inside-work-tree"],
+                              capture_output=True, text=True)
+    except OSError:
+        return False
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
+
+
+def candidate_paths(root: Path, source: str) -> list[str]:
+    """IN-02 の表で、source の下の候補のファイル（ルートからの相対パス）を返す。"""
+    target = (root / source).resolve() if not Path(source).is_absolute() else Path(source).resolve()
+    if not target.exists():
+        raise Failure(f"source が見つからない: {source}")
+    try:
+        rel_target = target.relative_to(root).as_posix()
+    except ValueError:
+        rel_target = None
+    if rel_target is not None and in_git(root):
+        spec = "." if rel_target == "." else ":(literal)" + rel_target
+        proc = subprocess.run(["git", "-C", str(root), "ls-files", "-z", "--cached", "--others",
+                               "--exclude-standard", "--", spec], capture_output=True)
+        if proc.returncode != 0:
+            raise Failure("git ls-files が失敗した: " + proc.stderr.decode("utf-8", "replace").strip())
+        return sorted({p for p in proc.stdout.decode("utf-8", "surrogateescape").split("\0") if p})
+    if target.is_file():
+        return [os.path.relpath(target, root).replace(os.sep, "/")]
+    found = []
+    for current, dirs, files in os.walk(target):
+        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
+        for name in files:
+            found.append(os.path.relpath(os.path.join(current, name), root).replace(os.sep, "/"))
+    return sorted(found)
+
+
+def readable(root: Path, rel: str) -> bytes | None:
+    """読むファイルなら中身を、読まないファイルなら None を返す（IN-02）。"""
+    path = root / rel
+    if path.is_symlink() or not path.is_file() or path.suffix.lower() in DOC_SUFFIXES:
+        return None
+    data = path.read_bytes()
+    if b"\0" in data:
+        return None
+    return data
+
+
+def escape(cell: str) -> str:
+    return cell.replace("|", "\\|")
+
+
+def parse_todo(line: str) -> tuple[str, str] | None:
+    """TODO コメントの行なら（識別子, 内容）を返す（STEP-01、OUT-03）。"""
+    match = TODO_RE.search(line)
+    if not match:
+        return None
+    rest = match.group("rest")
+    owner = ""
+    paren = OWNER_RE.match(rest)
+    if paren:
+        owner = paren.group("owner").strip()
+        rest = rest[paren.end():]
+    text = rest.lstrip(" \t:").rstrip()
+    for closer in ("*/", "-->"):
+        if text.endswith(closer):
+            text = text[: -len(closer)].rstrip()
+    return escape(owner) or "-", escape(text) or "-"
+
+
+def collect(root: Path, source: str) -> tuple[list[str], list[tuple[str, int, str, str]]]:
+    """（読んだファイル, TODO の行）を返す。行は（パス, 行番号, 識別子, 内容）でパスと行番号の順（OUT-04）。"""
+    read, rows = [], []
+    for rel in candidate_paths(root, source):
+        data = readable(root, rel)
+        if data is None:
+            continue
+        read.append(rel)
+        for number, line in enumerate(data.decode("utf-8", "replace").split("\n"), start=1):
+            parsed = parse_todo(line.rstrip("\r"))
+            if parsed:
+                rows.append((rel, number, parsed[0], parsed[1]))
+    rows.sort(key=lambda r: (r[0], r[1]))
+    return read, rows
+
+
+def script_rel(root: Path) -> str:
+    here = Path(__file__).resolve()
+    try:
+        return here.relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return here.as_posix()
+
+
+def render(root: Path, source: str, rows: list[tuple[str, int, str, str]]) -> str:
+    files = len({r[0] for r in rows})
+    command = f"python3 {shlex.quote(script_rel(root))} collect --source {shlex.quote(source)}"
+    lines = [TITLE, "", f"- 対象: `{source}`", f"- 件数: {len(rows)} 件（{files} ファイル）",
+             f"- 数えたコマンド: `{command}`", "", HEADER, DELIMITER]
+    lines += [f"| `{escape(path)}` | {number} | {owner} | {text} |" for path, number, owner, text in rows]
+    return "\n".join(lines) + "\n"
+
+
+def verify(root: Path, source: str, text: str) -> list[str]:
+    """一覧の Markdown を今のソースと比べ、「<ルールID> <説明>」の行を返す。"""
+    read, rows = collect(root, source)
+    expected = render(root, source, rows)
+    if text == expected:
+        return []
+    lines = text.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    head = expected.split("\n")[:8]
+    if len(lines) < 8 or lines[0] != TITLE or lines[1] != "" or lines[5] != "" or lines[6] != HEADER \
+            or lines[7] != DELIMITER or not lines[2].startswith("- 対象: ") \
+            or not lines[3].startswith("- 件数: ") or not lines[4].startswith("- 数えたコマンド: "):
+        return ["OUT-02 一覧の先頭の8行が見本と違う。次の8行にする: " + " / ".join(head)]
+    problems = []
+    if lines[2] != head[2]:
+        problems.append(f"OUT-06 対象の行が違う。`{head[2]}` にする")
+    if lines[4] != head[4]:
+        problems.append(f"OUT-06 数えたコマンドの行が違う。`{head[4]}` にする")
+    found = []
+    for n, line in enumerate(lines[8:], start=9):
+        match = ROW_RE.match(line)
+        if not match:
+            problems.append(f"OUT-02 {n} 行目が表の行の形 `| `<パス>` | <行> | <識別子> | <内容> |` でない: {line[:80]}")
+            continue
+        found.append((match.group("path").replace("\\|", "|"), int(match.group("line")),
+                      match.group("owner"), match.group("text")))
+    if any(p.startswith("OUT-02") for p in problems):
+        return problems
+    by_key = {(r[0], r[1]): r for r in rows}
+    read_set = set(read)
+    seen = set()
+    for path, number, owner, cell in found:
+        key = (path, number)
+        if key in seen:
+            problems.append(f"OUT-05 {path}:{number} の行が2回ある。1回にする")
+            continue
+        seen.add(key)
+        if path not in read_set:
+            problems.append(f"IN-02 {path} は読む範囲の外（git の除外、文書の拡張子、バイナリ、source の外）。この行を消す")
+        elif key not in by_key:
+            problems.append(f"STEP-01 {path}:{number} は TODO コメントの規則に当たらない。この行を消す")
+        else:
+            want = by_key[key]
+            if owner != want[2] or cell != want[3]:
+                problems.append(f"OUT-03 {path}:{number} の識別子か内容が元のコメントと違う。"
+                                f"`| {want[2]} | {want[3]} |` にする")
+    for key in by_key:
+        if key not in seen:
+            problems.append(f"OUT-05 {key[0]}:{key[1]} の TODO コメントが載っていない")
+    keys = [(r[0], r[1]) for r in found]
+    if keys != sorted(keys):
+        problems.append("OUT-04 表の行がパスの文字コード順、同じファイルは行番号の順に並んでいない")
+    count = COUNT_RE.match(lines[3])
+    files = len({r[0] for r in found})
+    if not count or int(count.group("n")) != len(found) or int(count.group("files")) != files:
+        problems.append(f"OUT-04 件数の行が表と合わない。`- 件数: {len(found)} 件（{files} ファイル）` にする")
+    if not problems:
+        problems.append("OUT-02 空行か行の区切りが見本と違う。collect_todo.py collect で書き直す")
+    return problems
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+    p_collect = sub.add_parser("collect", help="一覧の Markdown を書く")
+    p_collect.add_argument("--source", default=".", help="調べるディレクトリ（ルートからの相対パス）")
+    p_collect.add_argument("--out", help="書き込む先（ルートからの相対パス）。無ければ標準出力")
+    p_collect.add_argument("--root", help="プロジェクトのルート")
+    p_verify = sub.add_parser("verify", help="一覧の Markdown を今のソースと比べる")
+    p_verify.add_argument("--file", required=True, help="一覧のファイル（ルートからの相対パス）")
+    p_verify.add_argument("--source", default=".", help="調べるディレクトリ（ルートからの相対パス）")
+    p_verify.add_argument("--root", help="プロジェクトのルート")
+    args = parser.parse_args(argv)
+    root = Path(args.root).resolve() if args.root else project_root(Path.cwd())
+    source = posix(args.source)
+    try:
+        if args.command == "collect":
+            _, rows = collect(root, source)
+            text = render(root, source, rows)
+            if args.out:
+                out = root / args.out
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(text, encoding="utf-8")
+                print(f"書いた: {posix(args.out)}（{len(rows)} 件）")
+            else:
+                sys.stdout.write(text)
+            return 0
+        path = root / args.file
+        if not path.is_file():
+            print(f"OUT-01 一覧のファイルが無い: {posix(args.file)}")
+            return 1
+        problems = verify(root, source, path.read_text(encoding="utf-8"))
+        for line in problems:
+            print(line)
+        return 1 if problems else 0
+    except Failure as exc:
+        print(str(exc))
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+
+=== .agents/skills/analyze-todo-comment/scripts/hook.py
+#!/usr/bin/env python3
+"""Claude Code と Codex の hooks から呼ばれ、実行中のスキルの出力を検査する。skill-foundation の共通ランタイム。
+
+このスキルの実行記録（.skill-runs/<name>/state.json）が status: active のときだけ働く。実行していない
+セッションでは、封印したスキル（assets/seal.json がある）の保護ファイルの編集に Claude Code で確認を求める
+ことだけをする（入力側＝ユーザーの操作は妨げない。縛るのは AI の出力だけ）。
+
+  pre-tool   編集の前: スキル自身の保護ファイルと実行記録への直接の編集を止める
+  post-tool  編集の後: 契約の出力に当たるファイルを format で直し、検査し、指摘を AI に返す
+  stop       応答を終える前: 出力全体を検査し、通っていなければ終わらせずに直させる（回数に上限あり）
+  prompt     ユーザーの発言: 質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない
+
+製品ごとの違い（stdin の形、編集ツールの名前、返し方）はここで吸収する。
+  Claude Code: 編集は Edit/Write/MultiEdit/NotebookEdit の tool_input.file_path。止めるのは permissionDecision
+  Codex      : 編集は apply_patch の tool_input.command（パッチ本文）。ask は使えないので deny
+
+使い方（設定ファイルから呼ぶ）:
+  python3 <skill>/scripts/hook.py --platform claude|codex pre-tool|post-tool|stop|prompt
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _skillrt as rt  # noqa: E402
+
+PATCH_FILE = re.compile(r"^\*\*\* (?:Add File|Update File|Delete File|Move to):\s*(.+?)\s*$", re.M)
+EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
+
+
+def read_event() -> dict:
+    try:
+        data = json.loads(sys.stdin.read() or "{}")
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+
+
+def detect_platform(event: dict) -> str:
+    if "turn_id" in event or event.get("tool_name") == "apply_patch":
+        return "codex"
+    return "claude"
+
+
+def edited_paths(event: dict, base: Path) -> list[Path]:
+    """ツール呼び出しが書き換えるファイルの絶対パス。Codex の apply_patch はパッチ本文から読む。"""
+    if event.get("tool_name") not in EDIT_TOOLS:
+        return []
+    tool_input = event.get("tool_input") or {}
+    raw = []
+    if isinstance(tool_input, dict):
+        for key in ("file_path", "notebook_path", "path"):
+            if tool_input.get(key):
+                raw.append(str(tool_input[key]))
+        if event.get("tool_name") == "apply_patch":
+            raw += PATCH_FILE.findall(str(tool_input.get("command") or tool_input.get("patch") or tool_input.get("input") or ""))
+    elif isinstance(tool_input, str):
+        raw += PATCH_FILE.findall(tool_input)
+    paths = []
+    for item in raw:
+        path = Path(item)
+        paths.append((path if path.is_absolute() else base / path).resolve())
+    return paths
+
+
+def relative(path: Path, base: Path) -> str | None:
+    try:
+        return path.relative_to(base.resolve()).as_posix()
+    except ValueError:
+        return None
+
+
+def deny(platform: str, reason: str) -> int:
+    decision = "ask" if platform == "claude" else "deny"  # Claude Code は人に判断を委ねる。Codex は ask が無い
+    rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision,
+                                               "permissionDecisionReason": reason}}, ensure_ascii=False))
+    return 0
+
+
+def feedback(reason: str) -> int:
+    rt.emit(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
+    return 0
+
+
+def pre_tool(event: dict, platform: str, root: Path, state: dict, contract: dict) -> int:
+    name = state["skill"]
+    globs = contract.get("control", {}).get("protected", [])
+    for path in edited_paths(event, Path(event.get("cwd") or root)):
+        in_skill = relative(path, rt.SKILL_DIR)
+        if in_skill is not None and rt.matches_any(in_skill, globs):
+            return deny(platform, f"{name} の実行中は、スキル自身のファイル（{in_skill}）を変えられません。"
+                                  "出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、"
+                                  f"`python3 {rt.SKILL_DIR}/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の"
+                                  "変え方で変更します。")
+        in_root = relative(path, root)
+        if in_root is not None and in_root.startswith(rt.run_rel(name) + "/") and \
+                Path(in_root).name in ("state.json", "report.md"):
+            rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                                       "permissionDecisionReason": f"{in_root} は run.py だけが書きます。手で編集しないでください。"}},
+                               ensure_ascii=False))
+            return 0
+    return 0
+
+
+def sealed_pre_tool(event: dict, platform: str, contract: dict, name: str) -> int:
+    """実行していないときの pre-tool。封印したスキルの保護ファイルの編集に、Claude Code で確認を求める（CTL-04）。
+    Codex には確認が無く、拒否すると利用者の保守も止まるので何もしない。次の start が封印との違いで止める（CTL-02）。"""
+    if platform != "claude" or not (rt.SKILL_DIR / rt.SEAL_REL).is_file():
+        return 0
+    globs = contract.get("control", {}).get("protected", [])
+    for path in edited_paths(event, Path(event.get("cwd") or os.getcwd())):
+        in_skill = relative(path, rt.SKILL_DIR)
+        if in_skill is not None and rt.matches_any(in_skill, globs):
+            return deny(platform, f"{name} は封印したスキルです（{rt.SEAL_REL}）。{in_skill} を変えると、封印し直すまで "
+                                  f"{name} の start が止まります。変えるなら SKILL.md の「8. 制御の仕組み」の変え方に従ってください。")
+    return 0
+
+
+def post_tool(event: dict, root: Path, state: dict, contract: dict) -> int:
+    findings, fixes = [], []
+    for path in edited_paths(event, Path(event.get("cwd") or root)):
+        rel = relative(path, root)
+        if rel is None or not path.is_file():
+            continue
+        found, _ = rt.check_outputs(root, state, contract, only=rel, fixes=fixes)
+        findings += found
+    if fixes:
+        rt.record_fixes(state, fixes)
+        rt.save_state(root, state)
+    if not findings and not fixes:
+        return 0
+    lines = [rt.format_fix(f) for f in fixes] + [f["message"] if f.get("raw") else rt.format_finding(f) for f in findings]
+    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください"
+            "（検査や契約を変えて通さない）" if findings else
+            f"{state['skill']} の出力を契約の format で自動で直しました。編集を続ける前にファイルを読み直してください")
+    return feedback(head + ":\n" + "\n".join(lines))
+
+
+def stop(event: dict, root: Path, state: dict, contract: dict) -> int:
+    name = state["skill"]
+    if event.get("background_tasks"):
+        return 0  # バックグラウンドの作業を待って応答を終えるときは止めない（終われば再開される）
+    limit = int(contract.get("control", {}).get("max_stop_blocks", 3))
+    fixes: list = []
+    findings, _ = rt.check_outputs(root, state, contract, fixes=fixes)
+    rt.record_fixes(state, fixes)
+    run_py = f"python3 {rt.SKILL_DIR}/scripts/run.py"
+    if not findings:
+        reason = (f"{name} の出力は検査に通っています。`{run_py} finish` を実行し、その本文で最終の返答をしてください。")
+    else:
+        lines = [f["message"] if f.get("raw") else rt.format_finding(f) for f in findings]
+        reason = (f"{name} の出力に、まだ指摘が {len(findings)} 件あります。直してから `{run_py} finish` を実行してください。"
+                  f"ユーザーに質問が必要なら、先に `{run_py} wait --question <質問>` を実行してから質問してください。\n"
+                  + "\n".join(lines[:30]))
+    if state.get("stop_blocks", 0) >= limit:
+        state["status"] = "failed"
+        rt.log_event(state, "stop-released", f"{len(findings)} 件")
+        rt.save_state(root, state)
+        rt.emit(json.dumps({"systemMessage": f"{name}: 検査を通らないまま終了しました（終了の差し戻し {limit} 回で打ち切り）。"
+                                             f"指摘 {len(findings)} 件。.skill-runs/{name}/state.json を確認してください。"},
+                           ensure_ascii=False))
+        return 0
+    state["stop_blocks"] = state.get("stop_blocks", 0) + 1
+    rt.log_event(state, "stop-blocked", f"{len(findings)} 件")
+    rt.save_state(root, state)
+    return feedback(reason)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--platform", choices=["claude", "codex"])
+    parser.add_argument("event", choices=["pre-tool", "post-tool", "stop", "prompt"])
+    args = parser.parse_args()
+    event = read_event()
+    platform = args.platform or detect_platform(event)
+    base = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    root = rt.project_root(Path(base))
+    try:
+        contract = rt.load_contract()
+    except (OSError, json.JSONDecodeError):
+        return 0  # 契約が読めないときは何もしない（hooks の失敗で利用者の作業を止めない）
+    name = contract.get("skill") or rt.SKILL_DIR.name
+    state = rt.load_state(root, name)
+    if args.event == "pre-tool" and (state is None or state.get("status") not in rt.ENFORCING):
+        return sealed_pre_tool(event, platform, contract, name)
+    if state is None:
+        return 0
+    if args.event == "prompt":
+        if state.get("status") == "waiting":
+            state["status"] = "active"
+            rt.log_event(state, "resume", "user-prompt")
+            rt.save_state(root, state)
+        return 0
+    if state.get("status") not in rt.ENFORCING:
+        return 0
+    if args.event == "pre-tool":
+        return pre_tool(event, platform, root, state, contract)
+    if args.event == "post-tool":
+        return post_tool(event, root, state, contract)
+    return stop(event, root, state, contract)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .agents/skills/analyze-todo-comment/scripts/install.py
+#!/usr/bin/env python3
+"""このスキルを、Claude Code と Codex が見つける場所に置き、hooks を登録する。skill-foundation の共通ランタイム。
+
+置き場所（プロジェクトのルートからの相対パス）:
+  claude: .claude/skills/<name>   codex: .agents/skills/<name>
+スキルの本体（このファイルの2つ上のディレクトリ）がどちらかにあれば、もう一方は本体への相対リンクにする
+（--mode copy なら複製）。どちらにも無ければ、両方をリンクにする。
+
+hooks（スキルの contract.json の control.hooks が true のとき）:
+  Claude Code: .claude/settings.json の PreToolUse・PostToolUse（Edit|Write|MultiEdit|NotebookEdit）、Stop、UserPromptSubmit
+  Codex      : .codex/hooks.json の PreToolUse・PostToolUse（apply_patch）、Stop、UserPromptSubmit
+既にある設定は残し、このスキルの項目だけを足す（同じ項目があれば何もしない）。Codex は、足した hooks を
+利用者が `/hooks` で信頼するまで実行しない。
+
+--targets を省くと、契約（assets/contract.json）の targets、つまり作るときに決めた対象の製品だけに置く。
+
+使い方:
+  python3 <skill>/scripts/install.py --project <ルート> [--targets claude,codex] [--mode link|copy] [--no-hooks]
+  python3 <skill>/scripts/install.py --project <ルート> --check       # 置き場所と hooks が揃っているか
+  python3 <skill>/scripts/install.py --project <ルート> --uninstall   # このスキルの置き場所と hooks を外す
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _skillrt as rt  # noqa: E402
+
+PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}
+CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
+EVENTS = {
+    "claude": [("PreToolUse", "Edit|Write|MultiEdit|NotebookEdit", "pre-tool", 30),
+               ("PostToolUse", "Edit|Write|MultiEdit|NotebookEdit", "post-tool", 120),
+               ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
+    "codex": [("PreToolUse", "apply_patch", "pre-tool", 30), ("PostToolUse", "apply_patch", "post-tool", 120),
+              ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
+}
+
+
+def hook_command(platform: str, name: str, event: str) -> str:
+    if platform == "claude":
+        base = f'"$CLAUDE_PROJECT_DIR/{PLACES["claude"]}/{name}/scripts/hook.py"'
+    else:  # Codex には CLAUDE_PROJECT_DIR が無い。hook はセッションの作業ディレクトリで動く
+        base = f'"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/{PLACES["codex"]}/{name}/scripts/hook.py"'
+    return f"python3 {base} --platform {platform} {event}"
+
+
+def is_ours(handler: dict, name: str) -> bool:
+    return f"/{name}/scripts/hook.py" in str(handler.get("command", ""))
+
+
+def load_config(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8") or "{}")
+    except json.JSONDecodeError as exc:
+        rt.emit(f"ERROR {path} の JSON が不正です（{exc.lineno} 行目）。直してから実行してください", sys.stderr)
+        sys.exit(2)
+    return data if isinstance(data, dict) else {}
+
+
+def wanted_entries(platform: str, name: str) -> list[tuple[str, dict]]:
+    entries = []
+    for event, matcher, action, timeout in EVENTS[platform]:
+        group = {"hooks": [{"type": "command", "command": hook_command(platform, name, action), "timeout": timeout}]}
+        if matcher:
+            group = {"matcher": matcher, **group}
+        entries.append((event, group))
+    return entries
+
+
+def has_entry(groups: list, group: dict) -> bool:
+    return any(g.get("matcher") == group.get("matcher") and any(h == group["hooks"][0] for h in g.get("hooks", []))
+               for g in groups if isinstance(g, dict))
+
+
+def apply_hooks(root: Path, platform: str, name: str, remove: bool, dry: bool) -> list[str]:
+    path = root / CONFIGS[platform]
+    data = load_config(path)
+    hooks = data.setdefault("hooks", {})
+    changes = []
+    if remove:
+        for event, groups in list(hooks.items()):
+            kept = []
+            for group in groups if isinstance(groups, list) else []:
+                handlers = [h for h in group.get("hooks", []) if not is_ours(h, name)]
+                if len(handlers) != len(group.get("hooks", [])):
+                    changes.append(f"{CONFIGS[platform]}: {event} から {name} の hook を外す")
+                if handlers:
+                    kept.append({**group, "hooks": handlers})
+            if kept:
+                hooks[event] = kept
+            else:
+                hooks.pop(event)
+    else:
+        for event, group in wanted_entries(platform, name):
+            groups = hooks.setdefault(event, [])
+            if not has_entry(groups, group):
+                # 古い形の自分の項目は外してから足す（Codex の信頼は配列の位置に結び付くため、他人の項目は動かさない）
+                for g in groups:
+                    g["hooks"] = [h for h in g.get("hooks", []) if not is_ours(h, name)]
+                groups[:] = [g for g in groups if g.get("hooks")]
+                groups.append(group)
+                changes.append(f"{CONFIGS[platform]}: {event} に {name} の hook を足す")
+    if changes and not dry:
+        if not hooks:
+            data.pop("hooks", None)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return changes
+
+
+def place(root: Path, platform: str, name: str, mode: str, remove: bool, dry: bool) -> list[str]:
+    target = root / PLACES[platform] / name
+    body = rt.SKILL_DIR
+    if target.resolve() == body and not target.is_symlink():
+        return []  # 本体がここにある
+    changes = []
+    if remove:
+        if target.is_symlink() or target.exists():
+            changes.append(f"{target.relative_to(root)} を外す")
+            if not dry:
+                if target.is_symlink() or target.is_file():
+                    target.unlink()
+                else:
+                    shutil.rmtree(target)
+        return changes
+    if target.is_symlink() and target.resolve() == body and mode == "link":
+        return []
+    if target.exists() or target.is_symlink():
+        if target.is_symlink() or mode == "copy":
+            changes.append(f"{target.relative_to(root)} を置き直す")
+            if not dry:
+                if target.is_symlink() or target.is_file():
+                    target.unlink()
+                else:
+                    shutil.rmtree(target)
+        else:
+            rt.emit(f"ERROR {target} は本体ではないディレクトリとして既にあります。中身を確かめて、外してから実行してください", sys.stderr)
+            sys.exit(2)
+    changes.append(f"{target.relative_to(root)} を{'リンク' if mode == 'link' else '複製'}で置く")
+    if not dry:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if mode == "link":
+            target.symlink_to(os.path.relpath(body, target.parent), target_is_directory=True)
+        else:
+            shutil.copytree(body, target, ignore=shutil.ignore_patterns("__pycache__", ".skill-runs", "dev"))
+    return changes
+
+
+def check(root: Path, platforms: list[str], name: str, hooks_on: bool) -> list[str]:
+    problems = []
+    for platform in platforms:
+        target = root / PLACES[platform] / name
+        if not (target / "SKILL.md").is_file():
+            problems.append(f"{target.relative_to(root)}/SKILL.md がありません（{platform} がスキルを見つけられない）")
+        if hooks_on:
+            data = load_config(root / CONFIGS[platform])
+            for event, group in wanted_entries(platform, name):
+                if not has_entry(data.get("hooks", {}).get(event, []), group):
+                    problems.append(f"{CONFIGS[platform]} の {event} に {name} の hook がありません")
+    return problems
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--project", required=True, help="プロジェクトのルート")
+    parser.add_argument("--targets", help="カンマ区切り（claude、codex）。省くと契約の targets（作るときに決めた対象の製品）")
+    parser.add_argument("--mode", choices=["link", "copy"], default="link")
+    parser.add_argument("--no-hooks", action="store_true", help="hooks を登録しない")
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--uninstall", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    root = Path(args.project).resolve()
+    contract = rt.load_contract()
+    name = contract.get("skill") or rt.SKILL_DIR.name
+    platforms = ([p.strip() for p in args.targets.split(",") if p.strip()] if args.targets
+                 else contract.get("targets") or ["claude", "codex"])
+    unknown = [p for p in platforms if p not in PLACES]
+    if unknown:
+        rt.emit(f"ERROR 未知の targets: {unknown}（claude、codex のどれか）", sys.stderr)
+        return 2
+    hooks_on = contract.get("control", {}).get("hooks", True) and not args.no_hooks
+    if args.check:
+        problems = check(root, platforms, name, hooks_on)
+        for problem in problems:
+            rt.emit(f"ERROR {problem}")
+        rt.emit(f"install --check: 問題 {len(problems)} 件")
+        return 1 if problems else 0
+    changes = []
+    for platform in platforms:
+        changes += place(root, platform, name, args.mode, args.uninstall, args.dry_run)
+        if hooks_on or args.uninstall:
+            changes += apply_hooks(root, platform, name, args.uninstall, args.dry_run)
+    for change in changes:
+        rt.emit(("予定  " if args.dry_run else "") + change)
+    rt.emit(f"install: 変更 {len(changes)} 件")
+    if "codex" in platforms and hooks_on and not args.uninstall and any(".codex/hooks.json" in c for c in changes):
+        rt.emit("注意: Codex は、足した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。"
+                "信頼するまでは run.py の check と finish だけで検査される")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .agents/skills/analyze-todo-comment/scripts/run.py
+#!/usr/bin/env python3
+"""スキルの実行を始め、出力を検査し、終える。skill-foundation の共通ランタイム（スキルごとに書き換えない）。
+
+AI はスキルの手順の最初に start、出力を書いたら check、最後に finish を実行する。hooks が使える環境では、
+編集の直後と応答を終える前に、hook.py が同じ検査を自動で回す。
+
+  start   入力を正規化（表記ゆれ・全角・未知のキーを受け入れ、既定値で補う）し、実行記録を作る。
+          保護ファイルが封印（assets/seal.json）と違えば始めない（終了コード1）
+  check   契約（assets/contract.json）の format で出力を直してから検査する。--file でファイル1つだけ
+  finish  検査に通れば実行を終え、報告の本文を出す。通らなければ指摘を出して終わらない
+  wait    ユーザーへの質問を待つ間、hooks の強制を止める（返答の後に resume）
+  resume  wait を解く
+  abort   理由を付けて実行をやめ、中断の報告の本文を出す
+  status  実行記録を表示する
+
+終了コード: 0 成功、1 検査の指摘あり、2 使い方・状態の誤り、3 start の前にユーザーへの質問が必要
+
+使い方:
+  python3 <skill>/scripts/run.py start [--set key=value ...] [--input-json JSON] [--input-file F] [--restart] [依頼文...]
+  python3 <skill>/scripts/run.py check [--file 相対パス]
+  python3 <skill>/scripts/run.py finish
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _skillrt as rt  # noqa: E402
+
+
+def resolve_root(arg: str | None) -> Path:
+    return Path(arg).resolve() if arg else rt.project_root(Path.cwd())
+
+
+def require_state(root: Path, name: str) -> dict:
+    state = rt.load_state(root, name)
+    if state is None:
+        rt.emit(f"ERROR 実行記録がありません（{rt.state_path(root, name)}）。先に start を実行してください", sys.stderr)
+        sys.exit(2)
+    return state
+
+
+def parse_raw(args) -> tuple[dict, str]:
+    raw: dict = {}
+    text_parts = list(args.text or [])
+    if args.input_file:
+        content = Path(args.input_file).read_text(encoding="utf-8")
+        try:
+            loaded = json.loads(content)
+            if isinstance(loaded, dict):
+                raw.update(loaded)
+            else:
+                text_parts.append(content)
+        except json.JSONDecodeError:
+            text_parts.append(content)  # JSON でなければ自由記述として読む
+    if args.input_json:
+        try:
+            loaded = json.loads(args.input_json)
+            if isinstance(loaded, dict):
+                raw.update(loaded)
+            else:
+                text_parts.append(args.input_json)
+        except json.JSONDecodeError:
+            text_parts.append(args.input_json)
+    for item in args.set or []:
+        key, sep, value = item.partition("=")
+        if not sep:
+            key, sep, value = item.partition(":")
+        if sep:
+            raw[key.strip()] = value.strip()
+        else:
+            text_parts.append(item)
+    return raw, "\n".join(text_parts)
+
+
+def cmd_start(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    existing = rt.load_state(root, name)
+    if existing and existing.get("status") in ("active", "waiting") and not args.restart:
+        rt.emit(f"ERROR {name} の実行が続いています（status: {existing['status']}）。"
+                "続けるなら check / finish、最初からやり直すなら start --restart を実行してください", sys.stderr)
+        return 2
+    unsealed = rt.seal_findings(rt.SKILL_DIR, contract)
+    if unsealed:
+        # 実行していない間（hooks が止めない間）にスキル自身が変わった。変わったまま検査すると、緩んだ検査で通ってしまう
+        print_findings(unsealed)
+        rt.emit(f"ERROR {name} のファイルが封印（{rt.SEAL_REL}）と違うため、始めません。この出力をユーザーに伝えて止まってください。"
+                "スキルを変えたのが意図どおりなら、SKILL.md の「8. 制御の仕組み」の変え方で直し、封印し直します（CTL-02）")
+        return 1
+    raw, text = parse_raw(args)
+    normalized = rt.normalize_input(raw, text, contract)
+    if normalized["questions"]:
+        rt.emit("start の前にユーザーに聞くこと（聞いた答えを --set で渡して start をやり直す）:")
+        for q in normalized["questions"]:
+            rt.emit(f"  - {q}")
+        return 3
+    state = {
+        "runtime": rt.RUNTIME_VERSION, "skill": name, "status": "active", "started_at": rt.now(),
+        "root": str(root), "skill_dir": str(rt.SKILL_DIR), "input": normalized["values"],
+        "defaulted": normalized["defaulted"], "warnings": normalized["warnings"], "extra": normalized["extra"],
+        "text": normalized["text"], "baseline": rt.snapshot(root, contract, name, normalized["values"]),
+        "protected": rt.protected_hashes(rt.SKILL_DIR, contract), "hooks": rt.hook_registrations(root, name),
+        "stop_blocks": 0, "history": [], "restarts": 0, "previous": [],
+        "worktree": rt.worktree(root) if contract.get("control", {}).get("scope_rule") else None,
+    }
+    if existing and existing.get("status") in ("active", "waiting"):
+        # restart で基準を取り直すと、実行中の改ざんや契約の外の変更が消えるので、最初の start の記録を引き継ぐ（CTL-02、CTL-05）
+        for key in ("started_at", "protected", "hooks", "worktree", "stop_blocks", "history", "previous"):
+            if key in existing:
+                state[key] = existing[key]
+        state["baseline"] = {**state["baseline"], **existing.get("baseline", {})}
+        state["restarts"] = existing.get("restarts", 0) + 1
+    else:
+        # 実行と実行の間（hooks が働かない間）に変わった保護ファイルは、指摘にせず報告の「検証」に出す（CTL-02）
+        if existing and existing.get("protected"):
+            before, after = existing["protected"], state["protected"]
+            state["changed_since_last"] = sorted(r for r in set(before) | set(after) if before.get(r) != after.get(r))
+        if existing and existing.get("status") in ("aborted", "failed"):
+            # 中断や打ち切りの後に始め直しても、報告の「検証」に前の実行が残る
+            reason = existing.get("abort_reason") or "検査を通らないまま終了した（終了の差し戻しの上限）"
+            state["previous"] = existing.get("previous", []) + [{"status": existing["status"], "reason": reason,
+                                                                 "started_at": existing.get("started_at")}]
+    rt.log_event(state, "restart" if state["restarts"] else "start")
+    rt.save_state(root, state)
+    if args.json:
+        rt.emit(json.dumps({k: state[k] for k in ("skill", "root", "skill_dir", "input", "defaulted", "warnings", "extra")},
+                           ensure_ascii=False, indent=2))
+        return 0
+    labels = {s["key"]: s.get("label", s["key"]) for s in contract.get("inputs", [])}
+    rt.emit(f"{name} を始めました。実行記録: {rt.state_path(root, name).relative_to(root)}")
+    rt.emit(f"スキルのディレクトリ: {rt.SKILL_DIR}")
+    rt.emit("入力（正規化の後）:")
+    if not normalized["values"]:
+        rt.emit("  なし")
+    for key, value in normalized["values"].items():
+        mark = "（既定値）" if key in normalized["defaulted"] else ""
+        rt.emit(f"  {labels.get(key, key)}（{key}）= {json.dumps(value, ensure_ascii=False)}{mark}")
+    for warning in normalized["warnings"]:
+        rt.emit(f"  注意: {warning}")
+    if normalized["extra"]:
+        rt.emit(f"  契約に無いので使わない指定: {', '.join(normalized['extra'])}")
+    rt.emit("作る出力:")
+    for out in contract.get("outputs", []):
+        count = out.get("count", {})
+        rt.emit(f"  {out['id']} {out.get('label', '')}: {rt.expand(out['path'], name, normalized['values'])}"
+                f"（{count.get('min', 1 if out.get('required', True) else 0)}〜{count.get('max', '')} 件）")
+    rt.emit("次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する")
+    return 0
+
+
+def print_findings(findings: list[dict]) -> None:
+    for f in findings:
+        rt.emit(f["message"] if f.get("raw") else rt.format_finding(f))
+
+
+def cmd_check(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    state = require_state(root, name)
+    if state.get("status") == "waiting":
+        state["status"] = "active"
+        rt.log_event(state, "resume", "check")
+    only = Path(args.file).as_posix() if args.file else None
+    if only and Path(only).is_absolute():
+        only = Path(only).resolve().relative_to(root).as_posix()
+    fixes: list = []
+    findings, changed = rt.check_outputs(root, state, contract, only=only, fixes=fixes)
+    rt.record_fixes(state, fixes)
+    if not only and not findings:
+        _, findings = rt.report_sections(root, state, contract, stage="check")  # finish で落ちないよう、報告の節もここで作ってみる
+    rt.log_event(state, "check", f"{len(findings)} 件")
+    rt.save_state(root, state)
+    for f in fixes:
+        rt.emit(rt.format_fix(f))
+    print_findings(findings)
+    if not only:
+        for out_id, files in changed.items():
+            rt.emit(f"出力 {out_id}: {', '.join(files) if files else 'なし'}")
+    rt.emit(f"check: 指摘 {len(findings)} 件")
+    return 1 if findings else 0
+
+
+REPORT = {
+    "ja": {"result": "結果", "done": "{name}: 完了（検証に合格）", "outputs": "出力", "defaults": "既定値で決めた値",
+           "unread": "入力で読めなかった値", "checks": "検証", "none": "- なし", "passed": "- `run.py finish`: 指摘 0 件",
+           "no_scope": "- {rule}: git の作業ツリーが無いため、契約の外の変更を検査していない", "notes_head": "補足",
+           "notes": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。",
+           "aborted": "{name}: 中断（理由: {reason}）", "not_checked": "- 中断したため、検証していない",
+           "restarts": "- `run.py start --restart`: {n} 回（保護ファイル・hooks の登録・作業ツリーの記録は最初の start から引き継いだ）",
+           "previous": "- 前の実行: {status}（理由: {reason}）",
+           "changed_since_last": "- 前の実行の後に変わった保護ファイル: {files}（意図した変更かを確かめる）",
+           "formatted": "- 自動で直した（format）: {items}"},
+    "en": {"result": "Result", "done": "{name}: done (checks passed)", "outputs": "Outputs", "defaults": "Values decided by default",
+           "unread": "Inputs that could not be read", "checks": "Checks", "none": "- None", "passed": "- `run.py finish`: 0 findings",
+           "no_scope": "- {rule}: no git work tree, so changes outside the contract were not checked", "notes_head": "Notes",
+           "notes": "Reply with the text below unchanged. Do not add text before or after it, and do not summarize it.",
+           "aborted": "{name}: aborted (reason: {reason})", "not_checked": "- Not checked because the run was aborted",
+           "restarts": "- `run.py start --restart`: {n} time(s) (protected files, hook registrations and the work tree were carried over from the first start)",
+           "previous": "- Previous run: {status} (reason: {reason})",
+           "changed_since_last": "- Protected files changed since the previous run: {files} (confirm the change was intended)",
+           "formatted": "- Fixed automatically (format): {items}"},
+}
+
+
+def report_text(contract: dict) -> dict:
+    return REPORT.get(contract.get("language"), REPORT["ja"])
+
+
+def changed_outputs(root: Path, state: dict, contract: dict) -> dict:
+    """出力ID → start の後に変わったファイル。検査はしない（abort の報告で使う）。"""
+    values, baseline = state.get("input", {}), state.get("baseline", {})
+    return {out["id"]: [rel for rel in rt.iter_glob(root, rt.expand(out["path"], state["skill"], values))
+                        if baseline.get(rel) != rt.sha256(root / rel)] for out in contract.get("outputs", [])}
+
+
+def render_report(state: dict, contract: dict, changed: dict, sections: list[str], notes: list[str],
+                  aborted: str | None = None) -> str:
+    """報告の本文。結果 → 契約の report.sections の出力 → 出力 → 既定値 → 読めなかった値 → 検証 → 補足 の順に固定する。
+    aborted を渡すと中断の本文になる（結果の行と検証の行だけが変わる）。"""
+    t = report_text(contract)
+    labels = {s["key"]: s.get("label", s["key"]) for s in contract.get("inputs", [])}
+    out_labels = {o["id"]: o.get("label", o["id"]) for o in contract.get("outputs", [])}
+    result = (t["aborted"].replace("{reason}", aborted) if aborted is not None else t["done"]).replace("{name}", state["skill"])
+    lines = [f"## {t['result']}", "", result, ""]
+    for text in sections:
+        lines += [text, ""]
+    lines += [f"## {t['outputs']}", ""]
+    files = [(out_id, rel) for out_id, rels in changed.items() for rel in rels]
+    lines += [f"- `{rel}`（{out_id} {out_labels.get(out_id, '')}）" for out_id, rel in files] or [t["none"]]
+    lines += ["", f"## {t['defaults']}", ""]
+    lines += [f"- {labels.get(k, k)}（{k}）: {json.dumps(state['input'].get(k), ensure_ascii=False)}"
+              for k in state.get("defaulted", [])] or [t["none"]]
+    lines += ["", f"## {t['unread']}", ""]
+    lines += [f"- {w}" for w in state.get("warnings", [])] or [t["none"]]
+    lines += ["", f"## {t['checks']}", "", t["not_checked"] if aborted is not None else t["passed"]]
+    if state.get("formatted"):
+        items = "、".join(f"{item.split(' ', 1)[0]} `{item.split(' ', 1)[1]}`" for item in state["formatted"][:10])
+        lines.append(t["formatted"].replace("{items}", items))
+    rule = contract.get("control", {}).get("scope_rule")
+    if rule and state.get("worktree") is None and aborted is None:
+        lines.append(t["no_scope"].replace("{rule}", rule))
+    if state.get("restarts"):
+        lines.append(t["restarts"].replace("{n}", str(state["restarts"])))
+    for prev in state.get("previous", []):
+        lines.append(t["previous"].replace("{status}", prev["status"]).replace("{reason}", prev["reason"]))
+    changed_files = state.get("changed_since_last", [])
+    if changed_files:
+        shown = "、".join(f"`{f}`" for f in changed_files[:10]) + (f" …（全 {len(changed_files)} 件）" if len(changed_files) > 10 else "")
+        lines.append(t["changed_since_last"].replace("{files}", shown))
+    lines += ["", f"## {t['notes_head']}", ""] + (notes or [t["none"]])
+    return "\n".join(lines) + "\n"
+
+
+def cmd_finish(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    state = require_state(root, name)
+    if state.get("status") in ("done", "aborted"):
+        rt.emit(f"ERROR この実行は既に {state['status']} です。新しく始めるなら start", sys.stderr)
+        return 2
+    fixes: list = []
+    findings, changed = rt.check_outputs(root, state, contract, fixes=fixes)
+    rt.record_fixes(state, fixes)
+    sections = []
+    if not findings:
+        sections, findings = rt.report_sections(root, state, contract)
+    if findings:
+        state["status"] = "active"
+        rt.log_event(state, "finish-rejected", f"{len(findings)} 件")
+        rt.save_state(root, state)
+        print_findings(findings)
+        rt.emit(f"finish: 指摘 {len(findings)} 件。直してから、もう一度 finish を実行してください")
+        return 1
+    report = render_report(state, contract, changed, sections, rt.read_notes(root, name))
+    include = contract.get("report", {}).get("include_output")
+    body = ""
+    if include and changed.get(include):
+        body = "\n\n".join((root / rel).read_text(encoding="utf-8").rstrip() for rel in changed[include]) + "\n\n---\n\n"
+    (root / rt.run_rel(name) / "report.md").write_text(body + report, encoding="utf-8")
+    state["status"] = "done"
+    state["finished_at"] = rt.now()
+    state["outputs"] = changed
+    rt.log_event(state, "finish")
+    rt.save_state(root, state)
+    rt.emit(report_text(contract)["notes"])
+    rt.emit("=" * 40)
+    rt.emit(body + report)
+    return 0
+
+
+def cmd_set_status(args, contract: dict, name: str, status: str, detail: str) -> int:
+    root = resolve_root(args.root)
+    state = require_state(root, name)
+    if state.get("status") in ("done", "aborted"):
+        rt.emit(f"ERROR この実行は既に {state['status']} です", sys.stderr)
+        return 2
+    state["status"] = status
+    if status == "aborted":
+        state["abort_reason"] = detail
+        state["finished_at"] = rt.now()
+        state["outputs"] = changed_outputs(root, state, contract)
+    if status == "waiting":
+        state["question"] = detail
+    rt.log_event(state, status, detail)
+    rt.save_state(root, state)
+    if status == "aborted":
+        # 中断の報告も finish と同じ固定の本文にする（RPT-01）。AI が手で書くと、理由や途中の出力が抜ける
+        report = render_report(state, contract, state["outputs"], [], rt.read_notes(root, name), aborted=detail)
+        (root / rt.run_rel(name) / "report.md").write_text(report, encoding="utf-8")
+        rt.emit(report_text(contract)["notes"])
+        rt.emit("=" * 40)
+        rt.emit(report)
+        return 0
+    messages = {
+        "waiting": "質問を待っています。ユーザーの返答を受けたら resume（または check）を実行してください",
+        "active": "再開しました",
+    }
+    rt.emit(messages[status])
+    return 0
+
+
+def cmd_status(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    state = rt.load_state(root, name)
+    if state is None:
+        rt.emit(f"{name}: 実行記録なし")
+        return 0
+    shown = {k: state.get(k) for k in ("skill", "status", "started_at", "finished_at", "input", "defaulted",
+                                        "warnings", "stop_blocks", "restarts", "previous", "question", "abort_reason")
+             if state.get(k) is not None}
+    rt.emit(json.dumps(shown, ensure_ascii=False, indent=2))
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("start", help="入力を正規化して実行を始める")
+    p.add_argument("text", nargs="*", help="依頼文（自由記述）。「キー: 値」の行も読む")
+    p.add_argument("--set", action="append", metavar="KEY=VALUE")
+    p.add_argument("--input-json")
+    p.add_argument("--input-file")
+    p.add_argument("--restart", action="store_true")
+    p.add_argument("--json", action="store_true", help="結果を JSON で出す（スクリプトから呼ぶとき）")
+    p = sub.add_parser("check", help="出力を契約で検査する")
+    p.add_argument("--file")
+    sub.add_parser("finish", help="検査に通れば実行を終え、報告の本文を出す")
+    p = sub.add_parser("wait", help="ユーザーへの質問を待つ")
+    p.add_argument("--question", required=True)
+    sub.add_parser("resume", help="wait を解く")
+    p = sub.add_parser("abort", help="理由を付けて実行をやめ、中断の報告の本文を出す")
+    p.add_argument("--reason", required=True)
+    sub.add_parser("status", help="実行記録を表示する")
+    for action in sub.choices.values():
+        action.add_argument("--root", help="プロジェクトのルート（既定: 作業ディレクトリから .git を辿った場所）")
+    args = parser.parse_args()
+
+    contract = rt.load_contract()
+    name = contract.get("skill") or rt.SKILL_DIR.name
+    if args.command == "start":
+        return cmd_start(args, contract, name)
+    if args.command == "check":
+        return cmd_check(args, contract, name)
+    if args.command == "finish":
+        return cmd_finish(args, contract, name)
+    if args.command == "wait":
+        return cmd_set_status(args, contract, name, "waiting", args.question)
+    if args.command == "resume":
+        return cmd_set_status(args, contract, name, "active", "")
+    if args.command == "abort":
+        return cmd_set_status(args, contract, name, "aborted", args.reason)
+    return cmd_status(args, contract, name)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .codex/hooks.json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex pre-tool",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex pre-tool",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex post-tool",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex post-tool",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex stop",
+            "timeout": 300
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex stop",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex prompt",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/analyze-todo-comment/scripts/hook.py\" --platform codex prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+
+=== .skill-runs/skill-foundation/notes.md
+- 入力 `source` は、skill-profiles の目安の impact `target`（聞く）ではなく `reversible`（既定値 `.`、プロジェクト全体）にした。作り直しても一覧を出し直すだけで済むためである
+- TODO コメントの判定は字面の規則（STEP-01）なので、空白の後に `# TODO` がある文字列リテラルも TODO コメントとして集める
+- `source` を `.` にすると、このスキルの `dev/fixtures/basic` の見本の TODO コメントも一覧に入る
+- `dev/fixtures/basic/.gitignore` が `src/generated/` を無視するので、このリポジトリで commit すると `dev/fixtures/basic/src/generated/schema.py` は git に入らない。probe.py はディスク上のファイルを写すため、今の環境では影響が無い
+
+=== .skill-runs/skill-foundation/report.md
+## 結果
+
+skill-foundation: 完了（検証に合格）
+
+## 作ったスキル
+
+- 名前: `analyze-todo-comment`（ソースコードの TODO コメントを一覧の Markdown にする）
+- 目的: ソースコードのディレクトリを受け取り、その中の TODO コメントを集めて、ファイルと行番号つきの一覧の Markdown を出力する
+- 本体の置き場: `.agents/skills/analyze-todo-comment`
+- 対象の製品: Codex
+- 言語: 日本語（ja）
+- 起動: 依頼の内容から自動で選ばれる。明示は `$analyze-todo-comment`（Codex）
+- 入力: `source`（調べるディレクトリ。既定値 "."）
+- 出力: `todo-list`（TODO コメントの一覧。`.skill-runs/analyze-todo-comment/out/todo-comments.md`）
+
+## 決定と守らせ方
+
+| 区分 | 決定の数 | ID |
+|---|---|---|
+| スキル固有・機械が守ったかを確かめる（runtime・format・validate のどれかを含む） | 8 | IN-02、STEP-01、OUT-01、OUT-02、OUT-03、OUT-04、OUT-05、OUT-06 |
+| スキル固有・機械で確かめない（review か doc で確かめる） | 2 | IN-01、STEP-02 |
+| 標準（全スキル共通） | 6 | CTL-01、CTL-02、CTL-03、CTL-04、CTL-05、RPT-01 |
+| 対象外にした軸 | 5 | P1（手順は start、collect_todo.py の実行、check、finish の4つだけで、順序は CTL-01 と STEP-01 が決めている）、P2（出力の形は TODO の件数によらず同じで（OUT-02）、分岐は IN-01、IN-02、STEP-02 の決定表で決めている）、O6（一覧は毎回 collect_todo.py が実行記録の置き場のファイルに書き直し（OUT-01）、利用者の既存のファイルには書かない）、O7（出力は一覧のファイル1つだけで、一緒に変えるファイルが無い）、O8（出力は TODO コメントの一覧の Markdown で、コードや設定を書かないので、lint の無効化や skip の記法を書く場所が無い） |
+
+- 段（control）: runtime 6、format 1、validate 12、script 7、template 0、review 1、doc 3
+- 答えの決め方（スキル固有）: 依頼の指定 1、出力を使う道具や形式の公式の決まり 3、機械で守らせられる答え 2、道具・スクリプト・入力を増やさない答え 1、AI の判断と覚える概念が少ない答え 3
+
+機械で守らせない決定と理由（spec の why_not_machine）:
+- IN-01: 痕跡が残らない：依頼に書かれた印や作業は出力に残らず、出力だけでは判定できない
+- STEP-02: 痕跡が残らない：中断したときは出力が無く、検査する対象が無い
+
+## 作ったスキルの検証
+
+| 検証 | 結果 |
+|---|---|
+| `skill_lint.py --final` | エラー 0 件、警告 1 件 |
+| `probe.py` | 違反例 19 件中 失敗 0 件／配線 10 件中 失敗 0 件（Codex） |
+
+## 収束テスト
+
+実施していない（理由: 利用者が収束テストを省くと指定した）。
+
+## 確かめていないこと
+
+- 収束テストを実施していないため、別の AI で結果が揃うかは測っていない
+- Codex の hooks は、Codex の `/hooks` で信頼するまで動かない（それまでは `run.py check` と `finish` だけで検査される）
+
+## プロジェクトに置いたもの
+
+- `.agents/skills/analyze-todo-comment/`: スキルの本体（ファイル 23 個）
+- `.codex/hooks.json`: `analyze-todo-comment` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
+
+## 封印
+
+- `.agents/skills/analyze-todo-comment/assets/seal.json` に保護ファイル 9 件のハッシュを書いた
+- これより後に保護ファイルを変えると、封印し直すまで `analyze-todo-comment` の `run.py start` が止まる。変え方は、作ったスキルの SKILL.md の「8. 制御の仕組み」にある
+
+## 出力
+
+- `.agents/skills/analyze-todo-comment/SKILL.md`（skill-entry 作ったスキルの SKILL.md）
+
+## 既定値で決めた値
+
+- なし
+
+## 入力で読めなかった値
+
+- なし
+
+## 検証
+
+- `run.py finish`: 指摘 0 件
+
+## 補足
+
+- 入力 `source` は、skill-profiles の目安の impact `target`（聞く）ではなく `reversible`（既定値 `.`、プロジェクト全体）にした。作り直しても一覧を出し直すだけで済むためである
+- TODO コメントの判定は字面の規則（STEP-01）なので、空白の後に `# TODO` がある文字列リテラルも TODO コメントとして集める
+- `source` を `.` にすると、このスキルの `dev/fixtures/basic` の見本の TODO コメントも一覧に入る
+- `dev/fixtures/basic/.gitignore` が `src/generated/` を無視するので、このリポジトリで commit すると `dev/fixtures/basic/src/generated/schema.py` は git に入らない。probe.py はディスク上のファイルを写すため、今の環境では影響が無い
+
