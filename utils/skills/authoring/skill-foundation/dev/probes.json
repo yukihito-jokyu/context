@@ -1,0 +1,217 @@
+{
+  "baseline": {
+    "fixture": null,
+    "setup": [
+      "python3 {skill}/scripts/selftest.py --build {lab}/cache --ready"
+    ],
+    "input": {
+      "name": "write-commit-message",
+      "targets": "claude,codex",
+      "language": "ja",
+      "base": ".claude/skills",
+      "measure": "skip"
+    },
+    "text": "コミットメッセージを書くスキルを作って",
+    "files": [],
+    "commands": [
+      "mkdir -p .claude/skills && cp -R {lab}/cache/.claude/skills/write-commit-message .claude/skills/",
+      "python3 .claude/skills/write-commit-message/scripts/install.py --project ."
+    ]
+  },
+  "probes": [
+    {
+      "id": "STEP-01-a",
+      "rule": "STEP-01",
+      "description": "SKILL.md の生成部分に手で書き足す",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/SKILL.md",
+          "mode": "sub",
+          "pattern": "^(<!-- BEGIN GENERATED:purpose -->\\n)",
+          "replacement": "\\1手で書き足した説明\\n"
+        }
+      ],
+      "expect": "STEP-01 .*生成した内容と違います"
+    },
+    {
+      "id": "STEP-02-a",
+      "rule": "STEP-02",
+      "description": "収束テストを実行せず、省いた理由も書かない",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/dev/spec.json",
+          "mode": "sub",
+          "pattern": "\"skip_reason\": \"[^\"]*\"",
+          "replacement": "\"skip_reason\": \"\""
+        }
+      ],
+      "expect": "STEP-02 .*収束テストの結果がありません"
+    },
+    {
+      "id": "STEP-04-a",
+      "rule": "STEP-04",
+      "description": "基準を満たさない課題を結論に書かない",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/dev/results/convergence/round-1/report.json",
+          "mode": "create",
+          "content": "{\"round\": 1, \"tasks\": [{\"id\": \"T1-typical\", \"converged\": false}, {\"id\": \"T2-default\", \"converged\": true}, {\"id\": \"T3-edge\", \"converged\": true}, {\"id\": \"H1-holdout\", \"converged\": true}]}\n"
+        },
+        {
+          "path": ".claude/skills/write-commit-message/dev/spec.json",
+          "mode": "sub",
+          "pattern": "\"skip_reason\": \"[^\"]*\"",
+          "replacement": "\"skip_reason\": \"\""
+        }
+      ],
+      "expect": "STEP-04 .*T1-typical が基準を満たしていません"
+    },
+    {
+      "id": "OUT-01-a",
+      "rule": "OUT-01",
+      "description": "SKILL.md を作らない",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/SKILL.md",
+          "mode": "delete"
+        }
+      ],
+      "expect": "OUT-01"
+    },
+    {
+      "id": "OUT-02-a",
+      "rule": "OUT-02",
+      "description": "スキルの直下に作業メモを置く",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/notes.md",
+          "mode": "create",
+          "content": "作業メモ\n"
+        }
+      ],
+      "expect": "OUT-02 .*直下に置けるのは"
+    },
+    {
+      "id": "OUT-02-b",
+      "rule": "OUT-02",
+      "description": "references/ に kebab-case でない名前のファイルを置く",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/references/Notes_Draft.md",
+          "mode": "create",
+          "content": "メモ\n"
+        }
+      ],
+      "expect": "OUT-02 .*kebab-case"
+    },
+    {
+      "id": "OUT-02-c",
+      "rule": "OUT-02",
+      "description": "出力の見本（assets/examples/）を置かない",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/assets/examples/commit-message.txt",
+          "mode": "delete"
+        }
+      ],
+      "expect": "OUT-02 .*見本を1つ以上"
+    },
+    {
+      "id": "OUT-02-d",
+      "rule": "OUT-02",
+      "description": "手順の最後の行から run.py finish を消し、完了と返答させる",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/SKILL.md",
+          "mode": "sub",
+          "pattern": "`python3 <skill>/scripts/run.py finish` を実行する。終了コード1なら手順6に戻る。終了コード0なら、出力された本文をそのまま返答する",
+          "replacement": "出力を書いたら完了と返答する"
+        }
+      ],
+      "expect": "OUT-02 .*run\\.py finish"
+    },
+    {
+      "id": "OUT-03-a",
+      "rule": "OUT-03",
+      "description": "手順にあいまいな語を書く",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/SKILL.md",
+          "mode": "sub",
+          "pattern": "^(3\\. `python3 <skill>/scripts/collect_diff.py` を実行する。)",
+          "replacement": "\\1必要に応じて未ステージの差分も読む。"
+        }
+      ],
+      "expect": "OUT-03 .*あいまいな語"
+    },
+    {
+      "id": "OUT-04-a",
+      "rule": "OUT-04",
+      "description": "決定の ID を振り直して番号を欠けさせる（参照と生成物は合わせて直す）",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/dev/spec.json",
+          "mode": "sub",
+          "pattern": "\"id\": \"STEP-04\"",
+          "replacement": "\"id\": \"STEP-05\""
+        },
+        {
+          "path": ".claude/skills/write-commit-message/SKILL.md",
+          "mode": "sub",
+          "pattern": "STEP-04",
+          "replacement": "STEP-05"
+        },
+        {
+          "path": ".claude/skills/write-commit-message/references/decisions.md",
+          "mode": "sub",
+          "pattern": "^## STEP-04 ",
+          "replacement": "## STEP-05 "
+        }
+      ],
+      "expect": "OUT-04 .*番号は 01 から欠けなく"
+    },
+    {
+      "id": "OUT-05-a",
+      "rule": "OUT-05",
+      "description": "起動する依頼を4つしか書かない",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/dev/spec.json",
+          "mode": "sub",
+          "pattern": "\"ABC-12 のコミットメッセージをお願い\",\\s*",
+          "replacement": ""
+        }
+      ],
+      "expect": "OUT-05 .*5つ以上"
+    },
+    {
+      "id": "OUT-06-a",
+      "rule": "OUT-06",
+      "description": "後付け（retrofit）なのに元の SKILL.md を残さない",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/dev/spec.json",
+          "mode": "sub",
+          "pattern": "\"mode\": \"new\"",
+          "replacement": "\"mode\": \"retrofit\""
+        }
+      ],
+      "expect": "OUT-06 .*dev/original/SKILL.md"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "OUT-03-r1",
+      "rule": "OUT-03",
+      "description": "作ったスキルの手順の1つを、spec の言語（ja）でなく英語で書く",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/SKILL.md",
+          "mode": "sub",
+          "pattern": "^4\\. 1行目を .*$",
+          "replacement": "4. Write the first line in the form `<ticket ID> <summary>`. The ticket ID is the `ticket` value printed by start. Do not write a CI skip marker (`[skip ci]`) (OUT-02, OUT-03, OUT-04, OUT-05, OUT-06)"
+        }
+      ]
+    }
+  ]
+}

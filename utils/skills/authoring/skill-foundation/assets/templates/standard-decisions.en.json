@@ -1,0 +1,129 @@
+[
+  {
+    "id": "CTL-01",
+    "axes": [
+      "C1"
+    ],
+    "title": "Start and end every run with run.py",
+    "decision": "Run `run.py start` first, `run.py check` after writing outputs, and `run.py finish` last. Do not reply that the work is complete until `finish` exits with code 0.",
+    "reason": "Scripted start and end make the checks always run and let hooks know whether a run is active. The definition of done does not differ between agents.",
+    "basis": "machine",
+    "control": [
+      "runtime",
+      "validate"
+    ],
+    "how": "scripts/run.py. finish exits with code 1 when the contract checks fail",
+    "why_not_machine": "",
+    "probes": [
+      "builtin"
+    ],
+    "good": "Reply with the text printed by `run.py finish` after it exits with code 0",
+    "bad": "Reply \"done\" right after writing the outputs"
+  },
+  {
+    "id": "CTL-02",
+    "axes": [
+      "C2"
+    ],
+    "title": "Do not change the skill's own files during a run",
+    "decision": "Between `run.py start` and `run.py finish`, do not change the protected files of the skill (`SKILL.md`, `scripts/`, `assets/`, `references/`) or the hooks of this skill registered in the project. When an output violates the contract, fix the output. When the protected files differ from the seal (`assets/seal.json`), `run.py start` exits with code 1; then tell the user the printed findings and stop.",
+    "reason": "Loosening the checks or the contract to pass makes the checks worthless.",
+    "basis": "machine",
+    "control": [
+      "runtime",
+      "validate"
+    ],
+    "how": "scripts/run.py start records hashes of the protected files and the hook registrations; check and finish compare them. `start --restart` carries the record over from the first start. Hooks stop the edit beforehand. start compares the protected files with the seal and does not start when they differ",
+    "why_not_machine": "",
+    "probes": [
+      "builtin"
+    ],
+    "good": "Look up the reported rule ID in the decisions table and fix the output file",
+    "bad": "Relax a regular expression in `assets/contract.json` to pass the check"
+  },
+  {
+    "id": "CTL-03",
+    "axes": [
+      "C3",
+      "I2"
+    ],
+    "title": "Ask questions before start",
+    "decision": "Ask the user everything before `run.py start`. If a question becomes necessary after start, run `run.py wait --question <question>` first. When asking is impossible, use the default and list it under \"Values decided by default\" in the report.",
+    "reason": "If agents differ on whether to ask mid-run, the outputs differ. wait prevents hooks from blocking the turn that asks the question.",
+    "basis": "machine",
+    "control": [
+      "runtime",
+      "doc"
+    ],
+    "how": "scripts/run.py start exits with code 3 and prints the questions when a value that must be asked is missing. wait pauses the hooks",
+    "why_not_machine": "",
+    "probes": [
+      "builtin"
+    ],
+    "good": "Ask the questions printed by start (exit code 3), then rerun start with the answers in `--set`",
+    "bad": "Ask the user about the format after writing half of the output"
+  },
+  {
+    "id": "CTL-04",
+    "axes": [
+      "C4"
+    ],
+    "title": "Use hooks only to check outputs, never to block input",
+    "decision": "While this skill is running (status: active), hooks do three things: check after an edit, check before the turn ends, and stop edits to protected files. When it is not running, they only ask for confirmation in Claude Code before an edit to a protected file of a sealed skill (one with `assets/seal.json`). They never block or rewrite what the user says.",
+    "reason": "What is constrained is the AI's output, not the user's input, and sessions that do not use this skill are left alone. But if the skill itself changes between runs, the next run's checks stay loosened, so edits to sealed files are confirmed by a person.",
+    "basis": "machine",
+    "control": [
+      "runtime"
+    ],
+    "how": "scripts/hook.py. install.py registers it for Claude Code (.claude/settings.json) and Codex (.codex/hooks.json)",
+    "why_not_machine": "",
+    "probes": [
+      "builtin"
+    ],
+    "good": "The Stop hook sends the agent back until the checks pass",
+    "bad": "A UserPromptSubmit hook rejects requests written in an unexpected way"
+  },
+  {
+    "id": "CTL-05",
+    "axes": [
+      "C5"
+    ],
+    "title": "Change no file other than the contract outputs",
+    "decision": "Between `run.py start` and `run.py finish`, create or change only the outputs in \"5. Output contract\" and the files listed in `control.allow_changes`. Do not create notes or temporary files outside the output location.",
+    "reason": "Files written outside the outputs (notes, backups, copies under other names) differ by AI and stay in the user's repository.",
+    "basis": "machine",
+    "control": [
+      "runtime",
+      "validate"
+    ],
+    "how": "scripts/run.py start records the git work tree state; check and finish compare it. Hooks report right after an edit",
+    "why_not_machine": "",
+    "probes": [
+      "builtin"
+    ],
+    "good": "Write drafts inside the output location (`.skill-runs/<name>/`)",
+    "bad": "Create `notes.md` at the repository root for a draft"
+  },
+  {
+    "id": "RPT-01",
+    "axes": [
+      "R1"
+    ],
+    "title": "Reply with the finish text unchanged",
+    "decision": "Reply with the text printed by `run.py finish` unchanged. Do not add text before or after it and do not summarize it. When the run is aborted, reply in the same way with the text printed by `run.py abort`. Before finish, write anything that could not be decided to `.skill-runs/<name>/notes.md` as bullets starting with \"- \" (up to 10); finish puts them under \"## Notes\".",
+    "reason": "The form and content of the report do not differ by AI. Readers always see the values decided by default and the check results.",
+    "basis": "machine",
+    "control": [
+      "runtime",
+      "validate",
+      "review"
+    ],
+    "how": "scripts/run.py finish and abort build the text and save it to .skill-runs/<name>/report.md. check and finish validate the form of notes.md",
+    "why_not_machine": "",
+    "probes": [
+      "builtin"
+    ],
+    "good": "Write an undecided default to notes.md as a \"- \" bullet and reply with the finish text unchanged",
+    "bad": "Summarize the finish text and append free-form notes"
+  }
+]

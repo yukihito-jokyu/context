@@ -1,0 +1,4412 @@
+=== .claude/settings.json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/skill-foundation/scripts/hook.py\" --platform claude pre-tool",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/write-commit-message/scripts/hook.py\" --platform claude pre-tool",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/skill-foundation/scripts/hook.py\" --platform claude post-tool",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/write-commit-message/scripts/hook.py\" --platform claude post-tool",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/skill-foundation/scripts/hook.py\" --platform claude stop",
+            "timeout": 300
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/write-commit-message/scripts/hook.py\" --platform claude stop",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/skill-foundation/scripts/hook.py\" --platform claude prompt",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/write-commit-message/scripts/hook.py\" --platform claude prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+
+=== .claude/skills/write-commit-message/SKILL.md
+---
+name: write-commit-message
+description: "ステージした変更とチケットIDを受け取り、チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文からなるコミットメッセージを出力する。「チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文でコミットメッセージを書いて」、「コミットメッセージを書いて」、「この変更のコミットメッセージを考えてください」、「ステージした差分からコミットメッセージを作って」、「チケット番号付きでコミットメッセージをお願い」、「write a commit message for the staged changes」と頼まれたときに使う。コミットや push の実行には使わない（代わりにgit commit と git pushを使う）。プルリクエストの説明文の作成には使わない（代わりにリポジトリのプルリクエストのテンプレートを使う）。"
+---
+
+# コミットメッセージを書く
+
+<!-- BEGIN GENERATED:purpose -->
+ステージした変更とチケットIDを受け取り、チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文からなるコミットメッセージを出力する
+<!-- END GENERATED:purpose -->
+
+## 1. 使う場面
+
+<!-- BEGIN GENERATED:triggers -->
+次のような依頼で使う。
+
+- 「チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文でコミットメッセージを書いて」
+- 「コミットメッセージを書いて」
+- 「この変更のコミットメッセージを考えてください」
+- 「ステージした差分からコミットメッセージを作って」
+- 「チケット番号付きでコミットメッセージをお願い」
+- 「write a commit message for the staged changes」
+
+次の場合は使わない。
+
+- コミットや push の実行 → 代わりに: git commit と git push
+- プルリクエストの説明文の作成 → 代わりに: リポジトリのプルリクエストのテンプレート
+
+依頼の内容から自動で選ばれる。明示して呼ぶときは Claude Code では `/write-commit-message`、Codex では `$write-commit-message` と書く。
+<!-- END GENERATED:triggers -->
+
+## 2. 手順
+
+このファイルがあるディレクトリを `<skill>` と呼ぶ。スクリプトは Python 3.9 以上の標準ライブラリだけで動く。手順は番号の順に行い、飛ばさない。
+
+1. 依頼からチケットID（`ticket`）を読み取る。依頼に無ければ、ここでユーザーに聞く（CTL-03）
+2. `python3 <skill>/scripts/run.py start --set ticket=<チケットID> "<依頼文>"` を実行する。終了コード3なら、出力された質問をユーザーに聞き、答えを `--set` で渡してやり直す（CTL-01、STEP-01）
+3. `python3 <skill>/scripts/collect_changes.py --ticket <start が出力した ticket の値>` を実行する。終了コード4なら、出力の「中断の理由:」の後の文を `python3 <skill>/scripts/run.py abort --reason <理由>` に渡し、abort が出力した本文をそのまま返答して終える。ファイルをステージし直さない（IN-01、STEP-02）
+4. 手順3の出力の「差分の読み方」に書かれたコマンドだけを実行して差分を読む。「読まない」とあるファイルの差分は読まず、未ステージの変更と `git log` も読まない（IN-02）
+5. 見本 `assets/examples/commit-message.txt` を写す元にして、`.skill-runs/write-commit-message/out/commit-message.txt` に書く（OUT-01）。1行目は「<チケットID> <要約>」、2行目は空行にし、3行目からは手順3の「本文の行頭」を同じ順のまま写して、各行の「: 」の後に説明を書く（OUT-02、OUT-04、STEP-02）。文末は「4. 決定表」の OUT-03 の表で決め、長さは OUT-05 に従い、OUT-06 と OUT-07 の記法を書かない。`git add` と `git commit` は実行しない
+6. `python3 <skill>/scripts/run.py check` を実行する。指摘があれば、ルールIDを「4. 決定表」で引いて出力を直し、check をやり直す。check を3回実行しても指摘が残れば、`python3 <skill>/scripts/run.py abort --reason <残ったルールID>` で中断する（STEP-01）。検査や契約を変えて通さない（CTL-02）
+7. 決めきれなかったことがあれば `.skill-runs/write-commit-message/notes.md` に「- 」の箇条書きで書き、`python3 <skill>/scripts/run.py finish` を実行する。終了コード1なら手順6に戻る。終了コード0なら、出力された本文をそのまま返答する（RPT-01）
+
+## 3. 入力
+
+<!-- BEGIN GENERATED:inputs -->
+| 項目 | キー | 受け付ける書き方 | 無いとき |
+|---|---|---|---|
+| チケットID | `ticket` | 文字列（大文字に揃える）。別名: チケット、チケット番号、課題キー、課題番号、ticket id、issue、issue key | start の前に聞く: 1行目の先頭に付けるチケットIDを教えてください（例: ABC-123） |
+
+入力は `run.py start --set <キー>=<値>` で渡す。キーは表のキー・項目名・別名のどれでもよく、全角と半角、大文字と小文字、`-`・`_`・空白の違いは吸収される。契約に無いキーは無視して記録する。依頼文そのものは最後の引数に渡す。依頼文の中の「キー: 値」の行も読む。
+<!-- END GENERATED:inputs -->
+
+## 4. 決定表
+
+<!-- BEGIN GENERATED:decisions -->
+| ID | 決定 | 守らせ方 |
+|---|---|---|
+| IN-01 | `python3 <skill>/scripts/collect_changes.py --ticket <チケットID>` が終了コード4で「中断の理由: <理由>」を出したときは、出力を書かずに、その理由を `run.py abort --reason <理由>` に渡して中断する。中断するかは次の表で決まる。ファイルをステージし直さず、チケットIDを作らない。 | script, doc: scripts/collect_changes.py が状況を判定し、中断するときは「中断の理由:」の行と終了コード4を出す。SKILL.md の手順3 |
+| IN-02 | 読むのは、`collect_changes.py` の出力と、その「差分の読み方」の列に書かれた `git diff --cached -M -- <パス>` の出力だけにする。未ステージの変更（`git diff`）、未追跡のファイル、`git log`、ステージしていないファイルの中身を読まない。ファイルごとの読み方は次の表で決まる。 | doc: SKILL.md の手順4。collect_changes.py が「差分の読み方」に読むコマンドか「読まない」を出す |
+| STEP-01 | `run.py start`、`collect_changes.py`、差分を読む（IN-02）、出力を書く、`run.py check`、`run.py finish` の順に行う。`run.py check` が指摘を出したら、`commit-message.txt` を直して check をやり直す。check を3回実行しても指摘が残るときは、残ったルールIDを `run.py abort --reason <ルールID>` に渡して中断する。 | doc: SKILL.md の手順2〜7 |
+| STEP-02 | 変更ファイルの一覧、件数、並び順、本文の行頭は `collect_changes.py` の出力を写し、AI が数えたり並べたりしない。使うコマンドは `python3`、`git diff --cached`、`git rev-parse` だけにする。`git add`、`git rm`、`git commit`、`git reset`、`git stash`、`git checkout` を実行しない（ステージの状態とコミットの履歴を変えない）。 | script, doc: scripts/collect_changes.py が件数、並び順、本文の行頭を出す。SKILL.md の手順3と手順5 |
+| OUT-01 | 出力は `.skill-runs/write-commit-message/out/commit-message.txt` の1ファイルにする。前の実行の同じファイルがあれば、中身を全部書き換える（追記しない）。`.git/COMMIT_EDITMSG` やリポジトリの中のほかのパスに書かない。 | validate: 契約の outputs.commit-message の path、count、name_pattern（ルールID OUT-01） |
+| OUT-02 | 1行目は「<チケットID> <要約>」にし、チケットIDの後に半角空白を1つ置く。2行目は空行にする。3行目からは、ステージしたファイル1つにつき1行の「- <パス>: <説明>」を、ステージしたファイルの数だけ書く。本文に空行、段落、見出し、トレーラー（`Co-authored-by:`、`Signed-off-by:`）を書かない。1行目に Conventional Commits の接頭辞（`feat:`、`fix:`）を付けない。行末に空白を付けず、ファイルの末尾は改行1つで終える。 | format, validate, script: 契約の require（1行目のチケットID、2行目の空行）、forbid（Conventional Commits の接頭辞）、command（scripts/check_message.py が本文の行とステージしたファイルを照らす）、format（trailing_space、final_newline）。行頭は scripts/collect_changes.py が出す |
+| OUT-03 | 1行目の要約と本文の各行の説明は日本語で書き、文末を「追加する」「修正する」「削除する」「変更する」のどれかにする。本文の各行の文末は次の表で決める。1行目の文末は、本文の行で最も多い文末にする（同数なら表の上の行のもの）。「です」「ます」、体言止め（「追加」「修正」で終える）、句点「。」を使わない。 | validate: 契約の require（1行目の文末）と forbid（本文の行の文末）。scripts/check_message.py が1行目の文末と本文の最も多い文末を比べる |
+| OUT-04 | 本文の行は `collect_changes.py` の「本文の行頭」と同じ順に並べ、パスもその表記のまま書く。パスはリポジトリのルートからの相対パスで、`` ` `` や引用符で囲まず、`./` を付けない。名前の変更とコピーは `<旧パス> -> <新パス>` と書く。 | validate, script: scripts/check_message.py が順序と表記を collect_changes.py と同じ規則で照らす（契約の command 検査）。行頭は scripts/collect_changes.py が出す |
+| OUT-05 | 1行目は、チケットIDと空白を含めて50文字以下にする。本文の各行の説明（「: 」の後）は50文字以下にする。本文の行の数は、ステージしたファイルの数と同じにする（OUT-02）。 | validate: 契約の line_length（1行目）と forbid（説明の長さ） |
+| OUT-06 | CI を止める記法（`[skip ci]`、`[ci skip]`、`[no ci]`、`[skip actions]`、`[actions skip]`、`skip-checks:` のトレーラー）を、大文字と小文字にかかわらず書かない。 | validate: 契約の forbid（ルールID OUT-06） |
+| OUT-07 | 要約と説明に URL を書かない。チケットへの参照は1行目の先頭のチケットIDだけにし、`refs #12`、`Closes ABC-12` のような参照を足さない。 | validate: 契約の forbid（ルールID OUT-07） |
+| RPT-01 | 最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。 | runtime, validate, review: scripts/run.py の finish と abort が本文を組み立て、.skill-runs/<name>/report.md にも保存する。check と finish が notes.md の形を検査する |
+| CTL-01 | 手順の最初に `run.py start`、出力を書いた後に `run.py check`、最後に `run.py finish` を実行する。`finish` が終了コード0で終わるまで、完了と返答しない。 | runtime, validate: scripts/run.py。finish は契約の検査に通らないと終了コード1で終わる |
+| CTL-02 | `run.py start` から `run.py finish` までの間、スキルの保護ファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`）と、プロジェクトに登録したこのスキルの hooks を変えない。出力が契約に合わないときは、出力の方を直す。保護ファイルが封印（`assets/seal.json`）と違うと `run.py start` が終了コード1で止まるので、そのときは出力された指摘をユーザーに伝えて止まる。 | runtime, validate: scripts/run.py の start が保護ファイルのハッシュと hooks の登録を記録し、check と finish が比べる。`start --restart` は記録を最初の start から引き継ぐ。hooks が編集の前に止める。start は封印と保護ファイルを比べ、違えば始めない |
+| CTL-03 | ユーザーに聞くことは `run.py start` の前にまとめて聞く。start の後に聞く必要が出たときは、`run.py wait --question <質問>` を実行してから聞く。聞けない状況では既定値を使い、報告の「既定値で決めた値」に載せる。 | runtime, doc: scripts/run.py の start は、聞くべき入力が無いと終了コード3で止まり、質問を出力する。wait は hooks の強制を止める |
+| CTL-04 | hooks は、このスキルの実行中（status: active）に、編集の後の検査、応答を終える前の検査、保護ファイルの編集の停止の3つを行う。実行していないときは、封印したスキル（`assets/seal.json` がある）の保護ファイルの編集に、Claude Code で確認を求めることだけを行う。ユーザーの発言を止めたり書き換えたりしない。 | runtime: scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する |
+| CTL-05 | `run.py start` から `run.py finish` までの間に作る・変えるファイルは、「5. 出力の契約」の出力と `control.allow_changes` に挙げたものだけにする。作業用のメモや一時ファイルも、出力の置き場の外に作らない。 | runtime, validate: scripts/run.py の start が git の作業ツリーの状態を記録し、check と finish が比べる。編集の直後には hooks が知らせる |
+
+#### IN-01 の決定表
+
+| 状況（collect_changes.py が判定する） | 扱い |
+|---|---|
+| git のリポジトリの中でない | 中断する（理由「git のリポジトリでない」） |
+| 入力 `ticket` が `<英大文字で始まる英大文字・数字・_ の列>-<数字>`（例 `ABC-123`）の形でない | 中断する（理由「チケットIDの形が違う」） |
+| ステージした変更が0件 | 中断する（理由「ステージした変更が無い」） |
+| 未マージ（状態 `U`）のファイルがある | 中断する（理由「未マージのファイルがある」） |
+| 上のどれでもない | 中断せず、手順を続ける |
+
+#### IN-02 の決定表
+
+| ファイル（collect_changes.py の「差分の読み方」） | 読むもの |
+|---|---|
+| バイナリ（行数が「バイナリ」） | 読まない。変更の種類（A、M、D、R）だけで説明を書く |
+| 追加と削除の行数の合計が 500 以下 | 示された `git diff --cached -M -- <パス>` の出力の全体 |
+| 上のどれでもない（合計が 501 以上） | 読まない。変更の種類と行数だけで説明を書く |
+
+#### OUT-03 の決定表
+
+| そのファイルの変更の中身 | 文末 |
+|---|---|
+| 新しいファイル、関数、記述、設定を足す | 追加する |
+| 誤り（不具合、誤字、壊れた設定）を直す | 修正する |
+| ファイル、関数、記述、設定を消す | 削除する |
+| 上のどれでもない（書き換え、名前の変更、移動、整理） | 変更する |
+
+理由・良い例・悪い例は [references/decisions.md](references/decisions.md) にある。
+<!-- END GENERATED:decisions -->
+
+## 5. 出力の契約
+
+<!-- BEGIN GENERATED:contract -->
+| 出力 | 置き場 | 件数 | 検査（ルールID） |
+|---|---|---|---|
+| commit-message コミットメッセージ | `{run}/out/commit-message.txt` | 1〜1 件（OUT-01） | ファイル名が `^commit-message\.txt$` に一致（OUT-01）。自動で直す: 行末の空白を消す（OUT-02）。自動で直す: 末尾の改行を1つにする（OUT-02）。1 行目が `^{in:ticket} \S` に一致する（1行目は、チケットIDと半角空白1つで始める）（OUT-02）。1 行目が `^\S+ (?:feat\|fix\|docs\|style\|refactor\|perf\|test\|build\|ci\|chore\|revert)(?:\([^)]*\))?!?:` に一致しない（1行目に Conventional Commits の接頭辞を付けない）（OUT-02）。2 行目が `^$` に一致する（2行目は空行にする）（OUT-02）。`python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-02` が通る（本文は、ステージしたファイル1つにつき1行の「- <パス>: <説明>」にする）（OUT-02）。`python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-03` が通る（1行目の文末は、本文の行で最も多い文末にする）（OUT-03）。1 行目が `(?:追加\|修正\|削除\|変更)する$` に一致する（1行目の文末は「追加する」「修正する」「削除する」「変更する」のどれかにする）（OUT-03）。`^- (?!.*(?:追加\|修正\|削除\|変更)する$)` に一致する行が無い（本文の行の文末は「追加する」「修正する」「削除する」「変更する」のどれかにする）（OUT-03）。`python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-04` が通る（本文の行の順とパスの表記を collect_changes.py の「本文の行頭」に合わせる）（OUT-04）。1行目は 50 文字以下（1行目はチケットIDを含めて50文字以下にする）（OUT-05）。`^- .*?: .{51,}$` に一致する行が無い（本文の行の説明（「: 」の後）は50文字以下にする）（OUT-05）。`(?i)\[(?:skip ci\|ci skip\|no ci\|skip actions\|actions skip)\]\|skip-checks\s*:` に一致する行が無い（CI を止める記法を書かない）（OUT-06）。`https?://` に一致する行が無い（URL を書かない）（OUT-07）。`(?i)\b(?:refs\|references\|closes\|fixes\|resolves)\s+#?[0-9a-z_-]*[0-9]` に一致する行が無い（チケットへの参照は1行目の先頭のチケットIDだけにする）（OUT-07） |
+
+`{run}` は実行記録の置き場 `.skill-runs/write-commit-message` を指す。`run.py start` の前からあったファイルで、内容が変わっていないものは検査しない。
+
+- 保護ファイルが実行中に変わっていない（CTL-02）
+- 上の出力のほかに、start の後に変わったファイルが無い（CTL-05。git の作業ツリーで判定し、git が無いときは検査しない）
+<!-- END GENERATED:contract -->
+
+## 6. 完了前チェックリスト
+
+<!-- BEGIN GENERATED:checklist -->
+- [ ] RPT-01 最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。
+- [ ] `python3 <skill>/scripts/run.py finish` が終了コード0で終わった
+<!-- END GENERATED:checklist -->
+
+## 7. 報告
+
+<!-- BEGIN GENERATED:report -->
+最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない（RPT-01）。決めきれなかったことは、finish の前に `.skill-runs/write-commit-message/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを「## 補足」に入れる。中断するときは `run.py abort --reason <理由>` を実行し、abort が出力した本文を同じようにそのまま使う。本文の形は次のとおり。
+
+```text
+<出力 commit-message の本文>
+
+---
+
+## 結果
+
+write-commit-message: 完了（検証に合格）
+
+## 出力
+
+- `<パス>`（<出力ID> <出力の名前>）
+
+## 既定値で決めた値
+
+- <項目>（<キー>）: <値>（無ければ「- なし」）
+
+## 入力で読めなかった値
+
+- <内容>（無ければ「- なし」）
+
+## 検証
+
+- `run.py finish`: 指摘 0 件
+
+## 補足
+
+- <notes.md の箇条書き。無ければ「- なし」>
+```
+<!-- END GENERATED:report -->
+
+## 8. 制御の仕組み
+
+<!-- BEGIN GENERATED:control -->
+| 仕組み | いつ働くか | 何をするか |
+|---|---|---|
+| `scripts/run.py start` | 手順の始め | 入力を正規化し（表記ゆれ・全角・未知のキーを受け入れる）、既定値で補い、保護ファイルのハッシュと git の作業ツリーの状態を記録する。保護ファイルが封印（`assets/seal.json`）と違えば始めない（終了コード1） |
+| `scripts/run.py check` と `finish` | 出力を書いた後と最後 | 契約（`assets/contract.json`）の format で出力を直してから検査する。finish は通ったときだけ実行を終える |
+| hooks の pre-tool | ファイルを編集する前 | 保護ファイルと実行記録の編集を止める（Claude Code は確認を求め、Codex は拒否する）。実行していないときも、封印したスキルの保護ファイルの編集に Claude Code で確認を求める |
+| hooks の post-tool | ファイルを編集した後 | 出力に当たるファイルを format で直し、検査し、指摘を返す。出力でも変えてよいファイルでもなければ CTL-05 の指摘を返す |
+| hooks の stop | 応答を終える前 | 出力全体を検査し、通るまで応答を終えさせない（最大 3 回。超えると status: failed） |
+| hooks の prompt | ユーザーが発言したとき | 質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない |
+
+hooks は、このスキルの実行中（`.skill-runs/write-commit-message/state.json` の status が active）だけ出力を検査する。hooks が無い環境でも、`run.py check` と `finish` が同じ検査をする。
+
+hooks の登録: `python3 <skill>/scripts/install.py --project <プロジェクトのルート>`（Claude Code は `.claude/settings.json`、Codex は `.codex/hooks.json` に追記する。Codex では、追記した hooks を `/hooks` で信頼するまで動かない）
+
+保護ファイル（スキルのディレクトリからの相対パス）: `SKILL.md`、`scripts/**`、`assets/**`、`references/**`
+
+このスキル（決定、契約、手順、スクリプト）を変えるときは、次の順にする。保護ファイルだけを直接書き換えると、封印と違うため次の `run.py start` が止まる（CTL-02）。`<skill-foundation>` は skill-foundation のディレクトリを指す。
+
+1. 実行中なら `python3 <skill>/scripts/run.py abort --reason <理由>` で止める
+2. `dev/spec.json` を直す。手で書く部分（この SKILL.md の「2. 手順」、`scripts/` のスキル固有のスクリプト、`references/`、`assets/examples/`）は直接直す
+3. `python3 <skill-foundation>/scripts/render_skill.py --dir <skill>` で生成した部分を作り直す
+4. 決定や契約を変えたなら `dev/probes.json` の違反例も合わせ、`python3 <skill-foundation>/scripts/probe.py <skill>` を通す
+5. `python3 <skill-foundation>/scripts/skill_lint.py <skill> --final --seal` を通す。通ると封印し直す
+<!-- END GENERATED:control -->
+
+=== .claude/skills/write-commit-message/assets/contract.json
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "write-commit-message",
+  "language": "ja",
+  "inputs": [
+    {
+      "key": "ticket",
+      "label": "チケットID",
+      "type": "string",
+      "case": "upper",
+      "aliases": [
+        "チケット",
+        "チケット番号",
+        "課題キー",
+        "課題番号",
+        "ticket id",
+        "issue",
+        "issue key"
+      ],
+      "impact": "target",
+      "ask": true,
+      "question": "1行目の先頭に付けるチケットIDを教えてください（例: ABC-123）"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "commit-message",
+      "label": "コミットメッセージ",
+      "path": "{run}/out/commit-message.txt",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "name_pattern": "^commit-message\\.txt$",
+      "format": [
+        {
+          "type": "trailing_space",
+          "rule": "OUT-02",
+          "message": "行末の空白を消した"
+        },
+        {
+          "type": "final_newline",
+          "rule": "OUT-02",
+          "message": "末尾の改行を1つにした"
+        }
+      ],
+      "checks": [
+        {
+          "type": "require",
+          "pattern": "^{in:ticket} \\S",
+          "lines": "first",
+          "rule": "OUT-02",
+          "message": "1行目は、チケットIDと半角空白1つで始める"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^\\S+ (?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\([^)]*\\))?!?:",
+          "lines": "first",
+          "rule": "OUT-02",
+          "message": "1行目に Conventional Commits の接頭辞を付けない"
+        },
+        {
+          "type": "require",
+          "pattern": "^$",
+          "lines": [
+            2
+          ],
+          "rule": "OUT-02",
+          "message": "2行目は空行にする"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-02",
+          "rule": "OUT-02",
+          "message": "本文は、ステージしたファイル1つにつき1行の「- <パス>: <説明>」にする"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-03",
+          "rule": "OUT-03",
+          "message": "1行目の文末は、本文の行で最も多い文末にする"
+        },
+        {
+          "type": "require",
+          "pattern": "(?:追加|修正|削除|変更)する$",
+          "lines": "first",
+          "rule": "OUT-03",
+          "message": "1行目の文末は「追加する」「修正する」「削除する」「変更する」のどれかにする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^- (?!.*(?:追加|修正|削除|変更)する$)",
+          "rule": "OUT-03",
+          "message": "本文の行の文末は「追加する」「修正する」「削除する」「変更する」のどれかにする"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-04",
+          "rule": "OUT-04",
+          "message": "本文の行の順とパスの表記を collect_changes.py の「本文の行頭」に合わせる"
+        },
+        {
+          "type": "line_length",
+          "max": 50,
+          "lines": "first",
+          "rule": "OUT-05",
+          "message": "1行目はチケットIDを含めて50文字以下にする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^- .*?: .{51,}$",
+          "rule": "OUT-05",
+          "message": "本文の行の説明（「: 」の後）は50文字以下にする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "(?i)\\[(?:skip ci|ci skip|no ci|skip actions|actions skip)\\]|skip-checks\\s*:",
+          "rule": "OUT-06",
+          "message": "CI を止める記法を書かない"
+        },
+        {
+          "type": "forbid",
+          "pattern": "https?://",
+          "rule": "OUT-07",
+          "message": "URL を書かない"
+        },
+        {
+          "type": "forbid",
+          "pattern": "(?i)\\b(?:refs|references|closes|fixes|resolves)\\s+#?[0-9a-z_-]*[0-9]",
+          "rule": "OUT-07",
+          "message": "チケットへの参照は1行目の先頭のチケットIDだけにする"
+        }
+      ]
+    }
+  ],
+  "together": [],
+  "control": {
+    "hooks": true,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "tamper_rule": "CTL-02",
+    "scope_rule": "CTL-05",
+    "allow_changes": [],
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": "commit-message",
+    "rule": "RPT-01",
+    "sections": []
+  }
+}
+
+=== .claude/skills/write-commit-message/assets/examples/commit-message.txt
+ABC-12 計算モジュールに引き算の関数を追加する
+
+- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+- src/calc.py: 引き算の関数 subtract を追加する
+- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+- tests/test_calc.py: subtract のテストを追加する
+
+=== .claude/skills/write-commit-message/assets/seal.json
+{
+  "runtime": "1.0.0",
+  "files": {
+    "SKILL.md": "64ac6f169384e0ce4ff87904ede4ebeab6470a821c783e362f61fa395611d12f",
+    "assets/contract.json": "c52dc4e2b3323d30c4c9f7a5123b544098c046b40382b18fadd9a5b03afb8b94",
+    "assets/examples/commit-message.txt": "7b66be0dd3216d403307e5e2d3cd8165e782c4cd9b2417f19c910edbcdd6fbb7",
+    "references/decisions.md": "932261a0735675428e50328c6186a8d37423f8da1af5e01d97b27bb685d8f4ec",
+    "scripts/_changes.py": "ff79ffe7bfe1d3d2bb31e6b727582d7bba0cad0b89fd0ee2348d6f7dc6843578",
+    "scripts/run.py": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76",
+    "scripts/_skillrt.py": "b76eceeda4fdcad10a4246a66a7d137d2400cec49cc62d95ec89fd463b784304",
+    "scripts/hook.py": "b0ccd614d242fcbbd2499da75d759b33b4cb8f7c7357563954570f15c3a7ef55",
+    "scripts/collect_changes.py": "d56d9bded2fe8071a293ba5e73ff7715953db2e617b71efcb3b6cc9d02260c69",
+    "scripts/install.py": "38d335308dcf903e7a76e16aff4a94fdc119bbbb7423f98e66024c409de76695",
+    "scripts/check_message.py": "9381ad13a31545630fa02b34b3393c17b02f612d14ec431e720b2b9f2cd5e308"
+  }
+}
+
+=== .claude/skills/write-commit-message/dev/convergence-report.md
+# write-commit-message 収束テストの記録
+
+このスキルの作成に関わっていない独立エージェント（Claude Code と Codex。起動できないときは Agent ツールの subagent）に同じ依頼を解かせ、出力の違い（揺れ）を測った記録である。生データは `dev/results/convergence/round-<R>/` にある。
+
+## 条件
+
+| 項目 | 値 |
+|---|---|
+| runner | なし（収束テストを実行していない） |
+| 1 runner あたりの人数 | なし |
+| 課題 | `dev/evals.json`（T1-typical、T2-default、T3-edge、H1-holdout） |
+| 合格基準 | status が全員、課題の expect_status と同じ。check が全員通過。スキル自身や hooks の登録を変えたエージェント（失格）がいない。files・structure・names が基準以上。最後のラウンドのレビューの検出率が全見本で 1.0。V1〜V7 の未対処が0件 |
+
+## ラウンドの一覧
+
+| ラウンド | 課題 | status | files | structure | names | content | check | 失格 | V1〜V7 の未対処 |
+|---|---|---|---|---|---|---|---|---|---|
+| なし | | | | | | | | | |
+
+## レビューの検出率（最後のラウンド）
+
+| 見本 | 決定 | 検出率 | 余計な指摘 | 一致 |
+|---|---|---|---|---|
+| なし（`dev/probes.json` の reviews が無い） | | | | |
+
+## 結論
+
+収束テストは実行していない。利用者が収束テストを省くと指定したため、spec の `convergence.skip_reason` にその理由を書いた（skill-foundation の STEP-02 の表の skip の行）。別の AI が同じ出力を作るかは測っていない。課題は `dev/evals.json` に用意してあるので、後で `convergence.py prepare` から実行できる。
+
+=== .claude/skills/write-commit-message/dev/evals.json
+{
+  "tasks": [
+    {
+      "id": "T1-typical",
+      "kind": "typical",
+      "prompt": "ABC-12 のチケットで、ステージした変更のコミットメッセージを書いて",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "sh {skill}/dev/fixtures/stage_changes.sh"
+      ],
+      "expect_status": "done"
+    },
+    {
+      "id": "T2-default",
+      "kind": "default",
+      "prompt": "abc-12 のコミットメッセージをお願い",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "sh {skill}/dev/fixtures/stage_changes.sh"
+      ],
+      "expect_status": "done"
+    },
+    {
+      "id": "T3-edge",
+      "kind": "edge",
+      "prompt": "ABC-12 でコミットメッセージを書いてください",
+      "fixture": "dev/fixtures/basic",
+      "setup": [],
+      "expect_status": "aborted"
+    },
+    {
+      "id": "H1-holdout",
+      "kind": "holdout",
+      "prompt": "WEB_APP-7 の README の修正をコミットしたいので、メッセージを作ってください",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "sh {skill}/dev/fixtures/stage_fix.sh"
+      ],
+      "expect_status": "done"
+    }
+  ]
+}
+
+=== .claude/skills/write-commit-message/dev/fixtures/basic/README.md
+# calc
+
+計算の関数を集めたサンプルである。
+
+=== .claude/skills/write-commit-message/dev/fixtures/basic/docs/usage.md
+# 使い方
+
+`from src.calc import add` で読み込む。
+
+=== .claude/skills/write-commit-message/dev/fixtures/basic/src/calc.py
+def add(a, b):
+    return a + b
+
+=== .claude/skills/write-commit-message/dev/fixtures/basic/src/legacy.py
+def old_add(a, b):
+    return a + b
+
+=== .claude/skills/write-commit-message/dev/fixtures/stage_changes.sh
+#!/bin/sh
+# probe.py の baseline.setup から、一時プロジェクトの中で1回だけ実行する。
+# dev/fixtures/basic を写したディレクトリを git のリポジトリにして全部をコミットし、
+# 変更（M）、追加（A）、削除（D）、名前の変更（R）を1つずつステージする。
+set -eu
+[ -f src/legacy.py ] && [ -f docs/usage.md ] || { echo "dev/fixtures/basic を写したディレクトリで実行する" >&2; exit 1; }
+git init -q
+[ "$(git rev-parse --show-toplevel)" = "$(pwd -P)" ] || { echo "一時プロジェクトのルートで実行する" >&2; exit 1; }
+git add -A
+git -c user.name=probe -c user.email=probe@example.com commit -q --allow-empty -m base
+printf 'def subtract(a, b):\n    return a - b\n' >> src/calc.py
+mkdir -p tests
+printf 'from src.calc import subtract\n\n\ndef test_subtract():\n    assert subtract(3, 1) == 2\n' > tests/test_calc.py
+git rm -q src/legacy.py
+git mv docs/usage.md docs/guide.md
+git add src/calc.py tests/test_calc.py
+
+=== .claude/skills/write-commit-message/dev/fixtures/stage_fix.sh
+#!/bin/sh
+# dev/evals.json の H1-holdout の setup から、一時プロジェクトの中で1回だけ実行する。
+# dev/fixtures/basic を写したディレクトリを git のリポジトリにして全部をコミットし、
+# README.md の誤字を直す変更（M）を1つだけステージする。
+set -eu
+[ -f src/legacy.py ] && [ -f README.md ] || { echo "dev/fixtures/basic を写したディレクトリで実行する" >&2; exit 1; }
+git init -q
+[ "$(git rev-parse --show-toplevel)" = "$(pwd -P)" ] || { echo "一時プロジェクトのルートで実行する" >&2; exit 1; }
+git add -A
+git -c user.name=probe -c user.email=probe@example.com commit -q --allow-empty -m base
+printf '# calc\n\n計算の関数を集めたサンプルである。\n\n`src/calc.py` の `add` で足し算をする。\n' > README.md
+git add README.md
+
+=== .claude/skills/write-commit-message/dev/probes.json
+{
+  "baseline": {
+    "fixture": "dev/fixtures/basic",
+    "setup": [
+      "sh {skill}/dev/fixtures/stage_changes.sh"
+    ],
+    "input": {
+      "ticket": "abc-12"
+    },
+    "text": "ABC-12 のコミットメッセージを書いて",
+    "files": [
+      {
+        "path": "{run}/out/commit-message.txt",
+        "from": "assets/examples/commit-message.txt"
+      }
+    ],
+    "commands": []
+  },
+  "probes": [
+    {
+      "id": "OUT-01-a",
+      "rule": "OUT-01",
+      "description": "決まったパスに書かず、別の名前のファイルに書く",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "delete"
+        },
+        {
+          "path": "{run}/out/COMMIT_MSG.txt",
+          "mode": "create",
+          "from": "assets/examples/commit-message.txt"
+        }
+      ],
+      "expect": "OUT-01"
+    },
+    {
+      "id": "OUT-02-a",
+      "rule": "OUT-02",
+      "description": "1行目に Conventional Commits の接頭辞を付ける",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "^ABC-12 計算モジュール",
+          "replacement": "ABC-12 feat: 計算モジュール"
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-02-b",
+      "rule": "OUT-02",
+      "description": "1行目をチケットIDで始めない",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "^ABC-12 ",
+          "replacement": ""
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-02-c",
+      "rule": "OUT-02",
+      "description": "ステージしたファイルの1つの行を書かない",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "- tests/test_calc\\.py: subtract のテストを追加する\\n",
+          "replacement": ""
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-02-d",
+      "rule": "OUT-02",
+      "description": "本文の後に空行とトレーラーを足す",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "append",
+          "content": "\nCo-authored-by: Agent <agent@example.com>\n"
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-02-e",
+      "rule": "OUT-02",
+      "description": "行末に空白を残す（format が消す）",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "追加する\\n",
+          "replacement": "追加する  \\n"
+        }
+      ],
+      "expect": "OUT-02",
+      "fixed": " +$"
+    },
+    {
+      "id": "OUT-03-a",
+      "rule": "OUT-03",
+      "description": "本文の行の文末を「しました。」にする",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "subtract を追加する\\n- src/legacy",
+          "replacement": "subtract を追加しました。\\n- src/legacy"
+        }
+      ],
+      "expect": "OUT-03"
+    },
+    {
+      "id": "OUT-03-b",
+      "rule": "OUT-03",
+      "description": "1行目の文末を、本文の行で最も多い文末と違うものにする",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "^ABC-12 計算モジュールに引き算の関数を追加する",
+          "replacement": "ABC-12 計算モジュールの引き算の関数を変更する"
+        }
+      ],
+      "expect": "OUT-03"
+    },
+    {
+      "id": "OUT-04-a",
+      "rule": "OUT-04",
+      "description": "本文の行を collect_changes.py と違う順（追加、変更、削除、名前の変更の順）に並べる",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "create",
+          "content": "ABC-12 計算モジュールに引き算の関数を追加する\n\n- tests/test_calc.py: subtract のテストを追加する\n- src/calc.py: 引き算の関数 subtract を追加する\n- src/legacy.py: 使っていない旧版の足し算 old_add を削除する\n- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する\n"
+        }
+      ],
+      "expect": "OUT-04"
+    },
+    {
+      "id": "OUT-04-b",
+      "rule": "OUT-04",
+      "description": "パスを ` で囲む",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "^- src/calc\\.py:",
+          "replacement": "- `src/calc.py`:"
+        }
+      ],
+      "expect": "OUT-04"
+    },
+    {
+      "id": "OUT-05-a",
+      "rule": "OUT-05",
+      "description": "1行目を50文字より長くする",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "^ABC-12 計算モジュールに引き算の関数を追加する",
+          "replacement": "ABC-12 計算モジュールに引き算の関数 subtract と、そのテストと、使い方の文書の名前の変更を追加する"
+        }
+      ],
+      "expect": "OUT-05"
+    },
+    {
+      "id": "OUT-05-b",
+      "rule": "OUT-05",
+      "description": "本文の行の説明を50文字より長くする",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "引き算の関数 subtract を追加する",
+          "replacement": "二つの数を受け取り、一つ目から二つ目を引いた値を返す引き算の関数 subtract を、足し算の関数 add の下に追加する"
+        }
+      ],
+      "expect": "OUT-05"
+    },
+    {
+      "id": "OUT-06-a",
+      "rule": "OUT-06",
+      "description": "文書だけの変更の行に [skip ci] を書く",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "使い方の文書の名前を変更する",
+          "replacement": "[skip ci] 使い方の文書の名前を変更する"
+        }
+      ],
+      "expect": "OUT-06"
+    },
+    {
+      "id": "OUT-07-a",
+      "rule": "OUT-07",
+      "description": "説明にチケットの URL を書く",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "sub",
+          "pattern": "引き算の関数 subtract を追加する",
+          "replacement": "https://example.com/ABC-12 の subtract を追加する"
+        }
+      ],
+      "expect": "OUT-07"
+    }
+  ],
+  "reviews": []
+}
+
+=== .claude/skills/write-commit-message/dev/research.md
+# write-commit-message の調査
+
+スキルが前提にする事実（ツールのバージョン、コマンドの引数、入出力の形式、公式の書き方）を、出典付きで記録する。記憶で書かない。「確認の状態」は「確認済み」「確かめられない」「未確認」のどれかを書く（skill-foundation の references/research.md の3章）。「未確認」の項目が残っている間は、`skill_lint.py --final` が通らない。
+
+## ユーザーの依頼
+
+- 確認方法：受けた依頼文（2026-10-26）。「コミットメッセージを書くスキルを作って。チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文にしたい。収束テストは省いて」
+- 確認の状態：確認済み
+- 分かったこと：
+  - 1行目はチケットIDで始める
+  - 本文は、変更したファイルごとに1項目の箇条書きにする
+  - 収束テストは実行しない（skill-foundation の入力 `measure=skip`）
+- 使った決定：OUT-02、OUT-03
+
+## git 2.50.1 のコミットメッセージの書式
+
+- 確認方法：`git --version` → git version 2.50.1 (Apple Git-155)、`git help commit` の DISCUSSION と `--cleanup=<mode>`、`-F <file>` の節（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - 「a single short (no more than 50 characters) line summarizing the change, followed by a blank line and then a more thorough description」が推奨の形である。1行目、空行、本文の順（`git help commit` の DISCUSSION）
+  - 「The text up to the first blank line in a commit message is treated as the commit title」。空行が無いと本文まで表題として扱われる（同上）
+  - `-F <file>` でファイルからメッセージを読む。`-` なら標準入力（`git help commit` の `-F`）
+  - `--cleanup` の既定は、エディタで編集するときは `strip`（`#` で始まる行を消す）、それ以外は `whitespace`（`#` の行を残す）（`git help commit` の `--cleanup=<mode>`）
+- 使った決定：OUT-02、OUT-05
+
+## git の行頭の `#`（core.commentChar）
+
+- 確認方法：`git help config` の `core.commentChar`（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - 「Commands such as commit and tag that let you edit messages consider a line that begins with this character commented, and removes them after the editor returns (default #).」。`#123` のように `#` で始まる行は、エディタで直すと消える
+- 使った決定：IN-01
+
+## git 2.50.1 の変更ファイルの一覧（`git diff --cached --name-status`）
+
+- 確認方法：`git help diff` の `--name-status`、`--diff-filter`、`-z` の節と、`.skill-runs/skill-foundation/tmp/gitexp` に作った一時リポジトリで実行した結果（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - 状態の文字は A（追加）、C（コピー）、D（削除）、M（変更）、R（名前の変更）、T（種類の変更）、U（未マージ）、X（不明）、B（対の切断）である（`git help diff` の `--diff-filter`）
+  - 実行した結果：`M	a.txt`、`D	b.txt`、`R100	c.txt	d.txt`、`A	src dir/new file.py` の形で、タブ区切りで出る。名前の変更は、設定 `diff.renames` が無くても既定で `R<類似度>` と旧パス・新パスの2つで出る
+  - `-z` が無いと、ASCII 以外の文字を含むパスは `"\303\251.txt"` のように引用される。`-z` を付けると「the filename is output verbatim and the line is terminated by a NUL byte」（`git help diff` の `-z` の節。実行した結果も同じ）
+  - `git rev-parse --abbrev-ref HEAD` で今のブランチ名が出る（実行した結果 `main`）
+- 使った決定：IN-02、STEP-02、OUT-04
+
+## チケットIDの形（Jira と Backlog）
+
+- 確認方法：[What is a work item?（Atlassian Support）](https://support.atlassian.com/jira-software-cloud/docs/what-is-an-issue/)、[Get Issue（Backlog Developer API）](https://developer.nulab.com/docs/backlog/api/2/get-issue/)、[Add Project（Backlog Developer API）](https://developer.nulab.com/docs/backlog/api/2/add-project/)（2026-10-26 に取得）
+- 確認の状態：確認済み
+- 分かったこと：
+  - Jira：「Work item keys are made up of two parts」で、スペースキーと連番である。スペースキーは「at least 2 characters long and start with an uppercase letter」（What is a work item?）
+  - Backlog：課題キーの例は `"issueKey": "BLG-1"`（Get Issue）。プロジェクトキーは「Uppercase letters (A-Z), numbers (0-9) and underscore (_) can be used.」（Add Project）
+  - どちらも `<英大文字で始まるキー>-<番号>` の形になる
+- 使った決定：IN-01
+
+## GitHub Actions のワークフローを止める記法
+
+- 確認方法：[Skipping workflow runs（GitHub Docs）](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/skipping-workflow-runs)（2026-10-26 に取得）
+- 確認の状態：確認済み
+- 分かったこと：
+  - コミットメッセージに `[skip ci]`、`[ci skip]`、`[no ci]`、`[skip actions]`、`[actions skip]` のどれかがあると、ワークフローが実行されない
+  - 「Alternatively, you can add a `skip-checks` trailer to your commit message.」。`skip-checks` のトレーラーでも止まる
+- 使った決定：OUT-06
+
+## プロジェクトの書き方
+
+- 確認方法：プロジェクトのルートのファイル一覧（`ls -a`）と `git log --oneline -20`（2026-10-26）
+- 確認の状態：確認済み
+- 分かったこと：
+  - CLAUDE.md、AGENTS.md、コミットメッセージの決まりを書いた設定ファイルは無い
+  - `git log` のコミットは `base` の1件だけで、数えて多数派を決められない。プロジェクトの書き方に合わせる決定（`basis: project`）は作らない
+- 使った決定：なし
+
+=== .claude/skills/write-commit-message/dev/results/probe-results.json
+{
+  "hash": "fe6601de0a5b0b76f2f1bcdc86b70866175a0d0a8ab33fbda79fc1f1fdb53097",
+  "results": [
+    {
+      "id": "RPT-01-builtin",
+      "rule": "RPT-01",
+      "passed": true,
+      "detail": "finish が報告の本文（## 結果 から ## 補足 まで）を出す",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-01-a",
+      "rule": "OUT-01",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-02-a",
+      "rule": "OUT-02",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-02-b",
+      "rule": "OUT-02",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-02-c",
+      "rule": "OUT-02",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-02-d",
+      "rule": "OUT-02",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-02-e",
+      "rule": "OUT-02",
+      "passed": true,
+      "detail": "check の終了コード 0、expect 一致 あり、自動で直った はい",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-03-a",
+      "rule": "OUT-03",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-03-b",
+      "rule": "OUT-03",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-04-a",
+      "rule": "OUT-04",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-04-b",
+      "rule": "OUT-04",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-05-a",
+      "rule": "OUT-05",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-05-b",
+      "rule": "OUT-05",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-06-a",
+      "rule": "OUT-06",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "OUT-07-a",
+      "rule": "OUT-07",
+      "passed": true,
+      "detail": "check の終了コード 1、expect 一致 あり",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-01-builtin",
+      "rule": "CTL-01",
+      "passed": true,
+      "detail": "出力が無いと finish が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "保護ファイルを変えると check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-restart",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "保護ファイルを変えてから start --restart しても check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-seal",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "封印の後に保護ファイルを変えると start が始めない（封印どおりの start 0、変えた後の start 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-between",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": "abort の後に保護ファイルを変えて start し直すと、報告の「検証」に出る（終了コード 0）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-hooks-claude",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": ".claude/settings.json からこのスキルの hooks を外すと check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-02-builtin-hooks-codex",
+      "rule": "CTL-02",
+      "passed": true,
+      "detail": ".codex/hooks.json からこのスキルの hooks を外すと check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-05-builtin",
+      "rule": "CTL-05",
+      "passed": true,
+      "detail": "契約の外にファイルを作ると check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "RPT-01-builtin-notes",
+      "rule": "RPT-01",
+      "passed": true,
+      "detail": "notes.md が箇条書きでないと check が落ちる（終了コード 1）",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "RPT-01-builtin-abort",
+      "rule": "RPT-01",
+      "passed": true,
+      "detail": "abort が中断の本文を出し、次の start が前の中断を記録に残す",
+      "output_tail": "",
+      "others": []
+    },
+    {
+      "id": "CTL-03-builtin-ask",
+      "rule": "CTL-03",
+      "passed": true,
+      "detail": "聞くべき入力が無いと start が止まる（終了コード 3）",
+      "output_tail": "",
+      "others": []
+    }
+  ],
+  "wiring": [
+    {
+      "platform": "claude",
+      "check": "registered",
+      "passed": true,
+      "detail": ".claude/settings.json に4つの hook がある"
+    },
+    {
+      "platform": "claude",
+      "check": "matcher",
+      "passed": true,
+      "detail": "matcher が編集ツール Write に当たる"
+    },
+    {
+      "platform": "claude",
+      "check": "inactive",
+      "passed": true,
+      "detail": "実行していないセッションでは何もしない（CTL-04）"
+    },
+    {
+      "platform": "claude",
+      "check": "post-tool",
+      "passed": true,
+      "detail": "OUT-02-a の出力を編集した後に指摘を返す"
+    },
+    {
+      "platform": "claude",
+      "check": "post-tool-scope",
+      "passed": true,
+      "detail": "契約の外のファイルを編集した後に指摘を返す（CTL-05）"
+    },
+    {
+      "platform": "claude",
+      "check": "prompt",
+      "passed": true,
+      "detail": "ユーザーの発言は止めない（CTL-04）"
+    },
+    {
+      "platform": "claude",
+      "check": "stop",
+      "passed": true,
+      "detail": "finish の前に応答を終えようとすると差し戻す"
+    },
+    {
+      "platform": "claude",
+      "check": "wait",
+      "passed": true,
+      "detail": "wait 中は応答の終了を止めない（CTL-03）"
+    },
+    {
+      "platform": "claude",
+      "check": "pre-tool",
+      "passed": true,
+      "detail": "保護ファイルの編集の前に止める（期待 ask、結果 ask）"
+    },
+    {
+      "platform": "claude",
+      "check": "pre-tool-sealed",
+      "passed": true,
+      "detail": "実行していないとき、封印した保護ファイルの編集の前に ask（結果 ask。CTL-04）"
+    },
+    {
+      "platform": "codex",
+      "check": "registered",
+      "passed": true,
+      "detail": ".codex/hooks.json に4つの hook がある"
+    },
+    {
+      "platform": "codex",
+      "check": "matcher",
+      "passed": true,
+      "detail": "matcher が編集ツール apply_patch に当たる"
+    },
+    {
+      "platform": "codex",
+      "check": "inactive",
+      "passed": true,
+      "detail": "実行していないセッションでは何もしない（CTL-04）"
+    },
+    {
+      "platform": "codex",
+      "check": "post-tool",
+      "passed": true,
+      "detail": "OUT-02-a の出力を編集した後に指摘を返す"
+    },
+    {
+      "platform": "codex",
+      "check": "post-tool-scope",
+      "passed": true,
+      "detail": "契約の外のファイルを編集した後に指摘を返す（CTL-05）"
+    },
+    {
+      "platform": "codex",
+      "check": "prompt",
+      "passed": true,
+      "detail": "ユーザーの発言は止めない（CTL-04）"
+    },
+    {
+      "platform": "codex",
+      "check": "stop",
+      "passed": true,
+      "detail": "finish の前に応答を終えようとすると差し戻す"
+    },
+    {
+      "platform": "codex",
+      "check": "wait",
+      "passed": true,
+      "detail": "wait 中は応答の終了を止めない（CTL-03）"
+    },
+    {
+      "platform": "codex",
+      "check": "pre-tool",
+      "passed": true,
+      "detail": "保護ファイルの編集の前に止める（期待 deny、結果 deny）"
+    },
+    {
+      "platform": "codex",
+      "check": "pre-tool-sealed",
+      "passed": true,
+      "detail": "実行していないとき、封印した保護ファイルの編集の前に 何もしない（結果 None。CTL-04）"
+    }
+  ]
+}
+
+=== .claude/skills/write-commit-message/dev/spec.json
+{
+  "spec_version": 1,
+  "name": "write-commit-message",
+  "status": "ready",
+  "mode": "new",
+  "kind": "write",
+  "language": "ja",
+  "targets": [
+    "claude",
+    "codex"
+  ],
+  "title": "コミットメッセージを書く",
+  "purpose": "ステージした変更とチケットIDを受け取り、チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文からなるコミットメッセージを出力する",
+  "triggers": {
+    "use_when": [
+      "チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文でコミットメッセージを書いて",
+      "コミットメッセージを書いて",
+      "この変更のコミットメッセージを考えてください",
+      "ステージした差分からコミットメッセージを作って",
+      "チケット番号付きでコミットメッセージをお願い",
+      "write a commit message for the staged changes"
+    ],
+    "not_for": [
+      {
+        "when": "コミットや push の実行",
+        "instead": "git commit と git push"
+      },
+      {
+        "when": "プルリクエストの説明文の作成",
+        "instead": "リポジトリのプルリクエストのテンプレート"
+      }
+    ],
+    "implicit": true
+  },
+  "inputs": [
+    {
+      "key": "ticket",
+      "label": "チケットID",
+      "type": "string",
+      "case": "upper",
+      "aliases": [
+        "チケット",
+        "チケット番号",
+        "課題キー",
+        "課題番号",
+        "ticket id",
+        "issue",
+        "issue key"
+      ],
+      "impact": "target",
+      "ask": true,
+      "question": "1行目の先頭に付けるチケットIDを教えてください（例: ABC-123）"
+    }
+  ],
+  "excluded_inputs": [
+    {
+      "key": "language",
+      "reason": "出力の言語は依頼の言語の日本語に固定し、OUT-03 の文末の検査で守らせる。言語を選ぶ入力を足すと、文末の検査を言語ごとに分ける必要がある"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "commit-message",
+      "label": "コミットメッセージ",
+      "path": "{run}/out/commit-message.txt",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "name_pattern": "^commit-message\\.txt$",
+      "format": [
+        {
+          "type": "trailing_space",
+          "rule": "OUT-02",
+          "message": "行末の空白を消した"
+        },
+        {
+          "type": "final_newline",
+          "rule": "OUT-02",
+          "message": "末尾の改行を1つにした"
+        }
+      ],
+      "checks": [
+        {
+          "type": "require",
+          "pattern": "^{in:ticket} \\S",
+          "lines": "first",
+          "rule": "OUT-02",
+          "message": "1行目は、チケットIDと半角空白1つで始める"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^\\S+ (?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\([^)]*\\))?!?:",
+          "lines": "first",
+          "rule": "OUT-02",
+          "message": "1行目に Conventional Commits の接頭辞を付けない"
+        },
+        {
+          "type": "require",
+          "pattern": "^$",
+          "lines": [
+            2
+          ],
+          "rule": "OUT-02",
+          "message": "2行目は空行にする"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-02",
+          "rule": "OUT-02",
+          "message": "本文は、ステージしたファイル1つにつき1行の「- <パス>: <説明>」にする"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-03",
+          "rule": "OUT-03",
+          "message": "1行目の文末は、本文の行で最も多い文末にする"
+        },
+        {
+          "type": "require",
+          "pattern": "(?:追加|修正|削除|変更)する$",
+          "lines": "first",
+          "rule": "OUT-03",
+          "message": "1行目の文末は「追加する」「修正する」「削除する」「変更する」のどれかにする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^- (?!.*(?:追加|修正|削除|変更)する$)",
+          "rule": "OUT-03",
+          "message": "本文の行の文末は「追加する」「修正する」「削除する」「変更する」のどれかにする"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/check_message.py {file} --root {root} --rule OUT-04",
+          "rule": "OUT-04",
+          "message": "本文の行の順とパスの表記を collect_changes.py の「本文の行頭」に合わせる"
+        },
+        {
+          "type": "line_length",
+          "max": 50,
+          "lines": "first",
+          "rule": "OUT-05",
+          "message": "1行目はチケットIDを含めて50文字以下にする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "^- .*?: .{51,}$",
+          "rule": "OUT-05",
+          "message": "本文の行の説明（「: 」の後）は50文字以下にする"
+        },
+        {
+          "type": "forbid",
+          "pattern": "(?i)\\[(?:skip ci|ci skip|no ci|skip actions|actions skip)\\]|skip-checks\\s*:",
+          "rule": "OUT-06",
+          "message": "CI を止める記法を書かない"
+        },
+        {
+          "type": "forbid",
+          "pattern": "https?://",
+          "rule": "OUT-07",
+          "message": "URL を書かない"
+        },
+        {
+          "type": "forbid",
+          "pattern": "(?i)\\b(?:refs|references|closes|fixes|resolves)\\s+#?[0-9a-z_-]*[0-9]",
+          "rule": "OUT-07",
+          "message": "チケットへの参照は1行目の先頭のチケットIDだけにする"
+        }
+      ]
+    }
+  ],
+  "together": [],
+  "decisions": [
+    {
+      "id": "CTL-01",
+      "axes": [
+        "C1"
+      ],
+      "title": "実行は run.py で始めて終える",
+      "decision": "手順の最初に `run.py start`、出力を書いた後に `run.py check`、最後に `run.py finish` を実行する。`finish` が終了コード0で終わるまで、完了と返答しない。",
+      "reason": "始まりと終わりをスクリプトで区切ると、検査が必ず走り、hooks が実行中かどうかを判定できる。完了の基準が AI ごとに分かれない。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate"
+      ],
+      "how": "scripts/run.py。finish は契約の検査に通らないと終了コード1で終わる",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "`run.py finish` が終了コード0で終わってから、その本文で返答する",
+      "bad": "出力を書いた直後に「完了しました」と返答する"
+    },
+    {
+      "id": "CTL-02",
+      "axes": [
+        "C2"
+      ],
+      "title": "実行中はスキル自身のファイルを変えない",
+      "decision": "`run.py start` から `run.py finish` までの間、スキルの保護ファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`）と、プロジェクトに登録したこのスキルの hooks を変えない。出力が契約に合わないときは、出力の方を直す。保護ファイルが封印（`assets/seal.json`）と違うと `run.py start` が終了コード1で止まるので、そのときは出力された指摘をユーザーに伝えて止まる。",
+      "reason": "検査や契約を緩めて通すと、検査が無いのと同じになる。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate"
+      ],
+      "how": "scripts/run.py の start が保護ファイルのハッシュと hooks の登録を記録し、check と finish が比べる。`start --restart` は記録を最初の start から引き継ぐ。hooks が編集の前に止める。start は封印と保護ファイルを比べ、違えば始めない",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "指摘されたルールIDを決定表で引き、出力のファイルを直す",
+      "bad": "検査に通すために `assets/contract.json` の正規表現を緩める"
+    },
+    {
+      "id": "CTL-03",
+      "axes": [
+        "C3",
+        "I2"
+      ],
+      "title": "質問は start の前に済ませる",
+      "decision": "ユーザーに聞くことは `run.py start` の前にまとめて聞く。start の後に聞く必要が出たときは、`run.py wait --question <質問>` を実行してから聞く。聞けない状況では既定値を使い、報告の「既定値で決めた値」に載せる。",
+      "reason": "実行の途中で質問するかどうかが AI ごとに分かれると、出力が揃わない。wait を挟むと、質問のために応答を終えることを hooks が止めない。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "doc"
+      ],
+      "how": "scripts/run.py の start は、聞くべき入力が無いと終了コード3で止まり、質問を出力する。wait は hooks の強制を止める",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "start の終了コード3で出た質問をユーザーに聞き、答えを `--set` で渡して start をやり直す",
+      "bad": "出力を半分書いたところで、形式をユーザーに尋ねる"
+    },
+    {
+      "id": "CTL-04",
+      "axes": [
+        "C4"
+      ],
+      "title": "hooks は出力の検査だけに使い、入力を止めない",
+      "decision": "hooks は、このスキルの実行中（status: active）に、編集の後の検査、応答を終える前の検査、保護ファイルの編集の停止の3つを行う。実行していないときは、封印したスキル（`assets/seal.json` がある）の保護ファイルの編集に、Claude Code で確認を求めることだけを行う。ユーザーの発言を止めたり書き換えたりしない。",
+      "reason": "縛る対象は AI の出力であり、ユーザーの入力ではない。このスキルを使っていないセッションの邪魔をしない。ただし、実行していない間にスキル自身が変わると、次の実行の検査が緩んだままになるので、封印したファイルの編集だけは人に確かめさせる。",
+      "basis": "machine",
+      "control": [
+        "runtime"
+      ],
+      "how": "scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "Stop の hook が、検査に通るまで応答の終了を差し戻す",
+      "bad": "UserPromptSubmit の hook で、依頼文の書き方が違うと拒否する"
+    },
+    {
+      "id": "CTL-05",
+      "axes": [
+        "C5"
+      ],
+      "title": "契約の出力のほかにファイルを変えない",
+      "decision": "`run.py start` から `run.py finish` までの間に作る・変えるファイルは、「5. 出力の契約」の出力と `control.allow_changes` に挙げたものだけにする。作業用のメモや一時ファイルも、出力の置き場の外に作らない。",
+      "reason": "出力の外に作るファイル（メモ、控え、別名の写し）は AI ごとに違い、利用者のリポジトリに残る。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate"
+      ],
+      "how": "scripts/run.py の start が git の作業ツリーの状態を記録し、check と finish が比べる。編集の直後には hooks が知らせる",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "下書きも出力の置き場（`.skill-runs/<name>/`）の中に書く",
+      "bad": "リポジトリの直下に `notes.md` を作って下書きする"
+    },
+    {
+      "id": "RPT-01",
+      "axes": [
+        "R1"
+      ],
+      "title": "最終の返答は finish の本文をそのまま使う",
+      "decision": "最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。",
+      "reason": "報告の形と中身が AI ごとに分かれない。既定値で決めた値と検証の結果を、読み手が必ず見られる。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate",
+        "review"
+      ],
+      "how": "scripts/run.py の finish と abort が本文を組み立て、.skill-runs/<name>/report.md にも保存する。check と finish が notes.md の形を検査する",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "決めきれなかった既定値を notes.md に「- 」で書き、finish の本文をそのまま返答する",
+      "bad": "finish の本文を要約し直し、最後に自由な文で補足を足して返答する"
+    },
+    {
+      "id": "IN-01",
+      "axes": [
+        "I3",
+        "P2"
+      ],
+      "title": "書けない状況では書かずに中断する",
+      "decision": "`python3 <skill>/scripts/collect_changes.py --ticket <チケットID>` が終了コード4で「中断の理由: <理由>」を出したときは、出力を書かずに、その理由を `run.py abort --reason <理由>` に渡して中断する。中断するかは次の表で決まる。ファイルをステージし直さず、チケットIDを作らない。",
+      "table": [
+        [
+          "状況（collect_changes.py が判定する）",
+          "扱い"
+        ],
+        [
+          "git のリポジトリの中でない",
+          "中断する（理由「git のリポジトリでない」）"
+        ],
+        [
+          "入力 `ticket` が `<英大文字で始まる英大文字・数字・_ の列>-<数字>`（例 `ABC-123`）の形でない",
+          "中断する（理由「チケットIDの形が違う」）"
+        ],
+        [
+          "ステージした変更が0件",
+          "中断する（理由「ステージした変更が無い」）"
+        ],
+        [
+          "未マージ（状態 `U`）のファイルがある",
+          "中断する（理由「未マージのファイルがある」）"
+        ],
+        [
+          "上のどれでもない",
+          "中断せず、手順を続ける"
+        ]
+      ],
+      "reason": "材料が無いときに、未ステージの変更を `git add` するか、空のメッセージを書くか、中断するかが AI ごとに分かれる。判定をスクリプトに任せると、同じ状況では必ず同じ扱いになる。`#123` のように `#` で始まるIDは、git がエディタで直すときに行ごと消す（core.commentChar）ため、受け付けない。",
+      "basis": "fewer-concepts",
+      "control": [
+        "script",
+        "doc"
+      ],
+      "how": "scripts/collect_changes.py が状況を判定し、中断するときは「中断の理由:」の行と終了コード4を出す。SKILL.md の手順3",
+      "why_not_machine": "痕跡が残らない：中断したときは出力を書かないので、出力の検査では判定できない",
+      "probes": [],
+      "good": "collect_changes.py が「中断の理由: ステージした変更が無い」を出したので、`run.py abort --reason ステージした変更が無い` を実行し、abort の本文で返答する",
+      "bad": "ステージした変更が無いので `git add -A` を実行し、全部のファイルのメッセージを書く"
+    },
+    {
+      "id": "IN-02",
+      "axes": [
+        "I4"
+      ],
+      "title": "差分は collect_changes.py が示したものだけを読む",
+      "decision": "読むのは、`collect_changes.py` の出力と、その「差分の読み方」の列に書かれた `git diff --cached -M -- <パス>` の出力だけにする。未ステージの変更（`git diff`）、未追跡のファイル、`git log`、ステージしていないファイルの中身を読まない。ファイルごとの読み方は次の表で決まる。",
+      "table": [
+        [
+          "ファイル（collect_changes.py の「差分の読み方」）",
+          "読むもの"
+        ],
+        [
+          "バイナリ（行数が「バイナリ」）",
+          "読まない。変更の種類（A、M、D、R）だけで説明を書く"
+        ],
+        [
+          "追加と削除の行数の合計が 500 以下",
+          "示された `git diff --cached -M -- <パス>` の出力の全体"
+        ],
+        [
+          "上のどれでもない（合計が 501 以上）",
+          "読まない。変更の種類と行数だけで説明を書く"
+        ]
+      ],
+      "reason": "読む範囲が AI ごとに違うと、説明に入る材料が変わる。未ステージの変更を読むと、コミットに入らない変更を説明に書いてしまう。大きな差分（ロックファイル、生成物）を全部読むと時間がかかり、説明も変わらない。",
+      "basis": "fewer-concepts",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順4。collect_changes.py が「差分の読み方」に読むコマンドか「読まない」を出す",
+      "why_not_machine": "痕跡が残らない：読んだファイルとコマンドは出力に残らない",
+      "probes": [],
+      "good": "「差分の読み方」に書かれた `git diff --cached -M -- src/calc.py` だけを実行して読む",
+      "bad": "`git diff` と `git status` で未ステージの変更も読み、説明に書く"
+    },
+    {
+      "id": "STEP-01",
+      "axes": [
+        "P1",
+        "P5"
+      ],
+      "title": "決まった順に進め、check が3回通らなければ中断する",
+      "decision": "`run.py start`、`collect_changes.py`、差分を読む（IN-02）、出力を書く、`run.py check`、`run.py finish` の順に行う。`run.py check` が指摘を出したら、`commit-message.txt` を直して check をやり直す。check を3回実行しても指摘が残るときは、残ったルールIDを `run.py abort --reason <ルールID>` に渡して中断する。",
+      "reason": "順序が AI ごとに違うと、差分を読む前に書く、check を飛ばす、といった違いが出る。直す回数に上限が無いと、終わらない実行が残る。",
+      "basis": "fewer-concepts",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順2〜7",
+      "why_not_machine": "痕跡が残らない：作業の順序と、直した回数は出力に残らない",
+      "probes": [],
+      "good": "check の指摘 OUT-05 を見て1行目を短くし、2回目の check で通ってから finish を実行する",
+      "bad": "check の指摘が消えないので、5回目の check の前に契約の検査を書き換える"
+    },
+    {
+      "id": "STEP-02",
+      "axes": [
+        "P3",
+        "P4"
+      ],
+      "title": "一覧と順序はスクリプトに任せ、ステージの状態を変えない",
+      "decision": "変更ファイルの一覧、件数、並び順、本文の行頭は `collect_changes.py` の出力を写し、AI が数えたり並べたりしない。使うコマンドは `python3`、`git diff --cached`、`git rev-parse` だけにする。`git add`、`git rm`、`git commit`、`git reset`、`git stash`、`git checkout` を実行しない（ステージの状態とコミットの履歴を変えない）。",
+      "reason": "AI がファイルを数えたり並べたりすると、漏れや順序の違いが出る。ステージの状態を変えると、書いたメッセージと実際のコミットの中身が合わなくなる。コミットするかどうかは利用者が決める。",
+      "basis": "machine",
+      "control": [
+        "script",
+        "doc"
+      ],
+      "how": "scripts/collect_changes.py が件数、並び順、本文の行頭を出す。SKILL.md の手順3と手順5",
+      "why_not_machine": "痕跡が残らない：実行したコマンドは出力に残らない。一覧と順序の結果は OUT-02 と OUT-04 の検査が確かめる",
+      "probes": [],
+      "good": "collect_changes.py の「本文の行頭」の4行をそのまま写し、各行の「: 」の後に説明を書く",
+      "bad": "`git status` の出力を見てファイルを数え、`git add -A` してからメッセージを書き、`git commit` まで実行する"
+    },
+    {
+      "id": "OUT-01",
+      "axes": [
+        "O1",
+        "O6"
+      ],
+      "title": "出力は決まったパスの1ファイルに上書きで書く",
+      "decision": "出力は `.skill-runs/write-commit-message/out/commit-message.txt` の1ファイルにする。前の実行の同じファイルがあれば、中身を全部書き換える（追記しない）。`.git/COMMIT_EDITMSG` やリポジトリの中のほかのパスに書かない。",
+      "reason": "置き場とファイル名が AI ごとに違うと、検査も利用者のコミットの手順も揃わない。`.skill-runs/` は git に載らないので、リポジトリを汚さない。追記すると前の実行のメッセージが混ざる。",
+      "basis": "machine",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の outputs.commit-message の path、count、name_pattern（ルールID OUT-01）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-01-a"
+      ],
+      "good": "`.skill-runs/write-commit-message/out/commit-message.txt` に書く",
+      "bad": "リポジトリの直下に `COMMIT_MSG.txt` を作って書く"
+    },
+    {
+      "id": "OUT-02",
+      "axes": [
+        "O2"
+      ],
+      "title": "1行目、空行、ファイルごとの箇条書きの3つで組む",
+      "decision": "1行目は「<チケットID> <要約>」にし、チケットIDの後に半角空白を1つ置く。2行目は空行にする。3行目からは、ステージしたファイル1つにつき1行の「- <パス>: <説明>」を、ステージしたファイルの数だけ書く。本文に空行、段落、見出し、トレーラー（`Co-authored-by:`、`Signed-off-by:`）を書かない。1行目に Conventional Commits の接頭辞（`feat:`、`fix:`）を付けない。行末に空白を付けず、ファイルの末尾は改行1つで終える。",
+      "reason": "依頼が「チケットIDで始まる1行目」と「変更ファイルごとの箇条書きの本文」を指定している。git は最初の空行までを表題として扱うので、2行目を空行にしないと本文まで表題になる。",
+      "basis": "user",
+      "control": [
+        "format",
+        "validate",
+        "script"
+      ],
+      "how": "契約の require（1行目のチケットID、2行目の空行）、forbid（Conventional Commits の接頭辞）、command（scripts/check_message.py が本文の行とステージしたファイルを照らす）、format（trailing_space、final_newline）。行頭は scripts/collect_changes.py が出す",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-02-a",
+        "OUT-02-b",
+        "OUT-02-c",
+        "OUT-02-d",
+        "OUT-02-e"
+      ],
+      "good": "ABC-12 計算モジュールに引き算の関数を追加する\n\n- src/calc.py: 引き算の関数 subtract を追加する",
+      "bad": "ABC-12 feat: add subtract\n\n計算モジュールに引き算を足しました。テストも追加しています。"
+    },
+    {
+      "id": "OUT-03",
+      "axes": [
+        "O3"
+      ],
+      "title": "日本語で書き、文末を4つの動詞に限る",
+      "decision": "1行目の要約と本文の各行の説明は日本語で書き、文末を「追加する」「修正する」「削除する」「変更する」のどれかにする。本文の各行の文末は次の表で決める。1行目の文末は、本文の行で最も多い文末にする（同数なら表の上の行のもの）。「です」「ます」、体言止め（「追加」「修正」で終える）、句点「。」を使わない。",
+      "table": [
+        [
+          "そのファイルの変更の中身",
+          "文末"
+        ],
+        [
+          "新しいファイル、関数、記述、設定を足す",
+          "追加する"
+        ],
+        [
+          "誤り（不具合、誤字、壊れた設定）を直す",
+          "修正する"
+        ],
+        [
+          "ファイル、関数、記述、設定を消す",
+          "削除する"
+        ],
+        [
+          "上のどれでもない（書き換え、名前の変更、移動、整理）",
+          "変更する"
+        ]
+      ],
+      "reason": "文末と動詞の選び方（「足す」「追加」「Add」）が AI ごとに分かれると、同じ変更でもメッセージが揃わない。文末を4つに限ると字面で検査できる。日本語にするのは依頼の言語に合わせるためである。",
+      "basis": "machine",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の require（1行目の文末）と forbid（本文の行の文末）。scripts/check_message.py が1行目の文末と本文の最も多い文末を比べる",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-03-a",
+        "OUT-03-b"
+      ],
+      "good": "- src/calc.py: 引き算の関数 subtract を追加する",
+      "bad": "- src/calc.py: 引き算の関数を追加しました。"
+    },
+    {
+      "id": "OUT-04",
+      "axes": [
+        "O4"
+      ],
+      "title": "行の順とパスの表記は collect_changes.py に合わせる",
+      "decision": "本文の行は `collect_changes.py` の「本文の行頭」と同じ順に並べ、パスもその表記のまま書く。パスはリポジトリのルートからの相対パスで、`` ` `` や引用符で囲まず、`./` を付けない。名前の変更とコピーは `<旧パス> -> <新パス>` と書く。",
+      "reason": "並べ順（変更の大きさ順、種類順、名前順）とパスの書き方が AI ごとに分かれる。git の出力の順と表記に揃えると、別の AI が書いても同じ行になる。",
+      "basis": "machine",
+      "control": [
+        "validate",
+        "script"
+      ],
+      "how": "scripts/check_message.py が順序と表記を collect_changes.py と同じ規則で照らす（契約の command 検査）。行頭は scripts/collect_changes.py が出す",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-04-a",
+        "OUT-04-b"
+      ],
+      "good": "- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する",
+      "bad": "- `docs/guide.md`（旧 docs/usage.md）: 使い方の文書の名前を変更する"
+    },
+    {
+      "id": "OUT-05",
+      "axes": [
+        "O5"
+      ],
+      "title": "1行目と各行の説明を50文字以下にする",
+      "decision": "1行目は、チケットIDと空白を含めて50文字以下にする。本文の各行の説明（「: 」の後）は50文字以下にする。本文の行の数は、ステージしたファイルの数と同じにする（OUT-02）。",
+      "reason": "git の文書が、1行目を50文字以下にするよう勧めている。説明にも同じ上限を使うと、覚える数が1つで済む。",
+      "basis": "official",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の line_length（1行目）と forbid（説明の長さ）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-05-a",
+        "OUT-05-b"
+      ],
+      "good": "ABC-12 計算モジュールに引き算の関数を追加する",
+      "bad": "ABC-12 計算モジュールに引き算の関数 subtract と、そのテストと、使い方の文書の名前の変更を追加する"
+    },
+    {
+      "id": "OUT-06",
+      "axes": [
+        "O8"
+      ],
+      "title": "CI を止める記法を書かない",
+      "decision": "CI を止める記法（`[skip ci]`、`[ci skip]`、`[no ci]`、`[skip actions]`、`[actions skip]`、`skip-checks:` のトレーラー）を、大文字と小文字にかかわらず書かない。",
+      "reason": "これらの記法がコミットメッセージにあると、GitHub Actions がワークフローを実行しない。文書だけの変更でも、検査を止めるかは利用者が決める。",
+      "basis": "official",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の forbid（ルールID OUT-06）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-06-a"
+      ],
+      "good": "- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する",
+      "bad": "- docs/usage.md -> docs/guide.md: [skip ci] 文書の名前を変更する"
+    },
+    {
+      "id": "OUT-07",
+      "axes": [
+        "X1"
+      ],
+      "title": "URL と追加の参照を書かない",
+      "decision": "要約と説明に URL を書かない。チケットへの参照は1行目の先頭のチケットIDだけにし、`refs #12`、`Closes ABC-12` のような参照を足さない。",
+      "reason": "リンクや参照の付け方（URL、`refs`、`Closes`）が AI ごとに分かれる。チケットIDがあればチケットは辿れるので、ほかの参照は要らない。",
+      "basis": "fewer-tools",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の forbid（ルールID OUT-07）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-07-a"
+      ],
+      "good": "- src/calc.py: 引き算の関数 subtract を追加する",
+      "bad": "- src/calc.py: https://example.com/ABC-12 の subtract を追加する"
+    }
+  ],
+  "extra_axes": [
+    {
+      "axis": "X1",
+      "prefix": "OUT",
+      "name": "引用と根拠の示し方（何を引用し、どこへのリンクを付けるか）"
+    }
+  ],
+  "excluded_axes": [
+    {
+      "axis": "O7",
+      "reason": "出力は commit-message.txt の1ファイルだけで、一緒に変えるファイルの組が無い"
+    }
+  ],
+  "examples": [
+    {
+      "path": "commit-message.txt",
+      "shows": [
+        "OUT-01",
+        "OUT-02",
+        "OUT-03",
+        "OUT-04",
+        "OUT-05",
+        "OUT-06",
+        "OUT-07"
+      ]
+    }
+  ],
+  "control": {
+    "hooks": true,
+    "max_stop_blocks": 3,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "allow_changes": []
+  },
+  "report": {
+    "include_output": "commit-message"
+  },
+  "convergence": {
+    "agents": 2,
+    "runners": [
+      "claude",
+      "codex"
+    ],
+    "max_rounds": 3,
+    "skip_reason": "利用者が収束テストを省くと指定した",
+    "thresholds": {
+      "files": 1.0,
+      "structure": 1.0,
+      "names": 0.8
+    }
+  }
+}
+
+=== .claude/skills/write-commit-message/references/decisions.md
+<!-- このファイルは render_skill.py が dev/spec.json から生成する。手で編集しない。 -->
+
+# コミットメッセージを書く の決定
+
+## IN-01 書けない状況では書かずに中断する
+
+- 軸: I3, P2
+- 決定: `python3 <skill>/scripts/collect_changes.py --ticket <チケットID>` が終了コード4で「中断の理由: <理由>」を出したときは、出力を書かずに、その理由を `run.py abort --reason <理由>` に渡して中断する。中断するかは次の表で決まる。ファイルをステージし直さず、チケットIDを作らない。
+- 理由: 材料が無いときに、未ステージの変更を `git add` するか、空のメッセージを書くか、中断するかが AI ごとに分かれる。判定をスクリプトに任せると、同じ状況では必ず同じ扱いになる。`#123` のように `#` で始まるIDは、git がエディタで直すときに行ごと消す（core.commentChar）ため、受け付けない。
+- 決め方: AI の判断と覚える概念が少ない答え
+- 守らせ方: script, doc: scripts/collect_changes.py が状況を判定し、中断するときは「中断の理由:」の行と終了コード4を出す。SKILL.md の手順3
+- 機械化しない理由: 痕跡が残らない：中断したときは出力を書かないので、出力の検査では判定できない
+
+決定表:
+
+| 状況（collect_changes.py が判定する） | 扱い |
+|---|---|
+| git のリポジトリの中でない | 中断する（理由「git のリポジトリでない」） |
+| 入力 `ticket` が `<英大文字で始まる英大文字・数字・_ の列>-<数字>`（例 `ABC-123`）の形でない | 中断する（理由「チケットIDの形が違う」） |
+| ステージした変更が0件 | 中断する（理由「ステージした変更が無い」） |
+| 未マージ（状態 `U`）のファイルがある | 中断する（理由「未マージのファイルがある」） |
+| 上のどれでもない | 中断せず、手順を続ける |
+
+- 良い例:
+
+  ```text
+  collect_changes.py が「中断の理由: ステージした変更が無い」を出したので、`run.py abort --reason ステージした変更が無い` を実行し、abort の本文で返答する
+  ```
+- 悪い例:
+
+  ```text
+  ステージした変更が無いので `git add -A` を実行し、全部のファイルのメッセージを書く
+  ```
+
+## IN-02 差分は collect_changes.py が示したものだけを読む
+
+- 軸: I4
+- 決定: 読むのは、`collect_changes.py` の出力と、その「差分の読み方」の列に書かれた `git diff --cached -M -- <パス>` の出力だけにする。未ステージの変更（`git diff`）、未追跡のファイル、`git log`、ステージしていないファイルの中身を読まない。ファイルごとの読み方は次の表で決まる。
+- 理由: 読む範囲が AI ごとに違うと、説明に入る材料が変わる。未ステージの変更を読むと、コミットに入らない変更を説明に書いてしまう。大きな差分（ロックファイル、生成物）を全部読むと時間がかかり、説明も変わらない。
+- 決め方: AI の判断と覚える概念が少ない答え
+- 守らせ方: doc: SKILL.md の手順4。collect_changes.py が「差分の読み方」に読むコマンドか「読まない」を出す
+- 機械化しない理由: 痕跡が残らない：読んだファイルとコマンドは出力に残らない
+
+決定表:
+
+| ファイル（collect_changes.py の「差分の読み方」） | 読むもの |
+|---|---|
+| バイナリ（行数が「バイナリ」） | 読まない。変更の種類（A、M、D、R）だけで説明を書く |
+| 追加と削除の行数の合計が 500 以下 | 示された `git diff --cached -M -- <パス>` の出力の全体 |
+| 上のどれでもない（合計が 501 以上） | 読まない。変更の種類と行数だけで説明を書く |
+
+- 良い例:
+
+  ```text
+  「差分の読み方」に書かれた `git diff --cached -M -- src/calc.py` だけを実行して読む
+  ```
+- 悪い例:
+
+  ```text
+  `git diff` と `git status` で未ステージの変更も読み、説明に書く
+  ```
+
+## STEP-01 決まった順に進め、check が3回通らなければ中断する
+
+- 軸: P1, P5
+- 決定: `run.py start`、`collect_changes.py`、差分を読む（IN-02）、出力を書く、`run.py check`、`run.py finish` の順に行う。`run.py check` が指摘を出したら、`commit-message.txt` を直して check をやり直す。check を3回実行しても指摘が残るときは、残ったルールIDを `run.py abort --reason <ルールID>` に渡して中断する。
+- 理由: 順序が AI ごとに違うと、差分を読む前に書く、check を飛ばす、といった違いが出る。直す回数に上限が無いと、終わらない実行が残る。
+- 決め方: AI の判断と覚える概念が少ない答え
+- 守らせ方: doc: SKILL.md の手順2〜7
+- 機械化しない理由: 痕跡が残らない：作業の順序と、直した回数は出力に残らない
+- 良い例:
+
+  ```text
+  check の指摘 OUT-05 を見て1行目を短くし、2回目の check で通ってから finish を実行する
+  ```
+- 悪い例:
+
+  ```text
+  check の指摘が消えないので、5回目の check の前に契約の検査を書き換える
+  ```
+
+## STEP-02 一覧と順序はスクリプトに任せ、ステージの状態を変えない
+
+- 軸: P3, P4
+- 決定: 変更ファイルの一覧、件数、並び順、本文の行頭は `collect_changes.py` の出力を写し、AI が数えたり並べたりしない。使うコマンドは `python3`、`git diff --cached`、`git rev-parse` だけにする。`git add`、`git rm`、`git commit`、`git reset`、`git stash`、`git checkout` を実行しない（ステージの状態とコミットの履歴を変えない）。
+- 理由: AI がファイルを数えたり並べたりすると、漏れや順序の違いが出る。ステージの状態を変えると、書いたメッセージと実際のコミットの中身が合わなくなる。コミットするかどうかは利用者が決める。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: script, doc: scripts/collect_changes.py が件数、並び順、本文の行頭を出す。SKILL.md の手順3と手順5
+- 機械化しない理由: 痕跡が残らない：実行したコマンドは出力に残らない。一覧と順序の結果は OUT-02 と OUT-04 の検査が確かめる
+- 良い例:
+
+  ```text
+  collect_changes.py の「本文の行頭」の4行をそのまま写し、各行の「: 」の後に説明を書く
+  ```
+- 悪い例:
+
+  ```text
+  `git status` の出力を見てファイルを数え、`git add -A` してからメッセージを書き、`git commit` まで実行する
+  ```
+
+## OUT-01 出力は決まったパスの1ファイルに上書きで書く
+
+- 軸: O1, O6
+- 決定: 出力は `.skill-runs/write-commit-message/out/commit-message.txt` の1ファイルにする。前の実行の同じファイルがあれば、中身を全部書き換える（追記しない）。`.git/COMMIT_EDITMSG` やリポジトリの中のほかのパスに書かない。
+- 理由: 置き場とファイル名が AI ごとに違うと、検査も利用者のコミットの手順も揃わない。`.skill-runs/` は git に載らないので、リポジトリを汚さない。追記すると前の実行のメッセージが混ざる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: validate: 契約の outputs.commit-message の path、count、name_pattern（ルールID OUT-01）
+- 良い例:
+
+  ```text
+  `.skill-runs/write-commit-message/out/commit-message.txt` に書く
+  ```
+- 悪い例:
+
+  ```text
+  リポジトリの直下に `COMMIT_MSG.txt` を作って書く
+  ```
+
+## OUT-02 1行目、空行、ファイルごとの箇条書きの3つで組む
+
+- 軸: O2
+- 決定: 1行目は「<チケットID> <要約>」にし、チケットIDの後に半角空白を1つ置く。2行目は空行にする。3行目からは、ステージしたファイル1つにつき1行の「- <パス>: <説明>」を、ステージしたファイルの数だけ書く。本文に空行、段落、見出し、トレーラー（`Co-authored-by:`、`Signed-off-by:`）を書かない。1行目に Conventional Commits の接頭辞（`feat:`、`fix:`）を付けない。行末に空白を付けず、ファイルの末尾は改行1つで終える。
+- 理由: 依頼が「チケットIDで始まる1行目」と「変更ファイルごとの箇条書きの本文」を指定している。git は最初の空行までを表題として扱うので、2行目を空行にしないと本文まで表題になる。
+- 決め方: 依頼の指定
+- 守らせ方: format, validate, script: 契約の require（1行目のチケットID、2行目の空行）、forbid（Conventional Commits の接頭辞）、command（scripts/check_message.py が本文の行とステージしたファイルを照らす）、format（trailing_space、final_newline）。行頭は scripts/collect_changes.py が出す
+- 良い例:
+
+  ```text
+  ABC-12 計算モジュールに引き算の関数を追加する
+  
+  - src/calc.py: 引き算の関数 subtract を追加する
+  ```
+- 悪い例:
+
+  ```text
+  ABC-12 feat: add subtract
+  
+  計算モジュールに引き算を足しました。テストも追加しています。
+  ```
+
+## OUT-03 日本語で書き、文末を4つの動詞に限る
+
+- 軸: O3
+- 決定: 1行目の要約と本文の各行の説明は日本語で書き、文末を「追加する」「修正する」「削除する」「変更する」のどれかにする。本文の各行の文末は次の表で決める。1行目の文末は、本文の行で最も多い文末にする（同数なら表の上の行のもの）。「です」「ます」、体言止め（「追加」「修正」で終える）、句点「。」を使わない。
+- 理由: 文末と動詞の選び方（「足す」「追加」「Add」）が AI ごとに分かれると、同じ変更でもメッセージが揃わない。文末を4つに限ると字面で検査できる。日本語にするのは依頼の言語に合わせるためである。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: validate: 契約の require（1行目の文末）と forbid（本文の行の文末）。scripts/check_message.py が1行目の文末と本文の最も多い文末を比べる
+
+決定表:
+
+| そのファイルの変更の中身 | 文末 |
+|---|---|
+| 新しいファイル、関数、記述、設定を足す | 追加する |
+| 誤り（不具合、誤字、壊れた設定）を直す | 修正する |
+| ファイル、関数、記述、設定を消す | 削除する |
+| 上のどれでもない（書き換え、名前の変更、移動、整理） | 変更する |
+
+- 良い例:
+
+  ```text
+  - src/calc.py: 引き算の関数 subtract を追加する
+  ```
+- 悪い例:
+
+  ```text
+  - src/calc.py: 引き算の関数を追加しました。
+  ```
+
+## OUT-04 行の順とパスの表記は collect_changes.py に合わせる
+
+- 軸: O4
+- 決定: 本文の行は `collect_changes.py` の「本文の行頭」と同じ順に並べ、パスもその表記のまま書く。パスはリポジトリのルートからの相対パスで、`` ` `` や引用符で囲まず、`./` を付けない。名前の変更とコピーは `<旧パス> -> <新パス>` と書く。
+- 理由: 並べ順（変更の大きさ順、種類順、名前順）とパスの書き方が AI ごとに分かれる。git の出力の順と表記に揃えると、別の AI が書いても同じ行になる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: validate, script: scripts/check_message.py が順序と表記を collect_changes.py と同じ規則で照らす（契約の command 検査）。行頭は scripts/collect_changes.py が出す
+- 良い例:
+
+  ```text
+  - docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+  ```
+- 悪い例:
+
+  ```text
+  - `docs/guide.md`（旧 docs/usage.md）: 使い方の文書の名前を変更する
+  ```
+
+## OUT-05 1行目と各行の説明を50文字以下にする
+
+- 軸: O5
+- 決定: 1行目は、チケットIDと空白を含めて50文字以下にする。本文の各行の説明（「: 」の後）は50文字以下にする。本文の行の数は、ステージしたファイルの数と同じにする（OUT-02）。
+- 理由: git の文書が、1行目を50文字以下にするよう勧めている。説明にも同じ上限を使うと、覚える数が1つで済む。
+- 決め方: 出力を使う道具や形式の公式の決まり
+- 守らせ方: validate: 契約の line_length（1行目）と forbid（説明の長さ）
+- 良い例:
+
+  ```text
+  ABC-12 計算モジュールに引き算の関数を追加する
+  ```
+- 悪い例:
+
+  ```text
+  ABC-12 計算モジュールに引き算の関数 subtract と、そのテストと、使い方の文書の名前の変更を追加する
+  ```
+
+## OUT-06 CI を止める記法を書かない
+
+- 軸: O8
+- 決定: CI を止める記法（`[skip ci]`、`[ci skip]`、`[no ci]`、`[skip actions]`、`[actions skip]`、`skip-checks:` のトレーラー）を、大文字と小文字にかかわらず書かない。
+- 理由: これらの記法がコミットメッセージにあると、GitHub Actions がワークフローを実行しない。文書だけの変更でも、検査を止めるかは利用者が決める。
+- 決め方: 出力を使う道具や形式の公式の決まり
+- 守らせ方: validate: 契約の forbid（ルールID OUT-06）
+- 良い例:
+
+  ```text
+  - docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+  ```
+- 悪い例:
+
+  ```text
+  - docs/usage.md -> docs/guide.md: [skip ci] 文書の名前を変更する
+  ```
+
+## OUT-07 URL と追加の参照を書かない
+
+- 軸: X1
+- 決定: 要約と説明に URL を書かない。チケットへの参照は1行目の先頭のチケットIDだけにし、`refs #12`、`Closes ABC-12` のような参照を足さない。
+- 理由: リンクや参照の付け方（URL、`refs`、`Closes`）が AI ごとに分かれる。チケットIDがあればチケットは辿れるので、ほかの参照は要らない。
+- 決め方: 道具・スクリプト・入力を増やさない答え
+- 守らせ方: validate: 契約の forbid（ルールID OUT-07）
+- 良い例:
+
+  ```text
+  - src/calc.py: 引き算の関数 subtract を追加する
+  ```
+- 悪い例:
+
+  ```text
+  - src/calc.py: https://example.com/ABC-12 の subtract を追加する
+  ```
+
+## RPT-01 最終の返答は finish の本文をそのまま使う
+
+- 軸: R1
+- 決定: 最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。
+- 理由: 報告の形と中身が AI ごとに分かれない。既定値で決めた値と検証の結果を、読み手が必ず見られる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate, review: scripts/run.py の finish と abort が本文を組み立て、.skill-runs/<name>/report.md にも保存する。check と finish が notes.md の形を検査する
+- 良い例:
+
+  ```text
+  決めきれなかった既定値を notes.md に「- 」で書き、finish の本文をそのまま返答する
+  ```
+- 悪い例:
+
+  ```text
+  finish の本文を要約し直し、最後に自由な文で補足を足して返答する
+  ```
+
+## CTL-01 実行は run.py で始めて終える
+
+- 軸: C1
+- 決定: 手順の最初に `run.py start`、出力を書いた後に `run.py check`、最後に `run.py finish` を実行する。`finish` が終了コード0で終わるまで、完了と返答しない。
+- 理由: 始まりと終わりをスクリプトで区切ると、検査が必ず走り、hooks が実行中かどうかを判定できる。完了の基準が AI ごとに分かれない。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate: scripts/run.py。finish は契約の検査に通らないと終了コード1で終わる
+- 良い例:
+
+  ```text
+  `run.py finish` が終了コード0で終わってから、その本文で返答する
+  ```
+- 悪い例:
+
+  ```text
+  出力を書いた直後に「完了しました」と返答する
+  ```
+
+## CTL-02 実行中はスキル自身のファイルを変えない
+
+- 軸: C2
+- 決定: `run.py start` から `run.py finish` までの間、スキルの保護ファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`）と、プロジェクトに登録したこのスキルの hooks を変えない。出力が契約に合わないときは、出力の方を直す。保護ファイルが封印（`assets/seal.json`）と違うと `run.py start` が終了コード1で止まるので、そのときは出力された指摘をユーザーに伝えて止まる。
+- 理由: 検査や契約を緩めて通すと、検査が無いのと同じになる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate: scripts/run.py の start が保護ファイルのハッシュと hooks の登録を記録し、check と finish が比べる。`start --restart` は記録を最初の start から引き継ぐ。hooks が編集の前に止める。start は封印と保護ファイルを比べ、違えば始めない
+- 良い例:
+
+  ```text
+  指摘されたルールIDを決定表で引き、出力のファイルを直す
+  ```
+- 悪い例:
+
+  ```text
+  検査に通すために `assets/contract.json` の正規表現を緩める
+  ```
+
+## CTL-03 質問は start の前に済ませる
+
+- 軸: C3, I2
+- 決定: ユーザーに聞くことは `run.py start` の前にまとめて聞く。start の後に聞く必要が出たときは、`run.py wait --question <質問>` を実行してから聞く。聞けない状況では既定値を使い、報告の「既定値で決めた値」に載せる。
+- 理由: 実行の途中で質問するかどうかが AI ごとに分かれると、出力が揃わない。wait を挟むと、質問のために応答を終えることを hooks が止めない。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, doc: scripts/run.py の start は、聞くべき入力が無いと終了コード3で止まり、質問を出力する。wait は hooks の強制を止める
+- 良い例:
+
+  ```text
+  start の終了コード3で出た質問をユーザーに聞き、答えを `--set` で渡して start をやり直す
+  ```
+- 悪い例:
+
+  ```text
+  出力を半分書いたところで、形式をユーザーに尋ねる
+  ```
+
+## CTL-04 hooks は出力の検査だけに使い、入力を止めない
+
+- 軸: C4
+- 決定: hooks は、このスキルの実行中（status: active）に、編集の後の検査、応答を終える前の検査、保護ファイルの編集の停止の3つを行う。実行していないときは、封印したスキル（`assets/seal.json` がある）の保護ファイルの編集に、Claude Code で確認を求めることだけを行う。ユーザーの発言を止めたり書き換えたりしない。
+- 理由: 縛る対象は AI の出力であり、ユーザーの入力ではない。このスキルを使っていないセッションの邪魔をしない。ただし、実行していない間にスキル自身が変わると、次の実行の検査が緩んだままになるので、封印したファイルの編集だけは人に確かめさせる。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime: scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する
+- 良い例:
+
+  ```text
+  Stop の hook が、検査に通るまで応答の終了を差し戻す
+  ```
+- 悪い例:
+
+  ```text
+  UserPromptSubmit の hook で、依頼文の書き方が違うと拒否する
+  ```
+
+## CTL-05 契約の出力のほかにファイルを変えない
+
+- 軸: C5
+- 決定: `run.py start` から `run.py finish` までの間に作る・変えるファイルは、「5. 出力の契約」の出力と `control.allow_changes` に挙げたものだけにする。作業用のメモや一時ファイルも、出力の置き場の外に作らない。
+- 理由: 出力の外に作るファイル（メモ、控え、別名の写し）は AI ごとに違い、利用者のリポジトリに残る。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: runtime, validate: scripts/run.py の start が git の作業ツリーの状態を記録し、check と finish が比べる。編集の直後には hooks が知らせる
+- 良い例:
+
+  ```text
+  下書きも出力の置き場（`.skill-runs/<name>/`）の中に書く
+  ```
+- 悪い例:
+
+  ```text
+  リポジトリの直下に `notes.md` を作って下書きする
+  ```
+
+=== .claude/skills/write-commit-message/scripts/_changes.py
+"""collect_changes.py と check_message.py が共有する部品。ステージした変更を git から読む。
+
+単独では実行しない。
+"""
+import re
+import subprocess
+
+TICKET_RE = re.compile(r"[A-Z][A-Z0-9_]*-[0-9]+")
+VERBS = ["追加する", "修正する", "削除する", "変更する"]
+STATUS_LABELS = {
+    "A": "追加",
+    "C": "コピー",
+    "D": "削除",
+    "M": "変更",
+    "R": "名前の変更",
+    "T": "種類の変更",
+    "U": "未マージ",
+    "X": "不明",
+    "B": "対の切断",
+}
+FULL_DIFF_MAX = 500
+
+
+class GitError(Exception):
+    pass
+
+
+def _git(root, args):
+    proc = subprocess.run(["git", "-C", root] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if proc.returncode != 0:
+        raise GitError(proc.stderr.decode("utf-8", "replace").strip())
+    return proc.stdout
+
+
+def _split(raw):
+    tokens = raw.decode("utf-8", "replace").split("\0")
+    if tokens and tokens[-1] == "":
+        tokens.pop()
+    return tokens
+
+
+def is_repo(root):
+    try:
+        return _git(root, ["rev-parse", "--is-inside-work-tree"]).strip() == b"true"
+    except (GitError, OSError):
+        return False
+
+
+def staged_changes(root):
+    """ステージした変更を git の出力の順で返す。各要素は status、path、old、display、added、deleted。"""
+    tokens = _split(_git(root, ["diff", "--cached", "-M", "--name-status", "-z"]))
+    changes = []
+    i = 0
+    while i < len(tokens):
+        status = tokens[i][:1]
+        if status in ("R", "C"):
+            old, path = tokens[i + 1], tokens[i + 2]
+            i += 3
+            display = "{} -> {}".format(old, path)
+        else:
+            old, path = None, tokens[i + 1]
+            i += 2
+            display = path
+        changes.append({"status": status, "path": path, "old": old, "display": display,
+                        "added": None, "deleted": None})
+    stats = {}
+    tokens = _split(_git(root, ["diff", "--cached", "-M", "--numstat", "-z"]))
+    i = 0
+    while i < len(tokens):
+        parts = tokens[i].split("\t")
+        if len(parts) >= 3 and parts[2] == "":
+            key = tokens[i + 2]
+            i += 3
+        else:
+            key = parts[2] if len(parts) >= 3 else ""
+            i += 1
+        stats[key] = (parts[0], parts[1] if len(parts) > 1 else "-")
+    for change in changes:
+        added, deleted = stats.get(change["path"], ("-", "-"))
+        change["added"] = None if added == "-" else int(added)
+        change["deleted"] = None if deleted == "-" else int(deleted)
+    return changes
+
+=== .claude/skills/write-commit-message/scripts/_skillrt.py
+"""skill-foundation の実行時ランタイム。run.py と hook.py が使う。
+
+Python 3.9 以上の標準ライブラリだけで動く。skill-foundation が作ったすべてのスキルに、同じ内容のまま
+写される。スキルごとに書き換えない（skill_lint.py がハッシュで確かめる）。スキル固有の決まりは
+assets/contract.json に書く。
+
+方針: 入力（ユーザーの依頼・既存のファイル）には寛容に、出力（AI が書いたもの）には厳格にする。
+  - 入力: キーの表記ゆれ・全角・大文字小文字・未知のキーを受け入れ、既定値で補い、補ったことを記録する
+  - 出力: 契約（contract.json）に合わないものは、ルールID付きのエラーにする
+"""
+
+from __future__ import annotations
+
+import datetime
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import unicodedata
+from pathlib import Path
+
+RUNTIME_VERSION = "1.0.0"
+SKILL_DIR = Path(__file__).resolve().parent.parent
+CONTRACT_REL = "assets/contract.json"
+SEAL_REL = "assets/seal.json"  # 封印。skill_lint.py --seal と、skill-foundation の finish が書く（CTL-02）
+RUNS_DIRNAME = ".skill-runs"
+HOOK_CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
+# 出力の探索で入らないディレクトリ（パターンの固定部分に含まれる場合は入る）
+SKIP_DIRS = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache",
+             ".mypy_cache", ".ruff_cache", ".tox", ".next", ".turbo", ".cache", RUNS_DIRNAME}
+CHECK_TYPES = ["headings", "require", "forbid", "max_lines", "min_lines", "line_length", "json_schema",
+               "front_matter", "command"]
+FORMAT_TYPES = ["trailing_space", "final_newline", "replace", "command"]
+STATUSES = ["active", "waiting", "done", "failed", "aborted"]
+ENFORCING = ("active",)
+MAX_NOTES = 10
+
+
+# ---------------------------------------------------------------- 基本
+
+def now() -> str:
+    return datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_json(path: Path, data: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def load_contract(skill_dir: Path = SKILL_DIR) -> dict:
+    return load_json(skill_dir / CONTRACT_REL)
+
+
+def project_root(start: Path) -> Path:
+    """プロジェクトのルート。start から親へ辿って最初に .git がある場所、無ければ start 自身。"""
+    current = start.resolve()
+    if current.is_file():
+        current = current.parent
+    for candidate in [current, *current.parents]:
+        if (candidate / ".git").exists():
+            return candidate
+    return current
+
+
+def run_rel(name: str) -> str:
+    return f"{RUNS_DIRNAME}/{name}"
+
+
+def state_path(root: Path, name: str) -> Path:
+    return root / RUNS_DIRNAME / name / "state.json"
+
+
+def load_state(root: Path, name: str) -> dict | None:
+    path = state_path(root, name)
+    if not path.is_file():
+        return None
+    try:
+        return load_json(path)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def save_state(root: Path, state: dict) -> None:
+    runs = root / RUNS_DIRNAME
+    runs.mkdir(parents=True, exist_ok=True)
+    ignore = runs / ".gitignore"
+    if not ignore.exists():
+        ignore.write_text("*\n", encoding="utf-8")  # 利用者の .gitignore を変えずに、実行記録を git から外す
+    write_json(state_path(root, state["skill"]), state)
+
+
+def log_event(state: dict, event: str, detail: str = "") -> None:
+    state.setdefault("history", []).append({"at": now(), "event": event, "detail": detail[:500]})
+
+
+# ---------------------------------------------------------------- パスと glob
+
+def glob_to_regex(pattern: str) -> re.Pattern:
+    """`**`、`*`、`?`、`{a,b}` に対応する glob を、ルートからの相対パス全体に一致する正規表現にする。"""
+    out, i = [], 0
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "*":
+            if pattern.startswith("**/", i):
+                out.append("(?:.*/)?")
+                i += 3
+                continue
+            if pattern.startswith("**", i):
+                out.append(".*")
+                i += 2
+                continue
+            out.append("[^/]*")
+        elif c == "?":
+            out.append("[^/]")
+        elif c == "{" and "}" in pattern[i:]:
+            end = pattern.index("}", i)
+            out.append("(?:" + "|".join(re.escape(a) for a in pattern[i + 1:end].split(",")) + ")")
+            i = end + 1
+            continue
+        else:
+            out.append(re.escape(c))
+        i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+
+def matches_any(rel: str, patterns: list[str]) -> str | None:
+    for pattern in patterns:
+        if glob_to_regex(pattern).match(rel):
+            return pattern
+    return None
+
+
+IN_PLACEHOLDER = re.compile(r"\{in:([A-Za-z0-9_]+)\}")
+
+
+def expand(pattern: str, name: str, values: dict | None = None) -> str:
+    """契約のパスの {run} を実行記録の置き場（.skill-runs/<name>）に、{in:キー} を入力の値に置き換える。"""
+    expanded = pattern.replace("{run}", run_rel(name))
+    expanded = IN_PLACEHOLDER.sub(lambda m: str((values or {}).get(m.group(1)) or m.group(0)), expanded)
+    return expanded[2:] if expanded.startswith("./") else expanded
+
+
+def static_prefix(pattern: str) -> str:
+    parts = []
+    for part in pattern.split("/")[:-1]:
+        if any(ch in part for ch in "*?{["):
+            break
+        parts.append(part)
+    return "/".join(parts)
+
+
+def iter_glob(root: Path, pattern: str) -> list[str]:
+    """pattern に一致するファイルの相対パス（POSIX 形式、昇順）。シンボリックリンクは辿らない。"""
+    regex = glob_to_regex(pattern)
+    prefix = static_prefix(pattern)
+    base = root / prefix if prefix else root
+    if not base.is_dir():
+        return []
+    found = []
+    for dirpath, dirnames, filenames in os.walk(base, followlinks=False):
+        rel_dir = Path(dirpath).relative_to(root).as_posix()
+        rel_dir = "" if rel_dir == "." else rel_dir
+        dirnames[:] = sorted(d for d in dirnames
+                             if d not in SKIP_DIRS and not (Path(dirpath) / d).is_symlink())
+        for f in filenames:
+            rel = f"{rel_dir}/{f}" if rel_dir else f
+            if regex.match(rel) and not (Path(dirpath) / f).is_symlink():
+                found.append(rel)
+    return sorted(found)
+
+
+def snapshot(root: Path, contract: dict, name: str, values: dict | None = None) -> dict:
+    files = {}
+    for out in contract.get("outputs", []):
+        for rel in iter_glob(root, expand(out["path"], name, values)):
+            files[rel] = sha256(root / rel)
+    return files
+
+
+def protected_hashes(skill_dir: Path, contract: dict) -> dict:
+    globs = contract.get("control", {}).get("protected", [])
+    hashes = {}
+    for dirpath, dirnames, filenames in os.walk(skill_dir):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+        for f in filenames:
+            rel = (Path(dirpath) / f).relative_to(skill_dir).as_posix()
+            if matches_any(rel, globs):
+                hashes[rel] = sha256(Path(dirpath) / f)
+    return hashes
+
+
+def seal_hashes(skill_dir: Path, contract: dict) -> dict:
+    """封印に書く保護ファイルのハッシュ。封印のファイル自身は除く。"""
+    return {rel: digest for rel, digest in protected_hashes(skill_dir, contract).items() if rel != SEAL_REL}
+
+
+def write_seal(skill_dir: Path, contract: dict) -> int:
+    hashes = seal_hashes(skill_dir, contract)
+    write_json(skill_dir / SEAL_REL, {"runtime": RUNTIME_VERSION, "files": hashes})
+    return len(hashes)
+
+
+def seal_findings(skill_dir: Path, contract: dict) -> list[dict]:
+    """封印（assets/seal.json）と今の保護ファイルの違い。封印の無いスキル（作っている途中）では何も返さない。
+    hooks は実行していない間の変更を止められないので、次の start がここで見つける（CTL-02）。"""
+    path = skill_dir / SEAL_REL
+    if not path.is_file():
+        return []
+    rule = contract.get("control", {}).get("tamper_rule", "CTL")
+    try:
+        sealed = load_json(path).get("files", {})
+    except (OSError, ValueError, AttributeError):
+        return [finding(rule, f"{skill_dir.name}/{SEAL_REL}", 0, "封印が読めません")]
+    current = seal_hashes(skill_dir, contract)
+    result = []
+    for rel in sorted(set(sealed) | set(current)):
+        if sealed.get(rel) != current.get(rel):
+            what = "変わりました" if rel in sealed and rel in current else ("足されました" if rel in current else "消されました")
+            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0, f"封印の後に{what}"))
+    return result
+
+
+# ---------------------------------------------------------------- 入力の正規化（寛容）
+
+def canon(text: str) -> str:
+    """キーや選択肢を比べるための形。全角→半角、小文字、空白・-・_ を除く。"""
+    return re.sub(r"[\s\-_]+", "", unicodedata.normalize("NFKC", str(text)).strip().lower())
+
+
+TRUE_WORDS = {canon(w) for w in ["true", "yes", "y", "on", "1", "はい", "する", "あり", "有効"]}
+FALSE_WORDS = {canon(w) for w in ["false", "no", "n", "off", "0", "いいえ", "しない", "なし", "無効"]}
+KV_LINE = re.compile(r"^\s*([^:=：＝\s][^:=：＝]{0,40}?)\s*[:=：＝]\s*(.+?)\s*$")
+
+
+def convert(value, spec: dict):
+    """値を型に合わせて変換し、case（upper / lower）があれば文字列の大文字・小文字を揃える。変換できなければ ValueError。"""
+    result = convert_type(value, spec)
+    if isinstance(result, str) and spec.get("case") in ("upper", "lower"):
+        result = result.upper() if spec["case"] == "upper" else result.lower()
+    return result
+
+
+def convert_type(value, spec: dict):
+    kind = spec.get("type", "string")
+    if isinstance(value, str):
+        value = value.strip()
+    if kind == "string":
+        return str(value)
+    if kind == "int":
+        return int(unicodedata.normalize("NFKC", str(value)).replace(",", ""))
+    if kind == "bool":
+        if isinstance(value, bool):
+            return value
+        word = canon(value)
+        if word in TRUE_WORDS:
+            return True
+        if word in FALSE_WORDS:
+            return False
+        raise ValueError(f"真偽値として読めません: {value!r}")
+    if kind == "list":
+        if isinstance(value, list):
+            return [str(v).strip() for v in value if str(v).strip()]
+        return [v.strip() for v in re.split(r"[,、，\n]+", str(value)) if v.strip()]
+    if kind == "enum":
+        choices = spec.get("enum", [])
+        aliases = {canon(k): v for k, v in spec.get("enum_aliases", {}).items()}
+        for choice in choices:
+            if canon(choice) == canon(value):
+                return choice
+        if canon(value) in aliases:
+            return aliases[canon(value)]
+        raise ValueError(f"{choices} のどれでもありません: {value!r}")
+    if kind == "path":
+        return Path(str(value)).as_posix()
+    if kind == "slug":
+        slug = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKC", str(value)).lower()).strip("-")
+        if not slug:
+            raise ValueError(f"英数字を含まないので slug にできません: {value!r}")
+        return slug
+    raise ValueError(f"未知の type: {kind}")
+
+
+def normalize_input(raw: dict, text: str, contract: dict) -> dict:
+    """依頼から受け取った値を契約の inputs に合わせる。エラーにせず、補ったこと・読めなかったことを記録する。"""
+    specs = contract.get("inputs", [])
+    by_canon = {}
+    for spec in specs:
+        for word in [spec["key"], spec.get("label", ""), *spec.get("aliases", [])]:
+            if word:
+                by_canon[canon(word)] = spec["key"]
+    given, extra = {}, {}
+    # 自由記述の中の「キー: 値」の行も拾う（明示の指定が優先）
+    for line in text.splitlines():
+        match = KV_LINE.match(line)
+        if match and canon(match.group(1)) in by_canon:
+            given.setdefault(by_canon[canon(match.group(1))], match.group(2))
+    for key, value in raw.items():
+        target = by_canon.get(canon(key))
+        if target:
+            given[target] = value
+        else:
+            extra[key] = value
+    values, defaulted, questions, warnings = {}, [], [], []
+    for spec in specs:
+        key = spec["key"]
+        if key in given and str(given[key]).strip() != "":
+            try:
+                values[key] = convert(given[key], spec)
+                continue
+            except ValueError as exc:
+                warnings.append(f"{key}: {exc}。既定値で補います" if "default" in spec else f"{key}: {exc}。そのまま使います")
+                if "default" not in spec:
+                    values[key] = given[key]
+                    continue
+        if "default" in spec and spec["default"] is not None:
+            values[key] = spec["default"]
+            defaulted.append(key)
+        elif spec.get("ask"):
+            questions.append(f"{spec.get('label', key)}（{key}）: {spec.get('question', '値を確かめる')}")
+        else:
+            values[key] = None
+    return {"values": values, "defaulted": defaulted, "questions": questions, "warnings": warnings,
+            "extra": extra, "text": text}
+
+
+# ---------------------------------------------------------------- 出力の検査（厳格）
+
+HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
+FENCE = re.compile(r"^\s*(```|~~~)")
+
+
+def finding(rule: str, path: str, line: int, message: str) -> dict:
+    return {"rule": rule, "path": path, "line": line, "message": message}
+
+
+def format_finding(f: dict) -> str:
+    where = f"{f['path']}:{f['line']}" if f["line"] else f["path"]
+    return f"{f['rule']} {where} {f['message']}"
+
+
+def code_mask(lines: list[str]) -> list[bool]:
+    """各行がコードフェンスの中（フェンス行を含む）かどうか。"""
+    mask, inside = [], False
+    for line in lines:
+        if FENCE.match(line):
+            mask.append(True)
+            inside = not inside
+            continue
+        mask.append(inside)
+    return mask
+
+
+def headings(lines: list[str]) -> list[tuple[int, int, str]]:
+    mask = code_mask(lines)
+    result = []
+    for i, line in enumerate(lines):
+        if mask[i]:
+            continue
+        match = HEADING.match(line)
+        if match:
+            result.append((i + 1, len(match.group(1)), match.group(2)))
+    return result
+
+
+def front_matter(lines: list[str]) -> dict | None:
+    if not lines or lines[0].strip() != "---":
+        return None
+    keys = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return keys
+        match = re.match(r"^([A-Za-z0-9_\-]+)\s*:\s*(.*)$", line)
+        if match:
+            keys[match.group(1)] = match.group(2).strip()
+    return None
+
+
+def schema_errors(value, schema: dict, where: str = "$") -> list[str]:
+    """JSON Schema の部分集合（type, enum, const, required, properties, additionalProperties, items,
+    pattern, minLength, maxLength, minimum, maximum, minItems, maxItems）で検査する。"""
+    errors = []
+    types = schema.get("type")
+    if types:
+        names = types if isinstance(types, list) else [types]
+        checks = {"object": lambda v: isinstance(v, dict), "array": lambda v: isinstance(v, list),
+                  "string": lambda v: isinstance(v, str), "boolean": lambda v: isinstance(v, bool),
+                  "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+                  "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+                  "null": lambda v: v is None}
+        if not any(checks.get(n, lambda v: False)(value) for n in names):
+            return [f"{where}: 型が {names} ではありません"]
+    if "enum" in schema and value not in schema["enum"]:
+        errors.append(f"{where}: {schema['enum']} のどれでもありません")
+    if "const" in schema and value != schema["const"]:
+        errors.append(f"{where}: {schema['const']!r} ではありません")
+    if isinstance(value, str):
+        if "pattern" in schema and not re.search(schema["pattern"], value):
+            errors.append(f"{where}: /{schema['pattern']}/ に一致しません")
+        if len(value) < schema.get("minLength", 0):
+            errors.append(f"{where}: {schema['minLength']} 文字以上必要です")
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            errors.append(f"{where}: {schema['maxLength']} 文字以下にしてください")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            errors.append(f"{where}: {schema['minimum']} 以上にしてください")
+        if "maximum" in schema and value > schema["maximum"]:
+            errors.append(f"{where}: {schema['maximum']} 以下にしてください")
+    if isinstance(value, dict):
+        for key in schema.get("required", []):
+            if key not in value:
+                errors.append(f"{where}: キー {key} がありません")
+        props = schema.get("properties", {})
+        for key, item in value.items():
+            if key in props:
+                errors += schema_errors(item, props[key], f"{where}.{key}")
+            elif schema.get("additionalProperties") is False:
+                errors.append(f"{where}: 決められていないキー {key} があります")
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0):
+            errors.append(f"{where}: {schema['minItems']} 件以上必要です")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            errors.append(f"{where}: {schema['maxItems']} 件以下にしてください")
+        if "items" in schema:
+            for i, item in enumerate(value):
+                errors += schema_errors(item, schema["items"], f"{where}[{i}]")
+    return errors
+
+
+def format_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path,
+                values: dict | None = None) -> tuple[list[dict], list[dict]]:
+    """契約の format で出力ファイル1つを自動で直す（段 format）。戻り値は（直したもの, 直せなかった指摘）。"""
+    path, fixes, problems = root / rel, [], []
+    for fix in out.get("format", []):
+        rule, kind = fix["rule"], fix["type"]
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            return fixes, problems
+        if kind == "command":
+            before = sha256(path)
+            code, output = run_shell(fill_command(fix["run"], root, name, skill_dir, values, rel), root, int(fix.get("timeout", 60)))
+            if code != 0:
+                problems.append(finding(rule, rel, 0, f"整形のコマンドが失敗しました: {tail(output, 5)}"))
+            elif path.is_file() and sha256(path) != before:
+                fixes.append(finding(rule, rel, 0, fix.get("message") or f"`{fix['run']}` で整えました"))
+            continue
+        if kind == "trailing_space":
+            new, what = re.sub(r"[ \t]+$", "", text, flags=re.M), "行末の空白を消しました"
+        elif kind == "final_newline":
+            new, what = (text.rstrip("\n") + "\n") if text.strip() else text, "末尾の改行を1つにしました"
+        else:
+            source = IN_PLACEHOLDER.sub(lambda m: re.escape(str((values or {}).get(m.group(1), ""))), fix["pattern"])
+            new, what = re.sub(source, fix.get("with", ""), text, flags=re.M), f"/{fix['pattern']}/ を「{fix.get('with', '')}」に置き換えました"
+        if new != text:
+            path.write_text(new, encoding="utf-8")
+            fixes.append(finding(rule, rel, 0, fix.get("message") or what))
+    return fixes, problems
+
+
+def format_fix(f: dict) -> str:
+    """自動で直したことの1行。指摘（ルールIDで始まる行）と見分けられるよう「整形」で始める。"""
+    return f"整形 {f['rule']} {f['path']} {f['message']}"
+
+
+def record_fixes(state: dict, fixes: list[dict]) -> None:
+    done = state.setdefault("formatted", [])
+    for f in fixes:
+        item = f"{f['rule']} {f['path']}"
+        if item not in done:
+            done.append(item)
+
+
+def selected_lines(spec, count: int) -> list[int]:
+    if spec in (None, "all"):
+        return list(range(1, count + 1))
+    if spec == "first":
+        return [1] if count else []
+    return [n for n in spec if 1 <= n <= count]
+
+
+def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, values: dict | None = None,
+               edit: bool = False) -> list[dict]:
+    """出力ファイル1つを、契約の checks で検査する。edit（編集の直後の検査）では stage: finish の検査を飛ばす。"""
+    path = root / rel
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return [finding(out.get("rule", "OUT"), rel, 0, "UTF-8 のテキストとして読めません")]
+    lines = text.splitlines()
+    findings = []
+    pattern = out.get("name_pattern")
+    if pattern and not re.search(pattern, Path(rel).name):
+        findings.append(finding(out.get("rule", "OUT"), rel, 0, f"ファイル名が /{pattern}/ に一致しません"))
+    for check in out.get("checks", []):
+        if edit and check.get("stage") == "finish":
+            continue
+        rule, kind = check["rule"], check["type"]
+        message = check.get("message", "")
+        suffix = f"（{message}）" if message else ""
+        if kind == "headings":
+            level = check.get("level")
+            found = [(n, t) for n, lv, t in headings(lines) if level is None or lv == level]
+            titles = [t for _, t in found]
+            if "equals" in check and titles != check["equals"]:
+                findings.append(finding(rule, rel, found[0][0] if found else 0,
+                                        f"見出し（レベル {level}）が {check['equals']} と一致しません。今: {titles}{suffix}"))
+            if "includes" in check:
+                it = iter(titles)
+                if not all(any(t == want for t in it) for want in check["includes"]):
+                    findings.append(finding(rule, rel, 0, f"見出し {check['includes']} がこの順で揃っていません。今: {titles}{suffix}"))
+        elif kind in ("require", "forbid"):
+            source = IN_PLACEHOLDER.sub(lambda m: re.escape(str((values or {}).get(m.group(1), ""))), check["pattern"])
+            regex = re.compile(source, re.M)
+            mask = code_mask(lines) if check.get("ignore_code") else [False] * len(lines)
+            scope = set(selected_lines(check.get("lines"), len(lines)))
+            hits = [i + 1 for i, line in enumerate(lines) if i + 1 in scope and not mask[i] and regex.search(line)]
+            if check.get("multiline"):
+                body = "\n".join("" if mask[i] else line for i, line in enumerate(lines))
+                hits = [body[:m.start()].count("\n") + 1 for m in regex.finditer(body)]
+            if kind == "forbid":
+                for n in hits:
+                    findings.append(finding(rule, rel, n, f"/{check['pattern']}/ は使えません{suffix}: {lines[n - 1].strip()[:80]}"))
+            else:
+                low, high = check.get("min", 1), check.get("max")
+                if len(hits) < low or (high is not None and len(hits) > high):
+                    span = f"{low} 回以上" + (f" {high} 回以下" if high is not None else "")
+                    findings.append(finding(rule, rel, 0, f"/{check['pattern']}/ が {span} 必要です（今 {len(hits)} 回）{suffix}"))
+        elif kind == "max_lines" and len(lines) > check["value"]:
+            findings.append(finding(rule, rel, check["value"] + 1, f"{check['value']} 行以下にしてください（今 {len(lines)} 行）{suffix}"))
+        elif kind == "min_lines" and len(lines) < check["value"]:
+            findings.append(finding(rule, rel, 0, f"{check['value']} 行以上必要です（今 {len(lines)} 行）{suffix}"))
+        elif kind == "line_length":
+            for n in selected_lines(check.get("lines"), len(lines)):
+                width = len(lines[n - 1])
+                if width > check["max"]:
+                    findings.append(finding(rule, rel, n, f"1行は {check['max']} 文字以下にしてください（今 {width} 文字）{suffix}"))
+        elif kind == "json_schema":
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError as exc:
+                findings.append(finding(rule, rel, exc.lineno, f"JSON として読めません: {exc.msg}"))
+                continue
+            for error in schema_errors(data, check["schema"]):
+                findings.append(finding(rule, rel, 0, error + suffix))
+        elif kind == "front_matter":
+            keys = front_matter(lines)
+            if keys is None:
+                findings.append(finding(rule, rel, 1, f"先頭に --- で囲んだ front matter が必要です{suffix}"))
+            else:
+                for key in check.get("required_keys", []):
+                    if not keys.get(key):
+                        findings.append(finding(rule, rel, 1, f"front matter に {key} がありません{suffix}"))
+        elif kind == "command":
+            command = fill_command(check["run"], root, name, skill_dir, values, rel)
+            code, output = run_shell(command, root, int(check.get("timeout", 60)))
+            if code != 0:
+                passed = [l for l in output.splitlines() if re.match(r"^[A-Z]{2,6}-\d{2,3}\s", l)]
+                if passed:
+                    findings += [{"rule": l.split()[0], "path": rel, "line": 0, "message": l, "raw": True} for l in passed]
+                else:
+                    findings.append(finding(rule, rel, 0, f"検査コマンドが失敗しました{suffix}: {tail(output, 5)}"))
+    return findings
+
+
+def check_outputs(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
+                  only: str | None = None, fixes: list | None = None) -> tuple[list[dict], dict]:
+    """契約の出力を、format で直してから検査する。only を渡すとそのファイルだけを検査し、件数と改ざんは見ない。
+    戻り値は（指摘の一覧, 出力ID → 変わったファイルの一覧）。直したものは fixes に足す。"""
+    fixes = [] if fixes is None else fixes
+    name = state["skill"]
+    values = state.get("input", {})
+    baseline = state.get("baseline", {})
+    findings, changed_by_output, matched = [], {}, False
+    for out in contract.get("outputs", []):
+        pattern = expand(out["path"], name, values)
+        rule = out.get("rule", "OUT")
+        if only is not None:
+            if glob_to_regex(pattern).match(only) and (root / only).is_file():
+                fixed, problems = format_file(root, only, out, name, skill_dir, values)
+                fixes += fixed
+                findings += problems + check_file(root, only, out, name, skill_dir, values, edit=True)
+                matched = True
+            continue
+        changed = [rel for rel in iter_glob(root, pattern) if baseline.get(rel) != sha256(root / rel)]
+        changed_by_output[out["id"]] = changed
+        count = out.get("count", {})
+        low = count.get("min", 1 if out.get("required", True) else 0)
+        high = count.get("max")
+        if len(changed) < low:
+            findings.append(finding(rule, pattern, 0, f"出力 {out['id']}（{out.get('label', '')}）を {low} 件以上作ってください（今 {len(changed)} 件）"))
+        if high is not None and len(changed) > high:
+            findings.append(finding(rule, pattern, 0, f"出力 {out['id']} は {high} 件以下です（今 {len(changed)} 件: {', '.join(changed[:5])}）"))
+        for rel in changed:
+            fixed, problems = format_file(root, rel, out, name, skill_dir, values)
+            fixes += fixed
+            findings += problems + check_file(root, rel, out, name, skill_dir, values)
+    if only is None:
+        for group in contract.get("together", []):
+            ids = group.get("outputs", [])
+            touched = [i for i in ids if changed_by_output.get(i)]
+            if touched and len(touched) < len(ids):
+                missing = [i for i in ids if i not in touched]
+                note = f"（{group['message']}）" if group.get("message") else ""
+                findings.append(finding(group.get("rule", "OUT"), ", ".join(missing), 0,
+                                        f"出力 {', '.join(touched)} を変えたので、{', '.join(missing)} も一緒に変えてください{note}"))
+        findings += tamper_findings(root, state, contract, skill_dir)
+        findings += scope_findings(root, state, contract, skill_dir)
+        findings += notes_findings(root, name, contract)
+    elif only == notes_rel(name):
+        findings += notes_findings(root, name, contract)
+    elif not matched:
+        findings += scope_findings(root, state, contract, skill_dir, only=only)
+    return findings, changed_by_output
+
+
+def notes_rel(name: str) -> str:
+    """決めきれなかったことを AI が書くファイル。finish が報告の「## 補足」に入れる（RPT-01）。"""
+    return f"{run_rel(name)}/notes.md"
+
+
+def read_notes(root: Path, name: str) -> list[str]:
+    path = root / notes_rel(name)
+    if not path.is_file():
+        return []
+    return [line.rstrip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def notes_findings(root: Path, name: str, contract: dict) -> list[dict]:
+    """notes.md は「- 」で始まる箇条書きだけで、MAX_NOTES 項目まで。自由な文や見出しを報告に混ぜない。"""
+    rule = contract.get("report", {}).get("rule", "RPT")
+    rel = notes_rel(name)
+    if not (root / rel).is_file():
+        return []
+    try:
+        lines = (root / rel).read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError:
+        return [finding(rule, rel, 0, "UTF-8 のテキストとして読めません")]
+    result = [finding(rule, rel, n, f"補足は「- 」で始まる箇条書きの行だけにしてください: {line.strip()[:60]}")
+              for n, line in enumerate(lines, 1) if line.strip() and not re.match(r"^- \S", line)]
+    items = sum(1 for line in lines if line.strip())
+    if items > MAX_NOTES:
+        result.append(finding(rule, rel, 0, f"補足は {MAX_NOTES} 項目以下にしてください（今 {items} 項目）"))
+    return result
+
+
+def fill_command(template: str, root: Path, name: str, skill_dir: Path, values: dict | None, rel: str | None = None) -> str:
+    """契約のコマンドの {file}・{skill}・{root}・{run}・{in:キー} を、シェルで安全な形に置き換える。"""
+    command = (template.replace("{skill}", shell_quote(str(skill_dir))).replace("{root}", shell_quote(str(root)))
+               .replace("{run}", shell_quote(run_rel(name))))
+    if rel is not None:
+        command = command.replace("{file}", shell_quote(rel))
+    return IN_PLACEHOLDER.sub(lambda m: shell_quote(str((values or {}).get(m.group(1), ""))), command)
+
+
+def report_sections(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
+                    stage: str = "finish") -> tuple[list[str], list[dict]]:
+    """契約の report.sections のコマンドを実行し、その出力（Markdown の節）を返す。失敗は指摘にする。
+    stage: finish の節（封印のように、終えるときだけ行うもの）は、check からは実行しない。"""
+    rule = contract.get("report", {}).get("rule", "RPT")
+    texts, findings = [], []
+    for i, section in enumerate(contract.get("report", {}).get("sections", []), 1):
+        if section.get("stage") == "finish" and stage != "finish":
+            continue
+        command = fill_command(section["run"], root, state["skill"], skill_dir, state.get("input", {}))
+        code, output = run_shell(command, root, int(section.get("timeout", 120)))
+        if code != 0:
+            findings.append(finding(rule, f"report.sections[{i}]", 0, f"報告の節を作るコマンドが失敗しました: {tail(output, 5)}"))
+        else:
+            texts.append(output.strip())
+    return texts, findings
+
+
+def worktree(root: Path) -> dict | None:
+    """git が変更・未追跡と見なすファイルとそのハッシュ。git が使えないときは None（CTL-05 の検査をしない）。"""
+    try:
+        proc = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"], cwd=root,
+                              capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    files, entries, i = {}, proc.stdout.split("\0"), 0
+    while i < len(entries):
+        entry, i = entries[i], i + 1
+        if len(entry) < 4:
+            continue
+        if entry[0] in "RC":
+            i += 1  # 移動・複写の元のパスを読み飛ばす
+        rel = entry[3:]
+        files[rel] = sha256(root / rel) if (root / rel).is_file() else "missing"
+    return files
+
+
+def scope_findings(root: Path, state: dict, contract: dict, skill_dir: Path, only: str | None = None) -> list[dict]:
+    """契約の出力と allow_changes の外で、start の後に変わったファイル。"""
+    control = contract.get("control", {})
+    rule = control.get("scope_rule")
+    if not rule or state.get("worktree") is None:
+        return []
+    name, values = state["skill"], state.get("input", {})
+    allowed = [expand(o["path"], name, values) for o in contract.get("outputs", [])]
+    allowed += [expand(g, name, values) for g in control.get("allow_changes", [])] + [f"{RUNS_DIRNAME}/**"]
+    if only is not None:
+        path = root / only
+        ignored = subprocess.run(["git", "check-ignore", "-q", "--", only], cwd=root, capture_output=True).returncode == 0
+        current = {} if ignored else {only: sha256(path) if path.is_file() else "missing"}  # 全体の検査と同じく無視されたファイルは見ない
+    else:
+        current = worktree(root) or {}
+    before = state["worktree"]
+    inside = skill_dir.resolve()
+    stray = []
+    for rel, digest in sorted(current.items()):
+        if before.get(rel) == digest or matches_any(rel, allowed):
+            continue
+        if (root / rel).resolve() == inside or inside in (root / rel).resolve().parents:
+            continue  # スキル自身の変更は CTL-02 が扱う
+        stray.append(finding(rule, rel, 0, "契約の出力に無いファイルを変えています。元に戻すか削除してください"))
+    return stray
+
+
+def hook_registrations(root: Path, name: str) -> list[str]:
+    """プロジェクトに登録された、このスキルの hook.py を呼ぶ項目（「platform event matcher command」の並び）。"""
+    result = []
+    for platform, rel in HOOK_CONFIGS.items():
+        try:
+            data = load_json(root / rel)
+        except (OSError, ValueError):
+            continue
+        events = data.get("hooks", {}) if isinstance(data, dict) else {}
+        for event, groups in (events.items() if isinstance(events, dict) else []):
+            for group in groups if isinstance(groups, list) else []:
+                if not isinstance(group, dict):
+                    continue
+                for handler in group.get("hooks", []) if isinstance(group.get("hooks"), list) else []:
+                    command = str(handler.get("command", "")) if isinstance(handler, dict) else ""
+                    if f"/{name}/scripts/hook.py" in command:
+                        result.append(f"{platform} {event} {group.get('matcher') or '-'} {command}")
+    return sorted(result)
+
+
+def tamper_findings(root: Path, state: dict, contract: dict, skill_dir: Path) -> list[dict]:
+    rule = contract.get("control", {}).get("tamper_rule", "CTL")
+    before = state.get("protected", {})
+    after = protected_hashes(skill_dir, contract)
+    result = []
+    for rel in sorted(set(before) | set(after)):
+        if before.get(rel) != after.get(rel):
+            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0,
+                                  "スキル自身のファイル（保護対象）が実行中に変わりました。元に戻してください"))
+    if "hooks" in state:
+        current = set(hook_registrations(root, state["skill"]))
+        for entry in state["hooks"]:
+            if entry not in current:
+                platform = entry.split(" ", 1)[0]
+                result.append(finding(rule, HOOK_CONFIGS.get(platform, platform), 0,
+                                      f"このスキルの hooks の登録が実行中に外されたか変えられました（{entry}）。元に戻してください"))
+    return result
+
+
+# ---------------------------------------------------------------- 外部コマンド
+
+def shell_quote(text: str) -> str:
+    if os.name == "nt":
+        return '"' + text.replace('"', '\\"') + '"'
+    return "'" + text.replace("'", "'\"'\"'") + "'"
+
+
+def run_shell(command: str, cwd: Path, timeout: int) -> tuple[int, str]:
+    try:
+        proc = subprocess.run(command, cwd=cwd, shell=True, capture_output=True, text=True, timeout=timeout)
+        return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+    except subprocess.TimeoutExpired:
+        return 124, f"[timeout] {timeout} 秒で打ち切りました"
+
+
+def tail(text: str, lines: int = 20) -> str:
+    return "\n".join(text.rstrip().splitlines()[-lines:])
+
+
+def emit(text: str, stream=None) -> None:
+    (stream or sys.stdout).write(text if text.endswith("\n") else text + "\n")
+
+=== .claude/skills/write-commit-message/scripts/check_message.py
+#!/usr/bin/env python3
+"""コミットメッセージの本文を、ステージした変更と照らして検査する（契約の command 検査から呼ぶ）。
+
+この検査が守らせる決定: OUT-02（ステージしたファイル1つにつき1行の「- <パス>: <説明>」）、
+OUT-03（1行目の文末を本文の行で最も多い文末にする）、OUT-04（行の順とパスの表記を collect_changes.py に合わせる）。
+
+出力（標準出力）: 指摘1件につき「<ルールID> <行>行目: <説明>」の1行。指摘が無ければ何も出さない。
+
+終了コード:
+  0 指摘なし
+  1 指摘あり
+  2 使い方の誤り、または git の実行の失敗
+
+使い方:
+  python3 <skill>/scripts/check_message.py <メッセージのファイル> [--root <リポジトリのルート>] [--rule OUT-02]
+  --rule を付けると、そのルールIDの指摘だけを出す（契約では OUT-02、OUT-03、OUT-04 ごとに1つの検査にする）
+"""
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _changes  # noqa: E402
+
+SEPARATORS = (": ", "：", ":")
+
+
+def normalize(path):
+    path = path.strip().strip("`\"'").strip()
+    path = path.replace(" → ", " -> ")
+    parts = [p[2:] if p.startswith("./") else p for p in path.split(" -> ")]
+    return " -> ".join(parts)
+
+
+def parse_bullet(line, displays):
+    """(表記どおりのパス, 書かれたパス, 説明) を返す。パスが分からなければ表記どおりのパスは None。"""
+    rest = line[2:]
+    for display in displays:
+        if rest.startswith(display + ": "):
+            return display, display, rest[len(display) + 2:]
+    for sep in SEPARATORS:
+        if sep in rest:
+            written, desc = rest.split(sep, 1)
+            break
+    else:
+        written, desc = rest, ""
+    norm = normalize(written)
+    for display in displays:
+        if norm == display:
+            return display, written, desc.strip()
+    return None, written, desc.strip()
+
+
+def ending(text):
+    for verb in _changes.VERBS:
+        if text.endswith(verb):
+            return verb
+    return None
+
+
+def check(lines, changes):
+    findings = []
+    displays = [c["display"] for c in changes]
+    seen = []
+    endings = []
+    for index, line in enumerate(lines[2:], start=3):
+        if line.strip() == "":
+            findings.append(("OUT-02", index, "本文に空行を入れない。本文はステージしたファイル1つにつき1行の「- <パス>: <説明>」だけにする"))
+            continue
+        if not line.startswith("- "):
+            findings.append(("OUT-02", index, "本文の行は「- <パス>: <説明>」の形にする（段落、見出し、トレーラーを書かない）"))
+            continue
+        display, written, desc = parse_bullet(line, displays)
+        if display is None:
+            findings.append(("OUT-02", index, "ステージしていないファイルの行がある: {}".format(written)))
+            continue
+        if display in seen:
+            findings.append(("OUT-02", index, "同じファイルの行が2つある: {}".format(display)))
+            continue
+        if desc == "":
+            findings.append(("OUT-02", index, "説明が無い: {}".format(display)))
+        if written != display:
+            findings.append(("OUT-04", index, "パスは collect_changes.py の行頭のとおり「{}」と書く（書いた表記: {}）".format(display, written)))
+        seen.append(display)
+        verb = ending(desc)
+        if verb:
+            endings.append(verb)
+    for display in displays:
+        if display not in seen:
+            findings.append(("OUT-02", len(lines) + 1, "ステージしたファイルの行が無い: {}".format(display)))
+    expected = [d for d in displays if d in seen]
+    if seen != expected:
+        findings.append(("OUT-04", 3, "本文の行の順を collect_changes.py の順にする: {}".format("、".join(expected))))
+    if endings and lines:
+        counts = {verb: endings.count(verb) for verb in _changes.VERBS}
+        top = max(counts.values())
+        majority = next(verb for verb in _changes.VERBS if counts[verb] == top)
+        first = ending(lines[0])
+        if first is not None and first != majority:
+            findings.append(("OUT-03", 1, "1行目の文末は、本文の行で最も多い文末「{}」にする（同数なら 追加する、修正する、削除する、変更する の順で先のもの）".format(majority)))
+    return findings
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("message", help="コミットメッセージのファイル")
+    parser.add_argument("--root", default=".", help="リポジトリのルート（既定: 作業ディレクトリ）")
+    parser.add_argument("--rule", action="append", choices=["OUT-02", "OUT-03", "OUT-04"],
+                        help="このルールIDの指摘だけを出す（複数可。既定: すべて）")
+    args = parser.parse_args(argv)
+    rules = set(args.rule or ["OUT-02", "OUT-03", "OUT-04"])
+
+    try:
+        with open(args.message, encoding="utf-8") as fh:
+            lines = fh.read().split("\n")
+    except OSError as exc:
+        print("メッセージのファイルを読めない: {}".format(exc), file=sys.stderr)
+        return 2
+    if lines and lines[-1] == "":
+        lines.pop()
+    try:
+        changes = _changes.staged_changes(args.root)
+    except _changes.GitError as exc:
+        print("git の実行に失敗した: {}".format(exc), file=sys.stderr)
+        return 2
+    if not changes:
+        if "OUT-02" not in rules:
+            return 0
+        print("OUT-02 1行目: ステージした変更が無い。IN-01 に従い、書かずに中断する")
+        return 1
+    findings = [f for f in check(lines, changes) if f[0] in rules]
+    for rule, line, text in findings:
+        print("{} {}行目: {}".format(rule, line, text))
+    return 1 if findings else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .claude/skills/write-commit-message/scripts/collect_changes.py
+#!/usr/bin/env python3
+"""ステージした変更を集め、コミットメッセージの本文の行頭と、差分の読み方を出す。
+
+この出力を使う決定: IN-01（中断する状況の判定）、IN-02（差分の読み方）、STEP-02（一覧と順序をスクリプトに任せる）、
+OUT-02（本文の行頭）、OUT-04（行の順とパスの表記）。
+
+出力（標準出力）:
+  チケットID: <ID>
+  変更ファイル数: <N>
+  ## 本文の行頭 … この順で1ファイル1行。「- <パス>: 」の後に説明を書く
+  ## 差分の読み方 … ファイルごとの変更の種類、行数、読むコマンド（IN-02 の表で決めたもの）
+  中断するときは「中断の理由: <理由>」の1行だけを出す
+
+終了コード:
+  0 成功
+  2 使い方の誤り
+  4 中断する状況（git のリポジトリでない、チケットIDの形が違う、ステージした変更が無い、未マージのファイルがある）
+
+使い方:
+  python3 <skill>/scripts/collect_changes.py --ticket ABC-123 [--root <リポジトリのルート>]
+"""
+import argparse
+import os
+import shlex
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _changes  # noqa: E402
+
+
+def abort(reason):
+    print("中断の理由: {}".format(reason))
+    return 4
+
+
+def read_plan(change):
+    """IN-02 の表: バイナリは読まない。追加と削除の合計が 500 以下なら全体を読む。それ以外は読まない。"""
+    if change["added"] is None or change["deleted"] is None:
+        return "バイナリ", "読まない（変更の種類だけで説明を書く）"
+    total = change["added"] + change["deleted"]
+    lines = "+{} -{}".format(change["added"], change["deleted"])
+    if total <= _changes.FULL_DIFF_MAX:
+        paths = [change["old"], change["path"]] if change["old"] else [change["path"]]
+        cmd = "git diff --cached -M -- " + " ".join(shlex.quote(p) for p in paths)
+        return lines, "`{}`".format(cmd)
+    return lines, "読まない（501 行以上。変更の種類と行数だけで説明を書く）"
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--ticket", required=True, help="1行目の先頭に付けるチケットID（例: ABC-123）")
+    parser.add_argument("--root", default=".", help="リポジトリのルート（既定: 作業ディレクトリ）")
+    args = parser.parse_args(argv)
+
+    ticket = args.ticket.strip().upper()
+    if not _changes.is_repo(args.root):
+        return abort("git のリポジトリでない")
+    if not _changes.TICKET_RE.fullmatch(ticket):
+        return abort("チケットIDの形が違う")
+    try:
+        changes = _changes.staged_changes(args.root)
+    except _changes.GitError as exc:
+        print("git の実行に失敗した: {}".format(exc), file=sys.stderr)
+        return 2
+    if not changes:
+        return abort("ステージした変更が無い")
+    if any(c["status"] == "U" for c in changes):
+        return abort("未マージのファイルがある")
+
+    print("チケットID: {}".format(ticket))
+    print("変更ファイル数: {}".format(len(changes)))
+    print()
+    print("## 本文の行頭（この順で1ファイル1行。「: 」の後に説明を書く）")
+    print()
+    for change in changes:
+        print("- {}: ".format(change["display"]))
+    print()
+    print("## 差分の読み方（IN-02）")
+    print()
+    for change in changes:
+        label = _changes.STATUS_LABELS.get(change["status"], "不明")
+        lines, how = read_plan(change)
+        print("- {}: {}（{}）、{}、{}".format(change["display"], change["status"], label, lines, how))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .claude/skills/write-commit-message/scripts/hook.py
+#!/usr/bin/env python3
+"""Claude Code と Codex の hooks から呼ばれ、実行中のスキルの出力を検査する。skill-foundation の共通ランタイム。
+
+このスキルの実行記録（.skill-runs/<name>/state.json）が status: active のときだけ働く。実行していない
+セッションでは、封印したスキル（assets/seal.json がある）の保護ファイルの編集に Claude Code で確認を求める
+ことだけをする（入力側＝ユーザーの操作は妨げない。縛るのは AI の出力だけ）。
+
+  pre-tool   編集の前: スキル自身の保護ファイルと実行記録への直接の編集を止める
+  post-tool  編集の後: 契約の出力に当たるファイルを format で直し、検査し、指摘を AI に返す
+  stop       応答を終える前: 出力全体を検査し、通っていなければ終わらせずに直させる（回数に上限あり）
+  prompt     ユーザーの発言: 質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない
+
+製品ごとの違い（stdin の形、編集ツールの名前、返し方）はここで吸収する。
+  Claude Code: 編集は Edit/Write/MultiEdit/NotebookEdit の tool_input.file_path。止めるのは permissionDecision
+  Codex      : 編集は apply_patch の tool_input.command（パッチ本文）。ask は使えないので deny
+
+使い方（設定ファイルから呼ぶ）:
+  python3 <skill>/scripts/hook.py --platform claude|codex pre-tool|post-tool|stop|prompt
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _skillrt as rt  # noqa: E402
+
+PATCH_FILE = re.compile(r"^\*\*\* (?:Add File|Update File|Delete File|Move to):\s*(.+?)\s*$", re.M)
+EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
+
+
+def read_event() -> dict:
+    try:
+        data = json.loads(sys.stdin.read() or "{}")
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+
+
+def detect_platform(event: dict) -> str:
+    if "turn_id" in event or event.get("tool_name") == "apply_patch":
+        return "codex"
+    return "claude"
+
+
+def edited_paths(event: dict, base: Path) -> list[Path]:
+    """ツール呼び出しが書き換えるファイルの絶対パス。Codex の apply_patch はパッチ本文から読む。"""
+    if event.get("tool_name") not in EDIT_TOOLS:
+        return []
+    tool_input = event.get("tool_input") or {}
+    raw = []
+    if isinstance(tool_input, dict):
+        for key in ("file_path", "notebook_path", "path"):
+            if tool_input.get(key):
+                raw.append(str(tool_input[key]))
+        if event.get("tool_name") == "apply_patch":
+            raw += PATCH_FILE.findall(str(tool_input.get("command") or tool_input.get("patch") or tool_input.get("input") or ""))
+    elif isinstance(tool_input, str):
+        raw += PATCH_FILE.findall(tool_input)
+    paths = []
+    for item in raw:
+        path = Path(item)
+        paths.append((path if path.is_absolute() else base / path).resolve())
+    return paths
+
+
+def relative(path: Path, base: Path) -> str | None:
+    try:
+        return path.relative_to(base.resolve()).as_posix()
+    except ValueError:
+        return None
+
+
+def deny(platform: str, reason: str) -> int:
+    decision = "ask" if platform == "claude" else "deny"  # Claude Code は人に判断を委ねる。Codex は ask が無い
+    rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision,
+                                               "permissionDecisionReason": reason}}, ensure_ascii=False))
+    return 0
+
+
+def feedback(reason: str) -> int:
+    rt.emit(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
+    return 0
+
+
+def pre_tool(event: dict, platform: str, root: Path, state: dict, contract: dict) -> int:
+    name = state["skill"]
+    globs = contract.get("control", {}).get("protected", [])
+    for path in edited_paths(event, Path(event.get("cwd") or root)):
+        in_skill = relative(path, rt.SKILL_DIR)
+        if in_skill is not None and rt.matches_any(in_skill, globs):
+            return deny(platform, f"{name} の実行中は、スキル自身のファイル（{in_skill}）を変えられません。"
+                                  "出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、"
+                                  f"`python3 {rt.SKILL_DIR}/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の"
+                                  "変え方で変更します。")
+        in_root = relative(path, root)
+        if in_root is not None and in_root.startswith(rt.run_rel(name) + "/") and \
+                Path(in_root).name in ("state.json", "report.md"):
+            rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                                       "permissionDecisionReason": f"{in_root} は run.py だけが書きます。手で編集しないでください。"}},
+                               ensure_ascii=False))
+            return 0
+    return 0
+
+
+def sealed_pre_tool(event: dict, platform: str, contract: dict, name: str) -> int:
+    """実行していないときの pre-tool。封印したスキルの保護ファイルの編集に、Claude Code で確認を求める（CTL-04）。
+    Codex には確認が無く、拒否すると利用者の保守も止まるので何もしない。次の start が封印との違いで止める（CTL-02）。"""
+    if platform != "claude" or not (rt.SKILL_DIR / rt.SEAL_REL).is_file():
+        return 0
+    globs = contract.get("control", {}).get("protected", [])
+    for path in edited_paths(event, Path(event.get("cwd") or os.getcwd())):
+        in_skill = relative(path, rt.SKILL_DIR)
+        if in_skill is not None and rt.matches_any(in_skill, globs):
+            return deny(platform, f"{name} は封印したスキルです（{rt.SEAL_REL}）。{in_skill} を変えると、封印し直すまで "
+                                  f"{name} の start が止まります。変えるなら SKILL.md の「8. 制御の仕組み」の変え方に従ってください。")
+    return 0
+
+
+def post_tool(event: dict, root: Path, state: dict, contract: dict) -> int:
+    findings, fixes = [], []
+    for path in edited_paths(event, Path(event.get("cwd") or root)):
+        rel = relative(path, root)
+        if rel is None or not path.is_file():
+            continue
+        found, _ = rt.check_outputs(root, state, contract, only=rel, fixes=fixes)
+        findings += found
+    if fixes:
+        rt.record_fixes(state, fixes)
+        rt.save_state(root, state)
+    if not findings and not fixes:
+        return 0
+    lines = [rt.format_fix(f) for f in fixes] + [f["message"] if f.get("raw") else rt.format_finding(f) for f in findings]
+    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください"
+            "（検査や契約を変えて通さない）" if findings else
+            f"{state['skill']} の出力を契約の format で自動で直しました。編集を続ける前にファイルを読み直してください")
+    return feedback(head + ":\n" + "\n".join(lines))
+
+
+def stop(event: dict, root: Path, state: dict, contract: dict) -> int:
+    name = state["skill"]
+    if event.get("background_tasks"):
+        return 0  # バックグラウンドの作業を待って応答を終えるときは止めない（終われば再開される）
+    limit = int(contract.get("control", {}).get("max_stop_blocks", 3))
+    fixes: list = []
+    findings, _ = rt.check_outputs(root, state, contract, fixes=fixes)
+    rt.record_fixes(state, fixes)
+    run_py = f"python3 {rt.SKILL_DIR}/scripts/run.py"
+    if not findings:
+        reason = (f"{name} の出力は検査に通っています。`{run_py} finish` を実行し、その本文で最終の返答をしてください。")
+    else:
+        lines = [f["message"] if f.get("raw") else rt.format_finding(f) for f in findings]
+        reason = (f"{name} の出力に、まだ指摘が {len(findings)} 件あります。直してから `{run_py} finish` を実行してください。"
+                  f"ユーザーに質問が必要なら、先に `{run_py} wait --question <質問>` を実行してから質問してください。\n"
+                  + "\n".join(lines[:30]))
+    if state.get("stop_blocks", 0) >= limit:
+        state["status"] = "failed"
+        rt.log_event(state, "stop-released", f"{len(findings)} 件")
+        rt.save_state(root, state)
+        rt.emit(json.dumps({"systemMessage": f"{name}: 検査を通らないまま終了しました（終了の差し戻し {limit} 回で打ち切り）。"
+                                             f"指摘 {len(findings)} 件。.skill-runs/{name}/state.json を確認してください。"},
+                           ensure_ascii=False))
+        return 0
+    state["stop_blocks"] = state.get("stop_blocks", 0) + 1
+    rt.log_event(state, "stop-blocked", f"{len(findings)} 件")
+    rt.save_state(root, state)
+    return feedback(reason)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--platform", choices=["claude", "codex"])
+    parser.add_argument("event", choices=["pre-tool", "post-tool", "stop", "prompt"])
+    args = parser.parse_args()
+    event = read_event()
+    platform = args.platform or detect_platform(event)
+    base = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    root = rt.project_root(Path(base))
+    try:
+        contract = rt.load_contract()
+    except (OSError, json.JSONDecodeError):
+        return 0  # 契約が読めないときは何もしない（hooks の失敗で利用者の作業を止めない）
+    name = contract.get("skill") or rt.SKILL_DIR.name
+    state = rt.load_state(root, name)
+    if args.event == "pre-tool" and (state is None or state.get("status") not in rt.ENFORCING):
+        return sealed_pre_tool(event, platform, contract, name)
+    if state is None:
+        return 0
+    if args.event == "prompt":
+        if state.get("status") == "waiting":
+            state["status"] = "active"
+            rt.log_event(state, "resume", "user-prompt")
+            rt.save_state(root, state)
+        return 0
+    if state.get("status") not in rt.ENFORCING:
+        return 0
+    if args.event == "pre-tool":
+        return pre_tool(event, platform, root, state, contract)
+    if args.event == "post-tool":
+        return post_tool(event, root, state, contract)
+    return stop(event, root, state, contract)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .claude/skills/write-commit-message/scripts/install.py
+#!/usr/bin/env python3
+"""このスキルを、Claude Code と Codex が見つける場所に置き、hooks を登録する。skill-foundation の共通ランタイム。
+
+置き場所（プロジェクトのルートからの相対パス）:
+  claude: .claude/skills/<name>   codex: .agents/skills/<name>
+スキルの本体（このファイルの2つ上のディレクトリ）がどちらかにあれば、もう一方は本体への相対リンクにする
+（--mode copy なら複製）。どちらにも無ければ、両方をリンクにする。
+
+hooks（スキルの contract.json の control.hooks が true のとき）:
+  Claude Code: .claude/settings.json の PreToolUse・PostToolUse（Edit|Write|MultiEdit|NotebookEdit）、Stop、UserPromptSubmit
+  Codex      : .codex/hooks.json の PreToolUse・PostToolUse（apply_patch）、Stop、UserPromptSubmit
+既にある設定は残し、このスキルの項目だけを足す（同じ項目があれば何もしない）。Codex は、足した hooks を
+利用者が `/hooks` で信頼するまで実行しない。
+
+使い方:
+  python3 <skill>/scripts/install.py --project <ルート> [--targets claude,codex] [--mode link|copy] [--no-hooks]
+  python3 <skill>/scripts/install.py --project <ルート> --check       # 置き場所と hooks が揃っているか
+  python3 <skill>/scripts/install.py --project <ルート> --uninstall   # このスキルの置き場所と hooks を外す
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _skillrt as rt  # noqa: E402
+
+PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}
+CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
+EVENTS = {
+    "claude": [("PreToolUse", "Edit|Write|MultiEdit|NotebookEdit", "pre-tool", 30),
+               ("PostToolUse", "Edit|Write|MultiEdit|NotebookEdit", "post-tool", 120),
+               ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
+    "codex": [("PreToolUse", "apply_patch", "pre-tool", 30), ("PostToolUse", "apply_patch", "post-tool", 120),
+              ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
+}
+
+
+def hook_command(platform: str, name: str, event: str) -> str:
+    if platform == "claude":
+        base = f'"$CLAUDE_PROJECT_DIR/{PLACES["claude"]}/{name}/scripts/hook.py"'
+    else:  # Codex には CLAUDE_PROJECT_DIR が無い。hook はセッションの作業ディレクトリで動く
+        base = f'"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/{PLACES["codex"]}/{name}/scripts/hook.py"'
+    return f"python3 {base} --platform {platform} {event}"
+
+
+def is_ours(handler: dict, name: str) -> bool:
+    return f"/{name}/scripts/hook.py" in str(handler.get("command", ""))
+
+
+def load_config(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8") or "{}")
+    except json.JSONDecodeError as exc:
+        rt.emit(f"ERROR {path} の JSON が不正です（{exc.lineno} 行目）。直してから実行してください", sys.stderr)
+        sys.exit(2)
+    return data if isinstance(data, dict) else {}
+
+
+def wanted_entries(platform: str, name: str) -> list[tuple[str, dict]]:
+    entries = []
+    for event, matcher, action, timeout in EVENTS[platform]:
+        group = {"hooks": [{"type": "command", "command": hook_command(platform, name, action), "timeout": timeout}]}
+        if matcher:
+            group = {"matcher": matcher, **group}
+        entries.append((event, group))
+    return entries
+
+
+def has_entry(groups: list, group: dict) -> bool:
+    return any(g.get("matcher") == group.get("matcher") and any(h == group["hooks"][0] for h in g.get("hooks", []))
+               for g in groups if isinstance(g, dict))
+
+
+def apply_hooks(root: Path, platform: str, name: str, remove: bool, dry: bool) -> list[str]:
+    path = root / CONFIGS[platform]
+    data = load_config(path)
+    hooks = data.setdefault("hooks", {})
+    changes = []
+    if remove:
+        for event, groups in list(hooks.items()):
+            kept = []
+            for group in groups if isinstance(groups, list) else []:
+                handlers = [h for h in group.get("hooks", []) if not is_ours(h, name)]
+                if len(handlers) != len(group.get("hooks", [])):
+                    changes.append(f"{CONFIGS[platform]}: {event} から {name} の hook を外す")
+                if handlers:
+                    kept.append({**group, "hooks": handlers})
+            if kept:
+                hooks[event] = kept
+            else:
+                hooks.pop(event)
+    else:
+        for event, group in wanted_entries(platform, name):
+            groups = hooks.setdefault(event, [])
+            if not has_entry(groups, group):
+                # 古い形の自分の項目は外してから足す（Codex の信頼は配列の位置に結び付くため、他人の項目は動かさない）
+                for g in groups:
+                    g["hooks"] = [h for h in g.get("hooks", []) if not is_ours(h, name)]
+                groups[:] = [g for g in groups if g.get("hooks")]
+                groups.append(group)
+                changes.append(f"{CONFIGS[platform]}: {event} に {name} の hook を足す")
+    if changes and not dry:
+        if not hooks:
+            data.pop("hooks", None)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return changes
+
+
+def place(root: Path, platform: str, name: str, mode: str, remove: bool, dry: bool) -> list[str]:
+    target = root / PLACES[platform] / name
+    body = rt.SKILL_DIR
+    if target.resolve() == body and not target.is_symlink():
+        return []  # 本体がここにある
+    changes = []
+    if remove:
+        if target.is_symlink() or target.exists():
+            changes.append(f"{target.relative_to(root)} を外す")
+            if not dry:
+                if target.is_symlink() or target.is_file():
+                    target.unlink()
+                else:
+                    shutil.rmtree(target)
+        return changes
+    if target.is_symlink() and target.resolve() == body and mode == "link":
+        return []
+    if target.exists() or target.is_symlink():
+        if target.is_symlink() or mode == "copy":
+            changes.append(f"{target.relative_to(root)} を置き直す")
+            if not dry:
+                if target.is_symlink() or target.is_file():
+                    target.unlink()
+                else:
+                    shutil.rmtree(target)
+        else:
+            rt.emit(f"ERROR {target} は本体ではないディレクトリとして既にあります。中身を確かめて、外してから実行してください", sys.stderr)
+            sys.exit(2)
+    changes.append(f"{target.relative_to(root)} を{'リンク' if mode == 'link' else '複製'}で置く")
+    if not dry:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if mode == "link":
+            target.symlink_to(os.path.relpath(body, target.parent), target_is_directory=True)
+        else:
+            shutil.copytree(body, target, ignore=shutil.ignore_patterns("__pycache__", ".skill-runs", "dev"))
+    return changes
+
+
+def check(root: Path, platforms: list[str], name: str, hooks_on: bool) -> list[str]:
+    problems = []
+    for platform in platforms:
+        target = root / PLACES[platform] / name
+        if not (target / "SKILL.md").is_file():
+            problems.append(f"{target.relative_to(root)}/SKILL.md がありません（{platform} がスキルを見つけられない）")
+        if hooks_on:
+            data = load_config(root / CONFIGS[platform])
+            for event, group in wanted_entries(platform, name):
+                if not has_entry(data.get("hooks", {}).get(event, []), group):
+                    problems.append(f"{CONFIGS[platform]} の {event} に {name} の hook がありません")
+    return problems
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--project", required=True, help="プロジェクトのルート")
+    parser.add_argument("--targets", default="claude,codex", help="カンマ区切り（claude、codex）")
+    parser.add_argument("--mode", choices=["link", "copy"], default="link")
+    parser.add_argument("--no-hooks", action="store_true", help="hooks を登録しない")
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--uninstall", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    root = Path(args.project).resolve()
+    contract = rt.load_contract()
+    name = contract.get("skill") or rt.SKILL_DIR.name
+    platforms = [p.strip() for p in args.targets.split(",") if p.strip()]
+    unknown = [p for p in platforms if p not in PLACES]
+    if unknown:
+        rt.emit(f"ERROR 未知の targets: {unknown}（claude、codex のどれか）", sys.stderr)
+        return 2
+    hooks_on = contract.get("control", {}).get("hooks", True) and not args.no_hooks
+    if args.check:
+        problems = check(root, platforms, name, hooks_on)
+        for problem in problems:
+            rt.emit(f"ERROR {problem}")
+        rt.emit(f"install --check: 問題 {len(problems)} 件")
+        return 1 if problems else 0
+    changes = []
+    for platform in platforms:
+        changes += place(root, platform, name, args.mode, args.uninstall, args.dry_run)
+        if hooks_on or args.uninstall:
+            changes += apply_hooks(root, platform, name, args.uninstall, args.dry_run)
+    for change in changes:
+        rt.emit(("予定  " if args.dry_run else "") + change)
+    rt.emit(f"install: 変更 {len(changes)} 件")
+    if "codex" in platforms and hooks_on and not args.uninstall and any(".codex/hooks.json" in c for c in changes):
+        rt.emit("注意: Codex は、足した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。"
+                "信頼するまでは run.py の check と finish だけで検査される")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .claude/skills/write-commit-message/scripts/run.py
+#!/usr/bin/env python3
+"""スキルの実行を始め、出力を検査し、終える。skill-foundation の共通ランタイム（スキルごとに書き換えない）。
+
+AI はスキルの手順の最初に start、出力を書いたら check、最後に finish を実行する。hooks が使える環境では、
+編集の直後と応答を終える前に、hook.py が同じ検査を自動で回す。
+
+  start   入力を正規化（表記ゆれ・全角・未知のキーを受け入れ、既定値で補う）し、実行記録を作る。
+          保護ファイルが封印（assets/seal.json）と違えば始めない（終了コード1）
+  check   契約（assets/contract.json）の format で出力を直してから検査する。--file でファイル1つだけ
+  finish  検査に通れば実行を終え、報告の本文を出す。通らなければ指摘を出して終わらない
+  wait    ユーザーへの質問を待つ間、hooks の強制を止める（返答の後に resume）
+  resume  wait を解く
+  abort   理由を付けて実行をやめ、中断の報告の本文を出す
+  status  実行記録を表示する
+
+終了コード: 0 成功、1 検査の指摘あり、2 使い方・状態の誤り、3 start の前にユーザーへの質問が必要
+
+使い方:
+  python3 <skill>/scripts/run.py start [--set key=value ...] [--input-json JSON] [--input-file F] [--restart] [依頼文...]
+  python3 <skill>/scripts/run.py check [--file 相対パス]
+  python3 <skill>/scripts/run.py finish
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _skillrt as rt  # noqa: E402
+
+
+def resolve_root(arg: str | None) -> Path:
+    return Path(arg).resolve() if arg else rt.project_root(Path.cwd())
+
+
+def require_state(root: Path, name: str) -> dict:
+    state = rt.load_state(root, name)
+    if state is None:
+        rt.emit(f"ERROR 実行記録がありません（{rt.state_path(root, name)}）。先に start を実行してください", sys.stderr)
+        sys.exit(2)
+    return state
+
+
+def parse_raw(args) -> tuple[dict, str]:
+    raw: dict = {}
+    text_parts = list(args.text or [])
+    if args.input_file:
+        content = Path(args.input_file).read_text(encoding="utf-8")
+        try:
+            loaded = json.loads(content)
+            if isinstance(loaded, dict):
+                raw.update(loaded)
+            else:
+                text_parts.append(content)
+        except json.JSONDecodeError:
+            text_parts.append(content)  # JSON でなければ自由記述として読む
+    if args.input_json:
+        try:
+            loaded = json.loads(args.input_json)
+            if isinstance(loaded, dict):
+                raw.update(loaded)
+            else:
+                text_parts.append(args.input_json)
+        except json.JSONDecodeError:
+            text_parts.append(args.input_json)
+    for item in args.set or []:
+        key, sep, value = item.partition("=")
+        if not sep:
+            key, sep, value = item.partition(":")
+        if sep:
+            raw[key.strip()] = value.strip()
+        else:
+            text_parts.append(item)
+    return raw, "\n".join(text_parts)
+
+
+def cmd_start(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    existing = rt.load_state(root, name)
+    if existing and existing.get("status") in ("active", "waiting") and not args.restart:
+        rt.emit(f"ERROR {name} の実行が続いています（status: {existing['status']}）。"
+                "続けるなら check / finish、最初からやり直すなら start --restart を実行してください", sys.stderr)
+        return 2
+    unsealed = rt.seal_findings(rt.SKILL_DIR, contract)
+    if unsealed:
+        # 実行していない間（hooks が止めない間）にスキル自身が変わった。変わったまま検査すると、緩んだ検査で通ってしまう
+        print_findings(unsealed)
+        rt.emit(f"ERROR {name} のファイルが封印（{rt.SEAL_REL}）と違うため、始めません。この出力をユーザーに伝えて止まってください。"
+                "スキルを変えたのが意図どおりなら、SKILL.md の「8. 制御の仕組み」の変え方で直し、封印し直します（CTL-02）")
+        return 1
+    raw, text = parse_raw(args)
+    normalized = rt.normalize_input(raw, text, contract)
+    if normalized["questions"]:
+        rt.emit("start の前にユーザーに聞くこと（聞いた答えを --set で渡して start をやり直す）:")
+        for q in normalized["questions"]:
+            rt.emit(f"  - {q}")
+        return 3
+    state = {
+        "runtime": rt.RUNTIME_VERSION, "skill": name, "status": "active", "started_at": rt.now(),
+        "root": str(root), "skill_dir": str(rt.SKILL_DIR), "input": normalized["values"],
+        "defaulted": normalized["defaulted"], "warnings": normalized["warnings"], "extra": normalized["extra"],
+        "text": normalized["text"], "baseline": rt.snapshot(root, contract, name, normalized["values"]),
+        "protected": rt.protected_hashes(rt.SKILL_DIR, contract), "hooks": rt.hook_registrations(root, name),
+        "stop_blocks": 0, "history": [], "restarts": 0, "previous": [],
+        "worktree": rt.worktree(root) if contract.get("control", {}).get("scope_rule") else None,
+    }
+    if existing and existing.get("status") in ("active", "waiting"):
+        # restart で基準を取り直すと、実行中の改ざんや契約の外の変更が消えるので、最初の start の記録を引き継ぐ（CTL-02、CTL-05）
+        for key in ("started_at", "protected", "hooks", "worktree", "stop_blocks", "history", "previous"):
+            if key in existing:
+                state[key] = existing[key]
+        state["baseline"] = {**state["baseline"], **existing.get("baseline", {})}
+        state["restarts"] = existing.get("restarts", 0) + 1
+    else:
+        # 実行と実行の間（hooks が働かない間）に変わった保護ファイルは、指摘にせず報告の「検証」に出す（CTL-02）
+        if existing and existing.get("protected"):
+            before, after = existing["protected"], state["protected"]
+            state["changed_since_last"] = sorted(r for r in set(before) | set(after) if before.get(r) != after.get(r))
+        if existing and existing.get("status") in ("aborted", "failed"):
+            # 中断や打ち切りの後に始め直しても、報告の「検証」に前の実行が残る
+            reason = existing.get("abort_reason") or "検査を通らないまま終了した（終了の差し戻しの上限）"
+            state["previous"] = existing.get("previous", []) + [{"status": existing["status"], "reason": reason,
+                                                                 "started_at": existing.get("started_at")}]
+    rt.log_event(state, "restart" if state["restarts"] else "start")
+    rt.save_state(root, state)
+    if args.json:
+        rt.emit(json.dumps({k: state[k] for k in ("skill", "root", "skill_dir", "input", "defaulted", "warnings", "extra")},
+                           ensure_ascii=False, indent=2))
+        return 0
+    labels = {s["key"]: s.get("label", s["key"]) for s in contract.get("inputs", [])}
+    rt.emit(f"{name} を始めました。実行記録: {rt.state_path(root, name).relative_to(root)}")
+    rt.emit(f"スキルのディレクトリ: {rt.SKILL_DIR}")
+    rt.emit("入力（正規化の後）:")
+    if not normalized["values"]:
+        rt.emit("  なし")
+    for key, value in normalized["values"].items():
+        mark = "（既定値）" if key in normalized["defaulted"] else ""
+        rt.emit(f"  {labels.get(key, key)}（{key}）= {json.dumps(value, ensure_ascii=False)}{mark}")
+    for warning in normalized["warnings"]:
+        rt.emit(f"  注意: {warning}")
+    if normalized["extra"]:
+        rt.emit(f"  契約に無いので使わない指定: {', '.join(normalized['extra'])}")
+    rt.emit("作る出力:")
+    for out in contract.get("outputs", []):
+        count = out.get("count", {})
+        rt.emit(f"  {out['id']} {out.get('label', '')}: {rt.expand(out['path'], name, normalized['values'])}"
+                f"（{count.get('min', 1 if out.get('required', True) else 0)}〜{count.get('max', '')} 件）")
+    rt.emit("次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する")
+    return 0
+
+
+def print_findings(findings: list[dict]) -> None:
+    for f in findings:
+        rt.emit(f["message"] if f.get("raw") else rt.format_finding(f))
+
+
+def cmd_check(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    state = require_state(root, name)
+    if state.get("status") == "waiting":
+        state["status"] = "active"
+        rt.log_event(state, "resume", "check")
+    only = Path(args.file).as_posix() if args.file else None
+    if only and Path(only).is_absolute():
+        only = Path(only).resolve().relative_to(root).as_posix()
+    fixes: list = []
+    findings, changed = rt.check_outputs(root, state, contract, only=only, fixes=fixes)
+    rt.record_fixes(state, fixes)
+    if not only and not findings:
+        _, findings = rt.report_sections(root, state, contract, stage="check")  # finish で落ちないよう、報告の節もここで作ってみる
+    rt.log_event(state, "check", f"{len(findings)} 件")
+    rt.save_state(root, state)
+    for f in fixes:
+        rt.emit(rt.format_fix(f))
+    print_findings(findings)
+    if not only:
+        for out_id, files in changed.items():
+            rt.emit(f"出力 {out_id}: {', '.join(files) if files else 'なし'}")
+    rt.emit(f"check: 指摘 {len(findings)} 件")
+    return 1 if findings else 0
+
+
+REPORT = {
+    "ja": {"result": "結果", "done": "{name}: 完了（検証に合格）", "outputs": "出力", "defaults": "既定値で決めた値",
+           "unread": "入力で読めなかった値", "checks": "検証", "none": "- なし", "passed": "- `run.py finish`: 指摘 0 件",
+           "no_scope": "- {rule}: git の作業ツリーが無いため、契約の外の変更を検査していない", "notes_head": "補足",
+           "notes": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。",
+           "aborted": "{name}: 中断（理由: {reason}）", "not_checked": "- 中断したため、検証していない",
+           "restarts": "- `run.py start --restart`: {n} 回（保護ファイル・hooks の登録・作業ツリーの記録は最初の start から引き継いだ）",
+           "previous": "- 前の実行: {status}（理由: {reason}）",
+           "changed_since_last": "- 前の実行の後に変わった保護ファイル: {files}（意図した変更かを確かめる）",
+           "formatted": "- 自動で直した（format）: {items}"},
+    "en": {"result": "Result", "done": "{name}: done (checks passed)", "outputs": "Outputs", "defaults": "Values decided by default",
+           "unread": "Inputs that could not be read", "checks": "Checks", "none": "- None", "passed": "- `run.py finish`: 0 findings",
+           "no_scope": "- {rule}: no git work tree, so changes outside the contract were not checked", "notes_head": "Notes",
+           "notes": "Reply with the text below unchanged. Do not add text before or after it, and do not summarize it.",
+           "aborted": "{name}: aborted (reason: {reason})", "not_checked": "- Not checked because the run was aborted",
+           "restarts": "- `run.py start --restart`: {n} time(s) (protected files, hook registrations and the work tree were carried over from the first start)",
+           "previous": "- Previous run: {status} (reason: {reason})",
+           "changed_since_last": "- Protected files changed since the previous run: {files} (confirm the change was intended)",
+           "formatted": "- Fixed automatically (format): {items}"},
+}
+
+
+def report_text(contract: dict) -> dict:
+    return REPORT.get(contract.get("language"), REPORT["ja"])
+
+
+def changed_outputs(root: Path, state: dict, contract: dict) -> dict:
+    """出力ID → start の後に変わったファイル。検査はしない（abort の報告で使う）。"""
+    values, baseline = state.get("input", {}), state.get("baseline", {})
+    return {out["id"]: [rel for rel in rt.iter_glob(root, rt.expand(out["path"], state["skill"], values))
+                        if baseline.get(rel) != rt.sha256(root / rel)] for out in contract.get("outputs", [])}
+
+
+def render_report(state: dict, contract: dict, changed: dict, sections: list[str], notes: list[str],
+                  aborted: str | None = None) -> str:
+    """報告の本文。結果 → 契約の report.sections の出力 → 出力 → 既定値 → 読めなかった値 → 検証 → 補足 の順に固定する。
+    aborted を渡すと中断の本文になる（結果の行と検証の行だけが変わる）。"""
+    t = report_text(contract)
+    labels = {s["key"]: s.get("label", s["key"]) for s in contract.get("inputs", [])}
+    out_labels = {o["id"]: o.get("label", o["id"]) for o in contract.get("outputs", [])}
+    result = (t["aborted"].replace("{reason}", aborted) if aborted is not None else t["done"]).replace("{name}", state["skill"])
+    lines = [f"## {t['result']}", "", result, ""]
+    for text in sections:
+        lines += [text, ""]
+    lines += [f"## {t['outputs']}", ""]
+    files = [(out_id, rel) for out_id, rels in changed.items() for rel in rels]
+    lines += [f"- `{rel}`（{out_id} {out_labels.get(out_id, '')}）" for out_id, rel in files] or [t["none"]]
+    lines += ["", f"## {t['defaults']}", ""]
+    lines += [f"- {labels.get(k, k)}（{k}）: {json.dumps(state['input'].get(k), ensure_ascii=False)}"
+              for k in state.get("defaulted", [])] or [t["none"]]
+    lines += ["", f"## {t['unread']}", ""]
+    lines += [f"- {w}" for w in state.get("warnings", [])] or [t["none"]]
+    lines += ["", f"## {t['checks']}", "", t["not_checked"] if aborted is not None else t["passed"]]
+    if state.get("formatted"):
+        items = "、".join(f"{item.split(' ', 1)[0]} `{item.split(' ', 1)[1]}`" for item in state["formatted"][:10])
+        lines.append(t["formatted"].replace("{items}", items))
+    rule = contract.get("control", {}).get("scope_rule")
+    if rule and state.get("worktree") is None and aborted is None:
+        lines.append(t["no_scope"].replace("{rule}", rule))
+    if state.get("restarts"):
+        lines.append(t["restarts"].replace("{n}", str(state["restarts"])))
+    for prev in state.get("previous", []):
+        lines.append(t["previous"].replace("{status}", prev["status"]).replace("{reason}", prev["reason"]))
+    changed_files = state.get("changed_since_last", [])
+    if changed_files:
+        shown = "、".join(f"`{f}`" for f in changed_files[:10]) + (f" …（全 {len(changed_files)} 件）" if len(changed_files) > 10 else "")
+        lines.append(t["changed_since_last"].replace("{files}", shown))
+    lines += ["", f"## {t['notes_head']}", ""] + (notes or [t["none"]])
+    return "\n".join(lines) + "\n"
+
+
+def cmd_finish(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    state = require_state(root, name)
+    if state.get("status") in ("done", "aborted"):
+        rt.emit(f"ERROR この実行は既に {state['status']} です。新しく始めるなら start", sys.stderr)
+        return 2
+    fixes: list = []
+    findings, changed = rt.check_outputs(root, state, contract, fixes=fixes)
+    rt.record_fixes(state, fixes)
+    sections = []
+    if not findings:
+        sections, findings = rt.report_sections(root, state, contract)
+    if findings:
+        state["status"] = "active"
+        rt.log_event(state, "finish-rejected", f"{len(findings)} 件")
+        rt.save_state(root, state)
+        print_findings(findings)
+        rt.emit(f"finish: 指摘 {len(findings)} 件。直してから、もう一度 finish を実行してください")
+        return 1
+    report = render_report(state, contract, changed, sections, rt.read_notes(root, name))
+    include = contract.get("report", {}).get("include_output")
+    body = ""
+    if include and changed.get(include):
+        body = "\n\n".join((root / rel).read_text(encoding="utf-8").rstrip() for rel in changed[include]) + "\n\n---\n\n"
+    (root / rt.run_rel(name) / "report.md").write_text(body + report, encoding="utf-8")
+    state["status"] = "done"
+    state["finished_at"] = rt.now()
+    state["outputs"] = changed
+    rt.log_event(state, "finish")
+    rt.save_state(root, state)
+    rt.emit(report_text(contract)["notes"])
+    rt.emit("=" * 40)
+    rt.emit(body + report)
+    return 0
+
+
+def cmd_set_status(args, contract: dict, name: str, status: str, detail: str) -> int:
+    root = resolve_root(args.root)
+    state = require_state(root, name)
+    if state.get("status") in ("done", "aborted"):
+        rt.emit(f"ERROR この実行は既に {state['status']} です", sys.stderr)
+        return 2
+    state["status"] = status
+    if status == "aborted":
+        state["abort_reason"] = detail
+        state["finished_at"] = rt.now()
+        state["outputs"] = changed_outputs(root, state, contract)
+    if status == "waiting":
+        state["question"] = detail
+    rt.log_event(state, status, detail)
+    rt.save_state(root, state)
+    if status == "aborted":
+        # 中断の報告も finish と同じ固定の本文にする（RPT-01）。AI が手で書くと、理由や途中の出力が抜ける
+        report = render_report(state, contract, state["outputs"], [], rt.read_notes(root, name), aborted=detail)
+        (root / rt.run_rel(name) / "report.md").write_text(report, encoding="utf-8")
+        rt.emit(report_text(contract)["notes"])
+        rt.emit("=" * 40)
+        rt.emit(report)
+        return 0
+    messages = {
+        "waiting": "質問を待っています。ユーザーの返答を受けたら resume（または check）を実行してください",
+        "active": "再開しました",
+    }
+    rt.emit(messages[status])
+    return 0
+
+
+def cmd_status(args, contract: dict, name: str) -> int:
+    root = resolve_root(args.root)
+    state = rt.load_state(root, name)
+    if state is None:
+        rt.emit(f"{name}: 実行記録なし")
+        return 0
+    shown = {k: state.get(k) for k in ("skill", "status", "started_at", "finished_at", "input", "defaulted",
+                                        "warnings", "stop_blocks", "restarts", "previous", "question", "abort_reason")
+             if state.get(k) is not None}
+    rt.emit(json.dumps(shown, ensure_ascii=False, indent=2))
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("start", help="入力を正規化して実行を始める")
+    p.add_argument("text", nargs="*", help="依頼文（自由記述）。「キー: 値」の行も読む")
+    p.add_argument("--set", action="append", metavar="KEY=VALUE")
+    p.add_argument("--input-json")
+    p.add_argument("--input-file")
+    p.add_argument("--restart", action="store_true")
+    p.add_argument("--json", action="store_true", help="結果を JSON で出す（スクリプトから呼ぶとき）")
+    p = sub.add_parser("check", help="出力を契約で検査する")
+    p.add_argument("--file")
+    sub.add_parser("finish", help="検査に通れば実行を終え、報告の本文を出す")
+    p = sub.add_parser("wait", help="ユーザーへの質問を待つ")
+    p.add_argument("--question", required=True)
+    sub.add_parser("resume", help="wait を解く")
+    p = sub.add_parser("abort", help="理由を付けて実行をやめ、中断の報告の本文を出す")
+    p.add_argument("--reason", required=True)
+    sub.add_parser("status", help="実行記録を表示する")
+    for action in sub.choices.values():
+        action.add_argument("--root", help="プロジェクトのルート（既定: 作業ディレクトリから .git を辿った場所）")
+    args = parser.parse_args()
+
+    contract = rt.load_contract()
+    name = contract.get("skill") or rt.SKILL_DIR.name
+    if args.command == "start":
+        return cmd_start(args, contract, name)
+    if args.command == "check":
+        return cmd_check(args, contract, name)
+    if args.command == "finish":
+        return cmd_finish(args, contract, name)
+    if args.command == "wait":
+        return cmd_set_status(args, contract, name, "waiting", args.question)
+    if args.command == "resume":
+        return cmd_set_status(args, contract, name, "active", "")
+    if args.command == "abort":
+        return cmd_set_status(args, contract, name, "aborted", args.reason)
+    return cmd_status(args, contract, name)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+=== .codex/hooks.json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex pre-tool",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-commit-message/scripts/hook.py\" --platform codex pre-tool",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex post-tool",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-commit-message/scripts/hook.py\" --platform codex post-tool",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex stop",
+            "timeout": 300
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-commit-message/scripts/hook.py\" --platform codex stop",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/skill-foundation/scripts/hook.py\" --platform codex prompt",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-commit-message/scripts/hook.py\" --platform codex prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+
+=== .skill-runs/skill-foundation/notes.md
+- チケットIDは `ABC-123` の形（英大文字で始まるキー、`-`、番号）だけを受け付ける。Redmine や GitHub の `#123` は、git がエディタで直すときに `#` で始まる行を消すため受け付けず、中断する（IN-01）
+- チケットIDはブランチ名から読み取らず、依頼に無ければ start の前に聞く。ブランチ名から読み取るかは決めていない
+- 出力の言語は依頼に合わせて日本語に固定し、文末を「追加する」「修正する」「削除する」「変更する」の4つに限った（OUT-03）。英語のメッセージには対応していない
+- スキルはメッセージを `.skill-runs/write-commit-message/out/commit-message.txt` に書くだけで、コミットしない。コミットは `git commit -F .skill-runs/write-commit-message/out/commit-message.txt` で利用者が行う
+- triggers.use_when の1つ目は、受けた依頼文から「スキルを作って」を除き、作ったスキルへの依頼の形に直した
+- 調査の途中で、一時ディレクトリのつもりで実行した `git add -A` と `git commit` が、このプロジェクトのリポジトリにコミット（52619f1）を作った。`git reset --mixed aec02c2` で取り消し、作業ツリーは変えていない（`git log` は aec02c2 の1件に戻っている）
+
+=== .skill-runs/skill-foundation/report.md
+## 結果
+
+skill-foundation: 完了（検証に合格）
+
+## 作ったスキル
+
+- 名前: `write-commit-message`（コミットメッセージを書く）
+- 目的: ステージした変更とチケットIDを受け取り、チケットIDで始まる1行目と、変更ファイルごとの箇条書きの本文からなるコミットメッセージを出力する
+- 本体の置き場: `.claude/skills/write-commit-message`
+- Codex の置き場: `.agents/skills/write-commit-message`（本体へのリンク）
+- 対象の製品: Claude Code、Codex
+- 言語: 日本語（ja）
+- 起動: 依頼の内容から自動で選ばれる。明示は `/write-commit-message`（Claude Code）、`$write-commit-message`（Codex）
+- 入力: `ticket`（チケットID。start の前に聞く）
+- 出力: `commit-message`（コミットメッセージ。`.skill-runs/write-commit-message/out/commit-message.txt`）
+
+## 決定と守らせ方
+
+| 区分 | 決定の数 | ID |
+|---|---|---|
+| スキル固有・機械が守ったかを確かめる（runtime・format・validate のどれかを含む） | 7 | OUT-01、OUT-02、OUT-03、OUT-04、OUT-05、OUT-06、OUT-07 |
+| スキル固有・機械で確かめない（review か doc で確かめる） | 4 | IN-01、IN-02、STEP-01、STEP-02 |
+| 標準（全スキル共通） | 6 | CTL-01、CTL-02、CTL-03、CTL-04、CTL-05、RPT-01 |
+| 対象外にした軸 | 1 | O7（出力は commit-message.txt の1ファイルだけで、一緒に変えるファイルの組が無い） |
+
+- 段（control）: runtime 6、format 1、validate 11、script 4、template 0、review 1、doc 5
+- 答えの決め方（スキル固有）: 依頼の指定 1、出力を使う道具や形式の公式の決まり 2、機械で守らせられる答え 4、道具・スクリプト・入力を増やさない答え 1、AI の判断と覚える概念が少ない答え 3
+
+機械で守らせない決定と理由（spec の why_not_machine）:
+- IN-01: 痕跡が残らない：中断したときは出力を書かないので、出力の検査では判定できない
+- IN-02: 痕跡が残らない：読んだファイルとコマンドは出力に残らない
+- STEP-01: 痕跡が残らない：作業の順序と、直した回数は出力に残らない
+- STEP-02: 痕跡が残らない：実行したコマンドは出力に残らない。一覧と順序の結果は OUT-02 と OUT-04 の検査が確かめる
+
+## 作ったスキルの検証
+
+| 検証 | 結果 |
+|---|---|
+| `skill_lint.py --final` | エラー 0 件、警告 1 件 |
+| `probe.py` | 違反例 26 件中 失敗 0 件／配線 20 件中 失敗 0 件（Claude Code、Codex） |
+
+## 収束テスト
+
+実施していない（理由: 利用者が収束テストを省くと指定した）。
+
+## 確かめていないこと
+
+- 収束テストを実施していないため、別の AI で結果が揃うかは測っていない
+- Codex の hooks は、Codex の `/hooks` で信頼するまで動かない（それまでは `run.py check` と `finish` だけで検査される）
+
+## プロジェクトに置いたもの
+
+- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 23 個）
+- `.agents/skills/write-commit-message`: 本体へのリンク
+- `.claude/settings.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
+- `.codex/hooks.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
+
+## 封印
+
+- `.claude/skills/write-commit-message/assets/seal.json` に保護ファイル 11 件のハッシュを書いた
+- これより後に保護ファイルを変えると、封印し直すまで `write-commit-message` の `run.py start` が止まる。変え方は、作ったスキルの SKILL.md の「8. 制御の仕組み」にある
+
+## 出力
+
+- `.claude/skills/write-commit-message/SKILL.md`（skill-entry 作ったスキルの SKILL.md）
+
+## 既定値で決めた値
+
+- なし
+
+## 入力で読めなかった値
+
+- なし
+
+## 検証
+
+- `run.py finish`: 指摘 0 件
+
+## 補足
+
+- チケットIDは `ABC-123` の形（英大文字で始まるキー、`-`、番号）だけを受け付ける。Redmine や GitHub の `#123` は、git がエディタで直すときに `#` で始まる行を消すため受け付けず、中断する（IN-01）
+- チケットIDはブランチ名から読み取らず、依頼に無ければ start の前に聞く。ブランチ名から読み取るかは決めていない
+- 出力の言語は依頼に合わせて日本語に固定し、文末を「追加する」「修正する」「削除する」「変更する」の4つに限った（OUT-03）。英語のメッセージには対応していない
+- スキルはメッセージを `.skill-runs/write-commit-message/out/commit-message.txt` に書くだけで、コミットしない。コミットは `git commit -F .skill-runs/write-commit-message/out/commit-message.txt` で利用者が行う
+- triggers.use_when の1つ目は、受けた依頼文から「スキルを作って」を除き、作ったスキルへの依頼の形に直した
+- 調査の途中で、一時ディレクトリのつもりで実行した `git add -A` と `git commit` が、このプロジェクトのリポジトリにコミット（52619f1）を作った。`git reset --mixed aec02c2` で取り消し、作業ツリーは変えていない（`git log` は aec02c2 の1件に戻っている）
+
+=== .skill-runs/skill-foundation/tmp/blank.txt
+ABC-12 計算モジュールに引き算の関数を追加する
+- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+- src/calc.py: 引き算の関数 subtract を追加する
+- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+- tests/test_calc.py: subtract のテストを追加する
+
+=== .skill-runs/skill-foundation/tmp/extra.txt
+ABC-12 計算モジュールに引き算の関数を追加する
+
+- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+- src/calc.py: 引き算の関数 subtract を追加する
+- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+- tests/test_calc.py: subtract のテストを追加する
+
+Co-authored-by: A <a@example.com>
+
+=== .skill-runs/skill-foundation/tmp/fx/README.md
+# calc
+
+計算の関数を集めたサンプルである。
+
+=== .skill-runs/skill-foundation/tmp/fx/docs/guide.md
+# 使い方
+
+`from src.calc import add` で読み込む。
+
+=== .skill-runs/skill-foundation/tmp/fx/src/calc.py
+def add(a, b):
+    return a + b
+def subtract(a, b):
+    return a - b
+
+=== .skill-runs/skill-foundation/tmp/fx/tests/test_calc.py
+from src.calc import subtract
+
+
+def test_subtract():
+    assert subtract(3, 1) == 2
+
+=== .skill-runs/skill-foundation/tmp/gitexp/a.txt
+a
+x
+
+=== .skill-runs/skill-foundation/tmp/gitexp/d.txt
+c
+c
+c
+
+=== .skill-runs/skill-foundation/tmp/gitexp/src dir/new file.py
+new
+
+=== .skill-runs/skill-foundation/tmp/gitexp/é.txt
+é
+
+=== .skill-runs/skill-foundation/tmp/miss.txt
+ABC-12 計算モジュールに引き算の関数を追加する
+
+- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+- src/calc.py: 引き算の関数 subtract を追加する
+- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+
+=== .skill-runs/skill-foundation/tmp/swap.txt
+ABC-12 計算モジュールに引き算の関数を追加する
+
+- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+- src/calc.py: 引き算の関数 subtract を追加する
+- tests/test_calc.py: subtract のテストを追加する
+
+=== .skill-runs/skill-foundation/tmp/tick.txt
+ABC-12 計算モジュールに引き算の関数を追加する
+
+- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+- `src/calc.py`: 引き算の関数 subtract を追加する
+- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+- tests/test_calc.py: subtract のテストを追加する
+
+=== .skill-runs/skill-foundation/tmp/verb.txt
+ABC-12 計算モジュールに引き算の関数を修正する
+
+- docs/usage.md -> docs/guide.md: 使い方の文書の名前を変更する
+- src/calc.py: 引き算の関数 subtract を追加する
+- src/legacy.py: 使っていない旧版の足し算 old_add を削除する
+- tests/test_calc.py: subtract のテストを追加する
+
