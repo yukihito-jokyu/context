@@ -155,7 +155,7 @@ Skill単体の導入からpluginへ切り替えるときは、同じSkillが両�
 
 ### ローカルで確認する
 
-Node.js 22以上を使い、リポジトリのルートで実行します。
+Node.jsの版は[.nvmrc](.nvmrc)に合わせ、リポジトリのルートで実行します。
 
 ```sh
 npm ci
@@ -167,6 +167,7 @@ npm start
 ```sh
 npm run typecheck
 npm run test:search
+npm run test:workflows
 npm run examples:check
 npm run build
 npm run test:docs
@@ -189,6 +190,10 @@ Skillの成果物は`docs/artifacts/skills/<skill-name>/`、pluginの配布・�
 
 参考にした`rule`リポジトリに合わせ、日本語UI、ライト／ダーク切替、日本語本文検索、リンク・アンカーの厳格な検証を採用しています。検索は外部サービスを使わず、ビルド時に`docs/`の索引を生成します。Mermaid図も表示できます。
 
-[公開ワークフロー](.github/workflows/docs-pages.yml)は、PRで型検査・検索テスト・本番ビルドを実行し、`main`へのpushまたは`main`からの手動実行で`build/`をデプロイします。初回はGitHubのSettings → Pages → Build and deployment → Sourceで「GitHub Actions」を選択してください。公開環境`github-pages`に承認ルールがある場合は、その承認も必要です。
+[CI](.github/workflows/ci.yml)はPRと`main`へのpushで、ドキュメントとワークフローを検査します。ドキュメントの型検査・テスト・成果物の整合性検査・本番ビルドは[共通のビルド処理](.github/workflows/reusable-build-docs.yml)で行い、`report`が全検査の合否と所要時間をまとめます。同じPRに追加のpushがあると古いCIを中止します。ブランチ保護の必須チェックは`report`の1つにします。
+
+[公開ワークフロー](.github/workflows/deploy-pages.yml)は、`main`へのpushまたは`main`からの手動実行で同じビルド処理をキャッシュなしで実行し、検査済みの`build/`をGitHub Pagesへ公開します。公開処理はワークフロー全体で直列化し、公開直前に最新の`main`とコミットが一致することを確認します。古いコミットの再実行は公開せずエラーにするため、最新の実行を使ってください。初回はGitHubのSettings → Pages → Build and deployment → Sourceで「GitHub Actions」を選択し、公開環境`github-pages`の対象ブランチを`main`に制限します。環境に承認ルールがある場合は、その承認も必要です。
+
+GitHub Actionsの検査には[github-actions-kit](https://github.com/yukihito-jokyu/pattern/tree/c9fa22631bcf26cbe3dc98d3eee6541ec1e7425a/patterns/development/skills/github-actions-kit)を導入しています。`.gha/`、`.github/actions/run-report/`とDependabot設定はこのキットの配布物です。作業用スキルはCodex向けに`.codex/skills/gha-*`へ配置し、参照パスを合わせています。検査は[.python-version](.python-version)のPythonとuvを用意して、`uv run --locked --script .gha/gha.py check`で実行します。ActionsはコミットSHAで固定し、Dependabotが週次・7日の待機期間を設けて更新PRをまとめます。手動更新には`uv run --locked --script .gha/gha.py pin <owner/repo>`を使い、`pin --verify`でSHAと版コメントの一致を確認します。キットを更新するときは、更新先の`install.py`で一時ディレクトリへ展開して各配布物を更新し、スキルの配置先と参照パスを`.codex/skills/`に合わせて検査を通します。
 
 `/context/`をベースパスに使います。リポジトリ名や公開先を変える場合は`docusaurus.config.ts`の`url`と`baseUrl`を更新します。生成物と依存パッケージはGit管理しません。
