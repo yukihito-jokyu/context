@@ -1,0 +1,56 @@
+# 呼ばれると、ドキュメントの検査の合否と、指定された場合は公開用の成果物を生成する
+name: reusable-build-docs
+on:
+  workflow_call:
+    inputs:
+      cache-dependencies:
+        description: npm の依存キャッシュを利用するか
+        required: false
+        type: boolean
+        default: true
+      upload-pages-artifact:
+        description: 検査済みのサイトを Pages の公開用成果物として保存するか
+        required: false
+        type: boolean
+        default: false
+permissions: {}
+defaults:
+  run:
+    shell: bash
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          cache: ${{ inputs.cache-dependencies && 'npm' || '' }}
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm ci
+      - name: Check types
+        run: npm run typecheck
+      - name: Run search tests
+        run: npm run test:search
+      - name: Run deployment guard tests
+        run: npm run test:workflows
+      - name: Check examples
+        run: npm run examples:check
+      - name: Build documentation
+        run: npm run build
+      - name: Run documentation tests
+        run: npm run test:docs
+      - name: Upload pages artifact
+        if: ${{ inputs.upload-pages-artifact }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: build
+          retention-days: 1
