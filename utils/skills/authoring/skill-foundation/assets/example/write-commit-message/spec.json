@@ -1,0 +1,451 @@
+{
+  "spec_version": 1,
+  "name": "write-commit-message",
+  "status": "building",
+  "mode": "new",
+  "kind": "write",
+  "language": "ja",
+  "targets": [
+    "claude",
+    "codex"
+  ],
+  "title": "コミットメッセージを書く",
+  "purpose": "ステージ済みの差分とチケットIDから、このリポジトリの形式のコミットメッセージを1つ書く",
+  "triggers": {
+    "use_when": [
+      "コミットメッセージを書いて",
+      "この変更のコミットメッセージを考えて",
+      "ステージした内容でコミットメッセージを作って",
+      "ABC-12 のコミットメッセージをお願い",
+      "commit message 書いて"
+    ],
+    "not_for": [
+      {
+        "when": "コミットの実行やプッシュ",
+        "instead": "git コマンド"
+      },
+      {
+        "when": "プルリクエストの説明文",
+        "instead": "プルリクエスト用のスキル"
+      }
+    ],
+    "implicit": true
+  },
+  "inputs": [
+    {
+      "key": "ticket",
+      "label": "チケットID",
+      "impact": "target",
+      "type": "string",
+      "case": "upper",
+      "aliases": [
+        "チケット",
+        "課題",
+        "issue",
+        "ticket id"
+      ],
+      "ask": true,
+      "question": "チケットID（例: ABC-123）は？"
+    }
+  ],
+  "excluded_inputs": [
+    {
+      "key": "language",
+      "reason": "OUT-03 で日本語に固定する。言語を選ばせると、同じ差分から別の言語のメッセージができる"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "commit-message",
+      "label": "コミットメッセージ",
+      "path": "{run}/out/commit-message.txt",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "checks": [
+        {
+          "rule": "OUT-02",
+          "type": "require",
+          "lines": "first",
+          "pattern": "^[A-Z][A-Z0-9]*-\\d+ \\S",
+          "message": "1行目は「チケットID 要約」"
+        },
+        {
+          "rule": "OUT-02",
+          "type": "forbid",
+          "lines": [
+            2
+          ],
+          "pattern": "\\S",
+          "message": "2行目は空行"
+        },
+        {
+          "rule": "OUT-02",
+          "type": "forbid",
+          "lines": "first",
+          "pattern": "^[A-Z][A-Z0-9]*-\\d+ (feat|fix|chore|docs|refactor|test|style|perf|build|ci)(\\(.*\\))?!?:",
+          "message": "Conventional Commits の接頭辞を付けない"
+        },
+        {
+          "rule": "OUT-04",
+          "type": "require",
+          "lines": "first",
+          "pattern": "^{in:ticket} ",
+          "message": "入力のチケットIDで始める"
+        },
+        {
+          "rule": "OUT-05",
+          "type": "line_length",
+          "lines": "first",
+          "max": 50
+        },
+        {
+          "rule": "OUT-06",
+          "type": "forbid",
+          "pattern": "(?i)\\[(skip ci|ci skip|no ci|skip actions|actions skip)\\]|^skip-checks:\\s*true",
+          "message": "CI を止める記法を書かない"
+        },
+        {
+          "rule": "STEP-02",
+          "type": "command",
+          "run": "python3 {skill}/scripts/check_body.py {file}"
+        }
+      ],
+      "format": [
+        {
+          "rule": "OUT-03",
+          "type": "replace",
+          "pattern": "。$",
+          "with": "",
+          "message": "行末の `。` を消しました"
+        }
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "IN-01",
+      "axes": [
+        "I3"
+      ],
+      "title": "ステージされた変更が無いときは書かずに中断する",
+      "decision": "`scripts/collect_diff.py` が終了コード4で終わったら、出力を書かずに `run.py abort --reason \"ステージされた変更が無い\"` を実行し、変更をステージしてから頼み直すよう返答する。",
+      "reason": "差分が無いまま書くと、AI ごとに推測した内容のメッセージができる。",
+      "basis": "fewer-concepts",
+      "control": [
+        "script",
+        "doc"
+      ],
+      "how": "scripts/collect_diff.py は、ステージされた変更が無いと終了コード4で終わる。中断の仕方は SKILL.md の手順3",
+      "why_not_machine": "痕跡が残らない：中断したときは出力が無く、検査するものが無い",
+      "probes": [],
+      "good": "collect_diff.py の終了コード4を見て abort し、ステージを頼む",
+      "bad": "直前のコミットの内容から推測してメッセージを書く"
+    },
+    {
+      "id": "IN-02",
+      "axes": [
+        "I4"
+      ],
+      "title": "読むのはステージ済みの差分だけにする",
+      "decision": "材料は `scripts/collect_diff.py` の出力だけにする。未ステージの変更、コミット履歴、差分に無いファイルの中身は読まない。",
+      "reason": "読む範囲が AI ごとに違うと、本文に書く変更点が揃わない。",
+      "basis": "fewer-concepts",
+      "control": [
+        "script",
+        "review"
+      ],
+      "how": "scripts/collect_diff.py が `git diff --cached` の結果だけを出す。完了前チェックリストで、書いた変更が差分にあるかを確かめる",
+      "why_not_machine": "意味の判断が要る：本文がステージ済みの差分に無い変更を書いているかは、差分と読み比べないと分からない",
+      "probes": [],
+      "good": "collect_diff.py の出力に出たファイルだけを本文に書く",
+      "bad": "`git log` を読んで、過去のコミットの書き方に合わせる"
+    },
+    {
+      "id": "STEP-01",
+      "axes": [
+        "P1",
+        "P3"
+      ],
+      "title": "材料集めと本文の単位はスクリプトで決める",
+      "decision": "手順は `collect_diff.py` → 1行目 → 本文 → `run.py check` → `run.py finish` の順にする。本文の単位（なし・ファイル・ディレクトリ）は、`collect_diff.py` が出した「本文の単位」に従う。",
+      "reason": "ファイルの数え方や単位の判断を AI にさせると、境目で答えが分かれる。",
+      "basis": "machine",
+      "control": [
+        "script",
+        "doc"
+      ],
+      "how": "scripts/collect_diff.py が「ファイルの数」と「本文の単位」を出力する。順序は SKILL.md の手順3〜7",
+      "why_not_machine": "痕跡が残らない：手順の順序とスクリプトの出力を使ったかは、出力に残らない（本文の形は STEP-02 が検査する）",
+      "probes": [],
+      "good": "「本文の単位: ファイル」と出たので、ファイルごとに1行書く",
+      "bad": "変更が小さいので、2ファイルでも本文を省く"
+    },
+    {
+      "id": "STEP-02",
+      "axes": [
+        "P2",
+        "O5"
+      ],
+      "title": "本文の箇条書きはステージされたファイルの数で決める",
+      "decision": "本文の箇条書きは次の表に従い、パスの昇順に並べる。",
+      "table": [
+        [
+          "ステージされたファイルの数",
+          "本文"
+        ],
+        [
+          "1",
+          "書かない（1行目だけ）"
+        ],
+        [
+          "2〜5",
+          "ファイルごとに「- `<パス>`: <変更の要約>」を1行"
+        ],
+        [
+          "6以上",
+          "ディレクトリごとに「- `<ディレクトリ>/`: <変更の要約>」を1行"
+        ],
+        [
+          "上のどれでもない（0）",
+          "IN-01 に従い、書かずに中断する"
+        ]
+      ],
+      "reason": "本文の粒度は、AI ごとに最も揺れる点である。数で決めれば判定が割れない。",
+      "basis": "machine",
+      "control": [
+        "validate",
+        "script"
+      ],
+      "how": "scripts/check_body.py が、箇条書きとステージされたファイルを突き合わせる（契約の command 検査）",
+      "why_not_machine": "",
+      "probes": [
+        "STEP-02-a",
+        "STEP-02-b"
+      ],
+      "good": "ABC-12 足し算と表示を直す\n\n- `src/app.py`: 結果の表示を直す\n- `src/util.py`: 足し算の関数を足す",
+      "bad": "ABC-12 足し算と表示を直す\n\n- 足し算と表示を直した"
+    },
+    {
+      "id": "STEP-03",
+      "axes": [
+        "P4"
+      ],
+      "title": "git は読み取りだけに使う",
+      "decision": "使う git コマンドは、`scripts/collect_diff.py` の中の `git diff --cached` だけにする。`git add`・`git commit`・`git push` を実行しない。",
+      "reason": "コミットの実行は利用者が内容を確かめてから行う。実行するかどうかが AI ごとに分かれると、取り消しにくい変更が起きる。",
+      "basis": "fewer-tools",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順3（読むのは collect_diff.py の出力だけ）",
+      "why_not_machine": "費用が見合わない：`git commit` は出力のファイルではなくリポジトリの履歴に残り、確かめるには実行の前後で HEAD を比べる仕組みが要る。読み取りだけに使う1つの決まりのためには大きい",
+      "probes": [],
+      "good": "メッセージを書いて報告し、コミットは利用者に任せる",
+      "bad": "書いたメッセージで `git commit` を実行する"
+    },
+    {
+      "id": "STEP-04",
+      "axes": [
+        "P5"
+      ],
+      "title": "スクリプトが失敗したら中断する",
+      "decision": "`scripts/collect_diff.py` が終了コード2で終わったら、出力を書かずに `run.py abort --reason \"<エラーの1行目>\"` を実行し、エラーの内容を返答する。",
+      "reason": "材料が無いまま書くと、推測のメッセージになる。",
+      "basis": "fewer-concepts",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順3",
+      "why_not_machine": "痕跡が残らない：失敗は出力が無い状況で起き、検査するものが無い",
+      "probes": [],
+      "good": "git の失敗の1行目を abort の理由に書く",
+      "bad": "エラーを無視して、依頼文だけからメッセージを書く"
+    },
+    {
+      "id": "OUT-01",
+      "axes": [
+        "O1"
+      ],
+      "title": "出力は実行記録の置き場に1ファイルだけ書く",
+      "decision": "メッセージは `.skill-runs/write-commit-message/out/commit-message.txt` に1ファイルだけ書く。ほかの場所にファイルを作らない。",
+      "reason": "置き場所が揃うと、検査と報告が同じ手順で行える。",
+      "basis": "machine",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の outputs.message の path と count（1件）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-01-a"
+      ],
+      "good": "`.skill-runs/write-commit-message/out/commit-message.txt`",
+      "bad": "`COMMIT_MSG.txt` をリポジトリのルートに作る"
+    },
+    {
+      "id": "OUT-02",
+      "axes": [
+        "O2"
+      ],
+      "title": "1行目は「チケットID 要約」、2行目は空行にする",
+      "decision": "1行目は `<チケットID> <要約>`、2行目は空行、3行目から本文（STEP-02）にする。Conventional Commits の接頭辞（`feat:` の類）を付けない。",
+      "reason": "形が揃うと、履歴の検索と一覧が揃う。",
+      "basis": "project",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の checks（1行目の形、2行目が空、接頭辞の禁止）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-02-a",
+        "OUT-02-b"
+      ],
+      "good": "ABC-12 足し算と表示を直す\n\n- `src/app.py`: 結果の表示を直す",
+      "bad": "ABC-12 feat: 足し算と表示を直す"
+    },
+    {
+      "id": "OUT-03",
+      "axes": [
+        "O3"
+      ],
+      "title": "日本語で書き、行末に句点を付けない",
+      "decision": "要約と本文の変更の要約は日本語で、「<対象>を<動詞>する」の形で書き、行末に `。` を付けない。",
+      "reason": "文体が AI ごとに分かれやすい。行末の句点は check が自動で消し、日本語の「<対象>を<動詞>する」の形はレビューで確かめる。",
+      "basis": "project",
+      "control": [
+        "format",
+        "review"
+      ],
+      "how": "契約の format（行末の `。` を消す）。完了前チェックリストで、日本語の「<対象>を<動詞>する」の形かを確かめる",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-03-a"
+      ],
+      "good": "ABC-12 足し算と表示を直す",
+      "bad": "ABC-12 足し算と表示を直しました。"
+    },
+    {
+      "id": "OUT-04",
+      "axes": [
+        "O4"
+      ],
+      "title": "チケットIDは入力の値をそのまま使う",
+      "decision": "1行目の先頭には、入力 `ticket` の値（start が大文字に揃えたもの）を書く。依頼文や差分からチケットIDを推測しない。",
+      "reason": "ID を推測すると、AI ごとに違う ID が入る。",
+      "basis": "user",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の checks（1行目が `{in:ticket}` で始まる）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-04-a"
+      ],
+      "good": "start の出力が「チケットID（ticket）= \"ABC-12\"」なら `ABC-12 ` で始める",
+      "bad": "ブランチ名から `ABC-13` を推測して書く"
+    },
+    {
+      "id": "OUT-05",
+      "axes": [
+        "O5"
+      ],
+      "title": "1行目は50文字以内にする",
+      "decision": "1行目は、チケットIDと空白を含めて50文字以内にする。",
+      "reason": "一覧の表示で切れないようにする。長さの感覚は AI ごとに違うので数で決める。",
+      "basis": "official",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の checks（1行目の長さ）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-05-a"
+      ],
+      "good": "ABC-12 足し算と表示を直す",
+      "bad": "ABC-12 足し算の関数を新しく追加して、それに合わせて結果の表示の仕方も変更して整える"
+    },
+    {
+      "id": "OUT-06",
+      "axes": [
+        "O8"
+      ],
+      "title": "CI を止める記法を書かない",
+      "decision": "メッセージに、CI の実行を止める記法（`[skip ci]`、`[ci skip]`、`[no ci]`、`[skip actions]`、`[actions skip]`、`skip-checks: true` の行）を書かない。",
+      "reason": "CI を止めると、検査を通っていない変更が入る。止めるかどうかは利用者がコミットのときに決める。",
+      "basis": "machine",
+      "control": [
+        "validate"
+      ],
+      "how": "契約の checks（CI を止める記法の禁止）",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-06-a"
+      ],
+      "good": "ABC-12 引き算と表示を足す",
+      "bad": "ABC-12 引き算と表示を足す [skip ci]"
+    }
+  ],
+  "extra_axes": [
+    {
+      "axis": "X1",
+      "prefix": "OUT",
+      "name": "引用と根拠の示し方（何を引用し、どこへのリンクを付けるか）"
+    }
+  ],
+  "excluded_axes": [
+    {
+      "axis": "O6",
+      "reason": "出力は実行ごとの置き場（.skill-runs）に新しく書き、既存のファイルを変えないため"
+    },
+    {
+      "axis": "O7",
+      "reason": "出力はコミットメッセージの1ファイルだけで、一緒に変えるファイルが無いため"
+    },
+    {
+      "axis": "X1",
+      "reason": "コミットメッセージは差分そのものを説明する文で、引用やリンクを付けないため"
+    }
+  ],
+  "examples": [
+    {
+      "path": "commit-message.txt",
+      "shows": [
+        "OUT-01",
+        "OUT-02",
+        "OUT-03",
+        "OUT-04",
+        "OUT-05",
+        "OUT-06",
+        "STEP-02"
+      ]
+    }
+  ],
+  "control": {
+    "hooks": true,
+    "max_stop_blocks": 3,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ]
+  },
+  "report": {
+    "include_output": "commit-message"
+  },
+  "convergence": {
+    "agents": 2,
+    "runners": [
+      "claude",
+      "codex"
+    ],
+    "max_rounds": 3,
+    "thresholds": {
+      "files": 1.0,
+      "structure": 1.0,
+      "names": 0.8
+    }
+  }
+}

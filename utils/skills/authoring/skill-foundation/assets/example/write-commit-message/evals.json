@@ -1,0 +1,50 @@
+{
+  "tasks": [
+    {
+      "id": "T1-typical",
+      "kind": "typical",
+      "prompt": "ABC-12 のコミットメッセージを書いて",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "printf 'from src.util import add\\n\\nprint(\"1 + 2 =\", add(1, 2))\\n' > src/app.py",
+        "printf 'def add(a, b):\\n    return a + b\\n\\n\\ndef sub(a, b):\\n    return a - b\\n' > src/util.py",
+        "git add -A"
+      ]
+    },
+    {
+      "id": "T2-default",
+      "kind": "default",
+      "prompt": "ステージした内容でコミットメッセージを作って。チケットは xyz-7",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "printf 'def add(a, b):\\n    return a + b\\n\\n\\ndef mul(a, b):\\n    return a * b\\n' > src/util.py",
+        "git add src/util.py"
+      ]
+    },
+    {
+      "id": "T3-edge",
+      "kind": "edge",
+      "prompt": "チケット: ABC-30\nこの変更のコミットメッセージを考えて",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "mkdir -p docs tests",
+        "for f in a b c; do printf '# %s\\n' $f > docs/$f.md; done",
+        "printf 'def test_add():\\n    assert True\\n' > tests/test_util.py",
+        "printf 'x = 1\\n' > src/config.py",
+        "printf '# sample\\n\\nadd and sub\\n' > README.md",
+        "git add -A"
+      ]
+    },
+    {
+      "id": "H1-holdout",
+      "kind": "holdout",
+      "prompt": "commit message 書いて。issue は ops-401 です。READMEの説明を直しただけ",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "printf '# sample\\n\\nA tiny calculator.\\n' > README.md",
+        "printf 'tmp\\n' > notes.txt",
+        "git add README.md"
+      ]
+    }
+  ]
+}
