@@ -5,7 +5,7 @@ description: GitHub Actions のワークフロー、composite アクション、
 
 # GitHub Actions の変更のレビュー手順
 
-指摘は、ルールの全文である `.claude/skills/gha-workflow/references/rules.md` のルールIDに結び付ける。ルールに無いことを理由に差し戻さない。レビュアーごとに基準が変わるのを防ぐためである。以下、`gha` は `uv run --locked --script .gha/gha.py` を指す。
+指摘は、ルールの全文である `.codex/skills/gha-workflow/references/rules.md` のルールIDに結び付ける。ルールに無いことを理由に差し戻さない。レビュアーごとに基準が変わるのを防ぐためである。以下、`gha` は `uv run --locked --script .gha/gha.py` を指す。
 
 ## 1. 対象を決める
 

@@ -1,6 +1,6 @@
 # パターン
 
-実装用スキル `gha-workflow` の「1.2 型」の表の各行に対応する手順である。節の番号は表と一致させる。見本のパスは `.claude/skills/gha-workflow/references/examples/` からの相対パスである。
+実装用スキル `gha-workflow` の「1.2 型」の表の各行に対応する手順である。節の番号は表と一致させる。見本のパスは `.codex/skills/gha-workflow/references/examples/` からの相対パスである。
 
 ## 1. PR の検証（ci.yml）
 
