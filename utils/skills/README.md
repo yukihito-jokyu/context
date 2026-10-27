@@ -33,6 +33,7 @@
 | [react-requirements-workshop](design/react-requirements-workshop/SKILL.md) | Design System に沿う React 画面を枠付きプレビューで見ながら要件を固める。画面案と承認履歴を保存し、起動済みサーバーを再利用する。 |
 | [archify-jp](design/archify-jp/SKILL.md) | 自然言語または Mermaid から、検証済みのインタラクティブ HTML 図を生成する。ライフサイクルは対象の生涯と状態・イベント・活動を区別して記述する。 |
 | [generate-domain-model](design/generate-domain-model/SKILL.md) | 業務の概念と関係からMermaid原本・PNG・検索できるHTMLカタログを作る。 |
+| [generate-usecase-diagram](design/generate-usecase-diagram/SKILL.md) | 要件文またはMermaidからユースケース図の原本とPNGを生成し、複数図をローカルのHTMLカタログで閲覧する。 |
 
 ## コミット・PR・レビュー（`development/`）
 
