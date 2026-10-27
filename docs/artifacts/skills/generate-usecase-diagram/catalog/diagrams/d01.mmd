@@ -1,0 +1,13 @@
+usecase-beta
+direction LR
+actor A01("利用者")
+actor A02("司書")
+systemBoundary S01["図書館システム（貸出）"]
+  U01("本の貸出")
+  U02("貸出資格を確認する")
+  U03("貸出票を発行する（希望時）")
+end
+A01 -- U01
+A02 -- U01
+U01 ..> : include U02
+U03 ..> : extend U01
