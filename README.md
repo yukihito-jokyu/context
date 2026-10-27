@@ -25,7 +25,7 @@ CodexとClaude Codeを対象に、配布する内容に応じて導入方法を�
 
 ### 編集するディレクトリ構造
 
-Skillの正本は`utils/skills/`に置き、pluginの配布定義から参照します。plugin用にSkill本文を手動複製せず、配布時に正本から生成します。以下は合意済みの編集用構造です。現在は[skill-refiner](docs/skills/authoring/skill-refiner.md)と[explain-html](docs/skills/discovery/explain-html.md)に、対応Agent向けのhooks設定と専用生成処理を用意しています。汎用の`build-plugins.*`と配布カタログは未実装です。
+Skillの正本は`utils/skills/`に置き、pluginの配布定義から参照します。plugin用にSkill本文を手動複製せず、配布時に正本から生成します。以下は合意済みの編集用構造です。現在は[skill-refiner](docs/skills/authoring/skill-refiner.md)、[explain-html](docs/skills/discovery/explain-html.md)、[generate-domain-model](docs/plugins/generate-domain-model.md)に、対応Agent向けのhooks設定と専用生成処理を用意しています。汎用の`build-plugins.*`と配布カタログは未実装です。
 
 ```text
 context/
