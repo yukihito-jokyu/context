@@ -12,6 +12,7 @@ title: 画面要件・図
 | [react-requirements-workshop](react-requirements-workshop.md) | React画面案と操作を反復する |
 | [archify-jp](archify-jp.md) | 構造や処理を探索可能な図にする |
 | [generate-domain-model](generate-domain-model.md) | 業務の概念と関係をMermaid・PNG・HTMLカタログにする |
+| [generate-domain-model-from-code](generate-domain-model-from-code.md) | コードの根拠を辿れる業務モデル図とHTMLカタログを作る |
 | [generate-usecase-diagram](generate-usecase-diagram.md) | ユースケース図をPNGにしてHTMLカタログで見る |
 
 組み合わせて使う場合は[ワークフロー](../workflows.md)を参照してください。各ページには入力と成果物の例を掲載しています。

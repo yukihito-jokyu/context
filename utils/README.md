@@ -40,6 +40,12 @@
 - 使うタイミング: 仕様や業務説明を図に整理し、複数の図を一覧・検索・拡大したいとき
 - 使い方: 資料とカタログ名を渡し、根拠のある概念・関係・多重度を作成する。資料で確定できない点は未確認事項に残し、PNGとHTMLの対応を検査する
 
+### [generate-domain-model-from-code](skills/design/generate-domain-model-from-code/SKILL.md)
+
+- 目的: コードの根拠付きで業務概念と関係のMermaid・PNG・HTMLカタログを生成する
+- 使うタイミング: ローカルリポジトリを調査し、実装の行・抜粋・ハッシュを辿れる図を作りたいとき
+- 使い方: 対象と調査範囲を渡し、コードを読みmodel.jsonを作る。生成した図とカタログを検査する
+
 ### [unknowns](skills/discovery/unknowns/SKILL.md)
 
 - 目的: AI開発における未知管理の入口として、作業リスクと使うべき子スキルを選ぶ

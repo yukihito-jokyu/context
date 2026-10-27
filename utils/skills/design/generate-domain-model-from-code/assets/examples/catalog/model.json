@@ -1,0 +1,163 @@
+{
+  "concepts": [
+    {
+      "attributes": [
+        {
+          "evidence": [
+            {
+              "end": 8,
+              "path": "payments/payment.py",
+              "quote": "    amount: int",
+              "start": 8
+            }
+          ],
+          "name": "amount",
+          "type": "int"
+        }
+      ],
+      "description": "対象注文と金額を保持する。",
+      "domain": "payments",
+      "evidence": [
+        {
+          "end": 8,
+          "path": "payments/payment.py",
+          "quote": "class Payment:\n    order: Order\n    amount: int",
+          "start": 6
+        }
+      ],
+      "id": "C_1a8f882e47bb",
+      "key": "payments/payment.py::Payment",
+      "kind": "concept",
+      "name": "Payment",
+      "symbol": "Payment"
+    },
+    {
+      "attributes": [
+        {
+          "evidence": [
+            {
+              "end": 12,
+              "path": "sales/order.py",
+              "quote": "    number: str",
+              "start": 12
+            }
+          ],
+          "name": "number",
+          "type": "str"
+        }
+      ],
+      "description": "注文番号と明細の一覧を保持する。",
+      "domain": "sales",
+      "evidence": [
+        {
+          "end": 13,
+          "path": "sales/order.py",
+          "quote": "class Order:\n    number: str\n    lines: list[OrderLine]",
+          "start": 11
+        }
+      ],
+      "id": "C_ed95cf309060",
+      "key": "sales/order.py::Order",
+      "kind": "concept",
+      "name": "Order",
+      "symbol": "Order"
+    },
+    {
+      "attributes": [
+        {
+          "evidence": [
+            {
+              "end": 6,
+              "path": "sales/order.py",
+              "quote": "    sku: str",
+              "start": 6
+            }
+          ],
+          "name": "sku",
+          "type": "str"
+        },
+        {
+          "evidence": [
+            {
+              "end": 7,
+              "path": "sales/order.py",
+              "quote": "    quantity: int",
+              "start": 7
+            }
+          ],
+          "name": "quantity",
+          "type": "int"
+        }
+      ],
+      "description": "商品の識別子と数量を保持する。",
+      "domain": "sales",
+      "evidence": [
+        {
+          "end": 7,
+          "path": "sales/order.py",
+          "quote": "class OrderLine:\n    sku: str\n    quantity: int",
+          "start": 5
+        }
+      ],
+      "id": "C_65d1bb86ba6d",
+      "key": "sales/order.py::OrderLine",
+      "kind": "concept",
+      "name": "OrderLine",
+      "symbol": "OrderLine"
+    }
+  ],
+  "domains": [
+    {
+      "description": "対象注文と金額を保持するモジュール。",
+      "name": "payments",
+      "path": "payments"
+    },
+    {
+      "description": "注文と明細を定義するモジュール。",
+      "name": "sales",
+      "path": "sales"
+    }
+  ],
+  "questions": "注文の同一性と明細の寿命の所有はこのコードだけでは確定できない。\nOrder.linesに最小件数の制約があるかは未確認。",
+  "relations": [
+    {
+      "evidence": [
+        {
+          "end": 13,
+          "path": "sales/order.py",
+          "quote": "    lines: list[OrderLine]",
+          "start": 13
+        }
+      ],
+      "id": "R_07761888f1c6",
+      "kind": "association",
+      "label": "lines",
+      "member": "lines",
+      "source": "sales/order.py::Order",
+      "source_multiplicity": null,
+      "target": "sales/order.py::OrderLine",
+      "target_multiplicity": "0..*"
+    },
+    {
+      "evidence": [
+        {
+          "end": 7,
+          "path": "payments/payment.py",
+          "quote": "    order: Order",
+          "start": 7
+        }
+      ],
+      "id": "R_b3fd3067c9eb",
+      "kind": "association",
+      "label": "order",
+      "member": "order",
+      "source": "payments/payment.py::Payment",
+      "source_multiplicity": null,
+      "target": "sales/order.py::Order",
+      "target_multiplicity": "1"
+    }
+  ],
+  "schema_version": 1,
+  "title": "注文と支払いのドメインモデル",
+  "unread": []
+}

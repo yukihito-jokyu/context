@@ -18,6 +18,7 @@ AIエージェントに作業を頼むとき、目的に合うスキルを選び
 | 不明点を整理し、調べる方向を決める | [調査・理解](discovery/index.md) | [unknowns](discovery/unknowns.md) |
 | 調査を着手可能な計画やIssueへ変える | [計画・Issue分割](planning/index.md) | [plan](planning/plan.md) |
 | 画面を見ながら要件を固める、図で構造を伝える | [画面要件・図](design/index.md) | [HTML要件すり合わせ](design/html-requirements-workshop.md) |
+| コードから業務概念と関係を図にする | [画面要件・図](design/index.md) | [generate-domain-model-from-code](design/generate-domain-model-from-code.md) |
 | 作者による書き方の違いを減らす開発基盤を作る | [コミット・PR・レビュー](development/index.md) | [pattern-foundation](development/pattern-foundation.md) |
 | 差分をレビューし、コミットやPRを作る | [コミット・PR・レビュー](development/index.md) | [self-review-html](development/self-review-html.md) |
 | 判断と作業の根拠を残し、他者へ説明する | [記録・説明](documentation/index.md) | [notes](documentation/notes.md) |
