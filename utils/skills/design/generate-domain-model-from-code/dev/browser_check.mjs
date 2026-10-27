@@ -1,0 +1,51 @@
+// Optional visual/interaction QA. Requires an existing Puppeteer installation.
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+const [htmlFile, outputDirectory] = process.argv.slice(2);
+if (!htmlFile || !outputDirectory || !process.env.PUPPETEER_MODULE) throw new Error('HTML、検証結果の出力先、PUPPETEER_MODULEを指定する');
+const {default:puppeteer}=await import(pathToFileURL(process.env.PUPPETEER_MODULE));
+const output=path.resolve(outputDirectory);
+await fs.mkdir(output,{recursive:true});
+const profile=path.join(output,'.browser-profile');
+const browser=await puppeteer.launch({executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,userDataDir:profile,headless:true});
+const checks=[];const errors=[];const external=[];
+const assert=(condition,label)=>{if(!condition)throw new Error(label);checks.push(label)};
+try {
+  const page=await browser.newPage();
+  page.on('pageerror',error=>errors.push(String(error)));
+  await page.setRequestInterception(true);
+  page.on('request',request=>{if(/^https?:/.test(request.url())){external.push(request.url());request.abort()}else request.continue()});
+  await page.setViewport({width:1440,height:1000,deviceScaleFactor:1});
+  await page.goto(pathToFileURL(path.resolve(htmlFile)).href,{waitUntil:'load'});
+  await page.evaluate(()=>document.fonts.ready);
+  const count=await page.$$eval('.concept',items=>items.length);
+  assert(count>0,'概念カードが表示される');
+  assert(await page.$$eval('.preview img',items=>items.every(image=>image.complete&&image.naturalWidth>0)),'埋め込んだPNGを読み込める');
+  await page.type('#search','zzmissingconceptzz');
+  assert(await page.$$eval('.concept',items=>items.every(item=>item.hidden)),'検索で一致しない概念を隠す');
+  assert(await page.$eval('#empty',item=>!item.hidden),'検索結果0件を表示する');
+  await page.$eval('#search',item=>{item.value='';item.dispatchEvent(new Event('input',{bubbles:true}))});
+  assert(await page.$$eval('.concept',items=>items.filter(item=>!item.hidden).length)===count,'検索解除ですべての概念に戻る');
+  const domain=await page.$eval('#domain',item=>item.options[1].value);
+  await page.select('#domain',domain);
+  assert(await page.$$eval('.concept',items=>items.filter(item=>!item.hidden).every(item=>item.dataset.domain===document.querySelector('#domain').value)),'領域で絞り込む');
+  await page.select('#domain','');
+  await page.click('.preview');
+  assert(await page.$eval('dialog',item=>item.open),'PNGをダイアログで拡大する');
+  await page.click('#close');
+  assert(await page.$eval('dialog',item=>!item.open),'拡大表示を閉じる');
+  const source=await page.$eval('a[download]',item=>({href:item.href,name:item.download}));
+  assert(source.name.endsWith('.mmd')&&Buffer.from(source.href.split(',')[1],'base64').toString('utf8').startsWith('classDiagram'),'Mermaid原本の取得リンクが実データを持つ');
+  await page.screenshot({path:path.join(output,'catalog-desktop.png'),fullPage:true});
+  await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'幅390pxでページの横はみ出しがない');
+  await page.screenshot({path:path.join(output,'catalog-mobile.png'),fullPage:true});
+  assert(errors.length===0,'ブラウザー実行エラーがない');
+  assert(external.length===0,'外部ネットワークなしで閲覧できる');
+  await fs.writeFile(path.join(output,'browser-validation.json'),JSON.stringify({checks,concepts:count,viewports:['1440x1000','390x844'],errors,externalRequests:external},null,2)+'\n');
+  console.log(JSON.stringify({checks:checks.length,concepts:count}));
+} finally {
+  await browser.close();
+  await fs.rm(profile,{recursive:true,force:true});
+}

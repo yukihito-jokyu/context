@@ -1,0 +1,40 @@
+{
+  "tasks": [
+    {
+      "fixture": "dev/fixtures/basic",
+      "expect_status": "done",
+      "id": "T1-typical",
+      "kind": "typical",
+      "prompt": "このリポジトリのOrder、OrderLine、Paymentを、コードの根拠付きのドメインモデル図にしてPNGとHTMLカタログを作ってください。出力の名前はshopです。",
+      "setup": []
+    },
+    {
+      "fixture": "dev/fixtures/basic",
+      "expect_status": "done",
+      "id": "T2-default",
+      "kind": "default",
+      "prompt": "このリポジトリのコードから業務概念と関係を調べ、Mermaid原本・PNG・HTMLカタログを作ってください。",
+      "setup": []
+    },
+    {
+      "fixture": "dev/fixtures/basic",
+      "expect_status": "done",
+      "id": "T3-edge",
+      "kind": "edge",
+      "prompt": "コードからドメインモデル図を生成してください。既存のdomain-modelという出力は保持し、新しい出力の名前をbillingにしてください。PNGとHTMLカタログまで作成してください。",
+      "setup": [
+        "python3 -c 'from pathlib import Path; p=Path('\"'\"'.skill-runs/generate-domain-model-from-code/out/domain-model'\"'\"'); p.mkdir(parents=True); (p/'\"'\"'keep.txt'\"'\"').write_text('\"'\"'keep existing output\\n'\"'\"')'"
+      ]
+    },
+    {
+      "fixture": "dev/fixtures/basic",
+      "expect_status": "done",
+      "id": "H1-holdout",
+      "kind": "holdout",
+      "prompt": "TypeScriptのCustomerとSubscriptionから、コードを根拠とするドメインモデル図を作ってください。PNGとHTMLカタログも必要です。",
+      "setup": [
+        "python3 -c 'from pathlib import Path; import shutil; shutil.rmtree('\"'\"'sales'\"'\"'); shutil.rmtree('\"'\"'payments'\"'\"'); p=Path('\"'\"'subscriptions'\"'\"'); p.mkdir(); (p/'\"'\"'model.ts'\"'\"').write_text('\"'\"'export class Customer {\\n  constructor(public customerId: string, public name: string) {}\\n}\\n\\nexport class Subscription {\\n  constructor(public subscriptionId: string, public customer: Customer) {}\\n}\\n'\"'\"')'"
+      ]
+    }
+  ]
+}

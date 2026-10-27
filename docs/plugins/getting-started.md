@@ -12,6 +12,7 @@ sidebar_label: 導入を始める
 - スキル改善の工程を検査するなら[skill-refiner](skill-refiner.md)。Codex用またはClaude Code用を選びます。
 - 解説HTMLの完成検査を自動で呼ぶなら[explain-html](explain-html.md)。Claude Code用を使います。
 - 業務の概念をMermaid・PNG・HTMLカタログにするなら[generate-domain-model](generate-domain-model.md)。Codex用またはClaude Code用を選びます。
+- コードの根拠を辿れる図を作るなら[generate-domain-model-from-code](generate-domain-model-from-code.md)。Codex用またはClaude Code用を選びます。
 
 hooksを必要としない場合は[Skill単体の導入](../skills/getting-started.md)を選べます。Skillの導入だけではpluginのhooksは登録されません。
 
