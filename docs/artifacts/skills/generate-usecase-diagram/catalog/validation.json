@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "visual_review": {
+    "status": "reviewed",
+    "notes": "PNG全2枚とpreview.pngをview_imageで開き、日本語・境界・関係線を目視した。貸出から資格確認へのinclude、希望時の貸出票発行から貸出へのextend、主任司書から司書への汎化を入力と照合した。HTMLの一覧・検索・拡大・閉じる・原本表示・取得リンクはcatalog.py previewのChrome自動操作検査で成功し、その実画面を目視した。対話ブラウザでの手動操作と利用者の最終確認は未実施。"
+  },
+  "diagrams": [
+    {
+      "id": "d01",
+      "width": 953,
+      "height": 379,
+      "model": {
+        "actors": [
+          {
+            "id": "A01",
+            "label": "利用者",
+            "parent": null
+          },
+          {
+            "id": "A02",
+            "label": "司書",
+            "parent": null
+          }
+        ],
+        "usecases": [
+          {
+            "id": "U01",
+            "label": "本の貸出",
+            "parent": "S01"
+          },
+          {
+            "id": "U02",
+            "label": "貸出資格を確認する",
+            "parent": "S01"
+          },
+          {
+            "id": "U03",
+            "label": "貸出票を発行する（希望時）",
+            "parent": "S01"
+          }
+        ],
+        "systems": [
+          {
+            "id": "S01",
+            "label": "図書館システム（貸出）",
+            "members": [
+              "U01",
+              "U02",
+              "U03"
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "source": "A01",
+            "target": "U01",
+            "type": "association"
+          },
+          {
+            "source": "A02",
+            "target": "U01",
+            "type": "association"
+          },
+          {
+            "source": "U01",
+            "target": "U02",
+            "type": "include"
+          },
+          {
+            "source": "U03",
+            "target": "U01",
+            "type": "extend"
+          }
+        ],
+        "declarations": {
+          "A01": 1,
+          "A02": 1,
+          "S01": 1,
+          "U01": 1,
+          "U02": 1,
+          "U03": 1
+        }
+      },
+      "renderer": {
+        "mermaid": "12.1.0",
+        "browser": "Chrome/redacted",
+        "layout": "elk",
+        "look": "classic",
+        "theme": "default",
+        "network": "blocked"
+      },
+      "source_sha256": "d505966d36b5a63d2dd55b37aad6e7a398fcce95398ef84abf4091aa023674ae",
+      "png_sha256": "63b0acb7403c0c17fa186b30aa2e1957d52e36e38fec5101f126f43c7a7735de"
+    },
+    {
+      "id": "d02",
+      "width": 597,
+      "height": 329,
+      "model": {
+        "actors": [
+          {
+            "id": "A01",
+            "label": "司書",
+            "parent": null
+          },
+          {
+            "id": "A02",
+            "label": "主任司書",
+            "parent": null
+          }
+        ],
+        "usecases": [
+          {
+            "id": "U01",
+            "label": "本を登録する",
+            "parent": "S01"
+          },
+          {
+            "id": "U02",
+            "label": "本を除籍する",
+            "parent": "S01"
+          }
+        ],
+        "systems": [
+          {
+            "id": "S01",
+            "label": "図書館システム（蔵書管理）",
+            "members": [
+              "U01",
+              "U02"
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "source": "A01",
+            "target": "U01",
+            "type": "association"
+          },
+          {
+            "source": "A02",
+            "target": "U02",
+            "type": "association"
+          },
+          {
+            "source": "A02",
+            "target": "A01",
+            "type": "generalization"
+          }
+        ],
+        "declarations": {
+          "A01": 1,
+          "A02": 1,
+          "S01": 1,
+          "U01": 1,
+          "U02": 1
+        }
+      },
+      "renderer": {
+        "mermaid": "12.1.0",
+        "browser": "Chrome/redacted",
+        "layout": "elk",
+        "look": "classic",
+        "theme": "default",
+        "network": "blocked"
+      },
+      "source_sha256": "726da31e5639df2e01e873a46fc407310f0a2bb3f8fca76a6383eb668b2501b0",
+      "png_sha256": "b0b09e2aa3eb8c3f4b62a2c32cc6a39693c224ee8f958702515952c2eb026437"
+    }
+  ],
+  "catalog_sha256": "c2d5ce2540ffbaf849dc55294c59789ea6a901840a13e217228647828aa33f0c",
+  "html_sha256": "c85b980a38813dd93bf3ebdd4b00361b92ce11ae840ea79438b87c1af3eb1f39"
+}

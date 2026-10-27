@@ -59,7 +59,8 @@ test('Skillとpluginの全実例が原本と対応し、公開ガイドから取
     }
     for (const download of [...record.downloads, {file: 'input.md'}, {file: 'execution.json'}]) {
       const href = `/context/${kind}/${name}/${download.file}`;
-      assert.ok(anchors.some(anchor => anchor.includes(`href="${href}"`) && anchor.includes(`download="${download.file}"`)), `${name}: 原本取得リンクがない: ${download.file}`);
+      const filename = path.posix.basename(download.file);
+      assert.ok(anchors.some(anchor => anchor.includes(`href="${href}"`) && anchor.includes(`download="${filename}"`)), `${name}: 原本取得リンクがない: ${download.file}`);
     }
     if (record.html_output) {
       assert.ok(anchors.some(anchor => anchor.includes(`href="/context/${kind}/${name}/${record.html_output}"`) && anchor.includes('target="_blank"')), `${name}: HTMLを開くリンクがない`);
