@@ -1,0 +1,18 @@
+{
+  "title": "注文管理のユースケース",
+  "description": "会員の注文と、運用担当・管理者による注文管理を2つの図で確認する。",
+  "diagrams": [
+    {
+      "id": "d01",
+      "title": "会員が注文する",
+      "summary": "会員は注文する。注文には支払いが必須で、希望した場合はクーポン適用を追加する。",
+      "mermaid": "usecase-beta\ndirection LR\nactor A01(\"会員\")\nsystemBoundary S01[\"注文システム\"]\n  U01(\"注文する\")\n  U02(\"支払う\")\n  U03(\"クーポンを適用する\")\nend\nA01 -- U01\nU01 ..> : include U02\nU03 ..> : extend U01\n"
+    },
+    {
+      "id": "d02",
+      "title": "注文を運用する",
+      "summary": "運用担当は注文を一覧できる。管理者は運用担当の操作を引き継ぎ、注文を取り消せる。",
+      "mermaid": "usecase-beta\ndirection LR\nactor A01(\"運用担当\")\nactor A02(\"管理者\")\nsystemBoundary S01[\"注文システム\"]\n  U01(\"注文を一覧する\")\n  U02(\"注文を取り消す\")\nend\nA01 -- U01\nA02 -- U02\nA02 --|> A01\n"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-10-26T23:41:32.312476+00:00",
+  "reviewer": "/root/usecase_public_example",
+  "tool": "functions.exec -> tools.view_image",
+  "images_opened": [
+    {
+      "path": "/private/tmp/context-85-public-example/artifacts/usecase/library/diagrams/d01.png",
+      "observed": "日本語の全ラベルが読める。司書と利用者は境界の外、3ユースケースは境界の中。利用者と司書の関連は共に本の貸出へ接続。includeは本の貸出から貸出資格確認へ、extendは貸出票発行（希望時）から本の貸出へ向く。文字と線の重なり・切れを認めない。"
+    },
+    {
+      "path": "/private/tmp/context-85-public-example/artifacts/usecase/library/diagrams/d02.png",
+      "observed": "日本語の全ラベルが読める。主任司書と司書は境界の外、登録と除籍は境界の中。司書は登録、主任司書は除籍に関連。汎化の白三角は主任司書から司書へ向く。交差箇所は分離が読み取れ、ラベルの重なり・切れを認めない。"
+    },
+    {
+      "path": "/private/tmp/context-85-public-example/.skill-runs/generate-usecase-diagram/preview.png",
+      "observed": "1440px幅の実画面に2枚のカード、図、説明、検索欄、PNG取得・原本取得リンクが表示される。日本語は表示され、横方向のはみ出しを認めない。ページ下部は縦スクロールの対象。"
+    }
+  ],
+  "html_operations": {
+    "method": "catalog.py previewによるChrome CDPの自動操作。保存された実画面をview_imageで目視。",
+    "proof": "/private/tmp/context-85-public-example/.skill-runs/generate-usecase-diagram/preview.json",
+    "manual_interaction": "未実施。追加の対話ブラウザでfile://を開く要求はCUAのURLポリシーにより拒否された。迂回していない。"
+  },
+  "user_final_confirmation": {
+    "status": "not_performed",
+    "reason": "利用者に代わって内容合意を承認していない。"
+  },
+  "browser_policy_rejection": {
+    "tool": "mcp__cua_repl.js",
+    "code": "let tab = await cua.createBrowserTab(\"chrome\", \"file:///private/tmp/context-85-public-example/artifacts/usecase/library/index.html\", { sessionName: \"📚 図書館カタログ\" });",
+    "observed": "Browser Use rejected this action due to browser security policy. The requested URL protocol is not allowed. Allowed protocols: http:, https:.",
+    "subsequent_action": "追加のCUA操作、別経路での対話ブラウザ操作は行っていない。"
+  },
+  "post_review_screen": {
+    "path": "/private/tmp/context-85-public-example/.skill-runs/generate-usecase-diagram/preview.png",
+    "tool": "functions.exec -> tools.view_image",
+    "observed_at": "2026-10-26T23:41:44.472808+00:00",
+    "observed": "review後のChrome実画面を開いて目視。2枚のカードと日本語説明、図、検索欄、取得リンクが表示され、横方向のはみ出しを認めない。"
+  }
+}

@@ -1,0 +1,20 @@
+共通Skillの公開作例を、作成に参加していない独立した新しいサブエージェントとして実行してください。依頼全文は /private/tmp/context-85-public-task.txt にあります。まず全文を読み、その内容を実際の作業依頼として遂行してください。あなたの実際の識別子は /root/usecase_public_example です。スキル正本は封印済みです。正本やリポジトリの設定、GitHubには変更を加えず、指定された作業用ディレクトリと公開成果物ディレクトリだけに作業を限定します。新規の実行を行い、実入力・実出力・画像・操作検査・来歴を保存してください。途中の詰まりは報告し、スキル正本を自分で直さないでください。execution.jsonのrunner.taskは、実際に渡されたこの指示と参照した依頼全文を保存してください。
+
+参照した依頼全文：
+完成版のgenerate-usecase-diagramを読み、次の公開可能な題材に実際に適用してください。正本は <user-home>/Documents/github_projects/context/utils/skills/design/generate-usecase-diagram/ です。SKILL.mdと必要な同梱資料を読んで実行し、正本を変更しないでください。PYTHONDONTWRITEBYTECODE=1を使ってください。
+
+実行用の作業場所は /private/tmp/context-85-public-example 、公開成果物の保存先は <user-home>/Documents/github_projects/context/docs/artifacts/skills/generate-usecase-diagram/ です。両者を分けてください。作業場所で初期化したGitは実行検査用で、リポジトリ本体ではコミットしません。GitHubへの投稿・PR作成・インストール・hooks登録・グローバル設定の変更は許可しません。既存のMermaidは <user-home>/Documents/github_projects/context/node_modules/mermaid/dist/mermaid.min.js をUSECASE_MERMAID_JSで指定できます。既存Chromeを使い、追加のパッケージは導入しません。Chromeがsandbox内で拒否される場合は、その実行だけ必要な権限を自動レビューに渡してください。
+
+実行する依頼：
+図書館システムのユースケース図をMermaid原本・PNG・HTMLカタログで作ってください。カタログ名はlibrary、機能範囲別に次の2枚に分けます。
+1. 貸出：利用者は本を借りる。司書も利用者に代わって本を貸し出せる。本の貸出には貸出資格の確認が必須である。利用者が希望した場合にだけ、貸出票の発行を貸出に追加する。
+2. 蔵書管理：司書は本を登録できる。主任司書は司書の操作を引き継ぎ、本を除籍できる。
+要件にない機能を追加せず、日本語ラベル、include・extend・汎化の向きを確認してください。
+
+実際にstart、build、preview、全PNGと画面の目視、review、check、finishまで行ってください。自動操作検査の成功と目視、利用者の最終確認を区別し、利用者の最終確認は未実施と記録します。画像を開いた事実を捏造しないでください。コマンド・終了コード・観測結果を実行記録の下に保存し、finish後に公開先へ整理してください。
+
+公開先へ input.md（上の実行する依頼そのもの）、output.md（finishのstdout全文をそのまま）、catalog/（index.html、catalog.json、validation.json、diagrams/原本とPNG）、preview.png（review後の実画面）、catalog.zip（index.htmlをルートにした一式）、validation.json（実コマンドと終了コード、画像の観測、HTML操作結果、利用者確認未実施）を保存してください。preview後に画面を開いて確認してください。ZIPと実ファイルの整合も検査します。
+
+execution.jsonは既存の docs/artifacts/skills/skill-foundation/execution.json と scripts/sync-examples.mjs の構造を参考にし、schema_version、skill、skill_source、skill_sha256、recorded_at、runner、input、summary、stage、checks、downloads、text_output、html_output、preview、preview_alt、preview_note、source_files、source_sha256、artifactsを記録します。runnerはkind=subagent、agent_idはあなたの実際の識別子、taskはこの依頼全文です。sourceManifestは <user-home>/Documents/github_projects/context/scripts/example-skill-source.cjs のヘルパーを使い、正本ディレクトリ全体の実行前後の一致を確認してください。execution.json以外の全ファイルをartifactsへSHA-256付きで登録し、verifyExampleSkillSourceとverifyArtifactsも実行します。実行記録から本文を捏造したり、古い作例をコピーして作り直し扱いしたりしません。スキルの欠陥で進めない場合は正本を編集せず、失敗の具体的な根拠を返してください。
+
+実行場所、公開成果物、確認した画像・操作、コマンドの結果、実施していない利用者確認はvalidation.jsonへ記録してください。最後の返答にはfinishが出力した本文をそのまま使ってください。
