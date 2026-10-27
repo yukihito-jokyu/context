@@ -1,0 +1,135 @@
+=== .skill-runs/generate-domain-model/notes.md
+- 資料照合: 確認済み
+- PNG表示: 確認済み
+- HTML操作: 確認済み
+
+=== domain-models/sample/catalog.json
+{
+  "diagrams": [
+    {
+      "description": "顧客が注文を申し込む関係を表す。注文は1人の顧客に属する。",
+      "id": "order",
+      "sources": [
+        {
+          "path": "input.md:1",
+          "quote": "顧客は0件以上の注文を申し込める。注文は必ず1人の顧客に属する。"
+        }
+      ],
+      "terms": [
+        "注文",
+        "顧客"
+      ],
+      "title": "顧客と注文",
+      "unresolved": []
+    },
+    {
+      "description": "注文が0件または1件の支払を持つ関係を表す。支払は1件の注文に属する。",
+      "id": "payment",
+      "sources": [
+        {
+          "path": "orders.md:4",
+          "quote": "概念は注文(Order)と支払(Payment)。注文は0件または1件の支払を持つ。支払は1件の注文に属する。"
+        }
+      ],
+      "terms": [
+        "支払",
+        "注文"
+      ],
+      "title": "注文と支払",
+      "unresolved": []
+    }
+  ],
+  "name": "sample",
+  "schema_version": 1,
+  "title": "受注・支払業務のモデル"
+}
+
+=== domain-models/sample/diagrams/payment.mmd
+classDiagram
+    direction LR
+    class Order["注文"]
+    class Payment["支払"]
+    Order "1" -- "0..1" Payment : 持つ
+
+=== domain-models/sample/images/payment.png
+(削除・バイナリ)
+=== domain-models/sample/index.html
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>受注・支払業務のモデル — ドメインモデル</title>
+<style>
+:root{color-scheme:light;--ink:#172e36;--muted:#546a71;--line:#d5e0df;--paper:#f3f6f4;--accent:#146358}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}button,input,a{font:inherit}button,a{touch-action:manipulation}button{cursor:pointer}a{color:var(--accent);text-underline-offset:3px}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #ca7e30;outline-offset:4px}header{background:#163f3c;color:#f4faf6;padding:44px max(24px,calc((100vw - 1240px)/2)) 38px}.eyebrow{font-size:12px;letter-spacing:.18em;color:#aed1bf;font-weight:700}h1{font-size:clamp(28px,4vw,44px);line-height:1.35;margin:12px 0}header p{margin:12px 0 0;color:#c2d7d0;max-width:780px}main{max-width:1288px;margin:auto;padding:30px 24px 60px}.toolbar{display:flex;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:26px}.search{flex:1;min-width:240px}.search label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}input{width:100%;padding:13px 16px;border:1px solid #aebfba;border-radius:8px;background:white;color:var(--ink)}#count{margin:0 0 12px;color:var(--muted);font-size:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.card{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 5px 18px #143d3010}.card[hidden]{display:none}.preview{background:#e8efeb;border-bottom:1px solid var(--line);padding:22px}.preview button{width:100%;height:264px;display:grid;place-items:center;border:0;background:white;border-radius:8px;padding:18px}.preview img{max-width:100%;max-height:228px;object-fit:contain}.card-body{padding:25px}.diagram-id{font:12px/1.5 ui-monospace,monospace;color:var(--accent);letter-spacing:.05em}h2{font-size:23px;line-height:1.4;margin:8px 0 12px}.card p{color:var(--muted);margin:0 0 15px}.tags{display:flex;gap:6px;flex-wrap:wrap;margin:15px 0}.tag{font-size:12px;padding:3px 10px;background:#edf4ef;border-radius:5px;color:#365d4c}.unknown{border-left:3px solid #bf8c42;background:#faf4e9;font-size:13px;padding:12px 16px;margin:18px 0}.unknown ul{padding-left:18px;margin:5px 0}.card .confirmed{font-size:13px;color:#427460}details{border-top:1px solid var(--line);padding-top:14px;font-size:13px}summary{cursor:pointer;color:var(--muted)}.sources{padding-left:18px;overflow-wrap:anywhere}.sources li{margin-top:14px}blockquote{margin:8px 0 12px;padding-left:12px;border-left:2px solid #bfccc8;color:var(--muted)}code{font-size:12px}.actions{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin-top:24px;font-size:13px}.primary{border:0;border-radius:6px;background:var(--accent);color:white;padding:9px 15px}.empty{padding:60px 20px;text-align:center;color:var(--muted)}footer{border-top:1px solid var(--line);padding-top:24px;margin-top:36px;color:var(--muted);font-size:12px}dialog{width:min(1400px,96vw);max-width:96vw;max-height:94vh;border:1px solid #bbc9c2;border-radius:12px;padding:0;color:var(--ink)}dialog::backdrop{background:#0a2425b3}.dialog-bar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--paper)}.dialog-bar h2{font-size:18px;margin:0}.zoom-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.zoom-controls button{background:white;border:1px solid #aebfba;border-radius:5px;padding:5px 12px}#viewport{overflow:auto;max-height:73vh;padding:24px;background:white}#zoom-image{display:block;width:100%;max-width:none;height:auto}#zoom-label{min-width:44px;font-size:12px;text-align:center}@media(max-width:760px){.grid{grid-template-columns:1fr}header{padding:30px 24px}.dialog-bar{align-items:start;flex-direction:column}.preview button{height:230px}.preview img{max-height:196px}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">DOMAIN MODEL CATALOG</div><h1>受注・支払業務のモデル</h1><p>業務の概念をつなぎ、関係を確かめる。図と根拠を一緒に見ながら、確認したい点を整理できます。</p></header>
+<main>
+<div class="toolbar"><div class="search"><label for="search">モデルを探す</label><input type="search" id="search" placeholder="タイトル・説明・業務用語で検索" autocomplete="off"></div><p id="count" role="status" aria-live="polite">2件のモデル</p></div>
+<div class="grid" id="models"><article class="card" id="order" data-search="顧客と注文 顧客が注文を申し込む関係を表す。注文は1人の顧客に属する。 注文 顧客">
+<div class="preview"><button class="open-diagram" data-id="order" data-title="顧客と注文" aria-label="顧客と注文の図を拡大"><img src="images/order.png" alt="顧客と注文のドメインモデル図"></button></div>
+<div class="card-body"><div class="diagram-id">order</div><h2>顧客と注文</h2><p>顧客が注文を申し込む関係を表す。注文は1人の顧客に属する。</p><div class="tags"><span class="tag">注文</span><span class="tag">顧客</span></div><p class="confirmed">未確認事項なし</p>
+<details><summary>根拠となる資料（1件）</summary><ul class="sources"><li><code>input.md:1</code><blockquote>顧客は0件以上の注文を申し込める。注文は必ず1人の顧客に属する。</blockquote></li></ul></details>
+<div class="actions"><button class="open-diagram primary" data-id="order" data-title="顧客と注文">図を拡大</button><a href="diagrams/order.mmd" download>Mermaid原本</a><a href="images/order.png" download>PNG</a></div></div></article>
+<article class="card" id="payment" data-search="注文と支払 注文が0件または1件の支払を持つ関係を表す。支払は1件の注文に属する。 支払 注文">
+<div class="preview"><button class="open-diagram" data-id="payment" data-title="注文と支払" aria-label="注文と支払の図を拡大"><img src="images/payment.png" alt="注文と支払のドメインモデル図"></button></div>
+<div class="card-body"><div class="diagram-id">payment</div><h2>注文と支払</h2><p>注文が0件または1件の支払を持つ関係を表す。支払は1件の注文に属する。</p><div class="tags"><span class="tag">支払</span><span class="tag">注文</span></div><p class="confirmed">未確認事項なし</p>
+<details><summary>根拠となる資料（1件）</summary><ul class="sources"><li><code>orders.md:4</code><blockquote>概念は注文(Order)と支払(Payment)。注文は0件または1件の支払を持つ。支払は1件の注文に属する。</blockquote></li></ul></details>
+<div class="actions"><button class="open-diagram primary" data-id="payment" data-title="注文と支払">図を拡大</button><a href="diagrams/payment.mmd" download>Mermaid原本</a><a href="images/payment.png" download>PNG</a></div></div></article></div>
+<p class="empty" id="empty" hidden>一致するモデルがありません。検索する言葉を変えてください。</p>
+<footer>Mermaid原本とPNGは各モデルから取得できます。根拠と未確認事項は、図の説明と一緒に確認してください。</footer>
+</main>
+<dialog id="viewer" aria-labelledby="viewer-title"><div class="dialog-bar"><h2 id="viewer-title">図の拡大</h2><div class="zoom-controls"><button id="zoom-out" aria-label="縮小">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="拡大">＋</button><button id="zoom-reset">全体表示</button><button id="close">閉じる</button></div></div><div id="viewport"><img id="zoom-image" alt=""></div></dialog>
+<script>
+const search=document.getElementById('search'), cards=Array.from(document.querySelectorAll('.card'));
+search.addEventListener('input',()=>{const words=search.value.normalize('NFKC').toLocaleLowerCase('ja').trim().split(/\s+/).filter(Boolean);let visible=0;for(const card of cards){const text=card.dataset.search.normalize('NFKC').toLocaleLowerCase('ja');card.hidden=!words.every(word=>text.includes(word));if(!card.hidden)visible++;}document.getElementById('count').textContent=visible+'件のモデル';document.getElementById('empty').hidden=visible!==0;});
+const viewer=document.getElementById('viewer'), image=document.getElementById('zoom-image');let zoom=100,opener=null;
+function setZoom(value){zoom=Math.max(25,Math.min(400,value));image.style.width=zoom+'%';document.getElementById('zoom-label').textContent=zoom+'%';}
+document.querySelectorAll('.open-diagram').forEach(button=>button.addEventListener('click',()=>{opener=button;document.getElementById('viewer-title').textContent=button.dataset.title;image.src='images/'+button.dataset.id+'.png';image.alt=button.dataset.title+'のドメインモデル図';setZoom(100);viewer.showModal();}));
+document.getElementById('zoom-in').addEventListener('click',()=>setZoom(zoom+25));document.getElementById('zoom-out').addEventListener('click',()=>setZoom(zoom-25));document.getElementById('zoom-reset').addEventListener('click',()=>setZoom(100));document.getElementById('close').addEventListener('click',()=>viewer.close());viewer.addEventListener('close',()=>{image.removeAttribute('src');if(opener)opener.focus();});
+</script>
+</body>
+</html>
+
+=== domain-models/sample/validation.json
+{
+  "diagram_ids": [
+    "order",
+    "payment"
+  ],
+  "files": {
+    "catalog.json": "0afa40e1f1150903fc43e46cd412ed5e1a9fc08ed043104264ba0dbd4786969a",
+    "diagrams/order.mmd": "ead3a30813e4e1ff44ed86316a890f16f58fd6d04cf80f0f2d56450ff089c52e",
+    "diagrams/payment.mmd": "6ce690e886b14ccd3818e51d40cdba192b01b870f985bdc4573b86b22528c850",
+    "images/order.png": "d18f863a4b6fa25bce551f17857f23337f1be0387b2259fb5dc69850cd7adcc4",
+    "images/payment.png": "7501850f4b8722e150162565096f6c3473fb7d84e6ce10030f597c9287ec9947",
+    "index.html": "b3815d89ffa01b5ccbca2f1d6ee03a065249db118e97e33297438d7bd3d0f313"
+  },
+  "images": {
+    "order": {
+      "height": 200,
+      "width": 608
+    },
+    "payment": {
+      "height": 200,
+      "width": 550
+    }
+  },
+  "renderer": {
+    "background": "white",
+    "config": {
+      "fontFamily": "Hiragino Kaku Gothic ProN, Noto Sans JP, sans-serif",
+      "securityLevel": "strict",
+      "theme": "neutral"
+    },
+    "font_family": "Hiragino Kaku Gothic ProN, Noto Sans JP, sans-serif",
+    "name": "mermaid-cli",
+    "scale": 2,
+    "version": "12.0.0"
+  },
+  "schema_version": 1,
+  "status": "passed"
+}
+
