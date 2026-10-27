@@ -11,6 +11,7 @@ sidebar_label: 導入を始める
 
 - スキル改善の工程を検査するなら[skill-refiner](skill-refiner.md)。Codex用またはClaude Code用を選びます。
 - 解説HTMLの完成検査を自動で呼ぶなら[explain-html](explain-html.md)。Claude Code用を使います。
+- コードからドメインモデル図を作り、出力を検査するなら[generate-domain-model](generate-domain-model.md)。Codex用またはClaude Code用を選びます。
 
 hooksを必要としない場合は[Skill単体の導入](../skills/getting-started.md)を選べます。Skillの導入だけではpluginのhooksは登録されません。
 
@@ -22,6 +23,8 @@ Python 3.10以降を用意し、このリポジトリのルートで実行しま
 python3 utils/plugins/skill-refiner/build.py --agent codex --output /tmp/skill-refiner-codex
 python3 utils/plugins/skill-refiner/build.py --agent claude-code --output /tmp/skill-refiner-claude
 python3 utils/plugins/explain-html/build.py --output /tmp/explain-html-plugin
+python3 utils/plugins/generate-domain-model/build.py --agent codex --output /tmp/domain-model-codex
+python3 utils/plugins/generate-domain-model/build.py --agent claude-code --output /tmp/domain-model-claude
 ```
 
 必要な行だけ実行します。既存の出力先への上書きは拒否されます。配布物には正本からコピーしたSkill、Agent別のmanifest・hooks設定、hook処理が入ります。
