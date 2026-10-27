@@ -1,0 +1,186 @@
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "generate-domain-model",
+  "language": "ja",
+  "targets": [
+    "claude",
+    "codex"
+  ],
+  "inputs": [
+    {
+      "key": "name",
+      "label": "出力の名前",
+      "type": "slug",
+      "aliases": [
+        "名前",
+        "catalog"
+      ],
+      "impact": "reversible",
+      "default": "domain-model"
+    },
+    {
+      "key": "repo",
+      "label": "対象リポジトリ",
+      "type": "path",
+      "aliases": [
+        "repository",
+        "リポジトリ"
+      ],
+      "impact": "reversible",
+      "default": "."
+    },
+    {
+      "key": "scope",
+      "label": "調査範囲",
+      "type": "list",
+      "aliases": [
+        "対象範囲"
+      ],
+      "impact": "reversible",
+      "default": [
+        "."
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "model",
+      "label": "モデル情報",
+      "path": "{run}/out/{in:name}/model.json",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": [
+        {
+          "type": "forbid",
+          "pattern": "^  \"(?:skip_validation|no_verify|ignore_errors|disable_checks)\":",
+          "rule": "OUT-07"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-01",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "OUT-01"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-02",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "OUT-02"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-04",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "OUT-04"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-06",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "OUT-06"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-07",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "OUT-07"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-02",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "STEP-02"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-03",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "STEP-03"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-06",
+          "stage": "finish",
+          "timeout": 45,
+          "rule": "STEP-06"
+        }
+      ]
+    },
+    {
+      "id": "inventory",
+      "label": "コードのスナップショット",
+      "path": "{run}/out/{in:name}/inventory.json",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "catalog",
+      "label": "HTMLカタログ",
+      "path": "{run}/out/{in:name}/index.html",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "manifest",
+      "label": "画像と派生物の検証記録",
+      "path": "{run}/out/{in:name}/manifest.json",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "mermaid",
+      "label": "Mermaid原本",
+      "path": "{run}/out/{in:name}/diagrams/*.mmd",
+      "count": {
+        "min": 1,
+        "max": 10000
+      },
+      "rule": "OUT-01",
+      "checks": []
+    }
+  ],
+  "together": [],
+  "control": {
+    "hooks": true,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "tamper_rule": "CTL-02",
+    "scope_rule": "CTL-05",
+    "allow_changes": [
+      "{run}/out/{in:name}/diagrams/*.png"
+    ],
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": null,
+    "rule": "RPT-01",
+    "sections": []
+  }
+}
