@@ -1,0 +1,211 @@
+{
+  "concepts": [
+    {
+      "attributes": [
+        {
+          "evidence": [
+            {
+              "end": 5,
+              "path": "billing/invoice.ts",
+              "quote": "    public readonly invoiceId: string,",
+              "start": 5
+            }
+          ],
+          "name": "invoiceId",
+          "type": "string"
+        },
+        {
+          "evidence": [
+            {
+              "end": 7,
+              "path": "billing/invoice.ts",
+              "quote": "    public readonly amountYen: number,",
+              "start": 7
+            }
+          ],
+          "name": "amountYen",
+          "type": "number"
+        }
+      ],
+      "description": "請求の識別子と円建て金額を持ち、請求対象の契約を参照する。",
+      "domain": "billing",
+      "evidence": [
+        {
+          "end": 9,
+          "path": "billing/invoice.ts",
+          "quote": "export class Invoice {\n  constructor(\n    public readonly invoiceId: string,\n    public readonly subscription: Subscription,\n    public readonly amountYen: number,\n  ) {}\n}",
+          "start": 3
+        }
+      ],
+      "id": "C_b3a13930ebc9",
+      "key": "billing/invoice.ts::Invoice",
+      "kind": "concept",
+      "name": "Invoice",
+      "symbol": "Invoice"
+    },
+    {
+      "attributes": [
+        {
+          "evidence": [
+            {
+              "end": 4,
+              "path": "subscriptions/model.ts",
+              "quote": "  constructor(public readonly customerId: string, public displayName: string) {}",
+              "start": 4
+            }
+          ],
+          "name": "customerId",
+          "type": "string"
+        },
+        {
+          "evidence": [
+            {
+              "end": 4,
+              "path": "subscriptions/model.ts",
+              "quote": "  constructor(public readonly customerId: string, public displayName: string) {}",
+              "start": 4
+            }
+          ],
+          "name": "displayName",
+          "type": "string"
+        }
+      ],
+      "description": "顧客の識別子と表示名を保持する。業務上の同一性判定やEntity分類の明示はない。",
+      "domain": "subscriptions",
+      "evidence": [
+        {
+          "end": 5,
+          "path": "subscriptions/model.ts",
+          "quote": "export class Customer {\n  constructor(public readonly customerId: string, public displayName: string) {}\n}",
+          "start": 3
+        }
+      ],
+      "id": "C_27109191be15",
+      "key": "subscriptions/model.ts::Customer",
+      "kind": "concept",
+      "name": "Customer",
+      "symbol": "Customer"
+    },
+    {
+      "attributes": [],
+      "description": "契約で選択する月次または年次のプラン。文字列リテラル型で選択肢を宣言する。",
+      "domain": "subscriptions",
+      "evidence": [
+        {
+          "end": 1,
+          "path": "subscriptions/model.ts",
+          "quote": "export type Plan = \"monthly\" | \"annual\";",
+          "start": 1
+        }
+      ],
+      "id": "C_718781fcb7bb",
+      "key": "subscriptions/model.ts::Plan",
+      "kind": "enum",
+      "name": "Plan",
+      "symbol": "Plan"
+    },
+    {
+      "attributes": [
+        {
+          "evidence": [
+            {
+              "end": 9,
+              "path": "subscriptions/model.ts",
+              "quote": "    public readonly subscriptionId: string,",
+              "start": 9
+            }
+          ],
+          "name": "subscriptionId",
+          "type": "string"
+        }
+      ],
+      "description": "契約の識別子を持ち、対象顧客と選択したプランを参照する。",
+      "domain": "subscriptions",
+      "evidence": [
+        {
+          "end": 13,
+          "path": "subscriptions/model.ts",
+          "quote": "export class Subscription {\n  constructor(\n    public readonly subscriptionId: string,\n    public readonly customer: Customer,\n    public readonly plan: Plan,\n  ) {}\n}",
+          "start": 7
+        }
+      ],
+      "id": "C_ef60d07c24af",
+      "key": "subscriptions/model.ts::Subscription",
+      "kind": "concept",
+      "name": "Subscription",
+      "symbol": "Subscription"
+    }
+  ],
+  "domains": [
+    {
+      "description": "契約を参照する請求と金額を定義するコードの配置単位。",
+      "name": "billing",
+      "path": "billing"
+    },
+    {
+      "description": "顧客・契約・プランを定義するコードの配置単位。",
+      "name": "subscriptions",
+      "path": "subscriptions"
+    }
+  ],
+  "questions": "Customer・Subscription・InvoiceにはEntity基底型やentity注釈がないためconceptとした。業務上の同一性や永続化の規則は未確認。\n参照先の多重度1は必須のTypeScriptメンバー宣言に基づく。逆方向の件数制約と実行時の非null保証はこのコードだけでは確定できない。\n参照するオブジェクトの寿命を所有する規則は確認できないため、合成・集約とは断定していない。\n領域は宣言元ファイルの親ディレクトリであり、業務上の境界とは断定していない。",
+  "relations": [
+    {
+      "evidence": [
+        {
+          "end": 6,
+          "path": "billing/invoice.ts",
+          "quote": "    public readonly subscription: Subscription,",
+          "start": 6
+        }
+      ],
+      "id": "R_569a4052fa20",
+      "kind": "association",
+      "label": "subscription",
+      "member": "subscription",
+      "source": "billing/invoice.ts::Invoice",
+      "source_multiplicity": null,
+      "target": "subscriptions/model.ts::Subscription",
+      "target_multiplicity": "1"
+    },
+    {
+      "evidence": [
+        {
+          "end": 10,
+          "path": "subscriptions/model.ts",
+          "quote": "    public readonly customer: Customer,",
+          "start": 10
+        }
+      ],
+      "id": "R_837c4b0199c0",
+      "kind": "association",
+      "label": "customer",
+      "member": "customer",
+      "source": "subscriptions/model.ts::Subscription",
+      "source_multiplicity": null,
+      "target": "subscriptions/model.ts::Customer",
+      "target_multiplicity": "1"
+    },
+    {
+      "evidence": [
+        {
+          "end": 11,
+          "path": "subscriptions/model.ts",
+          "quote": "    public readonly plan: Plan,",
+          "start": 11
+        }
+      ],
+      "id": "R_c40b5c9c0041",
+      "kind": "association",
+      "label": "plan",
+      "member": "plan",
+      "source": "subscriptions/model.ts::Subscription",
+      "source_multiplicity": null,
+      "target": "subscriptions/model.ts::Plan",
+      "target_multiplicity": "1"
+    }
+  ],
+  "schema_version": 1,
+  "title": "定期契約と請求のドメインモデル",
+  "unread": []
+}
