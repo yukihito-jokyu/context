@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a local domain-model plugin; does not install or enable it."""
+"""Build generate-domain-model with its canonical skill and agent-specific hooks."""
 import argparse
 import json
 from pathlib import Path
@@ -7,30 +7,34 @@ import shutil
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--agent',choices=['codex','claude-code'],required=True)
-    p.add_argument('--output',type=Path,required=True)
-    a=p.parse_args()
-    plugin=Path(__file__).resolve().parent
-    definition=json.loads((plugin/'bundle.json').read_text())
-    source=(plugin/definition['skill']).resolve()
-    out=a.output.resolve()
-    if out.exists() or out.is_relative_to(source) or out.is_relative_to(plugin):
-        p.error('既存の出力と正本を保持し、別の出力先を指定してください')
-    if not (source/'assets/seal.json').is_file():
-        p.error('検査して封印したSkill正本が必要です')
-    if any(file.is_symlink() for file in source.rglob('*')):
-        p.error('Skill正本にsymlinkがあるため配布できません')
-    out.mkdir(parents=True)
-    manifest=out/('.codex-plugin' if a.agent=='codex' else '.claude-plugin')
-    manifest.mkdir()
-    shutil.copyfile(plugin/a.agent/'plugin.json',manifest/'plugin.json')
-    (out/'hooks').mkdir()
-    shutil.copyfile(plugin/a.agent/'hooks.json',out/'hooks/hooks.json')
-    shutil.copytree(plugin/'scripts',out/'scripts',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
-    shutil.copytree(source,out/'skills/generate-domain-model',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
-    print(out)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--agent", choices=["codex", "claude-code"], required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    plugin = Path(__file__).resolve().parent
+    definition = json.loads((plugin / "bundle.json").read_text(encoding="utf-8"))
+    skill = (plugin / definition["skill"]).resolve()
+    output = Path(args.output).resolve()
+    if output.exists():
+        parser.error("Output already exists; choose a new build directory")
+    if output.is_relative_to(skill) or output.is_relative_to(plugin):
+        parser.error("Output must be outside the canonical sources")
+    spec = json.loads((skill / "dev/spec.json").read_text(encoding="utf-8"))
+    if spec["status"] != "ready" or not (skill / "assets/seal.json").is_file():
+        parser.error("Build the validated, sealed skill first")
+    manifest = json.loads((plugin / args.agent / "plugin.json").read_text(encoding="utf-8"))
+    if manifest["name"] != definition["name"] or args.agent not in definition["targets"]:
+        parser.error("Bundle and manifest do not match")
+    output.mkdir(parents=True)
+    manifest_dir = output / (".codex-plugin" if args.agent == "codex" else ".claude-plugin")
+    manifest_dir.mkdir()
+    shutil.copyfile(plugin / args.agent / "plugin.json", manifest_dir / "plugin.json")
+    (output / "hooks").mkdir()
+    shutil.copyfile(plugin / args.agent / "hooks.json", output / "hooks/hooks.json")
+    shutil.copytree(skill, output / "skills" / definition["name"],
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"))
+    print(output)
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     main()

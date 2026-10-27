@@ -7,7 +7,7 @@ sidebar_label: Skillとpluginの配布・導入
 
 このリポジトリでは、CodexとClaude Codeを対象に、Skill単体の配布とplugin配布を使い分けます。Skillは作業手順と同梱資料、pluginは複数Skillやhooksを一つの導入単位にまとめるパッケージです。
 
-[Issue #63の合意](https://github.com/yukihito-jokyu/context/issues/63#issuecomment-6104876148)に基づく管理方針を説明します。現在は[skill-refiner](skill-refiner.md)と[explain-html](../skills/discovery/explain-html.md)について、正本を参照する配布定義、Agent別のhooks設定、専用生成処理を作成しています。汎用の配布定義・生成処理と公開カタログは未作成です。以下のツリーは共通の配置方針、marketplaceコマンドは公開後の例です。
+[Issue #63の合意](https://github.com/yukihito-jokyu/context/issues/63#issuecomment-6104876148)に基づく管理方針を説明します。現在は[skill-refiner](skill-refiner.md)、[explain-html](../skills/discovery/explain-html.md)、[generate-domain-model](generate-domain-model.md)について、正本を参照する配布定義、Agent別のhooks設定、専用生成処理を作成しています。汎用の配布定義・生成処理と公開カタログは未作成です。以下のツリーは共通の配置方針、marketplaceコマンドは公開後の例です。
 
 ## 配布単位を選ぶ
 

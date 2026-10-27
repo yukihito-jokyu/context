@@ -1,301 +1,264 @@
 <!-- このファイルは render_skill.py が dev/spec.json から生成する。手で編集しない。 -->
 
-# コードから根拠付きのドメインモデル図を作る の決定
+# 業務の概念と関係を図とカタログにする の決定
 
-## IN-01 コードがない依頼を中断する
+## IN-01 材料が無ければ質問し対象外は中断する
 
 - 軸: I3
-- 決定: コードが読めない、対象ファイルが0件、概念が0件のいずれかなら理由を示して中断する。構想図だけの依頼はarchify-jpへ案内する。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
+- 決定: 業務資料が無ければ start の前に資料を聞く。ER図または全コードクラスの列挙だけを求める依頼では start せず archify-jp を案内する。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
 - 決め方: 依頼の指定
-- 守らせ方: doc: references/model-format.md
-- 機械化しない理由: 痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない
+- 守らせ方: doc: SKILL.md の手順1
+- 機械化しない理由: 痕跡が残らない：出力を作る前の質問と案内は出力の字面で判定できない
 - 良い例:
 
   ```text
-  コードが読めない、対象ファイルが0件、概念が0件のいずれかなら理由を示して中断する。構想図だけの依頼はarchify-jpへ案内する。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## IN-02 指定範囲のコードを調査する
+## IN-02 指定された資料と対応する定義を読む
 
 - 軸: I4
-- 決定: catalog.py inspectが列挙したファイルとルートのREADME・AGENTS.mdを読む。依存パッケージ・生成物・symlinkは除外する。未読のコードはunreadにパスと理由を書く。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
+- 決定: 読む範囲は利用者が渡した業務説明、仕様、classDiagram、指定したパスとその用語を定義する参照先にする。各図の sources に参照先と実際の記述を残す。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
 - 決め方: 依頼の指定
-- 守らせ方: doc: references/model-format.md
-- 機械化しない理由: 痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない
+- 守らせ方: doc: SKILL.md の手順3
+- 機械化しない理由: 痕跡が残らない：読む操作の範囲は最終出力から確定できない
 - 良い例:
 
   ```text
-  catalog.py inspectが列挙したファイルとルートのREADME・AGENTS.mdを読む。依存パッケージ・生成物・symlinkは除外する。未読のコードはunreadにパスと理由を書く。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## STEP-01 調査してから図を生成する
+## STEP-01 資料から原本を作り変換して検査する
 
-- 軸: P1
-- 決定: 受付、start、inspect、コードの読解、model.jsonの作成、build、check、画像とHTMLの確認、finishの順に進める。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: doc: references/model-format.md
-- 機械化しない理由: 痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない
+- 軸: P1, P2, P3
+- 決定: start → inspect → 資料を読む → catalog.json と .mmd を書く → build → check → finish の順にする。既存カタログは update=true のときだけ更新し、既存IDを維持して追加と内容修正を行う。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: script, doc: scripts/catalog.py の inspect、build、check。SKILL.md の手順2〜7
+- 機械化しない理由: 痕跡が残らない：操作の順序は生成後のファイルだけでは確定できない
 - 良い例:
 
   ```text
-  受付、start、inspect、コードの読解、model.jsonの作成、build、check、画像とHTMLの確認、finishの順に進める。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## STEP-02 概要図と領域別の図を作る
-
-- 軸: P2
-- 決定: 全概念を置いたoverviewを1つ作り、領域が2つ以上なら領域別の図も作る。領域は概念の宣言元ファイルの親ディレクトリとする。領域を跨ぐ関係は両端の概念を図へ残す。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: validate, script: scripts/catalog.py のverifyが図の集合とMermaidを再計算する。
-- 良い例:
-
-  ```text
-  全概念を含むoverviewを1つ作り、領域が2つ以上なら領域別の図も作る。領域を跨ぐ関係は両端の概念を含める。
-  ```
-- 悪い例:
-
-  ```text
-  根拠を確認せず出力を変える。
-  ```
-
-## STEP-03 派生物をスクリプトで生成する
-
-- 軸: P3
-- 決定: AIはmodel.jsonを作る。Mermaid、PNG、HTML、manifest.jsonはcatalog.py buildで生成し、手で書き換えない。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: validate, script: scripts/catalog.py のverifyがMermaidとHTMLを再生成して比較する。
-- 良い例:
-
-  ```text
-  AIはmodel.jsonを作る。Mermaid、PNG、HTML、manifest.jsonはcatalog.py buildで生成し、手で書き換えない。
-  ```
-- 悪い例:
-
-  ```text
-  根拠を確認せず出力を変える。
-  ```
-
-## STEP-04 インストール済みのMermaid CLIを使う
+## STEP-02 既存のMermaid CLIだけでPNGへ変換する
 
 - 軸: P4
-- 決定: Python 3.9以上、git、インストール済みMermaid CLIとブラウザーを使う。MMDCでCLI、PUPPETEER_EXECUTABLE_PATHでブラウザーを指定する。CLIがなければ中断し、導入が必要と伝える。自動ダウンロードは行わない。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
+- 決定: Python 3.9以上と既に導入された mmdc を使う。mmdc は引数 --mmdc、環境変数 DOMAIN_MODEL_MMDC、PATH の順に選ぶ。deps で版を確認する。不足時は references/setup.md の導入手順を提示し、インストールせず中断する。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
 - 決め方: 出力を使う道具や形式の公式の決まり
-- 守らせ方: doc: references/model-format.md
-- 機械化しない理由: 痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない
+- 守らせ方: script, doc: scripts/catalog.py の deps と build。references/setup.md
+- 機械化しない理由: 痕跡が残らない：インストールを実行したかは生成後のファイルだけでは判定できない
 - 良い例:
 
   ```text
-  Python 3.9以上、git、インストール済みMermaid CLIとブラウザーを使う。MMDCでCLI、PUPPETEER_EXECUTABLE_PATHでブラウザーを指定する。CLIがなければ中断し、導入が必要と伝える。自動ダウンロードは行わない。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## STEP-05 変換に失敗したら公開を止める
+## STEP-03 失敗したら完成扱いを止める
 
 - 軸: P5
-- 決定: 変換失敗、画像不正、根拠の不一致では中断する。全図の変換と検査の成功後に出力を置き換える。古い画像と仮の画像で成功を代替しない。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: doc: references/model-format.md
-- 機械化しない理由: 痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない
+- 決定: build または check が非0なら診断を読み、入力か生成対象を直して再実行する。環境不足を直せないときは run.py abort に実際の理由を渡す。既存の正常な画像とHTMLは全図の変換が成功してから置き換える。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: script, doc: scripts/catalog.py の build と check。SKILL.md の手順6
+- 機械化しない理由: 痕跡が残らない：失敗時は新しい成功出力が存在しない
 - 良い例:
 
   ```text
-  変換失敗、画像不正、根拠の不一致では中断する。全図の変換と検査の成功後に出力を置き換える。古い画像と仮の画像で成功を代替しない。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## STEP-06 生成後に画像の構造を検査する
+## STEP-04 変換結果を検査してから完了する
 
 - 軸: X1
-- 決定: checkとfinishでPNGのCRCと圧縮データを検査する。画像とHTMLを開いて文字・関係・検索・絞り込み・拡大・原本取得も確認する。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: validate, script: scripts/catalog.py のverifyがPNGを検査する。
+- 決定: validation.json の status は passed、renderer.name は mermaid-cli、renderer.version は空でない文字列にする。各PNGの署名・CRC・寸法・IDAT・終端を検査する。生成したPNGとHTMLを表示して日本語と図の欠けを確認し、notes.md は「- 資料照合: 」「- PNG表示: 」「- HTML操作: 」の順で3行にする。値は「確認済み」または「未実施（実際の理由）」だけにし、理由は英字を含まない日本語で書き、参照パスや識別子は書かない。詳細な根拠と未確認事項はカタログに残す。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: validate, script: scripts/catalog.py の check と build、SKILL.md の手順7
 - 良い例:
 
   ```text
-  checkとfinishでPNGのCRCと圧縮データを検査する。画像とHTMLを開いて文字・関係・検索・絞り込み・拡大・原本取得も確認する。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## OUT-01 実行記録配下に出力する
+## OUT-01 出力をカタログごとにまとめる
 
 - 軸: O1
-- 決定: 出力は実行記録のout/name配下に置く。inventory.json、model.json、index.html、manifest.jsonとdiagrams配下のmmd・pngを保存する。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
+- 決定: 出力は domain-models/{name}/catalog.json、index.html、validation.json、diagrams/<id>.mmd、images/<id>.png に限定する。カタログには1図以上を載せ、図ごとに原本とPNGを1つずつ対応させる。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
 - 決め方: 依頼の指定
-- 守らせ方: validate: 出力契約と scripts/catalog.py のverifyがファイル集合を検査する。
+- 守らせ方: validate, script: scripts/catalog.py の check と契約の出力パス
 - 良い例:
 
   ```text
-  出力は実行記録のout/name配下に置く。inventory.json、model.json、index.html、manifest.jsonとdiagrams配下のmmd・pngを保存する。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## OUT-02 モデル情報とコード根拠を検査する
+## OUT-02 固定した構造の原本とカタログを生成する
 
 - 軸: O2
-- 決定: model.jsonはschema_version・title・domains・concepts・relations・questions・unreadを持つ。references/model-format.mdに従い、型・キー・参照先とコードの行・抜粋を検査する。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
+- 決定: catalog.json は schema_version、name、title、diagrams を持つ。図は id、title、description、terms、sources、unresolved を持つ。sources は path と quote を持つ。原本は classDiagram で始める。HTMLはオフラインの一覧・検索・拡大・原本参照を備える。PNGは破損していない画像にする。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
 - 決め方: 依頼の指定
-- 守らせ方: validate, template: assets/examples/model.json と scripts/catalog.py のvalidateが型・キー・参照・抜粋を検査する。
+- 守らせ方: validate, script: scripts/catalog.py の check。assets/examples/catalog.json
 - 良い例:
 
   ```text
-  model.jsonはschema_version・title・domains・concepts・relations・questions・unreadを持つ。references/model-format.mdに従い、型・キー・参照先とコードの行・抜粋を検査する。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## OUT-03 日本語の説明とコード識別子を区別する
+## OUT-03 根拠のある業務概念と関係を表す
 
-- 軸: O3
-- 決定: 説明は日本語で書く。symbolとコードの抜粋は実装の表記を保持する。名称を翻訳してもコード識別子を変えない。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
+- 軸: O3, X2
+- 決定: 業務概念・主な属性・関係名・資料にある多重度を図にする。ラベルは資料の用語を使う。コードのメソッドやDBの外部キーを業務概念に置き換えない。資料にない概念・属性・関係・多重度を断定せず、足りない情報を unresolved に書く。sources.quote の実際の記述と図・説明を照合する。入力で指定された業務領域を省略しない。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
 - 決め方: 依頼の指定
-- 守らせ方: review: references/model-format.md
-- 機械化しない理由: 意味の判断が要る：説明の言語と識別子の翻訳が意味を変えたかはコードを読んで判断する。
+- 守らせ方: review: 完了前チェックリストで sources.quote と図・説明を照合する
+- 機械化しない理由: 意味の判断が要る：業務の意味と資料の含意は文字列の形だけでは判定できない
 - 良い例:
 
   ```text
-  説明は日本語で書く。symbolとコードの抜粋は実装の表記を保持する。名称を翻訳してもコード識別子を変えない。
+  人数が不明なら多重度を省略し未確認事項に書く
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  資料にない必須人数を推測し1と書く
   ```
 
 ## OUT-04 IDと並び順を固定する
 
 - 軸: O4
-- 決定: 概念の表示名はsymbol、領域の表示名はpath（.はルート）、関係名はコードのmember（継承は継承）に固定する。確認事項は改行区切りの文字列にする。conceptのIDはkeyのSHA-256先頭12桁にC_を付ける。relationのIDはsource・target・kind・固定した関係名のJSON配列のSHA-256先頭12桁にR_を付ける。domainsはpath、conceptsはkey、relationsはIDで並べる。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
+- 決定: name と図の id は英小文字・数字・ハイフンで、英小文字から始める。図は id の昇順、terms は重複なしの昇順にする。ファイル名は id と一致させ、JSONはキーの昇順・2空白で書く。既存IDは同じ図の更新で維持する。termsはMermaidに宣言した概念の表示名から生成し、表示名がない概念は概念IDを使う。同じファイルの引用は1件にまとめ、参照先の昇順に並べる。 プロジェクト内の資料パスはプロジェクトルートからの相対パスに統一する。プロジェクト外の資料とURLは入力の参照先を保つ。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
 - 決め方: 機械で守らせられる答え
-- 守らせ方: validate, script: scripts/catalog.py のnormalizeとverifyがIDと順序を再計算する。
+- 守らせ方: validate, script: scripts/catalog.py の check と build
 - 良い例:
 
   ```text
-  conceptのIDはkeyのSHA-256先頭12桁にC_を付ける。relationのIDはsource・target・kind・labelのJSON配列のSHA-256先頭12桁にR_を付ける。domainsはpath、conceptsはkey、relationsはIDで並べる。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## OUT-05 既存の出力を保持する
+## OUT-05 説明と根拠と未確認事項を省略しない
+
+- 軸: O5
+- 決定: 図は1〜1000件にする。各図に空でない題名と説明と1件以上の sources を持たせる。terms と unresolved は配列にし、未確認事項が無ければ空配列にする。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: validate: scripts/catalog.py の check
+- 良い例:
+
+  ```text
+  契約どおりに出力する
+  ```
+- 悪い例:
+
+  ```text
+  契約と違う出力にする
+  ```
+
+## OUT-06 既存カタログを確認してから更新する
 
 - 軸: O6
-- 決定: 受付時に同名の出力があれば別のnameを聞く。buildは既存の生成結果を拒否する。同じ実行内の修正はgenerate-domain-modelが生成した出力に限り--replaceで再生成する。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: doc: references/model-format.md
-- 機械化しない理由: 痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない
+- 決定: inspect で既存図のIDを読む。index.html があるときは update=true の依頼でだけ build --update を使う。依頼のない既存図は残す。build は前回 validation.json にあるIDの削除と同名の未知のファイルの置換を拒否する。 原本・変換版・設定と既存PNGのハッシュが前回の検証記録と一致する図はPNGを再利用し、未変更図の画像を維持する。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: script, doc: scripts/catalog.py の inspect と build。SKILL.md の手順3
+- 機械化しない理由: 痕跡が残らない：利用者が更新を依頼したかはファイルの字面だけでは判定できない
 - 良い例:
 
   ```text
-  受付時に同名の出力があれば別のnameを聞く。buildは既存の生成結果を拒否する。同じ実行内の修正はgenerate-domain-modelが生成した出力に限り--replaceで再生成する。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## OUT-06 モデルと派生物の対応を検査する
+## OUT-07 原本とPNGと一覧の対応を検査する
 
 - 軸: O7
-- 決定: コード、model、Mermaid、PNG、HTMLのハッシュをmanifestに記録し、checkとfinishで比較する。コードまたはモデルが変わったらinspectとbuildからやり直す。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: validate, script: scripts/catalog.py のverifyがmanifestと実ファイルを比較する。
+- 決定: check は全ファイルのSHA-256と validation.json の記録を照合し、metadata・Mermaid・PNG・HTMLの組が一致することを確認する。変更のない再実行でも report.sections が全カタログを検査する。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: validate, script: scripts/catalog.py の check と report、report.sections
 - 良い例:
 
   ```text
-  コード、model、Mermaid、PNG、HTMLのハッシュをmanifestに記録し、checkとfinishで比較する。コードまたはモデルが変わったらinspectとbuildからやり直す。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
-## OUT-07 検査の省略指定を拒否する
+## OUT-08 検査を止める記法を生成しない
 
 - 軸: O8
-- 決定: model.jsonのskip_validation、no_verify、ignore_errors、disable_checksを拒否する。許可していないキーを追加して検査を止めない。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: validate: scripts/catalog.py のvalidateが検査を省くキーを拒否する。
+- 決定: Mermaidとcatalog.jsonに skip ci、ci skip、eslint-disable、noqa、type: ignore、validation: false の記法を書かない。Mermaidの初期化ディレクティブとclick文は生成せず、変換設定はbuildが固定する。
+- 理由: 実行者が変わっても判断と出力を揃えるため。
+- 決め方: 機械で守らせられる答え
+- 守らせ方: validate: scripts/catalog.py の check
 - 良い例:
 
   ```text
-  model.jsonのskip_validation、no_verify、ignore_errors、disable_checksを拒否する。許可していないキーを追加して検査を止めない。
+  契約どおりに出力する
   ```
 - 悪い例:
 
   ```text
-  根拠を確認せず出力を変える。
-  ```
-
-## OUT-08 概念と関係の意味を根拠で確認する
-
-- 軸: X2
-- 決定: 分類の明示がないクラスはconceptにする。entityはEntity基底型かentity注釈、valueはValueObject基底型かvalue_object注釈、enumは列挙宣言かリテラルの選択型のコードを根拠にする。idという属性名やdataclassのfrozenだけで分類しない。参照メンバー・属性・関係種別・多重度の意味をレビューし、断定できない関係種別はassociation、多重度はnullにする。不明点はquestionsに書く。
-- 理由: コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。
-- 決め方: 依頼の指定
-- 守らせ方: review: references/model-format.md
-- 機械化しない理由: 意味の判断が要る：抜粋が存在しても業務上の意味が正しいとは確定しない。
-- 良い例:
-
-  ```text
-  業務概念を選び、分類・属性・関係名・種別・多重度を根拠から確認する。断定できない分類はconcept、関係種別はassociation、多重度はnullにする。不明な理由をquestionsに書く。
-  ```
-- 悪い例:
-
-  ```text
-  根拠を確認せず出力を変える。
+  契約と違う出力にする
   ```
 
 ## RPT-01 最終の返答は finish の本文をそのまま使う

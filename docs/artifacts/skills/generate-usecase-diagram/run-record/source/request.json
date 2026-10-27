@@ -1,0 +1,18 @@
+{
+  "title": "図書館システムのユースケース",
+  "description": "図書館システムの貸出と蔵書管理を、機能範囲別の2枚の図で確認する。",
+  "diagrams": [
+    {
+      "id": "d01",
+      "title": "貸出",
+      "summary": "利用者は本を借り、司書も利用者に代わって本を貸し出せる。本の貸出には貸出資格の確認が必須で、利用者が希望した場合にだけ貸出票の発行を追加する。",
+      "mermaid": "usecase-beta\ndirection LR\nactor A01(\"利用者\")\nactor A02(\"司書\")\nsystemBoundary S01[\"図書館システム（貸出）\"]\n  U01(\"本の貸出\")\n  U02(\"貸出資格を確認する\")\n  U03(\"貸出票を発行する（希望時）\")\nend\nA01 -- U01\nA02 -- U01\nU01 ..> : include U02\nU03 ..> : extend U01\n"
+    },
+    {
+      "id": "d02",
+      "title": "蔵書管理",
+      "summary": "司書は本を登録できる。主任司書は司書の操作を引き継ぎ、本を除籍できる。",
+      "mermaid": "usecase-beta\ndirection LR\nactor A01(\"司書\")\nactor A02(\"主任司書\")\nsystemBoundary S01[\"図書館システム（蔵書管理）\"]\n  U01(\"本を登録する\")\n  U02(\"本を除籍する\")\nend\nA01 -- U01\nA02 -- U02\nA02 --|> A01\n"
+    }
+  ]
+}

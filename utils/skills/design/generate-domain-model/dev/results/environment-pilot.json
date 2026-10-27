@@ -1,0 +1,24 @@
+{
+  "stage": "environment-pilot",
+  "runs": [
+    {
+      "runner": "claude",
+      "process_exit": 0,
+      "seconds": 106.8,
+      "skill_status": "done",
+      "observation": "PNGとHTMLを生成し検査完了"
+    },
+    {
+      "runner": "codex",
+      "process_exit": 0,
+      "seconds": 192.3,
+      "skill_status": "aborted",
+      "observation": "workspace-write内でChrome起動が拒否されPNGとHTMLは未生成。未完了としてabortした"
+    }
+  ],
+  "changes": [
+    "Codexの隔離された評価プロジェクトでChromeを起動するため、評価用runner_commandsだけをdanger-full-accessに変更する。利用者のプロジェクト設定は変更しない。",
+    "新しい評価プロジェクトを作り直し、途中出力を次の測定へ引き継がない。",
+    "引用の分割とtermsの作り方を機械化する。"
+  ]
+}

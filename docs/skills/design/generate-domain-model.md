@@ -1,63 +1,79 @@
 ---
-title: generate-domain-model — コードから業務概念と関係を図にする
+title: generate-domain-model — 業務の概念を図とカタログにする
 sidebar_label: generate-domain-model
 ---
 
 # generate-domain-model
 
-リポジトリのコードを読み、業務上の概念・属性・関係をMermaid原本、PNG、HTMLカタログにまとめます。HTMLでは概念を検索し、領域を選び、図を拡大してコードの根拠を確認できます。
+業務説明・仕様・指定されたコード・既存のMermaidから、業務の概念と関係を整理します。編集できるMermaid原本とPNGを生成し、複数の図をHTMLカタログで一覧・検索・拡大できます。
 
-AIがコードを読んでモデル情報を作り、同梱スクリプトが根拠の行と抜粋を検査して図を生成します。コードの意味を完全に自動抽出する解析器ではありません。確認できない分類や多重度は断定せず、確認事項として残します。領域はコードのディレクトリ単位で、DDD上の境界を保証しません。
-
-説明は日本語で書き、図の概念名と関係名にはコードの識別子・参照メンバー名を使います。実行するAIによって訳語が変わることを避け、コードへ辿りやすくします。分類を明示する宣言がないクラスは `concept` とし、idという属性名やfrozenの指定だけでentity・valueとは断定しません。
+図には業務の概念、主な属性、関係名、資料に書かれた多重度を載せます。根拠となる資料と実際の記述を図ごとに残し、資料だけで確定できない関係や多重度は「確認したいこと」として示します。
 
 ## 渡す情報
 
-対象リポジトリと調査範囲を渡します。省略すると作業中のリポジトリ全体が対象です。出力名の既定値は `domain-model` で、同名の出力がある場合は別名を指定します。出力先の希望がある場合は、検査後にカタログ全体を渡す場所として伝えます。
+- 図にしたい業務説明、仕様、コードのパス、または `classDiagram`。
+- カタログ名。指定がなければ `domain` になります。
+- 既存カタログを更新するときは、その名前と更新内容。
 
-Python 3.9以上、インストール済みのMermaid CLIと、CLIから起動できるブラウザーが必要です。CLIを自動取得する処理はありません。`mmdc` がPATH上にない場合は `MMDC`、ブラウザーを指定する場合は `PUPPETEER_EXECUTABLE_PATH` を設定します。対応拡張子・除外対象は[モデル情報の仕様](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/generate-domain-model/references/model-format.md)で確認できます。
-
-Skill単体の取得は[初めて使う](../getting-started.md)、hooksと一緒に使う配布単位は[pluginガイド](../../plugins/generate-domain-model.md)を参照してください。
+Python 3.9以上と、実行できる公式Mermaid CLIの `mmdc` が必要です。スキルは依存を自動でインストールしません。Mermaid CLI 12.0.0ではNode.js 22.13.0以上とPuppeteerで起動できるブラウザが必要です。[環境の準備](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/generate-domain-model/references/setup.md)を参照してください。
 
 ## 依頼例
 
 ```text
-このリポジトリの注文と支払いのコードから、ドメインモデル図を作ってください。
-対象はsalesとpaymentsです。根拠のコードを辿れるようにして、Mermaid原本・PNG・HTMLカタログを渡してください。
-出力の名前はshopにしてください。
+generate-domain-modelを使って、docs/order-spec.mdの業務の概念と関係を図にしてください。
+カタログ名はsalesです。受注と支払の2つの図に分け、Mermaid原本・PNG・HTMLカタログを作ってください。
+資料にない多重度は推測せず、確認したい点として残してください。
 ```
 
 ## 進め方
 
-1. 対象範囲と出力名を確認し、コードの一覧とGitの状態を記録します。
-2. コードを読み、概念・属性・関係と根拠の抜粋をモデル情報へまとめます。未読範囲と判断できない点も記録します。
-3. モデル情報からMermaidとPNGを生成し、検索・絞り込み・拡大ができるHTMLへまとめます。
-4. コードと抜粋、ID、生成物の対応、PNGの構造とハッシュを検査し、実際の図とHTMLの操作を確認します。
-5. `.skill-runs/generate-domain-model/out/<出力名>/` のカタログを渡します。希望する出力先があれば、検査済みの一式をコピーします。
+1. 資料と図の対象を確認し、業務領域ごとの概念・属性・関係を整理します。
+2. 新規カタログを作るか、更新対象の既存IDを読みます。
+3. Mermaid原本とカタログ情報を書き、全図のPNGを生成します。
+4. HTML一覧とファイルの対応、PNGの破損、検証記録を確認します。
+5. 根拠と図を照合し、PNGとHTMLの表示を確認して結果を返します。
+
+生成先は `domain-models/<カタログ名>/` です。`index.html` を直接開けます。閲覧時のCDN・サーバー・外部APIは不要です。Mermaid原本とPNGへのリンクもカタログにあります。複数ファイルを渡すときはディレクトリ全体を保持してください。
+
+既存カタログの更新では同じ図のIDを維持し、追加・内容修正を行います。依頼のない既存図の削除や未知のファイルの上書きは拒否します。変換に失敗した場合、生成済みの正常な画像とHTMLは置き換えません。
+
+## 配布と導入
+
+Claude CodeとCodexを対象にします。出力検査用のhooksを同梱するため、[generate-domain-model plugin](../../plugins/generate-domain-model.md)として配布物を生成します。hooksが利用できない実行環境でも `run.py check` と `finish` がカタログ全体を検査します。
+
+DBのテーブルと外部キーを表すER図や、コードの全クラスとメソッドを示す図には[archify-jp](archify-jp.md)を使います。このスキルでは業務の概念を扱います。
 
 ## 成果物の例
 
-公開用TypeScriptの顧客・定期契約・プラン・請求を読み、4概念と3関係から全体像と2領域の計3図、実PNG、根拠付きHTMLカタログを新規生成しました。
+受注と配送の2図をMermaid CLIでPNGへ描画し、一覧・検索・拡大と根拠を備えたHTMLカタログを生成しました。配送の未確定な多重度は図に書かず、確認したい点として残しています。
 
-**到達点：finish完了・実PNGとHTMLの表示と操作を確認済み。**
+**到達点：新規2図の生成・資料照合・PNG表示・PC/モバイルの操作確認・finish完了。hooksの自動発火は未検証。。**
 
 ### 実行した依頼
 
 ```text
-このリポジトリの公開サンプル用TypeScriptコード（Customer、Subscription、Plan、Invoice）を読み、コードの根拠を辿れる日本語のドメインモデル図、Mermaid原本、実PNG、HTMLカタログを作成してください。出力名はsubscription-billingです。調査範囲の指定がない入力は既定値で進め、コードだけでは断定できない分類・関係・多重度は確認事項に残してください。外部投稿や依存の新規ダウンロードは行わず、インストール済みのMermaid CLIとChromeを使用してください。
+架空の「受注と配送業務」のドメインモデルを作成してください。
+カタログ名は sales、図のIDは order と shipment の2図にしてください。
+Mermaid原本、実際に描画したPNG、オフラインで一覧・検索・拡大できるHTMLカタログを生成してください。
+資料にある概念・属性・関係・多重度を表し、資料にない多重度は図に書かず、未確認事項に残してください。
 
-対象は同梱の `source/` に保存した公開用TypeScriptコードです。実行時はGitを初期化した隔離作業場所へコピーし、出力の名前を `subscription-billing`、対象リポジトリを `.` に指定しました。調査範囲は指定せず既定値を使用しました。
+業務資料:
+顧客(Customer)は顧客番号・氏名を持つ。
+注文(Order)は注文番号・注文日を持つ。
+顧客は0件以上の注文を申し込み、注文は必ず1人の顧客に属する。
+配送(Shipment)は追跡番号を持つ。
+注文を配送する関係があるが、注文と配送の多重度は資料では決めていない。
 
-生成後はPNGとHTMLを開いて、文字・関係・読みやすさ・検索・領域選択・拡大・Mermaid原本の取得を実際に確認し、未確認事項を記録してください。検査済みカタログ一式、入力コード、実行本文、検証記録、デスクトップとモバイルの画面画像、閲覧・再現用ZIPを公開成果物として保存してください。
+order は顧客と注文、shipment は注文と配送を対象にしてください。
+生成した図・説明とこの資料の意味を照合し、PNGとHTMLを実際に表示して確認してください。
+既存カタログの更新は依頼していません。
 ```
 
 ### 実際の画面
 
-![定期契約と請求のドメインモデル。全体像・領域別の実PNGと、4概念・3関係のコード根拠を表示したHTMLカタログ。](/skills/generate-domain-model/screenshots/catalog-desktop.png)
+![顧客と注文、注文と配送の2図と説明・根拠・未確認事項を一覧できるPC版カタログ](/skills/generate-domain-model/preview.png)
 
-[画像を原寸で開く](pathname:///skills/generate-domain-model/screenshots/catalog-desktop.png)
-
-実際に生成したHTMLをChromeで開いた画面です。幅390pxの画面もZIPと成果物のscreenshots/catalog-mobile.pngへ保存しています。
+[画像を原寸で開く](pathname:///skills/generate-domain-model/preview.png)
 
 ### 実出力の抜粋
 
@@ -68,48 +84,47 @@ Skill単体の取得は[初めて使う](../getting-started.md)、hooksと一緒
 
 generate-domain-model: 完了（検証に合格）
 
+図: 2件
+カタログ: [開く](/private/tmp/issue-86-public-catalog/domain-models/sales/index.html)
+検証: 原本・画像・HTML・全ファイルの対応に合格
+
 ## 出力
 
-- `.skill-runs/generate-domain-model/out/subscription-billing/model.json`（model モデル情報）
-- `.skill-runs/generate-domain-model/out/subscription-billing/inventory.json`（inventory コードのスナップショット）
-- `.skill-runs/generate-domain-model/out/subscription-billing/index.html`（catalog HTMLカタログ）
-- `.skill-runs/generate-domain-model/out/subscription-billing/manifest.json`（manifest 画像と派生物の検証記録）
-- `.skill-runs/generate-domain-model/out/subscription-billing/diagrams/domain_0c95c7ece1ce.mmd`（mermaid Mermaid原本）
-- `.skill-runs/generate-domain-model/out/subscription-billing/diagrams/domain_9cac91c1f544.mmd`（mermaid Mermaid原本）
-- `.skill-runs/generate-domain-model/out/subscription-billing/diagrams/overview.mmd`（mermaid Mermaid原本）
-
-## 既定値で決めた値
+- `domain-models/sales/catalog.json`（catalog カタログ情報）
+- `domain-models/sales/index.html`（index HTMLカタログ）
+- `domain-models/sales/validation.json`（validation 変換検証結果）
+- `domain-models/sales/diagrams/order.mmd`（mermaid Mermaid原本）
+- `domain-models/sales/diagrams/shipment.mmd`（mermaid Mermaid原本）
 
 ````
 
 ### 成果物を取得する
 
-- [カタログ・入力コード・検証記録の一式（ZIP）](pathname:///skills/generate-domain-model/catalog.zip#download)
-- [実際のfinish本文（Markdown）](pathname:///skills/generate-domain-model/report.md#download)
-- [全体像の実PNG](pathname:///skills/generate-domain-model/catalog/diagrams/overview.png#download)
-- [全体像のMermaid原本](pathname:///skills/generate-domain-model/catalog/diagrams/overview.mmd#download)
-- [コード根拠付きモデル（JSON）](pathname:///skills/generate-domain-model/catalog/model.json#download)
-- [実行・表示検査と未確認事項（JSON）](pathname:///skills/generate-domain-model/verification.json#download)
-- [実際のHTMLをブラウザで開く](pathname:///skills/generate-domain-model/catalog/index.html)
+- [カタログ一式（ZIP）](pathname:///skills/generate-domain-model/sales-catalog.zip#download)
+- [実出力の全文（Markdown）](pathname:///skills/generate-domain-model/output.md#download)
+- [実際のHTMLをブラウザで開く](pathname:///skills/generate-domain-model/domain-models/sales/index.html)
 - [実行入力の原本](pathname:///skills/generate-domain-model/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/generate-domain-model/execution.json#download)
 
 ### 確認した結果
 
-- 隔離Git作業場所でinstallと登録検査、start、inspect、コード2ファイルとREADMEの読解、モデル作成、build、check、表示確認、finishを実行。finishは指摘0件。
-- Planをリテラル選択型に基づくenum、ほか3クラスをconceptとし、3つの参照関係をassociationとして記録。逆方向の多重度と寿命の所有は未確認として残した。
-- 3図をインストール済みMermaid CLIとChromeから生成。根拠行・抜粋、ID、コードスナップショット、Mermaid/HTMLの再生成、PNGのCRCと圧縮データ、manifestのハッシュ検査に合格。
-- view_imageで3PNGとデスクトップ・モバイルの実画像を確認。関係ラベルの重なりとHTMLの日本語の文字化けは見られなかった。
-- Chrome headlessで12項目と追加9項目に合格。1440×1000と390×844、検索・両領域の絞り込み・拡大・根拠展開・外部通信なしを確認。3つのMermaidを実ダウンロードし原本と一致。
-- finish後にコピーした公開カタログを再検査し合格。ZIP内24ファイルのCRCと展開内容のSHA-256が原本と一致し、report.mdはruntimeの保存本文とバイト一致。
-- Codexの/hooksによる信頼とセッション内のhooks自動起動、実モバイル端末での操作は未確認。外部投稿・依存の新規ダウンロード・実ユーザー環境へのインストールは未実施。
+- 使い捨てプロジェクトでstart→inspect→原本作成→deps→build→check→finishを実行し、finishの終了コード0・指摘0件を確認。
+- 顧客・注文・配送の主な属性と関係を入力資料へ照合。顧客1対注文0..*を表示し、注文と配送の多重度は省略して未確認事項に記録。
+- PNG2件とPC/モバイルの全体画像を実際に表示し、日本語・属性・関係名と図に欠けがないことを確認。
+- 既存ChromeのPC1440pxとモバイル390pxで全図、各6通りの検索と0件表示、拡大/縮小/全体表示、Escape/閉じる後のフォーカス復帰、根拠開閉を実操作。横はみ出し・外部HTTP通信・JavaScript/consoleエラーは0件。
+- 各画面で原本とPNGの4取得リンクを実際に開き、Mermaid本文またはPNG寸法とハッシュの一致を確認。Chromeのfile://では表示に遷移し、保存ダイアログの強制は未検証。
+- ZIPの8ファイルを全件展開照合し、公開bundleのcatalog.py checkも指摘0件。output.mdはruntime report.mdの本文とバイト一致。
+- sourceManifestでSkill正本91ファイルと実行コピーを照合し、実行前後で不変。verifyArtifactsとverifyExampleSkillSourceに合格。
 
 ## 確認するポイント
 
-概念・属性・関係がコードの抜粋から言えるかを確認します。抜粋の一致を機械検査できても、業務上の意味の正しさまでは保証しません。コレクション型だけから最小件数や逆方向の多重度を断定したり、参照だけから寿命の所有を断定したりしていないかを見ます。
+- 資料の業務用語と、図の概念・関係・説明が一致しているか。
+- 資料にない多重度が断定されず、未確認事項に残っているか。
+- PNG内の日本語、画像の欠け、拡大時の読みやすさを確認できるか。
+- HTMLから対象の図を検索し、対応する原本とPNGを取得できるか。
 
-PNG変換に失敗した場合は成功として渡しません。MermaidとPNGとHTMLはモデル情報からまとめて生成するため、修正はモデル情報へ戻って行います。カタログは外部CDNなしで開けます。
+検査はファイルの形式・対応と描画結果を確かめます。業務上の意味の正しさは資料と照合して判断します。フォントと描画環境が違うPNGのバイト一致は保証しません。
 
 ## 正本を読む
 
-[Skill正本](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/generate-domain-model/SKILL.md)と[モデル情報・根拠の仕様](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/generate-domain-model/references/model-format.md)を参照してください。
+[SKILL.md](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/generate-domain-model/SKILL.md)と[同梱ファイル](https://github.com/yukihito-jokyu/context/tree/main/utils/skills/design/generate-domain-model)を参照してください。

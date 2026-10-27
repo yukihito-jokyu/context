@@ -1,0 +1,194 @@
+=== .skill-runs/generate-usecase-diagram/notes.md
+- なし
+
+=== .skill-runs/generate-usecase-diagram/preview.json
+{
+  "catalog_sha256": "6737b6c688393839295df09e38d23b91cd74ebe186bc26f74719bd44ef840714",
+  "screenshot_sha256": "d301ec988b4ee661c71697a07e0230c7524da8b52dbafc7d7c9d6e3fce02e8b2",
+  "checks": {
+    "cards": 1,
+    "imagesValid": true,
+    "searchEmpty": true,
+    "dialogOpen": true,
+    "dialogClosed": true,
+    "sourceShown": true,
+    "downloadLinks": 4,
+    "localLinks": true,
+    "noOverflow": true
+  }
+}
+
+=== .skill-runs/generate-usecase-diagram/preview.png
+(削除・バイナリ)
+=== .skill-runs/generate-usecase-diagram/source/order.mmd
+usecase-beta
+direction LR
+actor Customer("顧客")
+systemBoundary Order["注文システム"]
+  Checkout("注文する")
+  Payment("支払う")
+end
+Customer -- Checkout
+Checkout ..> : include Payment
+
+=== .skill-runs/generate-usecase-diagram/source/request.json
+{
+  "title": "注文システムのユースケース",
+  "description": "顧客の注文と、注文に含まれる支払いを1枚の図で確認する。",
+  "diagrams": [
+    {
+      "id": "d01",
+      "title": "注文する",
+      "summary": "顧客は注文する。注文には支払いを含む。",
+      "source": "order.mmd"
+    }
+  ]
+}
+
+=== artifacts/usecase/order/catalog.json
+{
+  "schema_version": 1,
+  "title": "注文システムのユースケース",
+  "description": "顧客の注文と、注文に含まれる支払いを1枚の図で確認する。",
+  "diagrams": [
+    {
+      "id": "d01",
+      "title": "注文する",
+      "summary": "顧客は注文する。注文には支払いを含む。",
+      "source": "diagrams/d01.mmd",
+      "image": "diagrams/d01.png",
+      "actors": [
+        {
+          "id": "Customer",
+          "label": "顧客"
+        }
+      ],
+      "systems": [
+        {
+          "id": "Order",
+          "label": "注文システム"
+        }
+      ]
+    }
+  ]
+}
+
+=== artifacts/usecase/order/diagrams/d01.mmd
+usecase-beta
+direction LR
+actor Customer("顧客")
+systemBoundary Order["注文システム"]
+  Checkout("注文する")
+  Payment("支払う")
+end
+Customer -- Checkout
+Checkout ..> : include Payment
+
+=== artifacts/usecase/order/diagrams/d01.png
+(削除・バイナリ)
+=== artifacts/usecase/order/index.html
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>注文システムのユースケース — ユースケース図</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans CJK JP",sans-serif;color:#19372f;background:#f5f4ee;font-synthesis:none}*{box-sizing:border-box}body{margin:0}main{max-width:1280px;margin:auto;padding:50px 32px 72px}header{border-bottom:1px solid #cbd4c9;padding-bottom:30px;margin-bottom:28px}.eyebrow{font-size:12px;font-weight:700;letter-spacing:.18em;color:#607b70}h1{font-size:clamp(28px,4vw,46px);letter-spacing:-.04em;line-height:1.3;margin:16px 0}header p{max-width:760px;line-height:1.85;color:#52675f}.toolbar{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:25px}.toolbar p{color:#61766b;font-size:13px}.toolbar input{border:1px solid #b7c6ba;background:white;border-radius:8px;padding:12px 14px;width:min(360px,65%);font:inherit;color:inherit}#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px}article{border:1px solid #d4ddd2;border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 5px 20px #19372f05}article[hidden]{display:none}.card-body{padding:24px}.diagram-id{font-size:11px;letter-spacing:.12em;color:#678475}h2{font-size:22px;line-height:1.5;margin:8px 0 12px}article p{font-size:14px;line-height:1.85;color:#5a6e64}.tags{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}.tag{font-size:11px;border-radius:20px;background:#edf3ec;color:#416650;padding:5px 10px}.preview{display:block;background:#fafbf8;border-top:1px solid #edf0e9;border-bottom:1px solid #edf0e9;text-align:center;padding:12px;cursor:zoom-in}.preview img{display:block;width:100%;height:290px;object-fit:contain}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}a{color:#1e7158;text-underline-offset:4px}.button{border:1px solid #b9cfc2;padding:9px 13px;border-radius:6px;text-decoration:none;font-size:12px}.button.primary{background:#225d49;color:#fff;border-color:#225d49}details{border-top:1px solid #e6ece3;padding-top:16px;margin-top:20px}summary{font-size:13px;cursor:pointer}pre{font:12px/1.8 ui-monospace,monospace;color:#355349;background:#f5f7f1;padding:16px;overflow:auto;border-radius:6px;max-height:400px}footer{margin-top:35px;color:#6b7d72;font-size:12px;line-height:1.9}dialog{width:min(96vw,1600px);max-width:96vw;max-height:95vh;border:1px solid #b4cbbd;border-radius:14px;padding:20px;background:#fff}dialog::backdrop{background:#102d22bb}dialog img{display:block;max-width:100%;height:auto;margin:auto}dialog .dialog-top{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:16px}button{font:inherit;cursor:pointer;border:1px solid #adc8b8;background:#f2f6ef;color:#19372f;padding:8px 16px;border-radius:6px}#empty{color:#61766b}a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #af7119;outline-offset:4px}@media(max-width:600px){main{padding:30px 18px}h2{font-size:20px}.card-body{padding:20px}.preview img{height:230px}}
+</style></head><body><main>
+<header><div class="eyebrow">USE CASE CATALOG</div><h1>注文システムのユースケース</h1><p>顧客の注文と、注文に含まれる支払いを1枚の図で確認する。</p></header>
+<div class="toolbar"><p id="count">1 diagrams</p><input id="search" type="search" aria-label="図の題名・説明・アクターで検索" placeholder="題名・アクターで検索"></div>
+<section id="cards" aria-label="ユースケース図一覧"><article id="d01"><div class="card-body"><span class="diagram-id">d01</span><h2>注文する</h2><p>顧客は注文する。注文には支払いを含む。</p><div class="tags"><span class="tag">顧客</span></div></div><a class="preview" href="diagrams/d01.png" data-title="注文する"><img src="diagrams/d01.png" alt="注文する：顧客は注文する。注文には支払いを含む。" loading="lazy"></a><div class="card-body"><div class="actions"><a class="button primary" href="diagrams/d01.png" download>PNGを取得</a><a class="button" href="diagrams/d01.mmd" download>Mermaid原本を取得</a></div><details><summary>Mermaid原本を表示</summary><pre><code>usecase-beta
+direction LR
+actor Customer(&quot;顧客&quot;)
+systemBoundary Order[&quot;注文システム&quot;]
+  Checkout(&quot;注文する&quot;)
+  Payment(&quot;支払う&quot;)
+end
+Customer -- Checkout
+Checkout ..&gt; : include Payment
+</code></pre></details></div></article></section><p id="empty" hidden>一致する図はありません。</p>
+<footer>図を選ぶとPNGを拡大できます。Mermaid原本から図を編集・再生成できます。<br>目視確認：確認済み（内容は検証記録を参照） · <a href="catalog.json" download>カタログ情報</a> · <a href="validation.json" download>変換・検証記録</a></footer>
+</main><dialog id="viewer" aria-labelledby="viewer-title"><div class="dialog-top"><strong id="viewer-title"></strong><button id="close" type="button">閉じる</button></div><img id="viewer-image" alt=""></dialog>
+<script>
+const cards=[...document.querySelectorAll('article')],search=document.getElementById('search'),dialog=document.getElementById('viewer');
+search.addEventListener('input',()=>{let count=0;for(const card of cards){card.hidden=!card.textContent.toLocaleLowerCase().includes(search.value.toLocaleLowerCase());if(!card.hidden)count++}document.getElementById('count').textContent=count+' / '+cards.length+' diagrams';document.getElementById('empty').hidden=count>0});
+for(const a of document.querySelectorAll('.preview'))a.addEventListener('click',e=>{if(typeof dialog.showModal!=='function')return;e.preventDefault();document.getElementById('viewer-title').textContent=a.dataset.title;const img=document.getElementById('viewer-image');img.src=a.getAttribute('href');img.alt=a.dataset.title;dialog.showModal()});
+document.getElementById('close').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});
+</script></body></html>
+
+=== artifacts/usecase/order/validation.json
+{
+  "schema_version": 1,
+  "status": "passed",
+  "visual_review": {
+    "status": "reviewed",
+    "notes": "PNGとHTMLの保存画面で日本語、境界外の顧客、境界内の注文と支払い、注文から支払いへのincludeを確認した。previewの一覧・検索・拡大と閉じる・原本表示・取得リンクの操作検査に合格した。Mermaid原本は入力本文と一致し、改変していない。"
+  },
+  "diagrams": [
+    {
+      "id": "d01",
+      "width": 671,
+      "height": 229,
+      "model": {
+        "actors": [
+          {
+            "id": "Customer",
+            "label": "顧客",
+            "parent": null
+          }
+        ],
+        "usecases": [
+          {
+            "id": "Checkout",
+            "label": "注文する",
+            "parent": "Order"
+          },
+          {
+            "id": "Payment",
+            "label": "支払う",
+            "parent": "Order"
+          }
+        ],
+        "systems": [
+          {
+            "id": "Order",
+            "label": "注文システム",
+            "members": [
+              "Checkout",
+              "Payment"
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "source": "Customer",
+            "target": "Checkout",
+            "type": "association"
+          },
+          {
+            "source": "Checkout",
+            "target": "Payment",
+            "type": "include"
+          }
+        ],
+        "declarations": {
+          "Customer": 1,
+          "Order": 1,
+          "Checkout": 1,
+          "Payment": 1
+        }
+      },
+      "renderer": {
+        "mermaid": "12.1.0",
+        "browser": "Chrome/156.0.8078.48",
+        "layout": "elk",
+        "look": "classic",
+        "theme": "default",
+        "network": "blocked"
+      },
+      "source_sha256": "57d208fc4514bfa6c55fd7d31bc1cba6218717e61ecdd64d609dd8aaf42f6252",
+      "png_sha256": "7660f14de941df4e626be561b48e6dac6a7b814b29353e4e1467c69b67bf0603"
+    }
+  ],
+  "catalog_sha256": "6737b6c688393839295df09e38d23b91cd74ebe186bc26f74719bd44ef840714",
+  "html_sha256": "f34b1655edf11da617ef072e90b5c57eb896ffa6df1f8b6ede023adb7e6d8d87"
+}
+

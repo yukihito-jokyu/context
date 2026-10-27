@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "visual_review": {
+    "status": "pending",
+    "notes": ""
+  },
+  "diagrams": [
+    {
+      "id": "d01",
+      "width": 953,
+      "height": 270,
+      "model": {
+        "actors": [
+          {
+            "id": "A01",
+            "label": "会員",
+            "parent": null
+          }
+        ],
+        "usecases": [
+          {
+            "id": "U01",
+            "label": "注文する",
+            "parent": "S01"
+          },
+          {
+            "id": "U02",
+            "label": "支払う",
+            "parent": "S01"
+          },
+          {
+            "id": "U03",
+            "label": "クーポンを適用する",
+            "parent": "S01"
+          }
+        ],
+        "systems": [
+          {
+            "id": "S01",
+            "label": "注文システム",
+            "members": [
+              "U01",
+              "U02",
+              "U03"
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "source": "A01",
+            "target": "U01",
+            "type": "association"
+          },
+          {
+            "source": "U01",
+            "target": "U02",
+            "type": "include"
+          },
+          {
+            "source": "U03",
+            "target": "U01",
+            "type": "extend"
+          }
+        ],
+        "declarations": {
+          "A01": 1,
+          "S01": 1,
+          "U01": 1,
+          "U02": 1,
+          "U03": 1
+        }
+      },
+      "renderer": {
+        "mermaid": "12.1.0",
+        "browser": "Chrome/156.0.8078.48",
+        "layout": "elk",
+        "look": "classic",
+        "theme": "default",
+        "network": "blocked"
+      },
+      "source_sha256": "d7b50dc003553fa5e91d6286387d682fe2588c1ccdcaee8f454cb33b498a3e58",
+      "png_sha256": "8e6877fabe1f2d9ff94dc11690edc4a86d76edd7d641ba0ac88deb4054d714ef"
+    },
+    {
+      "id": "d02",
+      "width": 578,
+      "height": 329,
+      "model": {
+        "actors": [
+          {
+            "id": "A01",
+            "label": "運用担当",
+            "parent": null
+          },
+          {
+            "id": "A02",
+            "label": "管理者",
+            "parent": null
+          }
+        ],
+        "usecases": [
+          {
+            "id": "U01",
+            "label": "注文を一覧する",
+            "parent": "S01"
+          },
+          {
+            "id": "U02",
+            "label": "注文を取り消す",
+            "parent": "S01"
+          }
+        ],
+        "systems": [
+          {
+            "id": "S01",
+            "label": "注文システム",
+            "members": [
+              "U01",
+              "U02"
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "source": "A01",
+            "target": "U01",
+            "type": "association"
+          },
+          {
+            "source": "A02",
+            "target": "U02",
+            "type": "association"
+          },
+          {
+            "source": "A02",
+            "target": "A01",
+            "type": "generalization"
+          }
+        ],
+        "declarations": {
+          "A01": 1,
+          "A02": 1,
+          "S01": 1,
+          "U01": 1,
+          "U02": 1
+        }
+      },
+      "renderer": {
+        "mermaid": "12.1.0",
+        "browser": "Chrome/156.0.8078.48",
+        "layout": "elk",
+        "look": "classic",
+        "theme": "default",
+        "network": "blocked"
+      },
+      "source_sha256": "f4f31308b69ded72adf628c010802db6c5ae4832bfd19ae9b36093943025c4d3",
+      "png_sha256": "434faa0112280f16da56d915ebb1e13059ee7298b72dbd48733eb475dd83f88b"
+    }
+  ],
+  "catalog_sha256": "e34cb7e52a45e52955b1c12a0c91f8b56dd8d60d5d93701ce33ea334a7bcd642",
+  "html_sha256": "53ce97369cff23e818e01aece3a4a978cca3a628ad1a3e59915a083cee1abf57"
+}
