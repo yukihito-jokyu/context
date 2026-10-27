@@ -1,14 +1,13 @@
-# generate-domain-model plugin の公開配布物の再生成と検証
+# 実際のビルド・検証依頼
 
-封印済みの `utils/skills/design/generate-domain-model/` と plugin 正本 `utils/plugins/generate-domain-model/` から、Codex 用と Claude Code 用の配布物を別々の隔離先へ新規生成する。既存成果物は使わない。
+Issue #86のgenerate-domain-model pluginについて、新規サブエージェントとして公開用の配布物を実際に作成・検証する。
 
-次を実行して確認する。
-
-- `build.py --agent codex` と `build.py --agent claude-code` を実行し、選択した manifest・hooks・plugin scripts・Skill 全体を正本とバイト比較する。
-- manifest と4種類の hook の登録、既存の出力先の拒否、ZIP 展開後の全ファイルの一致を確認する。
-- 隔離したテスト用プロジェクトで、パッケージの hooks.json に書かれた command をそのまま起動する。
-- inactive の Stop が出力も変更も生じないことを確認する。
-- 同梱した `run.py start` の成功後、`skip_validation` を持つ model.json を PostToolUse が OUT-07 で block することを確認する。
-- active の PreToolUse が、封印済み SKILL.md の編集要求に Claude Code では ask、Codex では deny を返すことを確認する。編集要求の event を渡すだけで、保護ファイル自体は変更しない。
-
-実ユーザー環境へのインストール、有効化、外部投稿はしない。Agent クライアントの CLI は起動せず、Python と git の CLI を使う。`PYTHONDONTWRITEBYTECODE=1`、隔離した XDG_CONFIG_HOME、`GIT_CONFIG_GLOBAL=/dev/null`、`GIT_CONFIG_NOSYSTEM=1` によりキャッシュ作成とホームの git 設定の影響を避ける。検査用コードと実行場所は /private/tmp に限定する。
+- 担当する公開先は `docs/artifacts/plugins/generate-domain-model/` だけとし、既存の対象成果物があれば全削除して再作成する。他の成果物、正本、ガイドは変更しない。
+- `utils/plugins/generate-domain-model/` のREADME、bundle.json、build.py、Agent別manifest/hooksと、同梱する `utils/skills/design/generate-domain-model/` のSKILL.md・必要なruntimeを読む。正本はready・sealedであり、変更しない。
+- `/private/tmp/issue-86-public-plugin` でbuild.pyを `--agent codex` と `--agent claude-code` で実行し、`generate-domain-model-codex.zip` と `generate-domain-model-claude-code.zip` を保存する。
+- ZIPを実際に展開し、全ファイル一覧とバイト列を正本のSkill全体、Agent別manifest/hooksと照合する。assets/seal.jsonの封印も検査する。
+- 各ZIPに含まれるhooks.jsonから4イベントのcommandを読み、PLUGIN_ROOTまたはCLAUDE_PLUGIN_ROOTを展開して、使い捨てgitプロジェクトにJSONを標準入力で渡して直接実行する。無効時、実行中の出力検査、保護ファイルと実行記録の編集制御、finish前のStop差し戻し、waitとpromptによる再開を確かめる。
+- 有効な出力を検査するケースでは、同梱の封印済みサンプルをコピーして再検査する。Mermaid CLIによる新規描画やPNG・HTMLの目視確認はこのplugin配布物検証では行わない。runtime・検査・封印のバイパスや緩和はしない。
+- ユーザーホームや実repoにはインストール・有効化しない。投稿・PR・commitは行わない。依存追加と外部ネットワークアクセスも行わない。
+- 直接hook実行の検証と、実クライアントへの導入・有効化・クライアントが呼び出すhooksの実動作を区別し、後者は未検証と記録する。
+- `scripts/example-skill-source.cjs` の `sourceManifest` で実行前後の正本ファイル一覧とSHA-256を取得し、不変を確かめる。input.md、verification.txt、ZIPとexecution.jsonを保存し、execution.json以外の全成果物をfile/sha256で登録する。source_baselineは使わない。

@@ -5,42 +5,57 @@ sidebar_label: generate-domain-model
 
 # generate-domain-model plugin
 
-[generate-domain-model Skill](../skills/design/generate-domain-model.md)と、出力・保護ファイル・実行の終了を検査するhooksをまとめたpluginです。対象形式はCodexとClaude Codeです。
-
-## 渡す情報
-
-Skillには対象コードと調査範囲を渡します。利用環境にPython 3.9以上、Mermaid CLI、起動可能なブラウザーが必要です。配布物にはこれらの外部ツールを含めません。
+[generate-domain-model Skill](../skills/design/generate-domain-model.md)と出力検査用hooksをまとめたpluginです。業務の概念と関係からMermaid原本・PNG・HTMLカタログを生成します。実行中は、出力の検査・スキル自身の保護・終了前の検査を行います。
 
 ## 依頼例
 
+pluginを導入したAgentで、次のように依頼します。
+
 ```text
-注文と支払いのコードから、根拠付きのドメインモデル図を作ってください。
-PNGとHTMLカタログまで生成し、未確認の関係は確認事項として残してください。
+generate-domain-modelを使って、docs/order-spec.mdから受注と支払の業務概念を図にしてください。
+カタログ名はsalesです。Mermaid原本・PNG・HTML一覧を生成し、資料にない多重度は確認事項として残してください。
 ```
 
 ## 進め方
 
-1. [導入を始める](getting-started.md)で生成と導入の違いを確認します。
-2. `python3 utils/plugins/generate-domain-model/build.py --agent codex --output /tmp/domain-model-codex` で対象Agentの配布物を生成します。Claude Code用は `--agent claude-code` にします。
-3. 生成した配布物を対象Agentで読み込みます。Codexのhooksは利用者が信頼するまで実行されません。
-4. 対象コードを指定してSkillを実行し、検査済みのカタログを確認します。
+リポジトリのルートで、出力先を存在しないディレクトリにして実行します。
 
-hooksはSkillの実行中に出力の検査、保護ファイルの編集の制止、応答終了前の確認を行います。`scripts/gate.py` が同梱したSkillのランタイムへ渡すため、出力の契約はSkill側で一元管理します。自動のSkill起動と、生成したpluginが実クライアントで有効になることは別々に確認します。
+```sh
+python3 utils/plugins/generate-domain-model/build.py --agent codex --output /tmp/domain-model-codex
+python3 utils/plugins/generate-domain-model/build.py --agent claude-code --output /tmp/domain-model-claude
+```
+
+ビルドは正本のSkill全体と対象Agent用のmanifest・hooksをまとめます。Mermaid CLIとブラウザは同梱しません。[環境の準備](https://github.com/yukihito-jokyu/context/blob/main/utils/skills/design/generate-domain-model/references/setup.md)を参照してください。
+
+導入方法は[pluginの導入ガイド](getting-started.md)に従います。作成した配布物の検査と、実際のクライアントへの導入・有効化は、それぞれ確認します。Codexではhooksの信頼設定も必要です。
 
 ## 成果物の例
 
-新しいサブエージェントが正本から両Agent向けの配布物を生成しました。同梱した94ファイルとZIP展開後の内容が正本と一致し、配布物内のhookコマンドが検査の省略指定と保護ファイルの編集を制止することを隔離環境で確認しています。
+新しいサブエージェントが、正本のSkill全体とAgent別のmanifest・hooksから2種類のpluginを生成しました。各ZIPを展開した93ファイルが正本とバイト一致し、保護ファイル16件の封印も一致しました。
 
-- [Codex用ZIP](pathname:///plugins/generate-domain-model/generate-domain-model-codex.zip#download)
-- [Claude Code用ZIP](pathname:///plugins/generate-domain-model/generate-domain-model-claude-code.zip#download)
-- [実行入力](pathname:///plugins/generate-domain-model/input.md#download)、[検証結果](pathname:///plugins/generate-domain-model/verification.txt#download)、[実行記録](pathname:///plugins/generate-domain-model/execution.json#download)
+**到達点：配布物の生成・展開内容の照合・hooksの直接実行を検証済み。** 実クライアントへの導入・有効化・クライアント経由のhooks実動作は未検証です。
 
-この例の到達点は配布物の生成・内容検証と、隔離環境でのhookコマンドの実行です。実クライアントへの導入・有効化とイベント配送は未確認です。コードからカタログを作る実行例は[Skillガイド](../skills/design/generate-domain-model.md#成果物の例)で確認できます。
+### 配布物を取得する
+
+- [Codex用plugin（ZIP）](pathname:///plugins/generate-domain-model/generate-domain-model-codex.zip#download)
+- [Claude Code用plugin（ZIP）](pathname:///plugins/generate-domain-model/generate-domain-model-claude-code.zip#download)
+- [検証結果の全文](pathname:///plugins/generate-domain-model/verification.txt#download)
+- [実行入力の原本](pathname:///plugins/generate-domain-model/input.md#download)
+- [実行・検証記録（JSON）](pathname:///plugins/generate-domain-model/execution.json#download)
+
+### 確認した結果
+
+- 両ZIPのCRC、全ファイル一覧、正本とのバイト一致、manifest・hooksの参照先を確認しました。
+- 各Agent向けに29ケースを直接実行し、全4イベント、出力検査、保護ファイルの拒否・確認、終了前の差し戻し、待機からの再開を確認しました。
+- 実行前後でpluginと同梱Skillのファイル一覧・SHA-256が一致しました。
 
 ## 確認するポイント
 
-対象Agentのmanifest・hooksを選んでいるか、同梱Skillが正本と一致するかを確認します。配布物の生成・コマンドによるhooks検査と、実クライアントでの導入・有効化は区別します。
+- Agentに合うmanifestとhooksを選んでいるか。
+- Mermaid CLIとブラウザを実行できるか。
+- 起動したスキルが原本・PNG・HTMLを生成し、検査に通ってから完了しているか。
+- 実クライアントでhooksの呼び出しと差し戻しを確認したか。
 
 ## 正本を読む
 
-[plugin定義とビルド処理](https://github.com/yukihito-jokyu/context/tree/main/utils/plugins/generate-domain-model)と[Skill正本](https://github.com/yukihito-jokyu/context/tree/main/utils/skills/design/generate-domain-model)を参照してください。
+[配布定義とビルド処理](https://github.com/yukihito-jokyu/context/tree/main/utils/plugins/generate-domain-model)と[Skill正本](https://github.com/yukihito-jokyu/context/tree/main/utils/skills/design/generate-domain-model)で管理します。

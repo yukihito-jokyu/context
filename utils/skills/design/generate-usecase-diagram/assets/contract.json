@@ -1,0 +1,165 @@
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "generate-usecase-diagram",
+  "language": "ja",
+  "targets": [
+    "claude",
+    "codex"
+  ],
+  "inputs": [
+    {
+      "key": "system",
+      "label": "対象システム",
+      "type": "string",
+      "impact": "target",
+      "ask": true,
+      "question": "図にする対象システムとアクター・機能を教えてください。",
+      "aliases": [
+        "対象",
+        "システム"
+      ]
+    },
+    {
+      "key": "name",
+      "label": "カタログ名",
+      "type": "slug",
+      "impact": "reversible",
+      "default": "catalog",
+      "aliases": [
+        "名前",
+        "カタログ名"
+      ]
+    },
+    {
+      "key": "source",
+      "label": "要件またはMermaidの入力ファイル",
+      "type": "path",
+      "impact": "optional",
+      "aliases": [
+        "入力ファイル",
+        "原本"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "catalog",
+      "label": "カタログ情報",
+      "path": "artifacts/usecase/{in:name}/catalog.json",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": [
+        {
+          "type": "json_schema",
+          "schema": {
+            "type": "object",
+            "required": [
+              "schema_version",
+              "title",
+              "description",
+              "diagrams"
+            ],
+            "properties": {
+              "schema_version": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "diagrams": {
+                "type": "array"
+              }
+            }
+          },
+          "rule": "OUT-02"
+        },
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/catalog.py check --catalog {file}",
+          "rule": "OUT-02",
+          "rules": [
+            "STEP-03",
+            "STEP-06",
+            "OUT-01",
+            "OUT-02",
+            "OUT-04",
+            "OUT-05",
+            "OUT-07",
+            "OUT-08"
+          ],
+          "stage": "finish"
+        }
+      ]
+    },
+    {
+      "id": "html",
+      "label": "HTMLカタログ",
+      "path": "artifacts/usecase/{in:name}/index.html",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "validation",
+      "label": "変換と検証の記録",
+      "path": "artifacts/usecase/{in:name}/validation.json",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "mermaid",
+      "label": "Mermaid原本",
+      "path": "artifacts/usecase/{in:name}/diagrams/*.mmd",
+      "count": {
+        "min": 0,
+        "max": 24
+      },
+      "rule": "OUT-01",
+      "checks": []
+    }
+  ],
+  "together": [],
+  "control": {
+    "hooks": true,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "tamper_rule": "CTL-02",
+    "scope_rule": "CTL-05",
+    "allow_changes": [
+      "artifacts/usecase/{in:name}/diagrams/*.png"
+    ],
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": null,
+    "rule": "RPT-01",
+    "sections": [
+      {
+        "run": "python3 {skill}/scripts/catalog.py report --catalog {root}/artifacts/usecase/{in:name}/catalog.json"
+      }
+    ]
+  }
+}

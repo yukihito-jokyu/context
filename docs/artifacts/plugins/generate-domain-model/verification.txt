@@ -1,46 +1,999 @@
-generate-domain-model plugin 公開配布物の実生成・実 hook 検証
-実行日時: 2026-10-27T14:40:12.701908+00:00
-実行者: /root/plugin_sample（新しい独立サブエージェント）
-隔離作業場所: /private/tmp/generate-domain-model-plugin.oDjsOv
-既存成果物の転用: なし。build.py で各 Agent の出力先を新規作成した。
+generate-domain-model plugin 配布物の実検証
 
-実操作と結果:
-[codex]
-- python3 utils/plugins/generate-domain-model/build.py --agent codex --output /private/tmp/generate-domain-model-plugin.oDjsOv/bundle-codex: 終了コード0
-- manifest・hooks・scripts・Skill同梱資料の全 94 ファイル: 選択した正本と一覧・内容がバイト一致
-- 対象AgentのmanifestをJSONとして読み込み、name・skills・hooksを確認
-- hooks.jsonをJSONとして読み込み、PreToolUse・PostToolUse・Stop・UserPromptSubmitの4種類を確認
-- 同じ出力先への再実行: 終了コード2で拒否。既存ファイルの内容は不変
-- 独立したgitプロジェクトを/private/tmpへ作成。inactive Stopの実command: 終了コード0、stdout/stderrは空、プロジェクト不変
-- 同梱Skillのrun.py start: 終了コード0、state.status=activeを確認
-- model.jsonにskip_validation=trueを記録してPostToolUseの実commandへ編集eventを入力: 終了コード0、decision=block、reasonにOUT-07
-- 封印済みSKILL.mdへの編集eventをPreToolUseの実commandへ入力: 終了コード0、permissionDecision=deny
-- hook検証の前後でパッケージの全ファイルが不変
-- generate-domain-model-codex.zipを作成し、別の隔離先へ展開: 全 94 ファイルの一覧と内容が生成配布物・正本と一致
+runner: /root/public_plugin
+開始: 2026-10-26T23:38:02.025130+00:00
 
-[claude-code]
-- python3 utils/plugins/generate-domain-model/build.py --agent claude-code --output /private/tmp/generate-domain-model-plugin.oDjsOv/bundle-claude-code: 終了コード0
-- manifest・hooks・scripts・Skill同梱資料の全 94 ファイル: 選択した正本と一覧・内容がバイト一致
-- 対象AgentのmanifestをJSONとして読み込み、name・skills・hooksを確認
-- hooks.jsonをJSONとして読み込み、PreToolUse・PostToolUse・Stop・UserPromptSubmitの4種類を確認
-- 同じ出力先への再実行: 終了コード2で拒否。既存ファイルの内容は不変
-- 独立したgitプロジェクトを/private/tmpへ作成。inactive Stopの実command: 終了コード0、stdout/stderrは空、プロジェクト不変
-- 同梱Skillのrun.py start: 終了コード0、state.status=activeを確認
-- model.jsonにskip_validation=trueを記録してPostToolUseの実commandへ編集eventを入力: 終了コード0、decision=block、reasonにOUT-07
-- 封印済みSKILL.mdへの編集eventをPreToolUseの実commandへ入力: 終了コード0、permissionDecision=ask
-- hook検証の前後でパッケージの全ファイルが不変
-- generate-domain-model-claude-code.zipを作成し、別の隔離先へ展開: 全 94 ファイルの一覧と内容が生成配布物・正本と一致
+範囲: 正本build.pyによるZIP生成、展開した全ファイルの内容照合、封印検査、JSON入力によるhooks commandの直接実行。
+実クライアントへの導入・有効化・クライアントが呼び出すhooksの実動作は未検証。
+Mermaid CLIによる新規描画、画像・HTMLの目視確認はこの配布物検証の対象外。有効出力は同梱サンプルの再検査で確認した。
+依存追加、外部ネットワークアクセス、実repo・ユーザーホームへの導入、投稿、PR、commitは実行していない。
+正本runtime・契約・封印・hooksの変更や検査のバイパスは行っていない。
 
-検証方法:
-- hooksはパッケージのhooks/hooks.jsonからcommand文字列を読み取り、PLUGIN_ROOT / CLAUDE_PLUGIN_ROOTにそのパッケージを指定して実起動した。
-- Agentクライアントのイベント配送を模したJSONをstdinへ渡した。実クライアントによるhook呼び出しとは区別する。
-- 専用の検査用Pythonは/private/tmpにだけ保存し、正本・ルートtestsへ検査ファイルを追加していない。
-- PYTHONDONTWRITEBYTECODE=1、隔離XDG_CONFIG_HOME、GIT_CONFIG_GLOBAL=/dev/null、GIT_CONFIG_NOSYSTEM=1を設定した。
-- plugin正本とSkill正本は実行の前後で全ファイルの内容が一致した。
-- 各コマンド・stdin・stdout・stderr・終了コードと配布物の一覧はverification-log.jsonに記録した。
+=== codex ===
 
-未確認範囲:
-- 実ユーザー環境への導入・有効化は未実施。Codexのhooks信頼設定、Claude Codeのplugin読込も未実施。
-- 実Agentクライアントでのイベント配送・権限UI・timeoutの適用は未確認。
-- UserPromptSubmitは配布設定とコマンドの存在を確認し、prompt event自体は実起動していない。
-- Mermaid CLIによるドメインモデル生成・PNG/HTMLの表示は、このplugin配布・hook検証では実施していない。
+ビルドcommand: ["python3", "<user-home>/orca/workspaces/context/issue-86/utils/plugins/generate-domain-model/build.py", "--agent", "codex", "--output", "/private/tmp/issue-86-public-plugin/build-codex"]
+{
+  "exit_code": 0,
+  "stdout": "/private/tmp/issue-86-public-plugin/build-codex\n",
+  "stderr": ""
+}
+
+ZIP: generate-domain-model-codex.zip
+SHA-256: 24c0f811f6cef0c9505152f2d2fbddf675bb2f0caf32ccc85730158615b312b0
+照合した全ファイル（相対パス | bytes | SHA-256 | 正本とのバイト一致）:
+.codex-plugin/plugin.json | 213 | 04cb42c8000251b0b1f7c1f811578195b3f5aa0dfa8a32513f385438b6ed692b | 一致
+hooks/hooks.json | 1194 | 9732b48ab1f9ba1717eba0b0d4c211af8687c62812e323de7d63bef5494657c9 | 一致
+skills/generate-domain-model/SKILL.md | 21867 | 74340110e979487a2c23efdc36715bec0bba84a351a52363566082b08c1dcc70 | 一致
+skills/generate-domain-model/assets/catalog.html | 6990 | 02f204f67e904e1e6d99df9d86eb6628e7b078cae9fe4803f0e99453f9dc149d | 一致
+skills/generate-domain-model/assets/contract.json | 3076 | 547ecf9bb7b2baf4350e3903968e652a5cc2b745144fe73474f101fd6f93024f | 一致
+skills/generate-domain-model/assets/examples/catalog.json | 561 | e2e717c47246e3567368db00f6986a752880c4813d8385a30dd419b18e2e81eb | 一致
+skills/generate-domain-model/assets/examples/sample/catalog.json | 561 | e2e717c47246e3567368db00f6986a752880c4813d8385a30dd419b18e2e81eb | 一致
+skills/generate-domain-model/assets/examples/sample/diagrams/order.mmd | 133 | ead3a30813e4e1ff44ed86316a890f16f58fd6d04cf80f0f2d56450ff089c52e | 一致
+skills/generate-domain-model/assets/examples/sample/images/order.png | 11246 | d18f863a4b6fa25bce551f17857f23337f1be0387b2259fb5dc69850cd7adcc4 | 一致
+skills/generate-domain-model/assets/examples/sample/index.html | 8194 | 09a49414033c696ff85e3eebc3e31836cc075ae2b8d5e48ffa5c78e505fdef97 | 一致
+skills/generate-domain-model/assets/examples/sample/validation.json | 886 | 89c6977fca94c9b3fc96316b51f1eb9d8e429abae6f2fe7eeef3e273974f8a5e | 一致
+skills/generate-domain-model/assets/seal.json | 1645 | 6fbd7da7e6700c9a294339b3a0b75f3c551985f42db530223428f1d03892985c | 一致
+skills/generate-domain-model/dev/convergence-report.md | 8329 | 172bb93ae249d1023d973d98a5e92d62495b790804c3982781a7344a698870cf | 一致
+skills/generate-domain-model/dev/evals.json | 1595 | d0c31305d944467ead01248ba2e017c70fd30f265d43ff194f6cc18bb3fcb244 | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/catalog.json | 561 | e2e717c47246e3567368db00f6986a752880c4813d8385a30dd419b18e2e81eb | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/diagrams/order.mmd | 133 | ead3a30813e4e1ff44ed86316a890f16f58fd6d04cf80f0f2d56450ff089c52e | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/images/order.png | 11246 | d18f863a4b6fa25bce551f17857f23337f1be0387b2259fb5dc69850cd7adcc4 | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/index.html | 8194 | 09a49414033c696ff85e3eebc3e31836cc075ae2b8d5e48ffa5c78e505fdef97 | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/validation.json | 886 | 89c6977fca94c9b3fc96316b51f1eb9d8e429abae6f2fe7eeef3e273974f8a5e | 一致
+skills/generate-domain-model/dev/fixtures/basic/input.md | 93 | 3da52416cd0d177fc152d1a24563e793ce56cb75b9f6e59726f516e105b643cd | 一致
+skills/generate-domain-model/dev/fixtures/basic/library.mmd | 129 | dd9306de33ca1999fd937ce7953464d4268b0351e11999579cf90144145bf80e | 一致
+skills/generate-domain-model/dev/fixtures/basic/orders.md | 312 | 99ab43deaa63df680988460e92e14ae6405d0800b7a9804719ac69540e7362a9 | 一致
+skills/generate-domain-model/dev/fixtures/basic/unknown.md | 209 | 68695b9ca6c457324c988292429fa6734b55f0dac764b2d69725354710e960ce | 一致
+skills/generate-domain-model/dev/probes.json | 16670 | 513ec3a2e3bd6716dabd57102e8861891db512c2ac3781be795517394509d555 | 一致
+skills/generate-domain-model/dev/research.md | 3704 | d22bf52658d4e9a08ab8fb19f780970f94234c32b7e0ba721240776c773301cd | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/claude-1.patch | 14726 | 12d6c57971cb2f815715fdc7bd350e596d27b9a96d165980baa656a753299740 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/claude-2.patch | 14842 | 049499d08c0852cdae3f9b0219729027bb23edbfebb719148522f8d3aacbfb55 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/codex-1.patch | 17307 | a8efb6cc0f3d1825047a0cc9a45462fc3598e354dc43181277c2d20f2a4b1959 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/codex-2.patch | 15491 | d84a4f92373c88799b5b3a841ee7869f07bce238c2e6b8a0a4cfb9d54101d04b | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/claude-1.patch | 12660 | fde002ab871fb21048d8f5c07a561b08a5c4d8ff4dc8b9bd4b8cc11c7c4713f5 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/claude-2.patch | 13177 | f930dadde216b663c0fc4064ef567f24f81a09f913a5eddb11ef3ccf98b8ae3c | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/codex-1.patch | 14497 | bd52145739a14764fe7682a367e07063a6aedaa6d2dea057bc9a1058265ec2d6 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/codex-2.patch | 14114 | b63c0c115e848497f5ee54fdd1451c77adfd93f6aedc2495a3844e4d8184a4b0 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/claude-1.patch | 14647 | bd73440759af994784bbacc4e334f6acea2a0e5ba940fd51ecebb38eecff66b3 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/claude-2.patch | 14472 | b8a3c177820163ff4945d1683120ab80dee5a8abc523aa1dcbe8f4d643629f8d | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/codex-1.patch | 15536 | 6bdf1e19463c1777ea02522aff05b7f9aa015ebfdcba4d21fed9798abb56832d | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/codex-2.patch | 15922 | 1eb3fd6b1ec3954455e95152e868c6a958e7346619c8b358023c2595f85c608e | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/report.json | 74720 | 59e1c717f7548df444b42dac5508178914029b34f5899ee3d7204de381b07e0b | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/report.md | 37892 | 3d97b679bb5b3a7df472a04434d1e35c7e9d3fde57161c6f814b07cb72eaa375 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/claude-1.patch | 12213 | 375c94dde8d99d624b45d45fbe1425a546d7924deb839d42873dad3343b64d84 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/claude-2.patch | 12432 | 584f96be122479782f2b7b35475d40c876dda370bfcd9304dd4c55d287400f9b | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/codex-1.patch | 12551 | 4bca69168b20156e1586fa1fc0e2840d17a0ebe32a09b0bb29ec2073c255cb13 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/codex-2.patch | 12822 | fee9b874069bda8d5f9b3505f73ea5e467c7c8228b4cfa375290a8ed76c5af8e | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/claude-1.patch | 10470 | 6f2d16c2fbbfbdcbbb0e8fc7ea24a43c3a7dc680d2f3cab3d02663b0b97a862d | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/claude-2.patch | 10944 | 543ff28360759220ba265008da90d8da124779b8557e404c2da3d0945d2cecff | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/codex-1.patch | 10893 | 0518220b2b97cafb2a418e9975b7a8689f4d0db424807bfafb654c087241eb2e | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/codex-2.patch | 11069 | 095eaa170c2c2a380ebb6f238e4f4974fae68636413d8cc506a1499ab14e4747 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/claude-1.patch | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/claude-2.patch | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/codex-1.patch | 12348 | 82542309156852dbfc10168322754c8c828d07d53c9396d6fea13f117411c1d3 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/codex-2.patch | 12324 | 604c176fce8b4e6f7bcf16242cd086525a6a00ca134474babde42ecb50150f00 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/report.json | 75570 | 834ca17b369799dd36aedbe26bda6c28c0e04c48374f0e0418ee7127ed2dc075 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/report.md | 52698 | dd8157f1803b89081260493d5793c8498b4180d8233eb4b816a6790b57e10e17 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/H1-holdout/codex-1.patch | 10616 | acc8b683e8198c7eddf762925baa91108514da44485106a235c2f560ac020e5f | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/H1-holdout/codex-2.patch | 10973 | 4d9ea4412cfbddf8aca208054ad1b2d909ffebfdeee50b95cc0fdb2095603e7a | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T1-typical/codex-1.patch | 12885 | c8e7d1a2acda87e9bb09455e4262bd7f6dee909dfc797411c764096f4e41526c | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T1-typical/codex-2.patch | 12445 | aa0097add58cfeb85084173ce4e42e6abf00739c860766db1103144901eb842a | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T2-default/codex-1.patch | 11053 | 0191582cfde9d8ca969db618a375d4d8d669370093abb54340dc54d350dbb194 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T2-default/codex-2.patch | 10903 | d80b1d657d9eef594d23d3492196d2d23d08c91932b6591dd7ee59db7f931bb5 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T3-edge/codex-1.patch | 12308 | 0b3fdf24f59bd3c5305080113c81562b3719777bd9462bb43185ea283ae26358 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T3-edge/codex-2.patch | 12287 | edbc96a832e15f2089c86136d61bde2fb5ff955d35b4019560a251ab41a38a06 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/report.json | 48457 | d79b73c3df18b759db30fa1aeaa5e6dfbabf18ec7c4ff7853cc83d5bf23ac247 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/report.md | 29619 | 34d237766f829d4afc44344e0c3d5ebf28250d07d0bac75b02a0e7c0e465a970 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/review.json | 339 | f066f3c14c4b6d18479fe3edab2d8c18111df83757bed176245874a94504f419 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/review.md | 558 | 479641c4c27a6bad33381ed82644094d37a6526b271637cafa7e18b88d6f2cbe | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/H1-holdout/codex-1.patch | 10676 | 825f550ff62b166adf87fb051318d086d0a08171a9df5d43e734ec0ecc0e0d2c | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/H1-holdout/codex-2.patch | 10697 | 7253d2695aa86e76bda3aab84df6bc36b09ed593e3a15abef1f014677526bec8 | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T1-typical/codex-1.patch | 12517 | 184d72bd6880e48d8af260f28a3c5f37101347cdb656dc8442e9f8b5b1bfe28c | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T1-typical/codex-2.patch | 12816 | 0c3364b6b9dc41d82ecf040b49437ce742bde83503c49b7ac856e2b55543c9f8 | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T2-default/codex-1.patch | 10943 | d75fb4274135e3b0823fc7011328bef1f481ab34c894ce5dc4cf9f1531f6763e | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T2-default/codex-2.patch | 11025 | ace174e084d013f4783bca6f6c714550a74d7e15f36ccb683abde577777b6e2b | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T3-edge/codex-1.patch | 12365 | c2fee0490cc39f6bd08d1012da2102c0c1d4a60a8e8489c7298b8fb4bd296cbd | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T3-edge/codex-2.patch | 12203 | 3aa1c4bc8d386de51af0a6de7b3c124336afd794d7036fd2141d59518eb1f11b | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/report.json | 50040 | 7c7e304753904b2a3a20ea51b062af22d519058ee35e1e6a8afba9377172245d | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/report.md | 31287 | c62e34b222b45117b9d5418fc4943b28a9217f9fd67440853aa828fcad2bf189 | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/review.json | 339 | a1429f0dfffecbe3c0a3d38e7c004cdf450d2d77b458ef96898683449d8425bf | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/review.md | 558 | 30c5045c770e2ef6742a7f7bbb570e273d25ba1bbc927e07531f7b2f7fcfdf6d | 一致
+skills/generate-domain-model/dev/results/environment-pilot.json | 880 | 8d05eb9bd941d18aa6119e1a5e11a1bfef1f6cf118969e65c06fa8efd8dbce29 | 一致
+skills/generate-domain-model/dev/results/noop-integration.json | 4086 | 77e1cc3e745c7eb534645be905c9333e1614b58ba8bfc6fc39a79ba6c5c76e96 | 一致
+skills/generate-domain-model/dev/results/probe-results.json | 8215 | 87d0b48b240c99a3a196f5725dd217587093b67bd0fd68f965c30bfd838ae709 | 一致
+skills/generate-domain-model/dev/results/ui/desktop.png | 129673 | 0f27653f2fef2157b1f84318585ddc0f249dd9e7da8248da5ea4e5d0b8c4574f | 一致
+skills/generate-domain-model/dev/results/ui/mobile.png | 110996 | 1f285ecfa68b58ec8b39aeac4e91343fb5c5369552b74ccc1b621b1819dafec8 | 一致
+skills/generate-domain-model/dev/results/ui/validation.json | 358 | 77703ca03b07ccff2b4a99dbf12ca2bf7eea308c5fe22059aafe873a35d1a661 | 一致
+skills/generate-domain-model/dev/results/unit.json | 210 | 872a3982fa1a2968cdc75f79453ee078f4b1053f820ce2673f85869018a66199 | 一致
+skills/generate-domain-model/dev/spec.json | 26885 | 2c979e6ff749920547c69b7d94e657a1219416270c96f5f882ce982e0eff4e7b | 一致
+skills/generate-domain-model/dev/test_catalog.py | 9429 | db21675ff7b3dc5a837583d8703e15534498dba66baec6dd130aed6c157e2250 | 一致
+skills/generate-domain-model/references/decisions.md | 17886 | acd93af67d4d9aa925be8c7eeead819c05cebbe5b3d98115a8be489eaba64576 | 一致
+skills/generate-domain-model/references/setup.md | 2163 | ba80bfa300a527cafbb5f331c1c8c275aeaf5cc3fcb5379c36027c03f13e6b48 | 一致
+skills/generate-domain-model/scripts/_skillrt.py | 38413 | b76eceeda4fdcad10a4246a66a7d137d2400cec49cc62d95ec89fd463b784304 | 一致
+skills/generate-domain-model/scripts/catalog.py | 23363 | 1672c03b7887b3c949fdd601be6b8193b892db53cf0b25f2e1876ab13cddc607 | 一致
+skills/generate-domain-model/scripts/hook.py | 11043 | b0ccd614d242fcbbd2499da75d759b33b4cb8f7c7357563954570f15c3a7ef55 | 一致
+skills/generate-domain-model/scripts/install.py | 10617 | 286effaa9680fd4f8a03816b37252e36b62172301ef9d64c8debd4646d91ea19 | 一致
+skills/generate-domain-model/scripts/run.py | 20972 | fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76 | 一致
+
+manifest/hooks: JSONとして読め、manifestのSkill/hooksパスと4イベントを確認。
+封印: assets/seal.json の 16保護ファイルについて、一覧・SHA-256がruntimeの計算値と完全一致。seal_findings = []。
+command PreToolUse: python3 "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/hook.py" --platform codex pre-tool
+command PostToolUse: python3 "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/hook.py" --platform codex post-tool
+command Stop: python3 "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/hook.py" --platform codex stop
+command UserPromptSubmit: python3 "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/hook.py" --platform codex prompt
+
+直接実行の各ケース（JSON入力・終了コード・標準出力・標準エラーの実記録）:
+[
+  {
+    "case": "inactive: PreToolUseは通常作業を止めない",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/domain-models/sample/diagrams/order.mmd\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: PostToolUseは通常作業を止めない",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/domain-models/sample/diagrams/order.mmd\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: Stopは通常作業を止めない",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "prompt": "通常の利用者入力"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: UserPromptSubmitは通常作業を止めない",
+    "event": "UserPromptSubmit",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "prompt": "通常の利用者入力"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: 封印したSKILL.mdの編集",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/SKILL.md\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "start: 封印済みコピーから通常起動",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py",
+      "start",
+      "--set",
+      "name=sample",
+      "--set",
+      "source=input.md",
+      "--set",
+      "update=false",
+      "受注業務のカタログを検査する"
+    ],
+    "exit_code": 0,
+    "stdout": "generate-domain-model を始めました。実行記録: .skill-runs/generate-domain-model/state.json\nスキルのディレクトリ: /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model\n入力（正規化の後）:\n  カタログ名（name）= \"sample\"\n  資料（source）= \"input.md\"\n  既存カタログの更新（update）= false\n作る出力:\n  catalog カタログ情報: domain-models/sample/catalog.json（0〜1 件）\n  index HTMLカタログ: domain-models/sample/index.html（0〜1 件）\n  validation 変換検証結果: domain-models/sample/validation.json（0〜1 件）\n  mermaid Mermaid原本: domain-models/sample/diagrams/*.mmd（0〜1000 件）\n次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 保護SKILL.mdの編集制御",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/SKILL.md\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"deny\", \"permissionDecisionReason\": \"generate-domain-model の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。\"}}\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: state.json直接編集の拒否",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/.skill-runs/generate-domain-model/state.json\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"deny\", \"permissionDecisionReason\": \".skill-runs/generate-domain-model/state.json は run.py だけが書きます。手で編集しないでください。\"}}\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 契約の出力への編集を通す",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/domain-models/sample/diagrams/order.mmd\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "active: 利用者入力を変更せず通す",
+    "event": "UserPromptSubmit",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "prompt": "仕様を追加します"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "active: 不正Mermaidを編集直後に差し戻す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/domain-models/sample/diagrams/order.mmd\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください（検査や契約を変えて通さない）:\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 不正MermaidのままStopを差し戻す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "finish: 不正Mermaidのまま完了させない",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py",
+      "finish"
+    ],
+    "exit_code": 1,
+    "stdout": "OUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\nfinish: 指摘 1 件。直してから、もう一度 finish を実行してください\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 正しい原本の編集後は通す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/domain-models/sample/diagrams/order.mmd\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "active: 契約外ファイルを編集直後に差し戻す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/unexpected.txt\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください（検査や契約を変えて通さない）:\\nCTL-05 unexpected.txt 契約の出力に無いファイルを変えています。元に戻すか削除してください\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "封印済み同梱サンプルのcatalog check",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/catalog.py",
+      "check",
+      "/private/tmp/issue-86-public-plugin/project-codex/domain-models/sample"
+    ],
+    "exit_code": 0,
+    "stdout": "図: 1件\ncheck: 指摘 0 件\n",
+    "stderr": ""
+  },
+  {
+    "case": "check: 有効なサンプル出力が全検査に通る",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py",
+      "check"
+    ],
+    "exit_code": 0,
+    "stdout": "出力 catalog: domain-models/sample/catalog.json\n出力 index: domain-models/sample/index.html\n出力 validation: domain-models/sample/validation.json\n出力 mermaid: domain-models/sample/diagrams/order.mmd\ncheck: 指摘 0 件\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 出力が正しくてもfinish前のStopを差し戻す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力は検査に通っています。`python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py finish` を実行し、その本文で最終の返答をしてください。\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "wait: 質問待ちにする",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py",
+      "wait",
+      "--question",
+      "検証用の質問待ち"
+    ],
+    "exit_code": 0,
+    "stdout": "質問を待っています。ユーザーの返答を受けたら resume（または check）を実行してください\n",
+    "stderr": ""
+  },
+  {
+    "case": "waiting: Stopを通す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "waiting: 利用者入力を通しactiveに再開",
+    "event": "UserPromptSubmit",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "prompt": "検証を再開"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "finish: 全検査後に完了できる",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py",
+      "finish"
+    ],
+    "exit_code": 0,
+    "stdout": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。\n========================================\n## 結果\n\ngenerate-domain-model: 完了（検証に合格）\n\n図: 1件\nカタログ: [開く](/private/tmp/issue-86-public-plugin/project-codex/domain-models/sample/index.html)\n検証: 原本・画像・HTML・全ファイルの対応に合格\n\n## 出力\n\n- `domain-models/sample/catalog.json`（catalog カタログ情報）\n- `domain-models/sample/index.html`（index HTMLカタログ）\n- `domain-models/sample/validation.json`（validation 変換検証結果）\n- `domain-models/sample/diagrams/order.mmd`（mermaid Mermaid原本）\n\n## 既定値で決めた値\n\n- なし\n\n## 入力で読めなかった値\n\n- なし\n\n## 検証\n\n- `run.py finish`: 指摘 0 件\n\n## 補足\n\n- 資料照合: 確認済み\n- PNG表示: 未実施（配布物と検査機構の確認に限定）\n- HTML操作: 未実施（配布物と検査機構の確認に限定）\n",
+    "stderr": ""
+  },
+  {
+    "case": "done: Stopを通す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "done: PostToolUseを通す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-codex",
+      "tool_name": "apply_patch",
+      "tool_input": {
+        "command": "*** Begin Patch\n*** Update File: /private/tmp/issue-86-public-plugin/project-codex/domain-models/sample/diagrams/order.mmd\n@@\n-old\n+new\n*** End Patch"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: 別の使い捨てgitプロジェクトでstart",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py",
+      "start",
+      "--set",
+      "name=sample",
+      "--set",
+      "source=input.md",
+      "差し戻し上限を検査する"
+    ],
+    "exit_code": 0,
+    "stdout": "generate-domain-model を始めました。実行記録: .skill-runs/generate-domain-model/state.json\nスキルのディレクトリ: /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model\n入力（正規化の後）:\n  カタログ名（name）= \"sample\"\n  資料（source）= \"input.md\"\n  既存カタログの更新（update）= false（既定値）\n作る出力:\n  catalog カタログ情報: domain-models/sample/catalog.json（0〜1 件）\n  index HTMLカタログ: domain-models/sample/index.html（0〜1 件）\n  validation 変換検証結果: domain-models/sample/validation.json（0〜1 件）\n  mermaid Mermaid原本: domain-models/sample/diagrams/*.mmd（0〜1000 件）\n次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: Stop差し戻し 1回目",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-codex"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: Stop差し戻し 2回目",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-codex"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: Stop差し戻し 3回目",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-codex"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-codex/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: 4回目で打ち切りを報告",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-codex"
+    },
+    "exit_code": 0,
+    "stdout": "{\"systemMessage\": \"generate-domain-model: 検査を通らないまま終了しました（終了の差し戻し 3 回で打ち切り）。指摘 1 件。.skill-runs/generate-domain-model/state.json を確認してください。\"}\n",
+    "stderr": ""
+  }
+]
+
+全ケース: 合格。展開したruntime・契約・封印・hooksは検証後も変更なし。
+この直接実行はクライアントによるplugin検出・登録・変数展開・event配信を検証していない。
+
+=== claude-code ===
+
+ビルドcommand: ["python3", "<user-home>/orca/workspaces/context/issue-86/utils/plugins/generate-domain-model/build.py", "--agent", "claude-code", "--output", "/private/tmp/issue-86-public-plugin/build-claude-code"]
+{
+  "exit_code": 0,
+  "stdout": "/private/tmp/issue-86-public-plugin/build-claude-code\n",
+  "stderr": ""
+}
+
+ZIP: generate-domain-model-claude-code.zip
+SHA-256: 9ba7d55871f6ab003ed0c95c83d0d3c01cbb4dcba3b9e3615ed68b61dbfe53e4
+照合した全ファイル（相対パス | bytes | SHA-256 | 正本とのバイト一致）:
+.claude-plugin/plugin.json | 213 | 04cb42c8000251b0b1f7c1f811578195b3f5aa0dfa8a32513f385438b6ed692b | 一致
+hooks/hooks.json | 1270 | b2c3e8eb88c7b851dd4036f89c4d4eedf1130192aef32018215d981de74a83ca | 一致
+skills/generate-domain-model/SKILL.md | 21867 | 74340110e979487a2c23efdc36715bec0bba84a351a52363566082b08c1dcc70 | 一致
+skills/generate-domain-model/assets/catalog.html | 6990 | 02f204f67e904e1e6d99df9d86eb6628e7b078cae9fe4803f0e99453f9dc149d | 一致
+skills/generate-domain-model/assets/contract.json | 3076 | 547ecf9bb7b2baf4350e3903968e652a5cc2b745144fe73474f101fd6f93024f | 一致
+skills/generate-domain-model/assets/examples/catalog.json | 561 | e2e717c47246e3567368db00f6986a752880c4813d8385a30dd419b18e2e81eb | 一致
+skills/generate-domain-model/assets/examples/sample/catalog.json | 561 | e2e717c47246e3567368db00f6986a752880c4813d8385a30dd419b18e2e81eb | 一致
+skills/generate-domain-model/assets/examples/sample/diagrams/order.mmd | 133 | ead3a30813e4e1ff44ed86316a890f16f58fd6d04cf80f0f2d56450ff089c52e | 一致
+skills/generate-domain-model/assets/examples/sample/images/order.png | 11246 | d18f863a4b6fa25bce551f17857f23337f1be0387b2259fb5dc69850cd7adcc4 | 一致
+skills/generate-domain-model/assets/examples/sample/index.html | 8194 | 09a49414033c696ff85e3eebc3e31836cc075ae2b8d5e48ffa5c78e505fdef97 | 一致
+skills/generate-domain-model/assets/examples/sample/validation.json | 886 | 89c6977fca94c9b3fc96316b51f1eb9d8e429abae6f2fe7eeef3e273974f8a5e | 一致
+skills/generate-domain-model/assets/seal.json | 1645 | 6fbd7da7e6700c9a294339b3a0b75f3c551985f42db530223428f1d03892985c | 一致
+skills/generate-domain-model/dev/convergence-report.md | 8329 | 172bb93ae249d1023d973d98a5e92d62495b790804c3982781a7344a698870cf | 一致
+skills/generate-domain-model/dev/evals.json | 1595 | d0c31305d944467ead01248ba2e017c70fd30f265d43ff194f6cc18bb3fcb244 | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/catalog.json | 561 | e2e717c47246e3567368db00f6986a752880c4813d8385a30dd419b18e2e81eb | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/diagrams/order.mmd | 133 | ead3a30813e4e1ff44ed86316a890f16f58fd6d04cf80f0f2d56450ff089c52e | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/images/order.png | 11246 | d18f863a4b6fa25bce551f17857f23337f1be0387b2259fb5dc69850cd7adcc4 | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/index.html | 8194 | 09a49414033c696ff85e3eebc3e31836cc075ae2b8d5e48ffa5c78e505fdef97 | 一致
+skills/generate-domain-model/dev/fixtures/basic/domain-models/sample/validation.json | 886 | 89c6977fca94c9b3fc96316b51f1eb9d8e429abae6f2fe7eeef3e273974f8a5e | 一致
+skills/generate-domain-model/dev/fixtures/basic/input.md | 93 | 3da52416cd0d177fc152d1a24563e793ce56cb75b9f6e59726f516e105b643cd | 一致
+skills/generate-domain-model/dev/fixtures/basic/library.mmd | 129 | dd9306de33ca1999fd937ce7953464d4268b0351e11999579cf90144145bf80e | 一致
+skills/generate-domain-model/dev/fixtures/basic/orders.md | 312 | 99ab43deaa63df680988460e92e14ae6405d0800b7a9804719ac69540e7362a9 | 一致
+skills/generate-domain-model/dev/fixtures/basic/unknown.md | 209 | 68695b9ca6c457324c988292429fa6734b55f0dac764b2d69725354710e960ce | 一致
+skills/generate-domain-model/dev/probes.json | 16670 | 513ec3a2e3bd6716dabd57102e8861891db512c2ac3781be795517394509d555 | 一致
+skills/generate-domain-model/dev/research.md | 3704 | d22bf52658d4e9a08ab8fb19f780970f94234c32b7e0ba721240776c773301cd | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/claude-1.patch | 14726 | 12d6c57971cb2f815715fdc7bd350e596d27b9a96d165980baa656a753299740 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/claude-2.patch | 14842 | 049499d08c0852cdae3f9b0219729027bb23edbfebb719148522f8d3aacbfb55 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/codex-1.patch | 17307 | a8efb6cc0f3d1825047a0cc9a45462fc3598e354dc43181277c2d20f2a4b1959 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T1-typical/codex-2.patch | 15491 | d84a4f92373c88799b5b3a841ee7869f07bce238c2e6b8a0a4cfb9d54101d04b | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/claude-1.patch | 12660 | fde002ab871fb21048d8f5c07a561b08a5c4d8ff4dc8b9bd4b8cc11c7c4713f5 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/claude-2.patch | 13177 | f930dadde216b663c0fc4064ef567f24f81a09f913a5eddb11ef3ccf98b8ae3c | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/codex-1.patch | 14497 | bd52145739a14764fe7682a367e07063a6aedaa6d2dea057bc9a1058265ec2d6 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T2-default/codex-2.patch | 14114 | b63c0c115e848497f5ee54fdd1451c77adfd93f6aedc2495a3844e4d8184a4b0 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/claude-1.patch | 14647 | bd73440759af994784bbacc4e334f6acea2a0e5ba940fd51ecebb38eecff66b3 | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/claude-2.patch | 14472 | b8a3c177820163ff4945d1683120ab80dee5a8abc523aa1dcbe8f4d643629f8d | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/codex-1.patch | 15536 | 6bdf1e19463c1777ea02522aff05b7f9aa015ebfdcba4d21fed9798abb56832d | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/T3-edge/codex-2.patch | 15922 | 1eb3fd6b1ec3954455e95152e868c6a958e7346619c8b358023c2595f85c608e | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/report.json | 74720 | 59e1c717f7548df444b42dac5508178914029b34f5899ee3d7204de381b07e0b | 一致
+skills/generate-domain-model/dev/results/convergence/round-1/report.md | 37892 | 3d97b679bb5b3a7df472a04434d1e35c7e9d3fde57161c6f814b07cb72eaa375 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/claude-1.patch | 12213 | 375c94dde8d99d624b45d45fbe1425a546d7924deb839d42873dad3343b64d84 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/claude-2.patch | 12432 | 584f96be122479782f2b7b35475d40c876dda370bfcd9304dd4c55d287400f9b | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/codex-1.patch | 12551 | 4bca69168b20156e1586fa1fc0e2840d17a0ebe32a09b0bb29ec2073c255cb13 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T1-typical/codex-2.patch | 12822 | fee9b874069bda8d5f9b3505f73ea5e467c7c8228b4cfa375290a8ed76c5af8e | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/claude-1.patch | 10470 | 6f2d16c2fbbfbdcbbb0e8fc7ea24a43c3a7dc680d2f3cab3d02663b0b97a862d | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/claude-2.patch | 10944 | 543ff28360759220ba265008da90d8da124779b8557e404c2da3d0945d2cecff | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/codex-1.patch | 10893 | 0518220b2b97cafb2a418e9975b7a8689f4d0db424807bfafb654c087241eb2e | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T2-default/codex-2.patch | 11069 | 095eaa170c2c2a380ebb6f238e4f4974fae68636413d8cc506a1499ab14e4747 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/claude-1.patch | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/claude-2.patch | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/codex-1.patch | 12348 | 82542309156852dbfc10168322754c8c828d07d53c9396d6fea13f117411c1d3 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/T3-edge/codex-2.patch | 12324 | 604c176fce8b4e6f7bcf16242cd086525a6a00ca134474babde42ecb50150f00 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/report.json | 75570 | 834ca17b369799dd36aedbe26bda6c28c0e04c48374f0e0418ee7127ed2dc075 | 一致
+skills/generate-domain-model/dev/results/convergence/round-2/report.md | 52698 | dd8157f1803b89081260493d5793c8498b4180d8233eb4b816a6790b57e10e17 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/H1-holdout/codex-1.patch | 10616 | acc8b683e8198c7eddf762925baa91108514da44485106a235c2f560ac020e5f | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/H1-holdout/codex-2.patch | 10973 | 4d9ea4412cfbddf8aca208054ad1b2d909ffebfdeee50b95cc0fdb2095603e7a | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T1-typical/codex-1.patch | 12885 | c8e7d1a2acda87e9bb09455e4262bd7f6dee909dfc797411c764096f4e41526c | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T1-typical/codex-2.patch | 12445 | aa0097add58cfeb85084173ce4e42e6abf00739c860766db1103144901eb842a | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T2-default/codex-1.patch | 11053 | 0191582cfde9d8ca969db618a375d4d8d669370093abb54340dc54d350dbb194 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T2-default/codex-2.patch | 10903 | d80b1d657d9eef594d23d3492196d2d23d08c91932b6591dd7ee59db7f931bb5 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T3-edge/codex-1.patch | 12308 | 0b3fdf24f59bd3c5305080113c81562b3719777bd9462bb43185ea283ae26358 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/T3-edge/codex-2.patch | 12287 | edbc96a832e15f2089c86136d61bde2fb5ff955d35b4019560a251ab41a38a06 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/report.json | 48457 | d79b73c3df18b759db30fa1aeaa5e6dfbabf18ec7c4ff7853cc83d5bf23ac247 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/report.md | 29619 | 34d237766f829d4afc44344e0c3d5ebf28250d07d0bac75b02a0e7c0e465a970 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/review.json | 339 | f066f3c14c4b6d18479fe3edab2d8c18111df83757bed176245874a94504f419 | 一致
+skills/generate-domain-model/dev/results/convergence/round-3/review.md | 558 | 479641c4c27a6bad33381ed82644094d37a6526b271637cafa7e18b88d6f2cbe | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/H1-holdout/codex-1.patch | 10676 | 825f550ff62b166adf87fb051318d086d0a08171a9df5d43e734ec0ecc0e0d2c | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/H1-holdout/codex-2.patch | 10697 | 7253d2695aa86e76bda3aab84df6bc36b09ed593e3a15abef1f014677526bec8 | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T1-typical/codex-1.patch | 12517 | 184d72bd6880e48d8af260f28a3c5f37101347cdb656dc8442e9f8b5b1bfe28c | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T1-typical/codex-2.patch | 12816 | 0c3364b6b9dc41d82ecf040b49437ce742bde83503c49b7ac856e2b55543c9f8 | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T2-default/codex-1.patch | 10943 | d75fb4274135e3b0823fc7011328bef1f481ab34c894ce5dc4cf9f1531f6763e | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T2-default/codex-2.patch | 11025 | ace174e084d013f4783bca6f6c714550a74d7e15f36ccb683abde577777b6e2b | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T3-edge/codex-1.patch | 12365 | c2fee0490cc39f6bd08d1012da2102c0c1d4a60a8e8489c7298b8fb4bd296cbd | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/T3-edge/codex-2.patch | 12203 | 3aa1c4bc8d386de51af0a6de7b3c124336afd794d7036fd2141d59518eb1f11b | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/report.json | 50040 | 7c7e304753904b2a3a20ea51b062af22d519058ee35e1e6a8afba9377172245d | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/report.md | 31287 | c62e34b222b45117b9d5418fc4943b28a9217f9fd67440853aa828fcad2bf189 | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/review.json | 339 | a1429f0dfffecbe3c0a3d38e7c004cdf450d2d77b458ef96898683449d8425bf | 一致
+skills/generate-domain-model/dev/results/convergence/round-4/review.md | 558 | 30c5045c770e2ef6742a7f7bbb570e273d25ba1bbc927e07531f7b2f7fcfdf6d | 一致
+skills/generate-domain-model/dev/results/environment-pilot.json | 880 | 8d05eb9bd941d18aa6119e1a5e11a1bfef1f6cf118969e65c06fa8efd8dbce29 | 一致
+skills/generate-domain-model/dev/results/noop-integration.json | 4086 | 77e1cc3e745c7eb534645be905c9333e1614b58ba8bfc6fc39a79ba6c5c76e96 | 一致
+skills/generate-domain-model/dev/results/probe-results.json | 8215 | 87d0b48b240c99a3a196f5725dd217587093b67bd0fd68f965c30bfd838ae709 | 一致
+skills/generate-domain-model/dev/results/ui/desktop.png | 129673 | 0f27653f2fef2157b1f84318585ddc0f249dd9e7da8248da5ea4e5d0b8c4574f | 一致
+skills/generate-domain-model/dev/results/ui/mobile.png | 110996 | 1f285ecfa68b58ec8b39aeac4e91343fb5c5369552b74ccc1b621b1819dafec8 | 一致
+skills/generate-domain-model/dev/results/ui/validation.json | 358 | 77703ca03b07ccff2b4a99dbf12ca2bf7eea308c5fe22059aafe873a35d1a661 | 一致
+skills/generate-domain-model/dev/results/unit.json | 210 | 872a3982fa1a2968cdc75f79453ee078f4b1053f820ce2673f85869018a66199 | 一致
+skills/generate-domain-model/dev/spec.json | 26885 | 2c979e6ff749920547c69b7d94e657a1219416270c96f5f882ce982e0eff4e7b | 一致
+skills/generate-domain-model/dev/test_catalog.py | 9429 | db21675ff7b3dc5a837583d8703e15534498dba66baec6dd130aed6c157e2250 | 一致
+skills/generate-domain-model/references/decisions.md | 17886 | acd93af67d4d9aa925be8c7eeead819c05cebbe5b3d98115a8be489eaba64576 | 一致
+skills/generate-domain-model/references/setup.md | 2163 | ba80bfa300a527cafbb5f331c1c8c275aeaf5cc3fcb5379c36027c03f13e6b48 | 一致
+skills/generate-domain-model/scripts/_skillrt.py | 38413 | b76eceeda4fdcad10a4246a66a7d137d2400cec49cc62d95ec89fd463b784304 | 一致
+skills/generate-domain-model/scripts/catalog.py | 23363 | 1672c03b7887b3c949fdd601be6b8193b892db53cf0b25f2e1876ab13cddc607 | 一致
+skills/generate-domain-model/scripts/hook.py | 11043 | b0ccd614d242fcbbd2499da75d759b33b4cb8f7c7357563954570f15c3a7ef55 | 一致
+skills/generate-domain-model/scripts/install.py | 10617 | 286effaa9680fd4f8a03816b37252e36b62172301ef9d64c8debd4646d91ea19 | 一致
+skills/generate-domain-model/scripts/run.py | 20972 | fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76 | 一致
+
+manifest/hooks: JSONとして読め、manifestのSkill/hooksパスと4イベントを確認。
+封印: assets/seal.json の 16保護ファイルについて、一覧・SHA-256がruntimeの計算値と完全一致。seal_findings = []。
+command PreToolUse: python3 "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/hook.py" --platform claude pre-tool
+command PostToolUse: python3 "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/hook.py" --platform claude post-tool
+command Stop: python3 "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/hook.py" --platform claude stop
+command UserPromptSubmit: python3 "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/hook.py" --platform claude prompt
+
+直接実行の各ケース（JSON入力・終了コード・標準出力・標準エラーの実記録）:
+[
+  {
+    "case": "inactive: PreToolUseは通常作業を止めない",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample/diagrams/order.mmd",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: PostToolUseは通常作業を止めない",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample/diagrams/order.mmd",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: Stopは通常作業を止めない",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "prompt": "通常の利用者入力"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: UserPromptSubmitは通常作業を止めない",
+    "event": "UserPromptSubmit",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "prompt": "通常の利用者入力"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "inactive: 封印したSKILL.mdの編集",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/SKILL.md",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"ask\", \"permissionDecisionReason\": \"generate-domain-model は封印したスキルです（assets/seal.json）。SKILL.md を変えると、封印し直すまで generate-domain-model の start が止まります。変えるなら SKILL.md の「8. 制御の仕組み」の変え方に従ってください。\"}}\n",
+    "stderr": ""
+  },
+  {
+    "case": "start: 封印済みコピーから通常起動",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py",
+      "start",
+      "--set",
+      "name=sample",
+      "--set",
+      "source=input.md",
+      "--set",
+      "update=false",
+      "受注業務のカタログを検査する"
+    ],
+    "exit_code": 0,
+    "stdout": "generate-domain-model を始めました。実行記録: .skill-runs/generate-domain-model/state.json\nスキルのディレクトリ: /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model\n入力（正規化の後）:\n  カタログ名（name）= \"sample\"\n  資料（source）= \"input.md\"\n  既存カタログの更新（update）= false\n作る出力:\n  catalog カタログ情報: domain-models/sample/catalog.json（0〜1 件）\n  index HTMLカタログ: domain-models/sample/index.html（0〜1 件）\n  validation 変換検証結果: domain-models/sample/validation.json（0〜1 件）\n  mermaid Mermaid原本: domain-models/sample/diagrams/*.mmd（0〜1000 件）\n次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 保護SKILL.mdの編集制御",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/SKILL.md",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"ask\", \"permissionDecisionReason\": \"generate-domain-model の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。\"}}\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: state.json直接編集の拒否",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/.skill-runs/generate-domain-model/state.json",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"deny\", \"permissionDecisionReason\": \".skill-runs/generate-domain-model/state.json は run.py だけが書きます。手で編集しないでください。\"}}\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 契約の出力への編集を通す",
+    "event": "PreToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample/diagrams/order.mmd",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "active: 利用者入力を変更せず通す",
+    "event": "UserPromptSubmit",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "prompt": "仕様を追加します"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "active: 不正Mermaidを編集直後に差し戻す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample/diagrams/order.mmd",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください（検査や契約を変えて通さない）:\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 不正MermaidのままStopを差し戻す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "finish: 不正Mermaidのまま完了させない",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py",
+      "finish"
+    ],
+    "exit_code": 1,
+    "stdout": "OUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\nfinish: 指摘 1 件。直してから、もう一度 finish を実行してください\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 正しい原本の編集後は通す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample/diagrams/order.mmd",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "active: 契約外ファイルを編集直後に差し戻す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/unexpected.txt",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください（検査や契約を変えて通さない）:\\nCTL-05 unexpected.txt 契約の出力に無いファイルを変えています。元に戻すか削除してください\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "封印済み同梱サンプルのcatalog check",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/catalog.py",
+      "check",
+      "/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample"
+    ],
+    "exit_code": 0,
+    "stdout": "図: 1件\ncheck: 指摘 0 件\n",
+    "stderr": ""
+  },
+  {
+    "case": "check: 有効なサンプル出力が全検査に通る",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py",
+      "check"
+    ],
+    "exit_code": 0,
+    "stdout": "出力 catalog: domain-models/sample/catalog.json\n出力 index: domain-models/sample/index.html\n出力 validation: domain-models/sample/validation.json\n出力 mermaid: domain-models/sample/diagrams/order.mmd\ncheck: 指摘 0 件\n",
+    "stderr": ""
+  },
+  {
+    "case": "active: 出力が正しくてもfinish前のStopを差し戻す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力は検査に通っています。`python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py finish` を実行し、その本文で最終の返答をしてください。\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "wait: 質問待ちにする",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py",
+      "wait",
+      "--question",
+      "検証用の質問待ち"
+    ],
+    "exit_code": 0,
+    "stdout": "質問を待っています。ユーザーの返答を受けたら resume（または check）を実行してください\n",
+    "stderr": ""
+  },
+  {
+    "case": "waiting: Stopを通す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "waiting: 利用者入力を通しactiveに再開",
+    "event": "UserPromptSubmit",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "prompt": "検証を再開"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "finish: 全検査後に完了できる",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py",
+      "finish"
+    ],
+    "exit_code": 0,
+    "stdout": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。\n========================================\n## 結果\n\ngenerate-domain-model: 完了（検証に合格）\n\n図: 1件\nカタログ: [開く](/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample/index.html)\n検証: 原本・画像・HTML・全ファイルの対応に合格\n\n## 出力\n\n- `domain-models/sample/catalog.json`（catalog カタログ情報）\n- `domain-models/sample/index.html`（index HTMLカタログ）\n- `domain-models/sample/validation.json`（validation 変換検証結果）\n- `domain-models/sample/diagrams/order.mmd`（mermaid Mermaid原本）\n\n## 既定値で決めた値\n\n- なし\n\n## 入力で読めなかった値\n\n- なし\n\n## 検証\n\n- `run.py finish`: 指摘 0 件\n\n## 補足\n\n- 資料照合: 確認済み\n- PNG表示: 未実施（配布物と検査機構の確認に限定）\n- HTML操作: 未実施（配布物と検査機構の確認に限定）\n",
+    "stderr": ""
+  },
+  {
+    "case": "done: Stopを通す",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "done: PostToolUseを通す",
+    "event": "PostToolUse",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/project-claude-code",
+      "tool_name": "Edit",
+      "tool_input": {
+        "file_path": "/private/tmp/issue-86-public-plugin/project-claude-code/domain-models/sample/diagrams/order.mmd",
+        "old_string": "old",
+        "new_string": "new"
+      }
+    },
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: 別の使い捨てgitプロジェクトでstart",
+    "command": [
+      "python3",
+      "/private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py",
+      "start",
+      "--set",
+      "name=sample",
+      "--set",
+      "source=input.md",
+      "差し戻し上限を検査する"
+    ],
+    "exit_code": 0,
+    "stdout": "generate-domain-model を始めました。実行記録: .skill-runs/generate-domain-model/state.json\nスキルのディレクトリ: /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model\n入力（正規化の後）:\n  カタログ名（name）= \"sample\"\n  資料（source）= \"input.md\"\n  既存カタログの更新（update）= false（既定値）\n作る出力:\n  catalog カタログ情報: domain-models/sample/catalog.json（0〜1 件）\n  index HTMLカタログ: domain-models/sample/index.html（0〜1 件）\n  validation 変換検証結果: domain-models/sample/validation.json（0〜1 件）\n  mermaid Mermaid原本: domain-models/sample/diagrams/*.mmd（0〜1000 件）\n次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: Stop差し戻し 1回目",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: Stop差し戻し 2回目",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: Stop差し戻し 3回目",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "{\"decision\": \"block\", \"reason\": \"generate-domain-model の出力に、まだ指摘が 1 件あります。直してから `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 /private/tmp/issue-86-public-plugin/extracted-claude-code/skills/generate-domain-model/scripts/run.py wait --question <質問>` を実行してから質問してください。\\nOUT-02 domain-models/sample/diagrams/order.mmd /^classDiagram$/ が 1 回以上 必要です（今 0 回）（原本の先頭行はclassDiagramにする）\"}\n",
+    "stderr": ""
+  },
+  {
+    "case": "上限検証: 4回目で打ち切りを報告",
+    "event": "Stop",
+    "input": {
+      "cwd": "/private/tmp/issue-86-public-plugin/limit-claude-code"
+    },
+    "exit_code": 0,
+    "stdout": "{\"systemMessage\": \"generate-domain-model: 検査を通らないまま終了しました（終了の差し戻し 3 回で打ち切り）。指摘 1 件。.skill-runs/generate-domain-model/state.json を確認してください。\"}\n",
+    "stderr": ""
+  }
+]
+
+全ケース: 合格。展開したruntime・契約・封印・hooksは検証後も変更なし。
+この直接実行はクライアントによるplugin検出・登録・変数展開・event配信を検証していない。
+
+=== 正本の不変確認 ===
+取得方法: scripts/example-skill-source.cjs の sourceManifest(pluginDir) / sourceManifest(skillDir)
+plugin source_sha256（実行前・実行後で一致）: 29f03c69287fd00a65f436df3c288515cd04e6d460b6feb6edf793ef3d4e836b
+Skill source_sha256（実行前・実行後で一致）: a139e210a5eafcf1f0a94b5606fa0ac590e8c56205a83c372f0d392ce684537c
+全source_files一覧と各SHA-256も実行前後で完全一致。
+
+=== 未検証 ===
+実クライアントへの導入
+有効化
+クライアントから呼び出されるhooksの実動作
+
+完了: 2026-10-26T23:38:05.421666+00:00
+
+=== 公開記録の検査 ===
+node scripts/check-plugin-examples.cjs: 終了コード0。pluginの成果物・正本・同梱スキルの一致を確認。
+scripts/example-skill-source.cjs の verifyArtifacts: 合格。execution.json以外の全4成果物が登録され、参照先とSHA-256が一致。

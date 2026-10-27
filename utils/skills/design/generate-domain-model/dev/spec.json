@@ -9,23 +9,23 @@
     "claude",
     "codex"
   ],
-  "title": "コードから根拠付きのドメインモデル図を作る",
-  "purpose": "ローカルリポジトリのコードを調査し、根拠付きの業務概念と関係からMermaid原本・PNG・HTMLカタログを生成する",
+  "title": "業務の概念と関係を図とカタログにする",
+  "purpose": "業務説明・仕様・指定されたコード・classDiagramからMermaid原本とPNGを生成し、HTMLカタログで一覧・検索・拡大する",
   "triggers": {
     "use_when": [
-      "コードからドメインモデル図を作成するスキルを使って",
-      "このリポジトリの業務概念と関係を図にして",
-      "コードからMermaidのドメインモデルを作って",
-      "ドメインモデルをPNGにしてHTMLカタログで見たい",
-      "実装の根拠を辿れる業務モデル図を生成してください"
+      "業務の概念と関係を表すドメインモデル図を作って",
+      "仕様からMermaidのドメインモデル図を作って",
+      "ドメインモデルをPNGとHTMLカタログにして",
+      "このリポジトリの業務概念を図で整理して",
+      "複数のclassDiagramをカタログで見たい"
     ],
     "not_for": [
       {
-        "when": "DBテーブルと外部キーだけをER図にする",
+        "when": "DBのテーブルと外部キーをER図にする",
         "instead": "archify-jpのer図"
       },
       {
-        "when": "コードを読まずに構想中のモデルを描く",
+        "when": "ソースコードの全クラスとメソッドを列挙する",
         "instead": "archify-jpのclass図"
       }
     ],
@@ -34,157 +34,108 @@
   "inputs": [
     {
       "key": "name",
-      "label": "出力の名前",
+      "label": "カタログ名",
       "type": "slug",
+      "impact": "reversible",
+      "default": "domain",
       "aliases": [
         "名前",
+        "カタログ",
         "catalog"
-      ],
-      "impact": "reversible",
-      "default": "domain-model"
+      ]
     },
     {
-      "key": "repo",
-      "label": "対象リポジトリ",
-      "type": "path",
+      "key": "source",
+      "label": "資料",
+      "type": "string",
+      "impact": "target",
+      "ask": true,
+      "question": "図にする業務説明・仕様・コードのパス・classDiagramを教えてください。",
       "aliases": [
-        "repository",
-        "リポジトリ"
-      ],
-      "impact": "reversible",
-      "default": "."
+        "入力",
+        "資料",
+        "対象"
+      ]
     },
     {
-      "key": "scope",
-      "label": "調査範囲",
-      "type": "list",
-      "aliases": [
-        "対象範囲"
-      ],
+      "key": "update",
+      "label": "既存カタログの更新",
+      "type": "bool",
       "impact": "reversible",
-      "default": [
-        "."
+      "default": false,
+      "aliases": [
+        "更新"
       ]
     }
   ],
   "excluded_inputs": [],
   "outputs": [
     {
-      "id": "model",
-      "label": "モデル情報",
-      "path": "{run}/out/{in:name}/model.json",
+      "id": "catalog",
+      "label": "カタログ情報",
+      "path": "domain-models/{in:name}/catalog.json",
+      "rule": "OUT-01",
       "count": {
-        "min": 1,
+        "min": 0,
         "max": 1
       },
-      "rule": "OUT-01",
       "checks": [
         {
-          "type": "forbid",
-          "pattern": "^  \"(?:skip_validation|no_verify|ignore_errors|disable_checks)\":",
-          "rule": "OUT-07"
-        },
-        {
+          "rule": "OUT-02",
           "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-01",
           "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-01"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-02",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-02"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-04",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-04"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-06",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-06"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-07",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-07"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-02",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "STEP-02"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-03",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "STEP-03"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-06",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "STEP-06"
+          "run": "python3 {skill}/scripts/catalog.py check {root}/domain-models/{in:name}",
+          "rules": [
+            "OUT-01",
+            "OUT-04",
+            "OUT-05",
+            "OUT-07",
+            "OUT-08",
+            "STEP-04"
+          ]
         }
       ]
     },
     {
-      "id": "inventory",
-      "label": "コードのスナップショット",
-      "path": "{run}/out/{in:name}/inventory.json",
-      "count": {
-        "min": 1,
-        "max": 1
-      },
-      "rule": "OUT-01",
-      "checks": []
-    },
-    {
-      "id": "catalog",
+      "id": "index",
       "label": "HTMLカタログ",
-      "path": "{run}/out/{in:name}/index.html",
+      "path": "domain-models/{in:name}/index.html",
+      "rule": "OUT-01",
       "count": {
-        "min": 1,
+        "min": 0,
         "max": 1
       },
-      "rule": "OUT-01",
       "checks": []
     },
     {
-      "id": "manifest",
-      "label": "画像と派生物の検証記録",
-      "path": "{run}/out/{in:name}/manifest.json",
+      "id": "validation",
+      "label": "変換検証結果",
+      "path": "domain-models/{in:name}/validation.json",
+      "rule": "OUT-01",
       "count": {
-        "min": 1,
+        "min": 0,
         "max": 1
       },
-      "rule": "OUT-01",
       "checks": []
     },
     {
       "id": "mermaid",
       "label": "Mermaid原本",
-      "path": "{run}/out/{in:name}/diagrams/*.mmd",
-      "count": {
-        "min": 1,
-        "max": 10000
-      },
+      "path": "domain-models/{in:name}/diagrams/*.mmd",
       "rule": "OUT-01",
-      "checks": []
+      "count": {
+        "min": 0,
+        "max": 1000
+      },
+      "checks": [
+        {
+          "rule": "OUT-02",
+          "type": "require",
+          "lines": "first",
+          "pattern": "^classDiagram$",
+          "message": "原本の先頭行はclassDiagramにする"
+        }
+      ]
     }
   ],
   "together": [],
@@ -194,212 +145,156 @@
       "axes": [
         "I3"
       ],
-      "title": "コードがない依頼を中断する",
-      "decision": "コードが読めない、対象ファイルが0件、概念が0件のいずれかなら理由を示して中断する。構想図だけの依頼はarchify-jpへ案内する。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
+      "title": "材料が無ければ質問し対象外は中断する",
+      "decision": "業務資料が無ければ start の前に資料を聞く。ER図または全コードクラスの列挙だけを求める依頼では start せず archify-jp を案内する。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
       "basis": "user",
       "control": [
         "doc"
       ],
-      "how": "references/model-format.md",
-      "why_not_machine": "痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない",
+      "how": "SKILL.md の手順1",
+      "why_not_machine": "痕跡が残らない：出力を作る前の質問と案内は出力の字面で判定できない",
       "probes": [],
-      "good": "コードが読めない、対象ファイルが0件、概念が0件のいずれかなら理由を示して中断する。構想図だけの依頼はarchify-jpへ案内する。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "IN-02",
       "axes": [
         "I4"
       ],
-      "title": "指定範囲のコードを調査する",
-      "decision": "catalog.py inspectが列挙したファイルとルートのREADME・AGENTS.mdを読む。依存パッケージ・生成物・symlinkは除外する。未読のコードはunreadにパスと理由を書く。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
+      "title": "指定された資料と対応する定義を読む",
+      "decision": "読む範囲は利用者が渡した業務説明、仕様、classDiagram、指定したパスとその用語を定義する参照先にする。各図の sources に参照先と実際の記述を残す。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
       "basis": "user",
       "control": [
         "doc"
       ],
-      "how": "references/model-format.md",
-      "why_not_machine": "痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない",
+      "how": "SKILL.md の手順3",
+      "why_not_machine": "痕跡が残らない：読む操作の範囲は最終出力から確定できない",
       "probes": [],
-      "good": "catalog.py inspectが列挙したファイルとルートのREADME・AGENTS.mdを読む。依存パッケージ・生成物・symlinkは除外する。未読のコードはunreadにパスと理由を書く。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "STEP-01",
       "axes": [
-        "P1"
+        "P1",
+        "P2",
+        "P3"
       ],
-      "title": "調査してから図を生成する",
-      "decision": "受付、start、inspect、コードの読解、model.jsonの作成、build、check、画像とHTMLの確認、finishの順に進める。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
+      "title": "資料から原本を作り変換して検査する",
+      "decision": "start → inspect → 資料を読む → catalog.json と .mmd を書く → build → check → finish の順にする。既存カタログは update=true のときだけ更新し、既存IDを維持して追加と内容修正を行う。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "machine",
       "control": [
+        "script",
         "doc"
       ],
-      "how": "references/model-format.md",
-      "why_not_machine": "痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない",
+      "how": "scripts/catalog.py の inspect、build、check。SKILL.md の手順2〜7",
+      "why_not_machine": "痕跡が残らない：操作の順序は生成後のファイルだけでは確定できない",
       "probes": [],
-      "good": "受付、start、inspect、コードの読解、model.jsonの作成、build、check、画像とHTMLの確認、finishの順に進める。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "STEP-02",
       "axes": [
-        "P2"
+        "P4"
       ],
-      "title": "概要図と領域別の図を作る",
-      "decision": "全概念を置いたoverviewを1つ作り、領域が2つ以上なら領域別の図も作る。領域は概念の宣言元ファイルの親ディレクトリとする。領域を跨ぐ関係は両端の概念を図へ残す。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
+      "title": "既存のMermaid CLIだけでPNGへ変換する",
+      "decision": "Python 3.9以上と既に導入された mmdc を使う。mmdc は引数 --mmdc、環境変数 DOMAIN_MODEL_MMDC、PATH の順に選ぶ。deps で版を確認する。不足時は references/setup.md の導入手順を提示し、インストールせず中断する。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "official",
       "control": [
-        "validate",
-        "script"
+        "script",
+        "doc"
       ],
-      "how": "scripts/catalog.py のverifyが図の集合とMermaidを再計算する。",
-      "why_not_machine": "",
-      "probes": [
-        "STEP-02-a"
-      ],
-      "good": "全概念を含むoverviewを1つ作り、領域が2つ以上なら領域別の図も作る。領域を跨ぐ関係は両端の概念を含める。",
-      "bad": "根拠を確認せず出力を変える。"
+      "how": "scripts/catalog.py の deps と build。references/setup.md",
+      "why_not_machine": "痕跡が残らない：インストールを実行したかは生成後のファイルだけでは判定できない",
+      "probes": [],
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "STEP-03",
       "axes": [
-        "P3"
-      ],
-      "title": "派生物をスクリプトで生成する",
-      "decision": "AIはmodel.jsonを作る。Mermaid、PNG、HTML、manifest.jsonはcatalog.py buildで生成し、手で書き換えない。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
-      "control": [
-        "validate",
-        "script"
-      ],
-      "how": "scripts/catalog.py のverifyがMermaidとHTMLを再生成して比較する。",
-      "why_not_machine": "",
-      "probes": [
-        "STEP-03-a"
-      ],
-      "good": "AIはmodel.jsonを作る。Mermaid、PNG、HTML、manifest.jsonはcatalog.py buildで生成し、手で書き換えない。",
-      "bad": "根拠を確認せず出力を変える。"
-    },
-    {
-      "id": "STEP-04",
-      "axes": [
-        "P4"
-      ],
-      "title": "インストール済みのMermaid CLIを使う",
-      "decision": "Python 3.9以上、git、インストール済みMermaid CLIとブラウザーを使う。MMDCでCLI、PUPPETEER_EXECUTABLE_PATHでブラウザーを指定する。CLIがなければ中断し、導入が必要と伝える。自動ダウンロードは行わない。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "official",
-      "control": [
-        "doc"
-      ],
-      "how": "references/model-format.md",
-      "why_not_machine": "痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない",
-      "probes": [],
-      "good": "Python 3.9以上、git、インストール済みMermaid CLIとブラウザーを使う。MMDCでCLI、PUPPETEER_EXECUTABLE_PATHでブラウザーを指定する。CLIがなければ中断し、導入が必要と伝える。自動ダウンロードは行わない。",
-      "bad": "根拠を確認せず出力を変える。"
-    },
-    {
-      "id": "STEP-05",
-      "axes": [
         "P5"
       ],
-      "title": "変換に失敗したら公開を止める",
-      "decision": "変換失敗、画像不正、根拠の不一致では中断する。全図の変換と検査の成功後に出力を置き換える。古い画像と仮の画像で成功を代替しない。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
+      "title": "失敗したら完成扱いを止める",
+      "decision": "build または check が非0なら診断を読み、入力か生成対象を直して再実行する。環境不足を直せないときは run.py abort に実際の理由を渡す。既存の正常な画像とHTMLは全図の変換が成功してから置き換える。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "machine",
       "control": [
+        "script",
         "doc"
       ],
-      "how": "references/model-format.md",
-      "why_not_machine": "痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない",
+      "how": "scripts/catalog.py の build と check。SKILL.md の手順6",
+      "why_not_machine": "痕跡が残らない：失敗時は新しい成功出力が存在しない",
       "probes": [],
-      "good": "変換失敗、画像不正、根拠の不一致では中断する。全図の変換と検査の成功後に出力を置き換える。古い画像と仮の画像で成功を代替しない。",
-      "bad": "根拠を確認せず出力を変える。"
-    },
-    {
-      "id": "STEP-06",
-      "axes": [
-        "X1"
-      ],
-      "title": "生成後に画像の構造を検査する",
-      "decision": "checkとfinishでPNGのCRCと圧縮データを検査する。画像とHTMLを開いて文字・関係・検索・絞り込み・拡大・原本取得も確認する。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
-      "control": [
-        "validate",
-        "script"
-      ],
-      "how": "scripts/catalog.py のverifyがPNGを検査する。",
-      "why_not_machine": "",
-      "probes": [
-        "STEP-06-a"
-      ],
-      "good": "checkとfinishでPNGのCRCと圧縮データを検査する。画像とHTMLを開いて文字・関係・検索・絞り込み・拡大・原本取得も確認する。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "OUT-01",
       "axes": [
         "O1"
       ],
-      "title": "実行記録配下に出力する",
-      "decision": "出力は実行記録のout/name配下に置く。inventory.json、model.json、index.html、manifest.jsonとdiagrams配下のmmd・pngを保存する。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
+      "title": "出力をカタログごとにまとめる",
+      "decision": "出力は domain-models/{name}/catalog.json、index.html、validation.json、diagrams/<id>.mmd、images/<id>.png に限定する。カタログには1図以上を載せ、図ごとに原本とPNGを1つずつ対応させる。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
       "basis": "user",
       "control": [
-        "validate"
+        "validate",
+        "script"
       ],
-      "how": "出力契約と scripts/catalog.py のverifyがファイル集合を検査する。",
+      "how": "scripts/catalog.py の check と契約の出力パス",
       "why_not_machine": "",
       "probes": [
         "OUT-01-a"
       ],
-      "good": "出力は実行記録のout/name配下に置く。inventory.json、model.json、index.html、manifest.jsonとdiagrams配下のmmd・pngを保存する。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "OUT-02",
       "axes": [
         "O2"
       ],
-      "title": "モデル情報とコード根拠を検査する",
-      "decision": "model.jsonはschema_version・title・domains・concepts・relations・questions・unreadを持つ。references/model-format.mdに従い、型・キー・参照先とコードの行・抜粋を検査する。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
+      "title": "固定した構造の原本とカタログを生成する",
+      "decision": "catalog.json は schema_version、name、title、diagrams を持つ。図は id、title、description、terms、sources、unresolved を持つ。sources は path と quote を持つ。原本は classDiagram で始める。HTMLはオフラインの一覧・検索・拡大・原本参照を備える。PNGは破損していない画像にする。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
       "basis": "user",
       "control": [
         "validate",
-        "template"
+        "script"
       ],
-      "how": "assets/examples/model.json と scripts/catalog.py のvalidateが型・キー・参照・抜粋を検査する。",
+      "how": "scripts/catalog.py の check。assets/examples/catalog.json",
       "why_not_machine": "",
       "probes": [
         "OUT-02-a"
       ],
-      "good": "model.jsonはschema_version・title・domains・concepts・relations・questions・unreadを持つ。references/model-format.mdに従い、型・キー・参照先とコードの行・抜粋を検査する。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "OUT-03",
       "axes": [
-        "O3"
+        "O3",
+        "X2"
       ],
-      "title": "日本語の説明とコード識別子を区別する",
-      "decision": "説明は日本語で書く。symbolとコードの抜粋は実装の表記を保持する。名称を翻訳してもコード識別子を変えない。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
+      "title": "根拠のある業務概念と関係を表す",
+      "decision": "業務概念・主な属性・関係名・資料にある多重度を図にする。ラベルは資料の用語を使う。コードのメソッドやDBの外部キーを業務概念に置き換えない。資料にない概念・属性・関係・多重度を断定せず、足りない情報を unresolved に書く。sources.quote の実際の記述と図・説明を照合する。入力で指定された業務領域を省略しない。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
       "basis": "user",
       "control": [
         "review"
       ],
-      "how": "references/model-format.md",
-      "why_not_machine": "意味の判断が要る：説明の言語と識別子の翻訳が意味を変えたかはコードを読んで判断する。",
+      "how": "完了前チェックリストで sources.quote と図・説明を照合する",
+      "why_not_machine": "意味の判断が要る：業務の意味と資料の含意は文字列の形だけでは判定できない",
       "probes": [],
-      "good": "説明は日本語で書く。symbolとコードの抜粋は実装の表記を保持する。名称を翻訳してもコード識別子を変えない。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "人数が不明なら多重度を省略し未確認事項に書く",
+      "bad": "資料にない必須人数を推測し1と書く"
     },
     {
       "id": "OUT-04",
@@ -407,97 +302,121 @@
         "O4"
       ],
       "title": "IDと並び順を固定する",
-      "decision": "概念の表示名はsymbol、領域の表示名はpath（.はルート）、関係名はコードのmember（継承は継承）に固定する。確認事項は改行区切りの文字列にする。conceptのIDはkeyのSHA-256先頭12桁にC_を付ける。relationのIDはsource・target・kind・固定した関係名のJSON配列のSHA-256先頭12桁にR_を付ける。domainsはpath、conceptsはkey、relationsはIDで並べる。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
+      "decision": "name と図の id は英小文字・数字・ハイフンで、英小文字から始める。図は id の昇順、terms は重複なしの昇順にする。ファイル名は id と一致させ、JSONはキーの昇順・2空白で書く。既存IDは同じ図の更新で維持する。termsはMermaidに宣言した概念の表示名から生成し、表示名がない概念は概念IDを使う。同じファイルの引用は1件にまとめ、参照先の昇順に並べる。 プロジェクト内の資料パスはプロジェクトルートからの相対パスに統一する。プロジェクト外の資料とURLは入力の参照先を保つ。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
       "basis": "machine",
       "control": [
         "validate",
         "script"
       ],
-      "how": "scripts/catalog.py のnormalizeとverifyがIDと順序を再計算する。",
+      "how": "scripts/catalog.py の check と build",
       "why_not_machine": "",
       "probes": [
         "OUT-04-a"
       ],
-      "good": "conceptのIDはkeyのSHA-256先頭12桁にC_を付ける。relationのIDはsource・target・kind・labelのJSON配列のSHA-256先頭12桁にR_を付ける。domainsはpath、conceptsはkey、relationsはIDで並べる。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "OUT-05",
       "axes": [
-        "O6"
+        "O5"
       ],
-      "title": "既存の出力を保持する",
-      "decision": "受付時に同名の出力があれば別のnameを聞く。buildは既存の生成結果を拒否する。同じ実行内の修正はgenerate-domain-modelが生成した出力に限り--replaceで再生成する。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
+      "title": "説明と根拠と未確認事項を省略しない",
+      "decision": "図は1〜1000件にする。各図に空でない題名と説明と1件以上の sources を持たせる。terms と unresolved は配列にし、未確認事項が無ければ空配列にする。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "machine",
       "control": [
-        "doc"
+        "validate"
       ],
-      "how": "references/model-format.md",
-      "why_not_machine": "痕跡が残らない：実行の順序と中断の判断は出力だけでは確定できない",
-      "probes": [],
-      "good": "受付時に同名の出力があれば別のnameを聞く。buildは既存の生成結果を拒否する。同じ実行内の修正はgenerate-domain-modelが生成した出力に限り--replaceで再生成する。",
-      "bad": "根拠を確認せず出力を変える。"
+      "how": "scripts/catalog.py の check",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-05-a"
+      ],
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "OUT-06",
       "axes": [
-        "O7"
+        "O6"
       ],
-      "title": "モデルと派生物の対応を検査する",
-      "decision": "コード、model、Mermaid、PNG、HTMLのハッシュをmanifestに記録し、checkとfinishで比較する。コードまたはモデルが変わったらinspectとbuildからやり直す。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
+      "title": "既存カタログを確認してから更新する",
+      "decision": "inspect で既存図のIDを読む。index.html があるときは update=true の依頼でだけ build --update を使う。依頼のない既存図は残す。build は前回 validation.json にあるIDの削除と同名の未知のファイルの置換を拒否する。 原本・変換版・設定と既存PNGのハッシュが前回の検証記録と一致する図はPNGを再利用し、未変更図の画像を維持する。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "machine",
       "control": [
-        "validate",
-        "script"
+        "script",
+        "doc"
       ],
-      "how": "scripts/catalog.py のverifyがmanifestと実ファイルを比較する。",
-      "why_not_machine": "",
-      "probes": [
-        "OUT-06-a"
-      ],
-      "good": "コード、model、Mermaid、PNG、HTMLのハッシュをmanifestに記録し、checkとfinishで比較する。コードまたはモデルが変わったらinspectとbuildからやり直す。",
-      "bad": "根拠を確認せず出力を変える。"
+      "how": "scripts/catalog.py の inspect と build。SKILL.md の手順3",
+      "why_not_machine": "痕跡が残らない：利用者が更新を依頼したかはファイルの字面だけでは判定できない",
+      "probes": [],
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "OUT-07",
       "axes": [
-        "O8"
+        "O7"
       ],
-      "title": "検査の省略指定を拒否する",
-      "decision": "model.jsonのskip_validation、no_verify、ignore_errors、disable_checksを拒否する。許可していないキーを追加して検査を止めない。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
+      "title": "原本とPNGと一覧の対応を検査する",
+      "decision": "check は全ファイルのSHA-256と validation.json の記録を照合し、metadata・Mermaid・PNG・HTMLの組が一致することを確認する。変更のない再実行でも report.sections が全カタログを検査する。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "machine",
       "control": [
-        "validate"
+        "validate",
+        "script"
       ],
-      "how": "scripts/catalog.py のvalidateが検査を省くキーを拒否する。",
+      "how": "scripts/catalog.py の check と report、report.sections",
       "why_not_machine": "",
       "probes": [
         "OUT-07-a"
       ],
-      "good": "model.jsonのskip_validation、no_verify、ignore_errors、disable_checksを拒否する。許可していないキーを追加して検査を止めない。",
-      "bad": "根拠を確認せず出力を変える。"
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "OUT-08",
       "axes": [
-        "X2"
+        "O8"
       ],
-      "title": "概念と関係の意味を根拠で確認する",
-      "decision": "分類の明示がないクラスはconceptにする。entityはEntity基底型かentity注釈、valueはValueObject基底型かvalue_object注釈、enumは列挙宣言かリテラルの選択型のコードを根拠にする。idという属性名やdataclassのfrozenだけで分類しない。参照メンバー・属性・関係種別・多重度の意味をレビューし、断定できない関係種別はassociation、多重度はnullにする。不明点はquestionsに書く。",
-      "reason": "コードの根拠と生成結果を辿れるようにし、実行者による判断の違いを減らす。",
-      "basis": "user",
+      "title": "検査を止める記法を生成しない",
+      "decision": "Mermaidとcatalog.jsonに skip ci、ci skip、eslint-disable、noqa、type: ignore、validation: false の記法を書かない。Mermaidの初期化ディレクティブとclick文は生成せず、変換設定はbuildが固定する。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "machine",
       "control": [
-        "review"
+        "validate"
       ],
-      "how": "references/model-format.md",
-      "why_not_machine": "意味の判断が要る：抜粋が存在しても業務上の意味が正しいとは確定しない。",
-      "probes": [],
-      "good": "業務概念を選び、分類・属性・関係名・種別・多重度を根拠から確認する。断定できない分類はconcept、関係種別はassociation、多重度はnullにする。不明な理由をquestionsに書く。",
-      "bad": "根拠を確認せず出力を変える。"
+      "how": "scripts/catalog.py の check",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-08-a"
+      ],
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
+    },
+    {
+      "id": "STEP-04",
+      "axes": [
+        "X1"
+      ],
+      "title": "変換結果を検査してから完了する",
+      "decision": "validation.json の status は passed、renderer.name は mermaid-cli、renderer.version は空でない文字列にする。各PNGの署名・CRC・寸法・IDAT・終端を検査する。生成したPNGとHTMLを表示して日本語と図の欠けを確認し、notes.md は「- 資料照合: 」「- PNG表示: 」「- HTML操作: 」の順で3行にする。値は「確認済み」または「未実施（実際の理由）」だけにし、理由は英字を含まない日本語で書き、参照パスや識別子は書かない。詳細な根拠と未確認事項はカタログに残す。",
+      "reason": "実行者が変わっても判断と出力を揃えるため。",
+      "basis": "machine",
+      "control": [
+        "validate",
+        "script"
+      ],
+      "how": "scripts/catalog.py の check と build、SKILL.md の手順7",
+      "why_not_machine": "",
+      "probes": [
+        "STEP-04-a"
+      ],
+      "good": "契約どおりに出力する",
+      "bad": "契約と違う出力にする"
     },
     {
       "id": "CTL-01",
@@ -636,18 +555,13 @@
     {
       "axis": "X2",
       "prefix": "OUT",
-      "name": "概念と関係の意味を根拠で確認する"
+      "name": "業務の根拠と未確認事項"
     }
   ],
-  "excluded_axes": [
-    {
-      "axis": "O5",
-      "reason": "文字数と概念数に上限を設けず、未読のコードはunreadへ明記する。"
-    }
-  ],
+  "excluded_axes": [],
   "examples": [
     {
-      "path": "model.json",
+      "path": "catalog.json",
       "shows": [
         "OUT-01",
         "OUT-02",
@@ -656,11 +570,12 @@
         "OUT-05",
         "OUT-06",
         "OUT-07",
-        "OUT-08"
+        "OUT-08",
+        "STEP-04"
       ]
     },
     {
-      "path": "catalog/diagrams/domain_df384ae97c77.mmd",
+      "path": "sample/catalog.json",
       "shows": [
         "OUT-01",
         "OUT-02",
@@ -669,11 +584,12 @@
         "OUT-05",
         "OUT-06",
         "OUT-07",
-        "OUT-08"
+        "OUT-08",
+        "STEP-04"
       ]
     },
     {
-      "path": "catalog/diagrams/domain_df384ae97c77.png",
+      "path": "sample/diagrams/order.mmd",
       "shows": [
         "OUT-01",
         "OUT-02",
@@ -682,11 +598,12 @@
         "OUT-05",
         "OUT-06",
         "OUT-07",
-        "OUT-08"
+        "OUT-08",
+        "STEP-04"
       ]
     },
     {
-      "path": "catalog/diagrams/domain_e04eb29020ea.mmd",
+      "path": "sample/images/order.png",
       "shows": [
         "OUT-01",
         "OUT-02",
@@ -695,11 +612,12 @@
         "OUT-05",
         "OUT-06",
         "OUT-07",
-        "OUT-08"
+        "OUT-08",
+        "STEP-04"
       ]
     },
     {
-      "path": "catalog/diagrams/domain_e04eb29020ea.png",
+      "path": "sample/index.html",
       "shows": [
         "OUT-01",
         "OUT-02",
@@ -708,11 +626,12 @@
         "OUT-05",
         "OUT-06",
         "OUT-07",
-        "OUT-08"
+        "OUT-08",
+        "STEP-04"
       ]
     },
     {
-      "path": "catalog/diagrams/overview.mmd",
+      "path": "sample/validation.json",
       "shows": [
         "OUT-01",
         "OUT-02",
@@ -721,72 +640,8 @@
         "OUT-05",
         "OUT-06",
         "OUT-07",
-        "OUT-08"
-      ]
-    },
-    {
-      "path": "catalog/diagrams/overview.png",
-      "shows": [
-        "OUT-01",
-        "OUT-02",
-        "OUT-03",
-        "OUT-04",
-        "OUT-05",
-        "OUT-06",
-        "OUT-07",
-        "OUT-08"
-      ]
-    },
-    {
-      "path": "catalog/index.html",
-      "shows": [
-        "OUT-01",
-        "OUT-02",
-        "OUT-03",
-        "OUT-04",
-        "OUT-05",
-        "OUT-06",
-        "OUT-07",
-        "OUT-08"
-      ]
-    },
-    {
-      "path": "catalog/inventory.json",
-      "shows": [
-        "OUT-01",
-        "OUT-02",
-        "OUT-03",
-        "OUT-04",
-        "OUT-05",
-        "OUT-06",
-        "OUT-07",
-        "OUT-08"
-      ]
-    },
-    {
-      "path": "catalog/manifest.json",
-      "shows": [
-        "OUT-01",
-        "OUT-02",
-        "OUT-03",
-        "OUT-04",
-        "OUT-05",
-        "OUT-06",
-        "OUT-07",
-        "OUT-08"
-      ]
-    },
-    {
-      "path": "catalog/model.json",
-      "shows": [
-        "OUT-01",
-        "OUT-02",
-        "OUT-03",
-        "OUT-04",
-        "OUT-05",
-        "OUT-06",
-        "OUT-07",
-        "OUT-08"
+        "OUT-08",
+        "STEP-04"
       ]
     }
   ],
@@ -800,23 +655,50 @@
       "references/**"
     ],
     "allow_changes": [
-      "{run}/out/{in:name}/diagrams/*.png"
+      "domain-models/{in:name}/images/*.png"
     ]
   },
   "report": {
-    "include_output": null
+    "include_output": null,
+    "sections": [
+      {
+        "run": "python3 {skill}/scripts/catalog.py report {root}/domain-models/{in:name}",
+        "timeout": 60
+      }
+    ]
   },
   "convergence": {
     "agents": 2,
     "runners": [
-      "claude",
       "codex"
     ],
-    "max_rounds": 3,
+    "max_rounds": 4,
     "thresholds": {
       "files": 1.0,
       "structure": 1.0,
       "names": 0.8
-    }
+    },
+    "runner_commands": {
+      "codex": [
+        "codex",
+        "exec",
+        "--json",
+        "--sandbox",
+        "danger-full-access",
+        "--skip-git-repo-check",
+        "--ephemeral",
+        "--dangerously-bypass-hook-trust",
+        "-c",
+        "projects.\"{dir}\".trust_level=\"trusted\"",
+        "-C",
+        "{dir}",
+        "-o",
+        "{last}",
+        "{prompt}"
+      ]
+    },
+    "ignore": [
+      ".skill-runs/generate-domain-model/report.md"
+    ]
   }
 }

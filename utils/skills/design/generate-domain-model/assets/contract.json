@@ -10,156 +10,107 @@
   "inputs": [
     {
       "key": "name",
-      "label": "出力の名前",
+      "label": "カタログ名",
       "type": "slug",
+      "impact": "reversible",
+      "default": "domain",
       "aliases": [
         "名前",
+        "カタログ",
         "catalog"
-      ],
-      "impact": "reversible",
-      "default": "domain-model"
+      ]
     },
     {
-      "key": "repo",
-      "label": "対象リポジトリ",
-      "type": "path",
+      "key": "source",
+      "label": "資料",
+      "type": "string",
+      "impact": "target",
+      "ask": true,
+      "question": "図にする業務説明・仕様・コードのパス・classDiagramを教えてください。",
       "aliases": [
-        "repository",
-        "リポジトリ"
-      ],
-      "impact": "reversible",
-      "default": "."
+        "入力",
+        "資料",
+        "対象"
+      ]
     },
     {
-      "key": "scope",
-      "label": "調査範囲",
-      "type": "list",
-      "aliases": [
-        "対象範囲"
-      ],
+      "key": "update",
+      "label": "既存カタログの更新",
+      "type": "bool",
       "impact": "reversible",
-      "default": [
-        "."
+      "default": false,
+      "aliases": [
+        "更新"
       ]
     }
   ],
   "outputs": [
     {
-      "id": "model",
-      "label": "モデル情報",
-      "path": "{run}/out/{in:name}/model.json",
+      "id": "catalog",
+      "label": "カタログ情報",
+      "path": "domain-models/{in:name}/catalog.json",
+      "rule": "OUT-01",
       "count": {
-        "min": 1,
+        "min": 0,
         "max": 1
       },
-      "rule": "OUT-01",
       "checks": [
         {
-          "type": "forbid",
-          "pattern": "^  \"(?:skip_validation|no_verify|ignore_errors|disable_checks)\":",
-          "rule": "OUT-07"
-        },
-        {
+          "rule": "OUT-02",
           "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-01",
           "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-01"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-02",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-02"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-04",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-04"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-06",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-06"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule OUT-07",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "OUT-07"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-02",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "STEP-02"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-03",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "STEP-03"
-        },
-        {
-          "type": "command",
-          "run": "python3 {skill}/scripts/catalog.py verify --state {run}/state.json --only-rule STEP-06",
-          "stage": "finish",
-          "timeout": 45,
-          "rule": "STEP-06"
+          "run": "python3 {skill}/scripts/catalog.py check {root}/domain-models/{in:name}",
+          "rules": [
+            "OUT-01",
+            "OUT-04",
+            "OUT-05",
+            "OUT-07",
+            "OUT-08",
+            "STEP-04"
+          ]
         }
       ]
     },
     {
-      "id": "inventory",
-      "label": "コードのスナップショット",
-      "path": "{run}/out/{in:name}/inventory.json",
-      "count": {
-        "min": 1,
-        "max": 1
-      },
-      "rule": "OUT-01",
-      "checks": []
-    },
-    {
-      "id": "catalog",
+      "id": "index",
       "label": "HTMLカタログ",
-      "path": "{run}/out/{in:name}/index.html",
+      "path": "domain-models/{in:name}/index.html",
+      "rule": "OUT-01",
       "count": {
-        "min": 1,
+        "min": 0,
         "max": 1
       },
-      "rule": "OUT-01",
       "checks": []
     },
     {
-      "id": "manifest",
-      "label": "画像と派生物の検証記録",
-      "path": "{run}/out/{in:name}/manifest.json",
+      "id": "validation",
+      "label": "変換検証結果",
+      "path": "domain-models/{in:name}/validation.json",
+      "rule": "OUT-01",
       "count": {
-        "min": 1,
+        "min": 0,
         "max": 1
       },
-      "rule": "OUT-01",
       "checks": []
     },
     {
       "id": "mermaid",
       "label": "Mermaid原本",
-      "path": "{run}/out/{in:name}/diagrams/*.mmd",
-      "count": {
-        "min": 1,
-        "max": 10000
-      },
+      "path": "domain-models/{in:name}/diagrams/*.mmd",
       "rule": "OUT-01",
-      "checks": []
+      "count": {
+        "min": 0,
+        "max": 1000
+      },
+      "checks": [
+        {
+          "rule": "OUT-02",
+          "type": "require",
+          "lines": "first",
+          "pattern": "^classDiagram$",
+          "message": "原本の先頭行はclassDiagramにする"
+        }
+      ]
     }
   ],
   "together": [],
@@ -174,13 +125,18 @@
     "tamper_rule": "CTL-02",
     "scope_rule": "CTL-05",
     "allow_changes": [
-      "{run}/out/{in:name}/diagrams/*.png"
+      "domain-models/{in:name}/images/*.png"
     ],
     "max_stop_blocks": 3
   },
   "report": {
     "include_output": null,
     "rule": "RPT-01",
-    "sections": []
+    "sections": [
+      {
+        "run": "python3 {skill}/scripts/catalog.py report {root}/domain-models/{in:name}",
+        "timeout": 60
+      }
+    ]
   }
 }

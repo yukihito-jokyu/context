@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-"""Generate and verify a code-backed domain catalog (Python 3.9+ stdlib).
+"""Mermaid原本からPNGとHTMLを生成し、カタログ全体を検査する。
 
-Rules: STEP-02, STEP-03, STEP-06, OUT-01, OUT-02, OUT-04, OUT-06, OUT-07.
-Usage: catalog.py inspect|build|verify --state .skill-runs/generate-domain-model/state.json
-Or: catalog.py inspect|build|verify --repo PATH --directory PATH [--scope PATH ...]
-Exit: 0 success, 1 invalid output/dependency/render failure, 2 incorrect CLI use.
-No network access or package installation. MMDC selects an existing Mermaid CLI;
-PUPPETEER_EXECUTABLE_PATH selects an existing browser.
+決定: STEP-01、STEP-02、STEP-03、STEP-04、OUT-01、OUT-02、OUT-04、
+OUT-05、OUT-06、OUT-07、OUT-08。Python 3.9以上の標準ライブラリを使う。
+使い方: python3 catalog.py inspect|build|check|report <directory> [--update]
+        python3 catalog.py deps [--mmdc /path/to/mmdc]
+終了コード: 0 成功、1 出力への指摘、2 引数・依存・実行の誤り。
 """
 import argparse
-import base64
-import copy
 import hashlib
 import html
 import json
@@ -21,448 +18,411 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import zlib
 
-GENERATOR = 'generate-domain-model'
-EXCLUDE = {'.git', '.claude', '.agents', '.codex', '.skill-runs', '.venv', 'venv',
-           'node_modules', 'vendor', 'dist', 'build', '__pycache__', 'coverage'}
-SUFFIXES = {'.py', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.go', '.rs', '.java', '.kt',
-            '.cs', '.rb', '.php', '.swift', '.scala', '.sql', '.prisma', '.ex', '.exs',
-            '.dart', '.cpp', '.cc', '.c', '.h', '.hpp', '.vue', '.svelte'}
-TOP_KEYS = {'schema_version', 'title', 'domains', 'concepts', 'relations', 'questions', 'unread'}
-RELATIONS = {'association': '-->', 'inheritance': '--|>', 'composition': '*--',
-             'aggregation': 'o--', 'dependency': '..>'}
-KINDS = {'entity', 'value', 'enum', 'concept'}
-MULTIPLICITIES = {None, '1', '0..1', '0..*', '1..*', '*'}
+
+SLUG = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
+FORBIDDEN = re.compile(
+    r"skip ci|ci skip|eslint-disable|noqa|type:\s*ignore|validation:\s*false",
+    re.I,
+)
+FONT = "Hiragino Kaku Gothic ProN, Noto Sans JP, sans-serif"
+CONFIG = {"securityLevel": "strict", "theme": "neutral", "fontFamily": FONT}
+SKILL = Path(__file__).resolve().parent.parent
 
 
-class Invalid(Exception):
+class Finding(Exception):
     def __init__(self, rule, message):
-        super().__init__(rule + ' ' + message)
+        super().__init__(message)
+        self.rule = rule
 
 
-def need(condition, message, rule='OUT-02'):
+def require(condition, rule, message):
     if not condition:
-        raise Invalid(rule, message)
+        raise Finding(rule, message)
 
 
-def json_text(value):
-    return json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + '\n'
+def dump(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
 
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def keys(value, expected, label):
+    require(isinstance(value, dict) and set(value) == set(expected),
+            "OUT-02", label + " のキーは " + ", ".join(expected) + " にする")
+
+
+def text_value(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
 def read_json(path):
     try:
-        return json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, ValueError) as e:
-        raise Invalid('OUT-02', f'{path.name}: {e}') from e
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise Finding("OUT-02", path.name + " をJSONとして読めない: " + str(exc)) from exc
 
 
-def git(repo, *args):
-    try:
-        result = subprocess.run(['git', '-C', str(repo), *args], text=True,
-                                capture_output=True, timeout=15, check=False)
-        return result.stdout.strip() if result.returncode == 0 else None
-    except (OSError, subprocess.TimeoutExpired):
-        return None
+def checked_root(directory):
+    root = Path(directory).absolute()
+    require(not root.is_symlink(), "OUT-01", "カタログのディレクトリにシンボリックリンクを使わない")
+    if root.exists():
+        for path in root.rglob("*"):
+            require(not path.is_symlink(), "OUT-01", "出力にシンボリックリンクを使わない: " + path.name)
+    return root
 
 
-def relative_path(value):
-    need(isinstance(value, str) and value != '' and '\\' not in value, '相対パスを指定する')
-    p = Path(value)
-    need(not p.is_absolute() and '..' not in p.parts, '範囲外のパスを参照している')
-    return p
-
-
-def source_file(repo, value):
-    p = relative_path(value)
-    candidate = repo / p
-    need(not any((repo / Path(*p.parts[:i])).is_symlink() for i in range(1, len(p.parts)+1)),
-         'symlinkのコードを参照している')
-    need(candidate.is_file() and candidate.resolve().is_relative_to(repo), 'コードが存在しない')
-    return candidate
-
-
-def snapshot(repo, scopes):
-    need(repo.is_dir(), '対象リポジトリが存在しない')
-    files, excluded = {}, set()
-    for scope in scopes:
-        start = repo / relative_path(scope)
-        need(start.exists(), f'調査範囲が存在しない: {scope}')
-        need(not start.is_symlink(), 'symlinkを調査範囲に指定しない')
-        def walk():
-            for folder, dirs, names in os.walk(start, followlinks=False):
-                here = Path(folder)
-                for name in list(dirs):
-                    child = here/name
-                    if name in EXCLUDE or child.is_symlink():
-                        excluded.add(child.relative_to(repo).as_posix())
-                        dirs.remove(name)
-                for name in names:
-                    yield here/name
-        candidates = [start] if start.is_file() else walk()
-        for p in candidates:
-            rel = p.relative_to(repo)
-            if any(part in EXCLUDE for part in rel.parts):
-                excluded.add('/'.join(rel.parts[:next(i for i, part in enumerate(rel.parts) if part in EXCLUDE)+1]))
-                continue
-            if any((repo / Path(*rel.parts[:i])).is_symlink() for i in range(1, len(rel.parts)+1)):
-                excluded.add(rel.as_posix())
-                continue
-            if not p.is_file() or p.suffix.lower() not in SUFFIXES:
-                continue
-            try:
-                raw = p.read_bytes()
-                text = raw.decode('utf-8')
-                need('\x00' not in text, f'バイナリのコード: {rel}')
-            except (OSError, UnicodeError):
-                excluded.add(rel.as_posix())
-                continue
-            files[rel.as_posix()] = dict(path=rel.as_posix(), sha256=digest(raw), lines=len(text.splitlines()))
-    need(files, '対象コードが0件。scopeを確認する')
-    status = git(repo, 'status', '--porcelain')
-    remote = git(repo, 'remote', 'get-url', 'origin') or ''
-    match = re.fullmatch(r'(?:https://github\.com/|git@github\.com:)([\w.-]+/[\w.-]+?)(?:\.git)?', remote)
-    return dict(schema_version=1, scope=sorted(set(scopes)), commit=git(repo, 'rev-parse', 'HEAD'),
-                dirty=None if status is None else bool(status),
-                remote='https://github.com/' + match[1] if match else None,
-                files=[files[k] for k in sorted(files)], excluded=sorted(excluded))
-
-
-def text(value, label):
-    need(isinstance(value, str) and value.strip() != '', label + 'が空か文字列ではない')
-    need(not any(ord(c) < 32 and c not in '\n\t' for c in value), label + 'に制御文字がある')
-
-
-def evidence(items, repo, inventory):
-    need(isinstance(items, list) and items, '根拠がない')
-    allowed = {f['path'] for f in inventory['files']}
-    for e in items:
-        need(isinstance(e, dict) and set(e) == {'path', 'start', 'end', 'quote'}, '根拠のキーが違う')
-        need(e['path'] in allowed, '根拠が調査範囲にない')
-        lines = source_file(repo, e['path']).read_text(encoding='utf-8').splitlines()
-        need(type(e['start']) is int and type(e['end']) is int and 1 <= e['start'] <= e['end'] <= len(lines), '根拠の行が範囲外')
-        need(e['quote'] == '\n'.join(lines[e['start']-1:e['end']]), '根拠の行と抜粋が一致しない')
-
-
-def normalize(model):
-    m = copy.deepcopy(model)
-    if isinstance(m['questions'], list):
-        m['questions'] = '\n'.join(m['questions'])
-    for domain in m['domains']:
-        domain['name'] = 'ルート' if domain['path'] == '.' else domain['path']
-    for c in m['concepts']:
-        c['name'] = c['symbol']
-        c['id'] = 'C_' + digest(c['key'].encode())[:12]
-    for r in m['relations']:
-        r['label'] = r['member'] if r['member'] is not None else '継承'
-        key = [r['source'], r['target'], r['kind'], r['label']]
-        r['id'] = 'R_' + digest(json.dumps(key, ensure_ascii=False, separators=(',', ':')).encode())[:12]
-    m['domains'].sort(key=lambda x: x['path'])
-    m['concepts'].sort(key=lambda x: x['key'])
-    m['relations'].sort(key=lambda x: x['id'])
-    return m
-
-
-def validate_model(m, repo, inventory, canonical=False):
-    need(isinstance(m, dict), 'モデルはJSONオブジェクトである')
-    need(not {'skip_validation', 'no_verify', 'ignore_errors', 'disable_checks'} & set(m), '検査の省略指定がある', 'OUT-07')
-    need(set(m) == TOP_KEYS and type(m['schema_version']) is int and m['schema_version'] == 1, 'モデルのキーかschema_versionが違う')
-    text(m['title'], 'title')
-    for k in ['domains', 'concepts', 'relations', 'unread']:
-        need(isinstance(m[k], list), k + 'は配列である')
-    need(isinstance(m['questions'], (str, list)), 'questionsは文字列にする')
-    need(m['domains'] and m['concepts'], '領域と概念を1件以上記録する')
-    domains = set()
-    for d in m['domains']:
-        need(isinstance(d, dict) and set(d) == {'path', 'name', 'description'}, '領域のキーが違う')
-        path = relative_path(d['path']).as_posix()
-        need(path == d['path'] and path not in domains, '領域パスが重複か非正規形')
-        need((repo/path).is_dir() and any(f['path'].startswith(path + '/') or path == '.' for f in inventory['files']), '領域に対象コードがない')
-        domains.add(path)
-        text(d['name'], '領域名'); text(d['description'], '領域の説明')
-    keys, ids = set(), set()
-    concept_fields = {'key', 'symbol', 'name', 'domain', 'kind', 'description', 'attributes', 'evidence'}
-    for c in m['concepts']:
-        need(isinstance(c, dict) and concept_fields <= set(c) <= concept_fields | {'id'}, '概念のキーが違う')
-        for k in ['key', 'symbol', 'name', 'description']:
-            text(c[k], k)
-        need(c['key'] not in keys and c['domain'] in domains and c['kind'] in KINDS, '概念キーの重複か領域・分類の不正')
-        need(c['key'] == c['evidence'][0]['path'] + '::' + c['symbol'] if isinstance(c['evidence'], list) and c['evidence'] else False, 'keyは先頭の根拠パス::symbolにする')
-        keys.add(c['key'])
-        evidence(c['evidence'], repo, inventory)
-        need(c['domain'] == Path(c['evidence'][0]['path']).parent.as_posix(), '領域は宣言元ファイルの親ディレクトリにする')
-        proof = '\n'.join(e['quote'] for e in c['evidence'])
-        markers = {'entity': r'\bEntity\b|@entity\b', 'value': r'\bValueObject\b|@value_object\b', 'enum': r'\benum\b|\bEnum\b|\btype\b[^=]*=.*["\'][^\n]*\|'}
-        need(c['kind'] == 'concept' or re.search(markers[c['kind']], proof), '分類を明示するコードがない。id名やfrozenだけで分類せずconceptにする')
-        need(isinstance(c['attributes'], list), 'attributesは配列である')
-        seen = set()
-        for a in c['attributes']:
-            need(isinstance(a, dict) and set(a) == {'name', 'type', 'evidence'}, '属性のキーが違う')
-            text(a['name'], '属性名');text(a['type'], '属性の型')
-            need(a['name'] not in seen, '属性名の重複');seen.add(a['name'])
-            evidence(a['evidence'], repo, inventory)
-    relation_keys = set()
-    relation_fields = {'source', 'target', 'kind', 'member', 'source_multiplicity', 'target_multiplicity', 'evidence'}
-    for r in m['relations']:
-        need(isinstance(r, dict) and relation_fields <= set(r) <= relation_fields | {'id','label'}, '関係のキーが違う')
-        need(r['source'] in keys and r['target'] in keys and r['kind'] in RELATIONS, '関係の端点か種別が不正')
-        if r['kind'] == 'inheritance':
-            need(r['member'] is None, '継承のmemberはnullにする')
-        else:
-            text(r['member'], '参照メンバー')
-            need(re.fullmatch(r'[\w$!?]+', r['member']) is not None, 'memberはコード上の識別子にする')
-        need(r['source_multiplicity'] in MULTIPLICITIES and r['target_multiplicity'] in MULTIPLICITIES, '多重度が不正')
-        key = (r['source'], r['target'], r['kind'], r['member'])
-        need(key not in relation_keys, '関係が重複している');relation_keys.add(key)
-        evidence(r['evidence'], repo, inventory)
-        if r['member'] is not None:
-            need(any(re.search(r'(?<![\w$])'+re.escape(r['member'])+r'(?![\w$])', e['quote']) for e in r['evidence']), 'memberが関係の根拠にない')
-    for q in m['questions'] if isinstance(m['questions'], list) else m['questions'].splitlines():
-        text(q, '確認事項')
-    paths = {f['path'] for f in inventory['files']}
-    for item in m['unread']:
-        need(isinstance(item, dict) and set(item) == {'path', 'reason'} and item['path'] in paths, '未読のキーかパスが不正')
-        text(item['reason'], '未読の理由')
-    need({c['domain'] for c in m['concepts']} == domains, '概念がない領域がある')
+def load_catalog(root, canonical=False):
+    path = root / "catalog.json"
+    require(path.is_file(), "OUT-01", "catalog.json がない")
+    data = read_json(path)
+    keys(data, ["schema_version", "name", "title", "diagrams"], "catalog.json")
+    require(data["schema_version"] == 1 and type(data["schema_version"]) is int,
+            "OUT-02", "schema_version は 1 にする")
+    require(text_value(data["name"]) and SLUG.fullmatch(data["name"]) and len(data["name"]) <= 64,
+            "OUT-04", "name は64文字以下の英小文字から始まるslugにする")
+    require(data["name"] == root.name, "OUT-04", "name とディレクトリ名を一致させる")
+    require(text_value(data["title"]), "OUT-05", "カタログの題名が空である")
+    require(isinstance(data["diagrams"], list), "OUT-02", "diagrams は配列にする")
+    require(1 <= len(data["diagrams"]) <= 1000, "OUT-05", "図は1〜1000件にする")
+    ids = []
+    for item in data["diagrams"]:
+        keys(item, ["id", "title", "description", "terms", "sources", "unresolved"], "diagrams の図")
+        ident = item["id"]
+        require(text_value(ident) and SLUG.fullmatch(ident) and len(ident) <= 64,
+                "OUT-04", "図のidは64文字以下のslugにする")
+        ids.append(ident)
+        require(text_value(item["title"]) and text_value(item["description"]),
+                "OUT-05", ident + " の題名と説明を空にしない")
+        for field in ("terms", "unresolved"):
+            require(isinstance(item[field], list) and all(text_value(v) for v in item[field]),
+                    "OUT-02", ident + "." + field + " は空でない文字列の配列にする")
+        require(isinstance(item["sources"], list), "OUT-02", ident + ".sources は配列にする")
+        require(bool(item["sources"]), "OUT-05", ident + " に根拠を1件以上書く")
+        for source in item["sources"]:
+            keys(source, ["path", "quote"], "sources")
+            require(text_value(source["path"]) and text_value(source["quote"]),
+                    "OUT-05", ident + " の参照先と実際の記述を空にしない")
+    require(len(ids) == len(set(ids)), "OUT-04", "図のidが重複している")
+    require(not FORBIDDEN.search(json.dumps(data, ensure_ascii=False)),
+            "OUT-08", "検査を止める記法がある")
     if canonical:
-        need(m == normalize(m), 'IDか並び順が固定規則と違う', 'OUT-04')
+        require(ids == sorted(ids), "OUT-04", "図をidの昇順にする")
+        for item in data["diagrams"]:
+            require(item["terms"] == sorted(set(item["terms"])), "OUT-04", "terms を重複なしの昇順にする")
+        require(path.read_text(encoding="utf-8") == dump(data), "OUT-04", "JSONはキーの昇順・2空白・末尾改行で書く")
+    return data
 
 
-def label(value):
-    # Mermaid labels are data, never syntax, directives, or HTML.
-    return ''.join(c if (c.isalnum() or c in ' _.-/（）・') else ' ' for c in value).strip() or '名称未設定'
+def bundle_paths(data):
+    files = {"catalog.json", "index.html", "validation.json"}
+    for item in data["diagrams"]:
+        files.update({"diagrams/" + item["id"] + ".mmd", "images/" + item["id"] + ".png"})
+    return files
 
 
-def diagram_specs(m):
-    specs = [('overview', '全体像', None)]
-    if len(m['domains']) > 1:
-        specs += [('domain_' + digest(d['path'].encode())[:12], d['name'], d['path']) for d in m['domains']]
+def check_files(root, data, complete):
+    wanted = bundle_paths(data)
+    actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+    require(not actual - wanted, "OUT-01", "未登録のファイルがある: " + ", ".join(sorted(actual - wanted)))
+    if complete:
+        require(actual == wanted, "OUT-01", "対応するファイルがない: " + ", ".join(sorted(wanted - actual)))
+
+
+def read_mermaid(root, ident):
+    path = root / "diagrams" / (ident + ".mmd")
+    require(path.is_file(), "OUT-01", "Mermaid原本がない: " + ident)
+    try:
+        source = path.read_text(encoding="utf-8")
+    except UnicodeError as exc:
+        raise Finding("OUT-02", "Mermaid原本はUTF-8で書く: " + ident) from exc
+    require(source.splitlines() and source.splitlines()[0].strip() == "classDiagram",
+            "OUT-02", ident + " の先頭行を classDiagram にする")
+    require(not FORBIDDEN.search(source) and "%%{" not in source
+            and not re.search(r"^\s*(click|link)\s", source, re.M),
+            "OUT-08", ident + " に初期化・リンク・検査を止める記法がある")
+    require(bool(re.search(r"^\s*class\s+\S+", source, re.M)), "OUT-02", ident + " に概念のclass定義がない")
+    return source
+
+
+def concept_terms(source):
+    """Derive search terms from declarations instead of an author's choice of aliases."""
+    terms = {}
+    pattern = r'^\s*class\s+([^\s\[{]+)(?:\[\s*"([^"\n]+)"\s*\])?'
+    for match in re.finditer(pattern, source, re.M):
+        ident = match.group(1).split(':::')[0]
+        if match.group(2):
+            terms[ident] = match.group(2)
+        else:
+            terms.setdefault(ident, ident)
+    return sorted(set(terms.values()))
+
+
+def canonical_sources(sources, project=None):
+    """Group quotations from one file, retaining the quoted text and line references."""
+    groups = {}
+    for index, source in enumerate(sources):
+        is_url = re.match(r'[a-z][a-z0-9+.-]*://', source['path'], re.I)
+        match = None if is_url else re.fullmatch(r'(.*?):L?(\d+)(?:-L?(\d+))?(?::\d+)?', source['path'])
+        path = match.group(1) if match else source['path']
+        if project is not None and not is_url and Path(path).is_absolute():
+            try:
+                path = Path(path).resolve().relative_to(Path(project).resolve()).as_posix()
+            except ValueError:
+                pass  # A supplied reference outside the project retains its absolute path.
+        start = int(match.group(2)) if match else None
+        end = int(match.group(3) or match.group(2)) if match else None
+        groups.setdefault(path, []).append((start, end, index, source['quote']))
     result = []
-    for id, title, domain in specs:
-        keys = {c['key'] for c in m['concepts'] if domain is None or c['domain'] == domain}
-        rels = [r for r in m['relations'] if r['source'] in keys or r['target'] in keys]
-        keys |= {r[end] for r in rels for end in ('source', 'target')}
-        concepts = [c for c in m['concepts'] if c['key'] in keys]
-        by_key = {c['key']: c['id'] for c in concepts}
-        lines = ['classDiagram', 'direction LR']
-        for c in concepts:
-            lines += [f'  class {c["id"]}["{label(c["name"])}"]', f'  class {c["id"]} {{', f'    <<{c["kind"]}>>']
-            if id != 'overview' or len(m['domains']) == 1:
-                lines += [f'    {label(a["type"])} {label(a["name"])}' for a in c['attributes']]
-            lines += ['  }']
-        for r in rels:
-            a = f' "{r["source_multiplicity"]}"' if r['source_multiplicity'] else ''
-            b = f' "{r["target_multiplicity"]}"' if r['target_multiplicity'] else ''
-            lines += [f'  {by_key[r["source"]]}{a} {RELATIONS[r["kind"]]}{b} {by_key[r["target"]]} : {label(r["label"])}']
-        result.append(dict(id=id, title=title, domain=domain, mmd='\n'.join(lines)+'\n'))
+    for path, entries in sorted(groups.items()):
+        entries.sort(key=lambda item: (item[0] if item[0] is not None else -1, item[2]))
+        quotes = list(dict.fromkeys(item[3] for item in entries))
+        if all(item[0] is not None for item in entries):
+            first, last = min(item[0] for item in entries), max(item[1] for item in entries)
+            path += ':' + str(first) + ('-' + str(last) if first != last else '')
+        result.append({'path': path, 'quote': '\n\n'.join(quotes)})
     return result
 
 
 def png_size(data):
-    need(data.startswith(b'\x89PNG\r\n\x1a\n'), 'PNG署名が違う', 'STEP-06')
-    pos, compressed, dimensions, ended = 8, [], None, False
-    while pos < len(data):
-        need(pos+12 <= len(data), 'PNGチャンクが途中で終わる', 'STEP-06')
-        n, kind = struct.unpack('>I4s', data[pos:pos+8]);chunk = data[pos+8:pos+8+n]
-        need(pos+12+n <= len(data), 'PNGチャンク長が不正', 'STEP-06')
-        crc = struct.unpack('>I', data[pos+8+n:pos+12+n])[0]
-        need(zlib.crc32(kind+chunk)&0xffffffff == crc, 'PNGのCRCが不正', 'STEP-06')
-        if kind == b'IHDR':
-            need(dimensions is None and pos == 8 and n == 13, 'PNGのIHDRが不正', 'STEP-06')
-            w, h, depth, color, comp, filt, interlace = struct.unpack('>IIBBBBB', chunk)
-            need(0 < w <= 30000 and 0 < h <= 30000 and depth == 8 and color in (2, 6) and (comp, filt, interlace) == (0, 0, 0), 'PNGの画像形式が不正', 'STEP-06')
-            dimensions = (w, h, 3 if color == 2 else 4)
-        elif kind == b'IDAT':
-            compressed.append(chunk)
-        elif kind == b'IEND':
-            need(n == 0 and pos+12 == len(data), 'PNGの終端が不正', 'STEP-06');ended = True
-        pos += n+12
-    need(dimensions and ended and compressed, 'PNGの必須チャンクがない', 'STEP-06')
-    w, h, channels = dimensions
-    expected = h*(w*channels+1)
-    need(expected <= 160_000_000, 'PNGが検査可能なサイズを超えた。領域を分割する', 'STEP-06')
+    require(data.startswith(b"\x89PNG\r\n\x1a\n"), "OUT-02", "PNGの署名が壊れている")
+    offset, kinds, payloads, size = 8, [], [], None
+    while offset < len(data):
+        require(offset + 12 <= len(data), "OUT-02", "PNGのチャンクが欠けている")
+        length = struct.unpack(">I", data[offset:offset + 4])[0]
+        kind = data[offset + 4:offset + 8]
+        end = offset + 12 + length
+        require(end <= len(data), "OUT-02", "PNGのチャンク長が壊れている")
+        chunk = data[offset + 8:offset + 8 + length]
+        crc = struct.unpack(">I", data[end - 4:end])[0]
+        require(zlib.crc32(kind + chunk) & 0xffffffff == crc, "OUT-02", "PNGのCRCが一致しない")
+        kinds.append(kind)
+        if kind == b"IHDR":
+            require(len(kinds) == 1 and len(chunk) == 13, "OUT-02", "PNGのIHDRが壊れている")
+            width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", chunk)
+            require(32 <= width <= 16000 and 32 <= height <= 16000 and width * height <= 50000000,
+                    "OUT-02", "PNGの寸法が範囲外である")
+            require(depth == 8 and color in (2, 6) and (compression, filtering, interlace) == (0, 0, 0),
+                    "OUT-02", "ブラウザの8bit RGB/RGBA PNGを使う")
+            size = (width, height, 3 if color == 2 else 4)
+        if kind == b"IDAT":
+            payloads.append(chunk)
+        offset = end
+        if kind == b"IEND":
+            require(not chunk and offset == len(data), "OUT-02", "PNGの終端が壊れている")
+            break
+    require(size and kinds[-1:] == [b"IEND"] and payloads, "OUT-02", "PNGの画像データまたは終端がない")
+    width, height, channels = size
+    expected = height * (1 + width * channels)
     try:
         decoder = zlib.decompressobj()
-        raw = decoder.decompress(b''.join(compressed), expected+1)
-        need(len(raw) == expected and decoder.eof and not decoder.unused_data, 'PNGの画像データ長が不正', 'STEP-06')
-        need(all(raw[i] <= 4 for i in range(0, expected, w*channels+1)), 'PNGのフィルターが不正', 'STEP-06')
-    except zlib.error as e:
-        raise Invalid('STEP-06', 'PNGの圧縮データが不正') from e
-    return w, h
+        pixels = decoder.decompress(b"".join(payloads), expected + 1)
+        require(decoder.eof and not decoder.unused_data and len(pixels) == expected,
+                "OUT-02", "PNGの画素データが壊れている")
+    except zlib.error as exc:
+        raise Finding("OUT-02", "PNGの画素を展開できない") from exc
+    require(all(pixels[i] <= 4 for i in range(0, expected, 1 + width * channels)),
+            "OUT-02", "PNGの走査行フィルタが壊れている")
+    return {"width": width, "height": height}
 
 
-def catalog_html(m, inventory, diagrams, directory):
-    h = lambda value: html.escape(str(value), quote=True)
-    b64 = lambda value: base64.b64encode(value).decode('ascii')
-    options = ''.join(f'<option value="{h(d["path"])}">{h(d["name"])}</option>' for d in m['domains'])
+def render_html(data):
+    def esc(value, quote=True):
+        return html.escape(value, quote=quote).replace('\r', '&#13;').replace('\n', '&#10;')
     cards = []
-    for d in diagrams:
-        png = (directory/'diagrams'/f'{d["id"]}.png').read_bytes()
-        data = 'data:image/png;base64,'+b64(png)
-        cards.append(f'<article class="diagram" data-domain="{h(d["domain"] or "")}" data-search="{h(d["title"])}"><h2>{h(d["title"])}</h2><button class="preview" data-image="{data}" data-title="{h(d["title"])}" aria-label="{h(d["title"])}を拡大"><img src="{data}" alt="{h(d["title"])}のドメインモデル図"></button><a download="{d["id"]}.mmd" href="data:text/plain;charset=utf-8;base64,{b64(d["mmd"].encode())}">Mermaid原本を取得</a></article>')
-    def proof(items):
-        parts = []
-        for e in items:
-            title = f'{e["path"]}:{e["start"]}–{e["end"]}'
-            link = h(title)
-            if inventory.get('remote') and inventory.get('commit') and inventory.get('dirty') is False:
-                encoded = ''.join(chr(b) if chr(b).isascii() and (chr(b).isalnum() or chr(b) in '/._-') else f'%{b:02X}' for b in e['path'].encode())
-                url = inventory['remote']+'/blob/'+inventory['commit']+'/'+encoded+f'#L{e["start"]}-L{e["end"]}'
-                link = f'<a href="{h(url)}" target="_blank" rel="noopener">{h(title)}</a>'
-            parts.append(f'<details><summary>{link}</summary><pre><code>{h(e["quote"])}</code></pre></details>')
-        return ''.join(parts)
-    concepts = []
-    for c in m['concepts']:
-        attrs = ''.join(f'<li><code>{h(a["name"])}: {h(a["type"])}</code>{proof(a["evidence"])}</li>' for a in c['attributes']) or '<li>記載なし</li>'
-        concepts.append(f'<article class="concept" id="{c["id"]}" data-domain="{h(c["domain"])}" data-search="{h(c["name"]+" "+c["symbol"]+" "+c["description"])}"><span class="tag">{h(c["kind"])} · {h(c["domain"])}</span><h3>{h(c["name"])}</h3><code>{h(c["symbol"])}</code><p>{h(c["description"])}</p><ul>{attrs}</ul><h4>コードの根拠</h4>{proof(c["evidence"])}</article>')
-    by_key = {c['key']: c for c in m['concepts']}
-    relationships = ''.join(f'<li><a href="#{by_key[r["source"]]["id"]}">{h(by_key[r["source"]]["name"])}</a> → <a href="#{by_key[r["target"]]["id"]}">{h(by_key[r["target"]]["name"])}</a>：{h(r["label"])} <small>{h(r["kind"])} / {h(r["source_multiplicity"] or "不明")} → {h(r["target_multiplicity"] or "不明")}</small>{proof(r["evidence"])}</li>' for r in m['relations']) or '<li>確認できた関係なし</li>'
-    questions = ''.join(f'<li>{h(q)}</li>' for q in (m['questions'].splitlines() if isinstance(m['questions'],str) else m['questions'])) or '<li>記録された確認事項なし</li>'
-    unread = ''.join(f'<li><code>{h(i["path"])}</code>：{h(i["reason"])}</li>' for i in m['unread']) or '<li>未読のコードなし</li>'
-    css = '''*{box-sizing:border-box}body{margin:0;background:#f5f3ee;color:#18352f;font:16px/1.7 system-ui,sans-serif}main{max-width:1320px;margin:auto;padding:40px 28px}header{border-bottom:1px solid #ccd7d1;padding-bottom:28px}h1{font-size:clamp(28px,4vw,46px);line-height:1.25;margin:12px 0}h2{font-size:23px}h3{font-size:22px;margin:12px 0}h4{margin-bottom:8px}.eyebrow,.tag{color:#49756a;font-size:13px;letter-spacing:.04em}.meta{color:#52645d;overflow-wrap:anywhere}.filters{display:flex;flex-wrap:wrap;gap:16px;margin:28px 0;align-items:end}.filters label{display:grid;gap:6px}input,select,button{font:inherit}input,select{background:white;border:1px solid #a8bdb2;border-radius:8px;padding:10px 14px;max-width:100%}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(350px,100%),1fr));gap:22px}.diagram,.concept,.notes{background:white;border:1px solid #d4ded8;border-radius:14px;padding:24px;min-width:0}.diagram:first-child{grid-column:1/-1}.preview{display:block;width:100%;cursor:zoom-in;background:#fff;border:0;padding:12px 0}.preview img{display:block;max-width:100%;max-height:440px;width:auto;height:auto;margin:auto}a{color:#126e58;text-underline-offset:3px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f0f5f2;padding:12px;border-radius:8px;color:#244038;font-size:13px}code{overflow-wrap:anywhere;font-size:.88em}summary{cursor:pointer;font-size:13px}section{margin-top:36px}.notes{margin-top:24px}li{margin-bottom:10px}dialog{width:94vw;max-width:1500px;max-height:94vh;border:0;border-radius:12px;padding:20px;background:#fff}dialog::backdrop{background:#132b25cc}.zoom{overflow:auto;max-height:78vh}dialog img{display:block;max-width:none}dialog button{float:right;padding:8px 18px}.empty{padding:16px;border:1px dashed #8ba99b}[hidden]{display:none!important}footer{margin-top:32px;font-size:13px;color:#52645d}'''
-    js = '''const search=document.querySelector('#search'),domain=document.querySelector('#domain');function filter(){const q=search.value.toLocaleLowerCase();let n=0;document.querySelectorAll('.concept,.diagram').forEach(e=>{const show=(!domain.value||!e.dataset.domain||domain.value===e.dataset.domain)&&(!q||(e.dataset.search||'').toLocaleLowerCase().includes(q)||e.classList.contains('diagram'));e.hidden=!show;if(show&&e.classList.contains('concept'))n++});document.querySelector('#count').textContent=n+'件の概念';document.querySelector('#empty').hidden=n>0}search.addEventListener('input',filter);domain.addEventListener('change',filter);const modal=document.querySelector('dialog');document.querySelectorAll('.preview').forEach(b=>b.addEventListener('click',()=>{modal.querySelector('img').src=b.dataset.image;modal.querySelector('img').alt=b.dataset.title;modal.querySelector('h2').textContent=b.dataset.title;modal.showModal()}));document.querySelector('#close').addEventListener('click',()=>modal.close());filter();'''
-    commit = inventory['commit'] or 'コミットなし'
-    status = '変更あり' if inventory['dirty'] else ('変更なし' if inventory['dirty'] is False else 'Git管理外')
-    return f'<!doctype html>\n<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{h(m["title"])}</title><style>{css}</style><body><main><header><div class="eyebrow">DOMAIN MODEL · CODE EVIDENCE</div><h1>{h(m["title"])}</h1><p>実装から読み取った業務上の概念と関係。図から全体を掴み、概念カードからコードの根拠を確認できます。</p><p class="meta">{len(m["concepts"])}概念 · {len(m["relations"])}関係 · {len(m["domains"])}領域<br>調査範囲：{h(", ".join(inventory["scope"]))}<br>コミット：{h(commit)}（{status}）</p></header><div class="filters"><label>概念を検索<input id="search" type="search" placeholder="名前・コード識別子"></label><label>領域<select id="domain"><option value="">すべての領域</option>{options}</select></label><span id="count"></span></div><div class="grid">{"".join(cards)}</div><section><h2>概念とコードの根拠</h2><p id="empty" class="empty" hidden>条件に一致する概念がありません。</p><div class="grid">{"".join(concepts)}</div></section><section class="notes"><h2>関係と根拠</h2><ul>{relationships}</ul></section><section class="notes"><h2>確認事項</h2><ul>{questions}</ul><h3>未読のコード</h3><ul>{unread}</ul><details><summary>走査時の除外対象</summary><pre>{h(chr(10).join(inventory["excluded"]) or "なし")}</pre></details></section><footer>分類と関係の意味はコードの読解に基づく整理です。抜粋の一致と画像の構造を機械検査し、意味の正しさは別途レビューします。</footer></main><dialog aria-label="図の拡大"><button id="close">閉じる</button><h2></h2><div class="zoom"><img alt=""></div></dialog><script>{js}</script></body></html>\n'
+    for item in data["diagrams"]:
+        ident = item["id"]
+        search = " ".join([item["title"], item["description"]] + item["terms"])
+        tags = "".join('<span class="tag">' + esc(t) + '</span>' for t in item["terms"])
+        sources = "".join('<li><code>' + esc(s["path"]) + '</code><blockquote>' + esc(s["quote"]) + '</blockquote></li>'
+                          for s in item["sources"])
+        unresolved = "".join('<li>' + esc(t) + '</li>' for t in item["unresolved"])
+        unknown = '<div class="unknown"><strong>確認したいこと</strong><ul>' + unresolved + '</ul></div>' if unresolved else '<p class="confirmed">未確認事項なし</p>'
+        cards.append('''<article class="card" id="{id}" data-search="{search}">
+<div class="preview"><button class="open-diagram" data-id="{id}" data-title="{title}" aria-label="{title}の図を拡大"><img src="images/{id}.png" alt="{title}のドメインモデル図"></button></div>
+<div class="card-body"><div class="diagram-id">{id}</div><h2>{title}</h2><p>{description}</p><div class="tags">{tags}</div>{unknown}
+<details><summary>根拠となる資料（{count}件）</summary><ul class="sources">{sources}</ul></details>
+<div class="actions"><button class="open-diagram primary" data-id="{id}" data-title="{title}">図を拡大</button><a href="diagrams/{id}.mmd" download>Mermaid原本</a><a href="images/{id}.png" download>PNG</a></div></div></article>'''.format(
+            id=ident, search=esc(search, quote=True), title=esc(item["title"], quote=True),
+            description=esc(item["description"]), tags=tags, unknown=unknown, count=len(item["sources"]), sources=sources))
+    template = (SKILL / "assets/catalog.html").read_text(encoding="utf-8")
+    # Replace each placeholder once so user text cannot become another template instruction.
+    values = {"TITLE": esc(data["title"]), "COUNT": str(len(cards)), "CARDS": "\n".join(cards)}
+    return re.sub(r"@@(TITLE|COUNT|CARDS)@@", lambda m: values[m.group(1)], template)
 
 
-def render_png(mmd, png, work):
-    cli = os.environ.get('MMDC') or shutil.which('mmdc')
-    need(cli and Path(cli).is_file(), '既存のMermaid CLIをMMDCで指定する。PNGは未生成', 'STEP-06')
-    config = work/'mermaid-config.json'
-    config.write_text(json_text(dict(theme='neutral', securityLevel='strict', fontFamily='sans-serif', deterministicIds=True, deterministicIDSeed='domain-model')))
-    command = [cli, '-i', str(mmd), '-o', str(png), '-c', str(config), '-b', 'white', '-s', '2']
-    browser = os.environ.get('PUPPETEER_EXECUTABLE_PATH')
-    browser_config = work/'puppeteer.json'
-    # Use a fresh profile in the build workspace; keep user profiles untouched.
-    cfg = dict(userDataDir=str(work/'browser-profile'))
-    if browser:
-        cfg['executablePath'] = browser
-    browser_config.write_text(json_text(cfg));command += ['-p', str(browser_config)]
+def receipt(data, files, version):
+    return {"schema_version": 1, "status": "passed", "diagram_ids": [d["id"] for d in data["diagrams"]],
+            "renderer": {"name": "mermaid-cli", "version": version, "scale": 2, "background": "white", "font_family": FONT, "config": CONFIG},
+            "files": {path: digest(content) for path, content in sorted(files.items())},
+            "images": {d["id"]: png_size(files["images/" + d["id"] + ".png"]) for d in data["diagrams"]}}
+
+
+def check(root):
+    data = load_catalog(root, canonical=True)
+    check_files(root, data, complete=True)
+    for item in data["diagrams"]:
+        source = read_mermaid(root, item["id"])
+        require(item['terms'] == concept_terms(source), 'OUT-04', 'termsを原本の概念の表示名から生成する')
+        require(item['sources'] == canonical_sources(item['sources'], root.parent.parent), 'OUT-04', '同じ資料の引用をまとめ、参照先の昇順にする')
+    record = read_json(root / "validation.json")
+    keys(record, ["schema_version", "status", "diagram_ids", "renderer", "files", "images"], "validation.json")
+    require(record["schema_version"] == 1 and record["status"] == "passed", "STEP-04", "変換検証に合格していない")
+    renderer = record["renderer"]
+    keys(renderer, ["name", "version", "scale", "background", "font_family", "config"], "renderer")
+    require(renderer["name"] == "mermaid-cli" and text_value(renderer["version"]), "STEP-04", "変換に使ったMermaid CLIの版がない")
+    require(renderer["scale"] == 2 and renderer["background"] == "white" and renderer["font_family"] == FONT,
+            "STEP-04", "固定した変換設定と一致しない")
+    files = {p: (root / p).read_bytes() for p in bundle_paths(data) - {"validation.json"}}
+    for item in data["diagrams"]:
+        png_size(files["images/" + item["id"] + ".png"])
+    require(files["index.html"].decode("utf-8") == render_html(data), "OUT-02", "HTMLがカタログ情報と一致しない")
+    expected = receipt(data, files, renderer["version"])
+    require(record == expected, "OUT-07", "原本・PNG・HTML・カタログの対応またはSHA-256が一致しない。buildを再実行する")
+    return data
+
+
+def renderer_command(explicit):
+    command = explicit or os.environ.get("DOMAIN_MODEL_MMDC") or "mmdc"
+    resolved = shutil.which(command)
+    if not resolved:
+        raise Finding("STEP-02", "mmdc がない。references/setup.md の導入方法を確認する")
     try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=90, check=False)
-        need(result.returncode == 0 and png.is_file(), 'Mermaid変換失敗: '+result.stderr[-1200:], 'STEP-06')
-        png_size(png.read_bytes())
-    except (OSError, subprocess.TimeoutExpired) as e:
-        raise Invalid('STEP-06', 'Mermaid実行失敗: '+str(e)) from e
+        proc = subprocess.run([resolved, "--version"], capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise Finding("STEP-02", "mmdc の版を確認できない: " + str(exc)) from exc
+    require(proc.returncode == 0 and bool(proc.stdout.strip()), "STEP-02", "mmdc --version が失敗した")
+    return resolved, proc.stdout.strip()
 
 
-def verify(directory, repo):
-    need(directory.is_dir(), '出力ディレクトリがない', 'OUT-01')
-    for name in ['model.json', 'inventory.json', 'manifest.json']:
-        need((directory/name).is_file(), name+'がない', 'OUT-01')
-    m, inv, manifest = [read_json(directory/name) for name in ['model.json', 'inventory.json', 'manifest.json']]
-    validate_model(m, repo, inv, canonical=True)
-    need(snapshot(repo, inv['scope']) == inv, 'コード・Git状態・調査範囲が走査時から変わった', 'OUT-06')
-    specs = diagram_specs(m)
-    need(isinstance(manifest, dict) and manifest.get('generator') == GENERATOR and manifest.get('diagrams') == [{k:d[k] for k in ('id','title','domain')} for d in specs], '図の集合がモデルと違う', 'STEP-02')
-    expected = {'model.json','inventory.json','manifest.json','index.html'} | {f'diagrams/{d["id"]}.{ext}' for d in specs for ext in ('mmd','png')}
-    actual = {p.relative_to(directory).as_posix() for p in directory.rglob('*') if p.is_file()}
-    need(actual == expected and not any(p.is_symlink() for p in directory.rglob('*')), '出力のファイル集合が違う', 'OUT-01')
-    for d in specs:
-        need((directory/'diagrams'/f'{d["id"]}.mmd').read_text() == d['mmd'], 'Mermaidがモデルと違う', 'STEP-03')
-        png_size((directory/'diagrams'/f'{d["id"]}.png').read_bytes())
-    need((directory/'index.html').read_text() == catalog_html(m, inv, specs, directory), 'HTMLがモデルとPNGからの生成結果と違う', 'STEP-03')
-    hashes = {name:digest((directory/name).read_bytes()) for name in sorted(expected-{'manifest.json'})}
-    need(manifest.get('files') == hashes, 'manifestのハッシュが一致しない', 'OUT-06')
-    return dict(concepts=len(m['concepts']), relations=len(m['relations']), diagrams=len(specs), checks='passed')
-
-
-def build(directory, repo, replace):
-    need(directory.is_dir(), 'inspectで出力を準備してからmodel.jsonを書く', 'OUT-01')
-    existing = directory/'manifest.json'
-    need(not existing.exists() or (replace and read_json(existing).get('generator') == GENERATOR), '同名の生成結果が存在する。別名にするか同じ実行内の修正で--replaceを指定する', 'OUT-01')
-    if existing.exists():
-        declared = read_json(existing).get('files')
-        need(isinstance(declared, dict), '既存のmanifestのファイル一覧が不正', 'OUT-01')
-        actual = {p.relative_to(directory).as_posix() for p in directory.rglob('*') if p.is_file()}
-        need(actual == set(declared) | {'manifest.json'} and not any(p.is_symlink() for p in directory.rglob('*')), '生成元が管理していないファイルがある。既存の出力を保持する', 'OUT-01')
-    allowed = {'model.json','inventory.json'}
-    if not existing.exists():
-        need({p.name for p in directory.iterdir()} <= allowed, '既存のファイルを保持して別の出力を選ぶ', 'OUT-01')
-    m, inv = read_json(directory/'model.json'), read_json(directory/'inventory.json')
-    validate_model(m, repo, inv)
-    need(snapshot(repo, inv['scope']) == inv, '調査したコードが変わった。inspectからやり直す', 'OUT-06')
-    m = normalize(m)
-    staging = directory.parent/('.'+directory.name+'.building')
-    backup = directory.parent/('.'+directory.name+'.previous')
-    need(not staging.exists() and not backup.exists(), '前の一時出力が残っている。内容を確認して別名にする', 'OUT-01')
-    staging.mkdir();(staging/'diagrams').mkdir()
-    try:
-        (staging/'model.json').write_text(json_text(m));(staging/'inventory.json').write_text(json_text(inv))
-        specs = diagram_specs(m)
-        for d in specs:
-            mmd = staging/'diagrams'/f'{d["id"]}.mmd';png = mmd.with_suffix('.png')
-            mmd.write_text(d['mmd']);render_png(mmd,png,staging)
-        # Browser and renderer configuration are working files, never catalog outputs.
-        for p in ['mermaid-config.json','puppeteer.json']:
-            (staging/p).unlink(missing_ok=True)
-        shutil.rmtree(staging/'browser-profile', ignore_errors=True)
-        (staging/'index.html').write_text(catalog_html(m, inv, specs, staging))
-        files = {p.relative_to(staging).as_posix():digest(p.read_bytes()) for p in sorted(staging.rglob('*')) if p.is_file()}
-        manifest = dict(generator=GENERATOR, diagrams=[{k:d[k] for k in ('id','title','domain')} for d in specs], files=files)
-        (staging/'manifest.json').write_text(json_text(manifest))
-        result = verify(staging, repo)
-        directory.rename(backup)
+def build(root, explicit=None, update=False):
+    data = load_catalog(root)
+    check_files(root, data, complete=False)
+    exists = (root / "index.html").exists() or (root / "validation.json").exists()
+    require(not exists or update, "OUT-06", "既存カタログの更新は --update を指定する")
+    previous = None
+    if exists:
+        require((root / "validation.json").is_file(), "OUT-06", "検証記録のない既存HTMLを上書きしない")
+        previous = read_json(root / "validation.json")
+        old_ids = previous.get("diagram_ids")
+        require(isinstance(old_ids, list) and all(text_value(i) for i in old_ids), "OUT-06", "既存IDの記録を読めない")
+        require(set(old_ids) <= {d["id"] for d in data["diagrams"]}, "OUT-06", "依頼のない既存図の削除・ID変更を行わない")
+    data["diagrams"].sort(key=lambda item: item["id"])
+    sources = {}
+    for item in data["diagrams"]:
+        sources["diagrams/" + item["id"] + ".mmd"] = read_mermaid(root, item["id"]).rstrip() + "\n"
+        item['terms'] = concept_terms(sources['diagrams/' + item['id'] + '.mmd'])
+        item['sources'] = canonical_sources(item['sources'], root.parent.parent)
+    command, version = renderer_command(explicit)
+    # Stage every conversion before replacing any published image or HTML.
+    with tempfile.TemporaryDirectory(prefix=".render-", dir=root) as work:
+        stage = Path(work)
+        config = stage / "mermaid.json"
+        config.write_text(dump(CONFIG), encoding="utf-8")
+        files = {p: source.encode("utf-8") for p, source in sources.items()}
+        for item in data["diagrams"]:
+            ident = item["id"]
+            # Reuse only a verified PNG with unchanged source and renderer settings.
+            # This also avoids changing unrelated diagrams when adding a new one.
+            source_key, image_key = "diagrams/" + ident + ".mmd", "images/" + ident + ".png"
+            prior_files = previous.get("files", {}) if previous else {}
+            prior_renderer = previous.get("renderer", {}) if previous else {}
+            existing_image = root / image_key
+            if (prior_renderer == {"name": "mermaid-cli", "version": version, "scale": 2, "background": "white", "font_family": FONT, "config": CONFIG}
+                    and prior_files.get(source_key) == digest(files[source_key])
+                    and existing_image.is_file()):
+                image = existing_image.read_bytes()
+                if prior_files.get(image_key) == digest(image):
+                    png_size(image)
+                    files[image_key] = image
+                    continue
+            source_path = stage / (ident + ".mmd")
+            source_path.write_bytes(files["diagrams/" + ident + ".mmd"])
+            target = stage / (ident + ".png")
+            try:
+                result = subprocess.run([command, "-i", str(source_path), "-o", str(target),
+                                         "-c", str(config), "-b", "white", "-s", "2", "-q"],
+                                        capture_output=True, text=True, timeout=120)
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                raise Finding("STEP-03", ident + " の変換を実行できない: " + str(exc)) from exc
+            require(result.returncode == 0 and target.is_file(), "STEP-03",
+                    ident + " の変換に失敗した: " + (result.stderr or result.stdout)[-1800:])
+            image = target.read_bytes()
+            png_size(image)
+            files["images/" + ident + ".png"] = image
+        files["catalog.json"] = dump(data).encode("utf-8")
+        files["index.html"] = render_html(data).encode("utf-8")
+        files["validation.json"] = dump(receipt(data, files, version)).encode("utf-8")
+        before = {p: (root / p).read_bytes() if (root / p).exists() else None for p in files}
+        changed = []
         try:
-            staging.rename(directory)
+            for i, (path, content) in enumerate(files.items()):
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                prepared = stage / (str(i) + ".out")
+                prepared.write_bytes(content)
+                os.replace(prepared, target)
+                changed.append(path)
         except OSError:
-            backup.rename(directory)
+            for path in reversed(changed):
+                if before[path] is None:
+                    (root / path).unlink(missing_ok=True)
+                else:
+                    (root / path).write_bytes(before[path])
             raise
-        shutil.rmtree(backup)
-        return result
-    finally:
-        if staging.exists():
-            shutil.rmtree(staging)
+    return check(root)
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=['inspect','build','verify'])
-    p.add_argument('--state', type=Path)
-    p.add_argument('--repo', type=Path, default=Path('.'))
-    p.add_argument('--directory', type=Path)
-    p.add_argument('--scope', nargs='+', default=['.'])
-    p.add_argument('--replace', action='store_true')
-    p.add_argument('--only-rule', help='契約内の個別検査に使うルールID')
-    a = p.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("action", choices=["inspect", "deps", "build", "check", "report"])
+    parser.add_argument("directory", nargs="?")
+    parser.add_argument("--mmdc", help="既に導入されたMermaid CLIの実行ファイル")
+    parser.add_argument("--update", action="store_true", help="依頼された既存カタログの更新")
+    args = parser.parse_args()
     try:
-        if a.state:
-            state = read_json(a.state)
-            inputs = state['input']
-            # run.py records normalized inputs as {value, source} entries.
-            inputs = {k:(v.get('value') if isinstance(v,dict) and 'value' in v else v) for k,v in inputs.items()}
-            project = a.state.resolve().parents[2]
-            a.repo = project/inputs['repo']
-            a.scope = inputs['scope']
-            a.directory = a.state.parent/'out'/inputs['name']
-        if a.directory is None:
-            p.error('--state または --directory を指定する')
-        repo, directory = a.repo.resolve(), a.directory.resolve()
-        need(not a.directory.is_symlink(), '出力にsymlinkを使わない', 'OUT-01')
-        if a.action == 'inspect':
-            need(not directory.exists(), '同名の出力が存在する。別のnameを指定する', 'OUT-01')
-            inv = snapshot(repo, a.scope)
-            directory.mkdir(parents=True)
-            (directory/'inventory.json').write_text(json_text(inv))
-            result = dict(files=inv['files'], excluded=inv['excluded'], commit=inv['commit'], dirty=inv['dirty'])
-        elif a.action == 'build':
-            result = build(directory,repo,a.replace)
-        else:
-            result = verify(directory,repo)
-        print(json.dumps(result,ensure_ascii=False,sort_keys=True))
-        return 0
-    except Invalid as e:
-        if a.only_rule and not str(e).startswith(a.only_rule+' '):
+        if args.action == "deps":
+            command, version = renderer_command(args.mmdc)
+            print("Mermaid CLI: " + version + "\n実行ファイル: " + command)
             return 0
-        print(str(e));return 1
-    except (OSError, ValueError, KeyError, TypeError, IndexError) as e:
-        print('OUT-02 入力か出力を読み取れない: '+str(e));return 1
+        if not args.directory:
+            parser.error("directory が必要である")
+        root = checked_root(args.directory)
+        if args.action == "inspect":
+            if not root.exists():
+                print("カタログ: 新規\n出力先: " + str(root))
+            else:
+                data = load_catalog(root)
+                print("既存の図: " + ", ".join(d["id"] for d in data["diagrams"]))
+                print("画像生成済み: " + str((root / "index.html").is_file()))
+            return 0
+        data = build(root, args.mmdc, args.update) if args.action == "build" else check(root)
+        print("図: " + str(len(data["diagrams"])) + "件")
+        if args.action == "report":
+            notes = root.parent.parent / ".skill-runs/generate-domain-model/notes.md"
+            if notes.is_file():
+                lines = notes.read_text(encoding="utf-8").splitlines()
+                labels = ["資料照合", "PNG表示", "HTML操作"]
+                require(len(lines) == 3 and all(re.fullmatch(
+                    r"- " + label + r": (?:確認済み|未実施（[^\n]+）)", line)
+                    for label, line in zip(labels, lines)) and not any(re.search(r"[A-Za-z]", line.split(": ", 1)[-1]) for line in lines), "STEP-04",
+                    "notes.mdは資料照合・PNG表示・HTML操作の順で3行にし、値は確認済みか未実施（英字を含まない日本語の理由）にする")
+            print("カタログ: [開く](" + str(root / "index.html") + ")")
+            print("検証: 原本・画像・HTML・全ファイルの対応に合格")
+        else:
+            print(args.action + ": 指摘 0 件")
+        return 0
+    except Finding as exc:
+        print(exc.rule + " " + str(exc), file=sys.stderr)
+        return 2 if exc.rule == "STEP-02" else 1
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError) as exc:
+        print("OUT-02 カタログを処理できない: " + str(exc), file=sys.stderr)
+        return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
