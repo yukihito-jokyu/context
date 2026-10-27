@@ -1,0 +1,161 @@
+{
+  "baseline": {
+    "fixture": "dev/fixtures/basic",
+    "input": {
+      "system": "注文システム",
+      "name": "catalog"
+    },
+    "text": "会員が注文し、必須の支払いと希望時のクーポン適用がある。運用担当は一覧、管理者はその操作を引き継ぎ取消もできる。個人情報の公開は要件にない。",
+    "files": [
+      {
+        "path": "artifacts/usecase/{in:name}/catalog.json",
+        "from": "assets/examples/catalog/catalog.json"
+      },
+      {
+        "path": "artifacts/usecase/{in:name}/diagrams/d01.mmd",
+        "from": "assets/examples/catalog/diagrams/d01.mmd"
+      },
+      {
+        "path": "artifacts/usecase/{in:name}/diagrams/d01.png",
+        "from": "assets/examples/catalog/diagrams/d01.png"
+      },
+      {
+        "path": "artifacts/usecase/{in:name}/diagrams/d02.mmd",
+        "from": "assets/examples/catalog/diagrams/d02.mmd"
+      },
+      {
+        "path": "artifacts/usecase/{in:name}/diagrams/d02.png",
+        "from": "assets/examples/catalog/diagrams/d02.png"
+      },
+      {
+        "path": "artifacts/usecase/{in:name}/index.html",
+        "from": "assets/examples/catalog/index.html"
+      },
+      {
+        "path": "artifacts/usecase/{in:name}/validation.json",
+        "from": "assets/examples/catalog/validation.json"
+      }
+    ],
+    "commands": []
+  },
+  "probes": [
+    {
+      "id": "STEP-03-a",
+      "rule": "STEP-03",
+      "description": "解析結果と異なるアクター表示",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/catalog.json",
+          "content": "{\n  \"schema_version\": 1,\n  \"title\": \"注文管理のユースケース\",\n  \"description\": \"会員の注文と、運用担当・管理者による注文管理を2つの図で確認する。\",\n  \"diagrams\": [\n    {\n      \"id\": \"d01\",\n      \"title\": \"会員が注文する\",\n      \"summary\": \"会員は注文する。注文には支払いが必須で、希望した場合はクーポン適用を追加する。\",\n      \"source\": \"diagrams/d01.mmd\",\n      \"image\": \"diagrams/d01.png\",\n      \"actors\": [\n        {\n          \"id\": \"A01\",\n          \"label\": \"原本にない役割\"\n        }\n      ],\n      \"systems\": [\n        {\n          \"id\": \"S01\",\n          \"label\": \"注文システム\"\n        }\n      ]\n    },\n    {\n      \"id\": \"d02\",\n      \"title\": \"注文を運用する\",\n      \"summary\": \"運用担当は注文を一覧できる。管理者は運用担当の操作を引き継ぎ、注文を取り消せる。\",\n      \"source\": \"diagrams/d02.mmd\",\n      \"image\": \"diagrams/d02.png\",\n      \"actors\": [\n        {\n          \"id\": \"A01\",\n          \"label\": \"運用担当\"\n        },\n        {\n          \"id\": \"A02\",\n          \"label\": \"管理者\"\n        }\n      ],\n      \"systems\": [\n        {\n          \"id\": \"S01\",\n          \"label\": \"注文システム\"\n        }\n      ]\n    }\n  ]\n}\n"
+        }
+      ],
+      "expect": "STEP-03"
+    },
+    {
+      "id": "STEP-06-a",
+      "rule": "STEP-06",
+      "description": "未定義の目視確認状態",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/validation.json",
+          "content": "{\n  \"schema_version\": 1,\n  \"status\": \"passed\",\n  \"visual_review\": {\n    \"status\": \"approved\",\n    \"notes\": \"\"\n  },\n  \"diagrams\": [\n    {\n      \"id\": \"d01\",\n      \"width\": 953,\n      \"height\": 270,\n      \"model\": {\n        \"actors\": [\n          {\n            \"id\": \"A01\",\n            \"label\": \"会員\",\n            \"parent\": null\n          }\n        ],\n        \"usecases\": [\n          {\n            \"id\": \"U01\",\n            \"label\": \"注文する\",\n            \"parent\": \"S01\"\n          },\n          {\n            \"id\": \"U02\",\n            \"label\": \"支払う\",\n            \"parent\": \"S01\"\n          },\n          {\n            \"id\": \"U03\",\n            \"label\": \"クーポンを適用する\",\n            \"parent\": \"S01\"\n          }\n        ],\n        \"systems\": [\n          {\n            \"id\": \"S01\",\n            \"label\": \"注文システム\",\n            \"members\": [\n              \"U01\",\n              \"U02\",\n              \"U03\"\n            ]\n          }\n        ],\n        \"relationships\": [\n          {\n            \"source\": \"A01\",\n            \"target\": \"U01\",\n            \"type\": \"association\"\n          },\n          {\n            \"source\": \"U01\",\n            \"target\": \"U02\",\n            \"type\": \"include\"\n          },\n          {\n            \"source\": \"U03\",\n            \"target\": \"U01\",\n            \"type\": \"extend\"\n          }\n        ],\n        \"declarations\": {\n          \"A01\": 1,\n          \"S01\": 1,\n          \"U01\": 1,\n          \"U02\": 1,\n          \"U03\": 1\n        }\n      },\n      \"renderer\": {\n        \"mermaid\": \"12.1.0\",\n        \"browser\": \"Chrome/156.0.8078.48\",\n        \"layout\": \"elk\",\n        \"look\": \"classic\",\n        \"theme\": \"default\",\n        \"network\": \"blocked\"\n      },\n      \"source_sha256\": \"d7b50dc003553fa5e91d6286387d682fe2588c1ccdcaee8f454cb33b498a3e58\",\n      \"png_sha256\": \"8e6877fabe1f2d9ff94dc11690edc4a86d76edd7d641ba0ac88deb4054d714ef\"\n    },\n    {\n      \"id\": \"d02\",\n      \"width\": 578,\n      \"height\": 329,\n      \"model\": {\n        \"actors\": [\n          {\n            \"id\": \"A01\",\n            \"label\": \"運用担当\",\n            \"parent\": null\n          },\n          {\n            \"id\": \"A02\",\n            \"label\": \"管理者\",\n            \"parent\": null\n          }\n        ],\n        \"usecases\": [\n          {\n            \"id\": \"U01\",\n            \"label\": \"注文を一覧する\",\n            \"parent\": \"S01\"\n          },\n          {\n            \"id\": \"U02\",\n            \"label\": \"注文を取り消す\",\n            \"parent\": \"S01\"\n          }\n        ],\n        \"systems\": [\n          {\n            \"id\": \"S01\",\n            \"label\": \"注文システム\",\n            \"members\": [\n              \"U01\",\n              \"U02\"\n            ]\n          }\n        ],\n        \"relationships\": [\n          {\n            \"source\": \"A01\",\n            \"target\": \"U01\",\n            \"type\": \"association\"\n          },\n          {\n            \"source\": \"A02\",\n            \"target\": \"U02\",\n            \"type\": \"association\"\n          },\n          {\n            \"source\": \"A02\",\n            \"target\": \"A01\",\n            \"type\": \"generalization\"\n          }\n        ],\n        \"declarations\": {\n          \"A01\": 1,\n          \"A02\": 1,\n          \"S01\": 1,\n          \"U01\": 1,\n          \"U02\": 1\n        }\n      },\n      \"renderer\": {\n        \"mermaid\": \"12.1.0\",\n        \"browser\": \"Chrome/156.0.8078.48\",\n        \"layout\": \"elk\",\n        \"look\": \"classic\",\n        \"theme\": \"default\",\n        \"network\": \"blocked\"\n      },\n      \"source_sha256\": \"f4f31308b69ded72adf628c010802db6c5ae4832bfd19ae9b36093943025c4d3\",\n      \"png_sha256\": \"434faa0112280f16da56d915ebb1e13059ee7298b72dbd48733eb475dd83f88b\"\n    }\n  ],\n  \"catalog_sha256\": \"2d72d90125a002396a9320b7db8e30e042bbd1c9cef8567b0330dbcdf1d27c72\",\n  \"html_sha256\": \"6524d092609c697c74a303efe163b1681b979f6acb4fce174c58838463c5a685\"\n}\n"
+        }
+      ],
+      "expect": "STEP-06"
+    },
+    {
+      "id": "OUT-01-a",
+      "rule": "OUT-01",
+      "description": "PNG参照先のファイルがない",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/diagrams/d01.png",
+          "mode": "delete"
+        }
+      ],
+      "expect": "OUT-01"
+    },
+    {
+      "id": "OUT-02-a",
+      "rule": "OUT-02",
+      "description": "異なるカタログスキーマ版",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/catalog.json",
+          "content": "{\n  \"schema_version\": 2,\n  \"title\": \"注文管理のユースケース\",\n  \"description\": \"会員の注文と、運用担当・管理者による注文管理を2つの図で確認する。\",\n  \"diagrams\": [\n    {\n      \"id\": \"d01\",\n      \"title\": \"会員が注文する\",\n      \"summary\": \"会員は注文する。注文には支払いが必須で、希望した場合はクーポン適用を追加する。\",\n      \"source\": \"diagrams/d01.mmd\",\n      \"image\": \"diagrams/d01.png\",\n      \"actors\": [\n        {\n          \"id\": \"A01\",\n          \"label\": \"会員\"\n        }\n      ],\n      \"systems\": [\n        {\n          \"id\": \"S01\",\n          \"label\": \"注文システム\"\n        }\n      ]\n    },\n    {\n      \"id\": \"d02\",\n      \"title\": \"注文を運用する\",\n      \"summary\": \"運用担当は注文を一覧できる。管理者は運用担当の操作を引き継ぎ、注文を取り消せる。\",\n      \"source\": \"diagrams/d02.mmd\",\n      \"image\": \"diagrams/d02.png\",\n      \"actors\": [\n        {\n          \"id\": \"A01\",\n          \"label\": \"運用担当\"\n        },\n        {\n          \"id\": \"A02\",\n          \"label\": \"管理者\"\n        }\n      ],\n      \"systems\": [\n        {\n          \"id\": \"S01\",\n          \"label\": \"注文システム\"\n        }\n      ]\n    }\n  ]\n}\n"
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-04-a",
+      "rule": "OUT-04",
+      "description": "図IDの重複",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/catalog.json",
+          "content": "{\n  \"schema_version\": 1,\n  \"title\": \"注文管理のユースケース\",\n  \"description\": \"会員の注文と、運用担当・管理者による注文管理を2つの図で確認する。\",\n  \"diagrams\": [\n    {\n      \"id\": \"d01\",\n      \"title\": \"会員が注文する\",\n      \"summary\": \"会員は注文する。注文には支払いが必須で、希望した場合はクーポン適用を追加する。\",\n      \"source\": \"diagrams/d01.mmd\",\n      \"image\": \"diagrams/d01.png\",\n      \"actors\": [\n        {\n          \"id\": \"A01\",\n          \"label\": \"会員\"\n        }\n      ],\n      \"systems\": [\n        {\n          \"id\": \"S01\",\n          \"label\": \"注文システム\"\n        }\n      ]\n    },\n    {\n      \"id\": \"d01\",\n      \"title\": \"注文を運用する\",\n      \"summary\": \"運用担当は注文を一覧できる。管理者は運用担当の操作を引き継ぎ、注文を取り消せる。\",\n      \"source\": \"diagrams/d02.mmd\",\n      \"image\": \"diagrams/d02.png\",\n      \"actors\": [\n        {\n          \"id\": \"A01\",\n          \"label\": \"運用担当\"\n        },\n        {\n          \"id\": \"A02\",\n          \"label\": \"管理者\"\n        }\n      ],\n      \"systems\": [\n        {\n          \"id\": \"S01\",\n          \"label\": \"注文システム\"\n        }\n      ]\n    }\n  ]\n}\n"
+        }
+      ],
+      "expect": "OUT-04"
+    },
+    {
+      "id": "OUT-05-a",
+      "rule": "OUT-05",
+      "description": "0枚の図を成功とする",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/catalog.json",
+          "content": "{\n  \"schema_version\": 1,\n  \"title\": \"注文管理のユースケース\",\n  \"description\": \"会員の注文と、運用担当・管理者による注文管理を2つの図で確認する。\",\n  \"diagrams\": []\n}\n"
+        }
+      ],
+      "expect": "OUT-05"
+    },
+    {
+      "id": "OUT-07-a",
+      "rule": "OUT-07",
+      "description": "原本だけの変更で古いPNGを使う",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/diagrams/d01.mmd",
+          "mode": "append",
+          "content": "\n%% changed\n"
+        }
+      ],
+      "expect": "OUT-07"
+    },
+    {
+      "id": "OUT-08-a",
+      "rule": "OUT-08",
+      "description": "検査をskipで無効化する",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/validation.json",
+          "content": "{\n  \"schema_version\": 1,\n  \"status\": \"passed\",\n  \"visual_review\": {\n    \"status\": \"pending\",\n    \"notes\": \"\"\n  },\n  \"diagrams\": [\n    {\n      \"id\": \"d01\",\n      \"width\": 953,\n      \"height\": 270,\n      \"model\": {\n        \"actors\": [\n          {\n            \"id\": \"A01\",\n            \"label\": \"会員\",\n            \"parent\": null\n          }\n        ],\n        \"usecases\": [\n          {\n            \"id\": \"U01\",\n            \"label\": \"注文する\",\n            \"parent\": \"S01\"\n          },\n          {\n            \"id\": \"U02\",\n            \"label\": \"支払う\",\n            \"parent\": \"S01\"\n          },\n          {\n            \"id\": \"U03\",\n            \"label\": \"クーポンを適用する\",\n            \"parent\": \"S01\"\n          }\n        ],\n        \"systems\": [\n          {\n            \"id\": \"S01\",\n            \"label\": \"注文システム\",\n            \"members\": [\n              \"U01\",\n              \"U02\",\n              \"U03\"\n            ]\n          }\n        ],\n        \"relationships\": [\n          {\n            \"source\": \"A01\",\n            \"target\": \"U01\",\n            \"type\": \"association\"\n          },\n          {\n            \"source\": \"U01\",\n            \"target\": \"U02\",\n            \"type\": \"include\"\n          },\n          {\n            \"source\": \"U03\",\n            \"target\": \"U01\",\n            \"type\": \"extend\"\n          }\n        ],\n        \"declarations\": {\n          \"A01\": 1,\n          \"S01\": 1,\n          \"U01\": 1,\n          \"U02\": 1,\n          \"U03\": 1\n        }\n      },\n      \"renderer\": {\n        \"mermaid\": \"12.1.0\",\n        \"browser\": \"Chrome/156.0.8078.48\",\n        \"layout\": \"elk\",\n        \"look\": \"classic\",\n        \"theme\": \"default\",\n        \"network\": \"blocked\"\n      },\n      \"source_sha256\": \"d7b50dc003553fa5e91d6286387d682fe2588c1ccdcaee8f454cb33b498a3e58\",\n      \"png_sha256\": \"8e6877fabe1f2d9ff94dc11690edc4a86d76edd7d641ba0ac88deb4054d714ef\"\n    },\n    {\n      \"id\": \"d02\",\n      \"width\": 578,\n      \"height\": 329,\n      \"model\": {\n        \"actors\": [\n          {\n            \"id\": \"A01\",\n            \"label\": \"運用担当\",\n            \"parent\": null\n          },\n          {\n            \"id\": \"A02\",\n            \"label\": \"管理者\",\n            \"parent\": null\n          }\n        ],\n        \"usecases\": [\n          {\n            \"id\": \"U01\",\n            \"label\": \"注文を一覧する\",\n            \"parent\": \"S01\"\n          },\n          {\n            \"id\": \"U02\",\n            \"label\": \"注文を取り消す\",\n            \"parent\": \"S01\"\n          }\n        ],\n        \"systems\": [\n          {\n            \"id\": \"S01\",\n            \"label\": \"注文システム\",\n            \"members\": [\n              \"U01\",\n              \"U02\"\n            ]\n          }\n        ],\n        \"relationships\": [\n          {\n            \"source\": \"A01\",\n            \"target\": \"U01\",\n            \"type\": \"association\"\n          },\n          {\n            \"source\": \"A02\",\n            \"target\": \"U02\",\n            \"type\": \"association\"\n          },\n          {\n            \"source\": \"A02\",\n            \"target\": \"A01\",\n            \"type\": \"generalization\"\n          }\n        ],\n        \"declarations\": {\n          \"A01\": 1,\n          \"A02\": 1,\n          \"S01\": 1,\n          \"U01\": 1,\n          \"U02\": 1\n        }\n      },\n      \"renderer\": {\n        \"mermaid\": \"12.1.0\",\n        \"browser\": \"Chrome/156.0.8078.48\",\n        \"layout\": \"elk\",\n        \"look\": \"classic\",\n        \"theme\": \"default\",\n        \"network\": \"blocked\"\n      },\n      \"source_sha256\": \"f4f31308b69ded72adf628c010802db6c5ae4832bfd19ae9b36093943025c4d3\",\n      \"png_sha256\": \"434faa0112280f16da56d915ebb1e13059ee7298b72dbd48733eb475dd83f88b\"\n    }\n  ],\n  \"catalog_sha256\": \"2d72d90125a002396a9320b7db8e30e042bbd1c9cef8567b0330dbcdf1d27c72\",\n  \"html_sha256\": \"6524d092609c697c74a303efe163b1681b979f6acb4fce174c58838463c5a685\",\n  \"skip\": true\n}\n"
+        }
+      ],
+      "expect": "OUT-08"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "OUT-03-r1",
+      "rule": "OUT-03",
+      "description": "検索・注文の要件に存在しない個人情報公開を説明へ追加する",
+      "files": [
+        {
+          "path": "artifacts/usecase/{in:name}/catalog.json",
+          "from": "assets/examples/review/catalog.json"
+        },
+        {
+          "path": "artifacts/usecase/{in:name}/index.html",
+          "from": "assets/examples/review/index.html"
+        },
+        {
+          "path": "artifacts/usecase/{in:name}/validation.json",
+          "from": "assets/examples/review/validation.json"
+        }
+      ]
+    }
+  ]
+}
