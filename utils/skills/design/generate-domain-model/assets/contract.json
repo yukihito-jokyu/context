@@ -1,0 +1,142 @@
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "generate-domain-model",
+  "language": "ja",
+  "targets": [
+    "claude",
+    "codex"
+  ],
+  "inputs": [
+    {
+      "key": "name",
+      "label": "カタログ名",
+      "type": "slug",
+      "impact": "reversible",
+      "default": "domain",
+      "aliases": [
+        "名前",
+        "カタログ",
+        "catalog"
+      ]
+    },
+    {
+      "key": "source",
+      "label": "資料",
+      "type": "string",
+      "impact": "target",
+      "ask": true,
+      "question": "図にする業務説明・仕様・コードのパス・classDiagramを教えてください。",
+      "aliases": [
+        "入力",
+        "資料",
+        "対象"
+      ]
+    },
+    {
+      "key": "update",
+      "label": "既存カタログの更新",
+      "type": "bool",
+      "impact": "reversible",
+      "default": false,
+      "aliases": [
+        "更新"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "catalog",
+      "label": "カタログ情報",
+      "path": "domain-models/{in:name}/catalog.json",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "rule": "OUT-02",
+          "type": "command",
+          "stage": "finish",
+          "run": "python3 {skill}/scripts/catalog.py check {root}/domain-models/{in:name}",
+          "rules": [
+            "OUT-01",
+            "OUT-04",
+            "OUT-05",
+            "OUT-07",
+            "OUT-08",
+            "STEP-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "index",
+      "label": "HTMLカタログ",
+      "path": "domain-models/{in:name}/index.html",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": []
+    },
+    {
+      "id": "validation",
+      "label": "変換検証結果",
+      "path": "domain-models/{in:name}/validation.json",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": []
+    },
+    {
+      "id": "mermaid",
+      "label": "Mermaid原本",
+      "path": "domain-models/{in:name}/diagrams/*.mmd",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1000
+      },
+      "checks": [
+        {
+          "rule": "OUT-02",
+          "type": "require",
+          "lines": "first",
+          "pattern": "^classDiagram$",
+          "message": "原本の先頭行はclassDiagramにする"
+        }
+      ]
+    }
+  ],
+  "together": [],
+  "control": {
+    "hooks": true,
+    "protected": [
+      "SKILL.md",
+      "scripts/**",
+      "assets/**",
+      "references/**"
+    ],
+    "tamper_rule": "CTL-02",
+    "scope_rule": "CTL-05",
+    "allow_changes": [
+      "domain-models/{in:name}/images/*.png"
+    ],
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": null,
+    "rule": "RPT-01",
+    "sections": [
+      {
+        "run": "python3 {skill}/scripts/catalog.py report {root}/domain-models/{in:name}",
+        "timeout": 60
+      }
+    ]
+  }
+}
