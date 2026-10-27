@@ -1,0 +1,33 @@
+## 結果
+
+generate-domain-model: 完了（検証に合格）
+
+図: 2件
+カタログ: [開く](/private/tmp/issue-86-public-catalog/domain-models/sales/index.html)
+検証: 原本・画像・HTML・全ファイルの対応に合格
+
+## 出力
+
+- `domain-models/sales/catalog.json`（catalog カタログ情報）
+- `domain-models/sales/index.html`（index HTMLカタログ）
+- `domain-models/sales/validation.json`（validation 変換検証結果）
+- `domain-models/sales/diagrams/order.mmd`（mermaid Mermaid原本）
+- `domain-models/sales/diagrams/shipment.mmd`（mermaid Mermaid原本）
+
+## 既定値で決めた値
+
+- なし
+
+## 入力で読めなかった値
+
+- なし
+
+## 検証
+
+- `run.py finish`: 指摘 0 件
+
+## 補足
+
+- 資料照合: 確認済み
+- PNG表示: 確認済み
+- HTML操作: 確認済み
