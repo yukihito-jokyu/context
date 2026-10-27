@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/skills/generate-domain-model/scripts/hook.py\" --platform codex pre-tool",
+            "timeout": 30
+          }
+        ],
+        "matcher": "apply_patch"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/skills/generate-domain-model/scripts/hook.py\" --platform codex post-tool",
+            "timeout": 120
+          }
+        ],
+        "matcher": "apply_patch"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/skills/generate-domain-model/scripts/hook.py\" --platform codex stop",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/skills/generate-domain-model/scripts/hook.py\" --platform codex prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
