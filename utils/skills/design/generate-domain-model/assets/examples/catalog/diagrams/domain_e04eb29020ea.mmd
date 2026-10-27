@@ -1,0 +1,20 @@
+classDiagram
+direction LR
+  class C_1a8f882e47bb["Payment"]
+  class C_1a8f882e47bb {
+    <<concept>>
+    int amount
+  }
+  class C_ed95cf309060["Order"]
+  class C_ed95cf309060 {
+    <<concept>>
+    str number
+  }
+  class C_65d1bb86ba6d["OrderLine"]
+  class C_65d1bb86ba6d {
+    <<concept>>
+    str sku
+    int quantity
+  }
+  C_ed95cf309060 --> "0..*" C_65d1bb86ba6d : lines
+  C_1a8f882e47bb --> "1" C_ed95cf309060 : order
