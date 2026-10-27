@@ -1,0 +1,46 @@
+generate-domain-model plugin 公開配布物の実生成・実 hook 検証
+実行日時: 2026-10-27T14:40:12.701908+00:00
+実行者: /root/plugin_sample（新しい独立サブエージェント）
+隔離作業場所: /private/tmp/generate-domain-model-plugin.oDjsOv
+既存成果物の転用: なし。build.py で各 Agent の出力先を新規作成した。
+
+実操作と結果:
+[codex]
+- python3 utils/plugins/generate-domain-model/build.py --agent codex --output /private/tmp/generate-domain-model-plugin.oDjsOv/bundle-codex: 終了コード0
+- manifest・hooks・scripts・Skill同梱資料の全 94 ファイル: 選択した正本と一覧・内容がバイト一致
+- 対象AgentのmanifestをJSONとして読み込み、name・skills・hooksを確認
+- hooks.jsonをJSONとして読み込み、PreToolUse・PostToolUse・Stop・UserPromptSubmitの4種類を確認
+- 同じ出力先への再実行: 終了コード2で拒否。既存ファイルの内容は不変
+- 独立したgitプロジェクトを/private/tmpへ作成。inactive Stopの実command: 終了コード0、stdout/stderrは空、プロジェクト不変
+- 同梱Skillのrun.py start: 終了コード0、state.status=activeを確認
+- model.jsonにskip_validation=trueを記録してPostToolUseの実commandへ編集eventを入力: 終了コード0、decision=block、reasonにOUT-07
+- 封印済みSKILL.mdへの編集eventをPreToolUseの実commandへ入力: 終了コード0、permissionDecision=deny
+- hook検証の前後でパッケージの全ファイルが不変
+- generate-domain-model-codex.zipを作成し、別の隔離先へ展開: 全 94 ファイルの一覧と内容が生成配布物・正本と一致
+
+[claude-code]
+- python3 utils/plugins/generate-domain-model/build.py --agent claude-code --output /private/tmp/generate-domain-model-plugin.oDjsOv/bundle-claude-code: 終了コード0
+- manifest・hooks・scripts・Skill同梱資料の全 94 ファイル: 選択した正本と一覧・内容がバイト一致
+- 対象AgentのmanifestをJSONとして読み込み、name・skills・hooksを確認
+- hooks.jsonをJSONとして読み込み、PreToolUse・PostToolUse・Stop・UserPromptSubmitの4種類を確認
+- 同じ出力先への再実行: 終了コード2で拒否。既存ファイルの内容は不変
+- 独立したgitプロジェクトを/private/tmpへ作成。inactive Stopの実command: 終了コード0、stdout/stderrは空、プロジェクト不変
+- 同梱Skillのrun.py start: 終了コード0、state.status=activeを確認
+- model.jsonにskip_validation=trueを記録してPostToolUseの実commandへ編集eventを入力: 終了コード0、decision=block、reasonにOUT-07
+- 封印済みSKILL.mdへの編集eventをPreToolUseの実commandへ入力: 終了コード0、permissionDecision=ask
+- hook検証の前後でパッケージの全ファイルが不変
+- generate-domain-model-claude-code.zipを作成し、別の隔離先へ展開: 全 94 ファイルの一覧と内容が生成配布物・正本と一致
+
+検証方法:
+- hooksはパッケージのhooks/hooks.jsonからcommand文字列を読み取り、PLUGIN_ROOT / CLAUDE_PLUGIN_ROOTにそのパッケージを指定して実起動した。
+- Agentクライアントのイベント配送を模したJSONをstdinへ渡した。実クライアントによるhook呼び出しとは区別する。
+- 専用の検査用Pythonは/private/tmpにだけ保存し、正本・ルートtestsへ検査ファイルを追加していない。
+- PYTHONDONTWRITEBYTECODE=1、隔離XDG_CONFIG_HOME、GIT_CONFIG_GLOBAL=/dev/null、GIT_CONFIG_NOSYSTEM=1を設定した。
+- plugin正本とSkill正本は実行の前後で全ファイルの内容が一致した。
+- 各コマンド・stdin・stdout・stderr・終了コードと配布物の一覧はverification-log.jsonに記録した。
+
+未確認範囲:
+- 実ユーザー環境への導入・有効化は未実施。Codexのhooks信頼設定、Claude Codeのplugin読込も未実施。
+- 実Agentクライアントでのイベント配送・権限UI・timeoutの適用は未確認。
+- UserPromptSubmitは配布設定とコマンドの存在を確認し、prompt event自体は実起動していない。
+- Mermaid CLIによるドメインモデル生成・PNG/HTMLの表示は、このplugin配布・hook検証では実施していない。
