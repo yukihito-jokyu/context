@@ -3,7 +3,7 @@
 
   1. spec の受付の項目（name、kind、mode、language、targets、title、purpose、triggers）を検査する。
      mode が retrofit（既存のスキルへの後付け）なら、元の SKILL.md を dev/original/SKILL.md に移す
-  2. spec に標準の決定（CTL-01〜05、RPT-01）が無ければ足し、種類（kind）の追加の軸を extra_axes の先頭に入れる
+  2. spec に標準のルール（CTL-01〜05、RPT-01）が無ければ足し、種類（kind）の追加の軸を extra_axes の先頭に入れる
   3. ひな形から SKILL.md と dev/ の文書を作る
   4. 実行時ランタイム（scripts/_skillrt.py、run.py、hook.py、install.py）を写す
   5. render_skill.py で生成部分を埋める
@@ -109,7 +109,7 @@ def merge_profile(spec: dict) -> bool:
     used = {x for d in spec.get("decisions", []) for x in d.get("axes", [])} | {e.get("axis") for e in spec.get("excluded_axes", [])}
     if set(renamed) & used:
         _lib.fail(f"種類 {spec.get('kind')} の追加の軸を X1 から入れると、使用中の軸 {sorted(set(renamed) & used)} の番号が変わります。"
-                  "extra_axes と、その軸を使う決定・excluded_axes を手で直してください")
+                  "extra_axes と、その軸を使うルール・excluded_axes を手で直してください")
     spec["extra_axes"] = wanted + [{**a, "axis": f"X{i}"} for i, a in enumerate(own, len(wanted) + 1)]
     return True
 
@@ -117,12 +117,12 @@ def merge_profile(spec: dict) -> bool:
 RETROFIT_RESEARCH = f"""
 ## 既存のスキル
 
-{_lib.TODO_MARKER}: 元の SKILL.md（{_lib.ORIGINAL_REL}）の手順、入力、出力、使っていたスクリプトを書く。新しい決定のうち、元のやり方を残したもの（basis: existing）の ID を「使った決定」に書く。
+{_lib.TODO_MARKER}: 元の SKILL.md（{_lib.ORIGINAL_REL}）の手順、入力、出力、使っていたスクリプトを書く。新しいルールのうち、元のやり方を残したもの（basis: existing）の ID を「使ったルール」に書く。
 
 - 確認方法：{_lib.ORIGINAL_REL} を読んだ
 - 確認の状態：未確認
 - 分かったこと：
-- 使った決定：
+- 使ったルール：
 """
 
 
@@ -182,7 +182,7 @@ def main() -> int:
     added_standard = merge_standard(spec)
     added_axes = not _lib.is_foundation(skill_dir) and merge_profile(spec)
     if added_standard or added_axes:
-        created.append(f"{_lib.SPEC_REL}（" + "、".join(x for x, on in (("標準の決定を追加", added_standard),
+        created.append(f"{_lib.SPEC_REL}（" + "、".join(x for x, on in (("標準のルールを追加", added_standard),
                                                                      ("種類の追加の軸を extra_axes に追加", added_axes)) if on) + "）")
         if not args.dry_run:
             _lib.write_json(spec_path, spec)

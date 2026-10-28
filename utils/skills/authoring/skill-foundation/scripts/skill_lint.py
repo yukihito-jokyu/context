@@ -3,17 +3,17 @@
 
 検査はフェーズに合わせて増える。--phase を省くと、spec の status が ready なら --final、building なら 5。
   1: ディレクトリの形、ファイル名、spec の受付の項目、ランタイムが skill-foundation の版と同一
-  3: 1 に加えて決定（ID・番号・軸・必須項目・あいまいな語・決定表）、軸の網羅、標準の決定、入力
-  4: 3 に加えて出力の契約、検査と決定の対応、probe の書式、見本（assets/examples/ と baseline の from）、
-     スクリプトの --help、生成物が最新
-  5: 4 に加えて SKILL.md（frontmatter、節の並び、手順の書き方と見本の記載、行数、リンク）、doc の決定の記載
+  3: 1 に加えてルール（ID・番号・軸・必須項目・あいまいな語・場合分け）、軸の網羅、標準のルール、入力
+  4: 3 に加えて出力の契約、検査とルールの対応、見本（assets/examples/）、スクリプトの --help、生成物が最新
+  5: 4 に加えて違反例（dev/probes.json。ルールとの対応、probe とレビューの見本の書式、baseline とその from）、
+     SKILL.md（frontmatter、節の並び、手順の書き方と見本の記載、行数、リンク）、doc のルールの記載
   --final: 5 に加えて TODO の目印、調査の未確認、評価課題、probe の結果、収束テストの記録、status: ready
   --gate : status が building ならフェーズ1だけ、ready なら --final（hooks から呼ぶ）
 
 使い方:
   python3 skill_lint.py <スキルのディレクトリ> [--phase 1|3|4|5] [--final] [--gate] [--project <ルート>] [--seal]
   --project: --final のとき、そのプロジェクトに置き場所と hooks が揃っているかも調べる
-  --seal   : --final でエラーが無ければ、保護ファイルのハッシュを assets/seal.json に書く（封印。CTL-02）
+  --seal   : --final でエラーが無ければ、保護ファイルのハッシュを assets/seal.json に書く（合格時の指紋。CTL-02）
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ DECISION_ID_IN_TEXT = re.compile(r"(?<![A-Za-z0-9-])(?:" + "|".join(_lib.PREFIXE
 
 
 class Report:
-    """errors は（決定の ID か None, 文）の組。ID は skill-foundation のどの決定を守らせる検査かを示す
+    """errors は（ルールID か None, 文）の組。ID は skill-foundation のどのルールを守らせる検査かを示す
     （--rule のとき行頭に出す。None は --rule の値）。"""
 
     def __init__(self):
@@ -146,9 +146,9 @@ def retired(decision: dict) -> bool:
 
 
 def project_backed(skill_dir: Path, rid: str) -> bool:
-    """basis: project の根拠。調査の項目が、この ID を使った決定に挙げ、決まりの場所か書き方の分布（件数）を持つ。"""
+    """basis: project の根拠。調査の項目が、この ID を使ったルールに挙げ、決まりの場所か書き方の分布（件数）を持つ。"""
     for item in _lib.research_items(skill_dir):
-        used = [l for l in item.splitlines() if re.search(r"(使った決定|Used by)\s*[:：]", l)]
+        used = [l for l in item.splitlines() if re.search(r"(使ったルール|使った決定|Used by)\s*[:：]", l)]
         if not any(rid in _lib.ID_IN_TEXT.findall(l) for l in used):
             continue
         if re.search(r"^- (決まり|Rule)\s*[:：]\s*\S", item, re.M) or re.search(r"^- (分布|Distribution)\s*[:：].*\d", item, re.M):
@@ -171,7 +171,7 @@ def check_decisions(skill_dir: Path, spec: dict, r: Report) -> None:
     existing = _lib.research_ids(skill_dir, existing=True)
     for d in decisions:
         rid = d.get("id", "")
-        where = f"decision {rid or '(id なし)'}"
+        where = f"ルール {rid or '(id なし)'}"
         if not _lib.ID_RE.match(rid):
             r.error(where, "id は <接頭辞>-<2桁の番号> にしてください（例: OUT-03）", rule="OUT-04")
             continue
@@ -183,25 +183,25 @@ def check_decisions(skill_dir: Path, spec: dict, r: Report) -> None:
             r.error(where, f"接頭辞は {_lib.PREFIXES} のどれかにしてください", rule="OUT-04")
         by_prefix.setdefault(prefix, []).append(d)
         axes = d.get("axes", [])
-        if retired(d):  # 廃止した決定は ID を残すだけ。番号の連続と順序にだけ数える
+        if retired(d):  # 廃止したルールは ID を残すだけ。番号の連続と順序にだけ数える
             if not str(d.get("title", "")).strip() or not axes:
-                r.error(where, "廃止した決定にも title と axes を残してください（ID を辿れるようにする）")
+                r.error(where, "廃止したルールにも title と axes を残してください（ID を辿れるようにする）")
             continue
         for field in ("title", "decision", "reason", "how", "good", "bad"):
             if not str(d.get(field, "")).strip():
                 r.error(where, f"{field} がありません")
         basis = d.get("basis")
         if basis not in _lib.BASES:
-            r.error(where, f"basis（答えの決め方）を {list(_lib.BASES)} のどれかにしてください（variance-axes.md の2章）")
+            r.error(where, f"basis（決めた根拠）を {list(_lib.BASES)} のどれかにしてください（variance-axes.md の2章）")
         elif basis == "existing" and spec.get("mode", "new") != "retrofit":
             r.error(where, "basis: existing は後付け（mode: retrofit）のスキルだけで使えます")
         elif basis == "existing" and rid not in existing:
-            r.error(where, "basis が existing なので、dev/research.md の「## 既存のスキル」の「使った決定」の行にこの ID を書いてください")
+            r.error(where, "basis が existing なので、dev/research.md の「## 既存のスキル」の「使ったルール」の行にこの ID を書いてください")
         elif basis == "project" and not project_backed(skill_dir, rid):
-            r.error(where, "basis が project なので、dev/research.md の項目の「使った決定」にこの ID を書き、同じ項目に「- 決まり：」"
+            r.error(where, "basis が project なので、dev/research.md の項目の「使ったルール」にこの ID を書き、同じ項目に「- 決まり：」"
                            "（書いてある場所）か「- 分布：」（書き方ごとの件数と、数えたコマンド）を書いてください（research.md の3章）")
         elif basis == "official" and rid not in official:
-            r.error(where, "basis が official なので、dev/research.md の「使った決定」の行にこの ID を書き、出典を示してください")
+            r.error(where, "basis が official なので、dev/research.md の「使ったルール」の行にこの ID を書き、出典を示してください")
         elif basis == "common" and _lib.PREFERENCE_MARK[lang] not in str(d.get("reason", "")):
             r.error(where, f"basis が common なので、reason に「{_lib.PREFERENCE_MARK[lang]}」と書いてください")
         if not axes:
@@ -215,7 +215,7 @@ def check_decisions(skill_dir: Path, spec: dict, r: Report) -> None:
         if axes:
             group = by_first.setdefault((axes[0], tuple(sorted(d.get("control", [])))), [])
             if group and not str(d.get("split_reason", "")).strip():
-                r.error(where, f"{group[0]} と最初の軸（{axes[0]}）も守らせ方も同じです。1つの決定にまとめるか、"
+                r.error(where, f"{group[0]} と最初の軸（{axes[0]}）も守らせ方も同じです。1つのルールにまとめるか、"
                                "片方だけ破られうる理由を split_reason に書いてください（variance-axes.md の3章）")
             group.append(rid)
         for word in sorted(set(_lib.open_words(str(d.get("decision", ""))))):
@@ -240,7 +240,7 @@ def check_decisions(skill_dir: Path, spec: dict, r: Report) -> None:
                 r.error(where, "意味の判断が要る違反は出力を見れば分かるので、review を含めてください（control-ladder.md の1章）")
         texts = [d.get("decision", "")] + [c for row in d.get("table", [])[1:] for c in row]
         for word in sorted(set(w for t in texts for w in _lib.vague_words(str(t)))):
-            r.error(where, f"決定にあいまいな語「{word}」があります。条件と答えで書いてください", rule="OUT-03")
+            r.error(where, f"ルールにあいまいな語「{word}」があります。条件と答えで書いてください", rule="OUT-03")
         table = d.get("table")
         if table is not None:
             if not isinstance(table, list) or len(table) < 3 or len({len(row) for row in table}) != 1:
@@ -252,26 +252,26 @@ def check_decisions(skill_dir: Path, spec: dict, r: Report) -> None:
     for prefix, items in by_prefix.items():
         numbers = sorted(int(d["id"].split("-")[1]) for d in items)
         if numbers != list(range(1, len(numbers) + 1)):
-            r.error(f"decision {prefix}-*", f"番号は 01 から欠けなく振ってください（今: {numbers}）。決定を消したなら、"
+            r.error(f"ルール {prefix}-*", f"番号は 01 から欠けなく振ってください（今: {numbers}）。ルールを消したなら、"
                                             "消さずに retired に理由を書いて残してください（ID を再利用しない）", rule="OUT-04")
-        # 廃止した決定と、ready にした後に足した決定（末尾の番号）は、軸の順を問わない。ID を変えないため
+        # 廃止したルールと、ready にした後に足したルール（末尾の番号）は、軸の順を問わない。ID を変えないため
         custom = sorted((d for d in items if d["id"] not in standard and not retired(d)), key=lambda d: int(d["id"].split("-")[1]))
         firsts = [min((order.index(a) for a in d.get("axes", []) if a in order), default=0) for d in custom]
         if spec.get("status") != "ready" and firsts != sorted(firsts):
-            r.error(f"decision {prefix}-*", "番号は、軸のカタログの順（最初の軸の順）に振ってください", rule="OUT-04")
+            r.error(f"ルール {prefix}-*", "番号は、軸のカタログの順（最初の軸の順）に振ってください", rule="OUT-04")
     for sid, sd in standard.items():
         mine = next((d for d in decisions if d.get("id") == sid), None)
         if mine is None:
-            r.error(f"decision {sid}", "標準の決定がありません（init_skill.py が足す）")
+            r.error(f"ルール {sid}", "標準のルールがありません（init_skill.py が足す）")
         elif mine != sd:
-            r.error(f"decision {sid}", "標準の決定は変えないでください。スキル固有の決まりは別の決定として足す")
+            r.error(f"ルール {sid}", "標準のルールは変えないでください。スキル固有の決まりは別のルールとして足す")
     excluded = {}
     for item in spec.get("excluded_axes", []):
         axis = item.get("axis", "")
         if axis not in info:
             r.error("dev/spec.json excluded_axes", f"軸 {axis} はカタログにありません")
         elif info[axis]["cover"] != "decision":
-            r.error("dev/spec.json excluded_axes", f"軸 {axis} は spec の節か標準の決定で答えるので、対象外にできません")
+            r.error("dev/spec.json excluded_axes", f"軸 {axis} は spec の節か標準のルールで答えるので、対象外にできません")
         if not str(item.get("reason", "")).strip():
             r.error("dev/spec.json excluded_axes", f"軸 {axis} に reason がありません")
         excluded[axis] = item
@@ -282,12 +282,12 @@ def check_decisions(skill_dir: Path, spec: dict, r: Report) -> None:
                                                "X1 から順に先頭に置いてください（init_skill.py が入れる。references/skill-profiles.md）")
         for axis in _lib.load_profiles()[spec["kind"]].get("focus", []):
             if axis in excluded:
-                r.error("dev/spec.json excluded_axes", f"軸 {axis} は種類 {spec['kind']} の重点軸なので、対象外にできません。決定を書いてください")
+                r.error("dev/spec.json excluded_axes", f"軸 {axis} は種類 {spec['kind']} の重点軸なので、対象外にできません。ルールを書いてください")
     for axis in order:
         if info.get(axis, {}).get("cover") == "decision" and axis not in covered and axis not in excluded:
-            r.error("dev/spec.json", f"軸 {axis}（{info[axis]['name']}）が、どの決定にも excluded_axes にもありません")
+            r.error("dev/spec.json", f"軸 {axis}（{info[axis]['name']}）が、どのルールにも excluded_axes にもありません")
         if axis in covered and axis in excluded:
-            r.error("dev/spec.json", f"軸 {axis} は決定と excluded_axes の両方にあります")
+            r.error("dev/spec.json", f"軸 {axis} はルールと excluded_axes の両方にあります")
 
 
 def check_profile_inputs(skill_dir: Path, spec: dict, r: Report) -> None:
@@ -431,7 +431,7 @@ def check_contract(skill_dir: Path, spec: dict, r: Report) -> None:
                 if kind != "command":
                     r.error(cw, "rules は type が command の検査にだけ書けます")
                 elif extra not in decisions or "validate" not in decisions[extra].get("control", []):
-                    r.error(cw, f"rules の {extra} が、control に validate を持つ決定ではありません")
+                    r.error(cw, f"rules の {extra} が、control に validate を持つルールではありません")
             if "pattern" in check:
                 try:
                     re.compile(check["pattern"])
@@ -461,7 +461,7 @@ def check_contract(skill_dir: Path, spec: dict, r: Report) -> None:
         if len(members) < 2 or any(m not in ids for m in members):
             r.error(gw, "outputs に、一緒に変える出力の id を2つ以上書いてください")
         if group.get("rule") not in decisions or "validate" not in decisions[group["rule"]].get("control", []):
-            r.error(gw, f"rule {group.get('rule')} が、control に validate を持つ決定ではありません")
+            r.error(gw, f"rule {group.get('rule')} が、control に validate を持つルールではありません")
     include = spec.get("report", {}).get("include_output")
     if include is not None and include not in ids:
         r.error("dev/spec.json report", f"include_output {include} が outputs にありません")
@@ -478,31 +478,17 @@ def check_contract(skill_dir: Path, spec: dict, r: Report) -> None:
                     r.error(f"dev/spec.json report.sections[{i}]", f"run の {{in:{key}}} が inputs にありません")
     used = contract_rules(spec)
     format_rules = {fix.get("rule") for out in outputs for fix in out.get("format", [])}
-    probes_doc = _lib.load_json(skill_dir / "dev/probes.json") if (skill_dir / "dev/probes.json").is_file() else {}
-    probes = {p.get("id"): p for p in probes_doc.get("probes", [])}
     for d in decisions.values():
         rid, control = d.get("id"), d.get("control", [])
-        where = f"decision {rid}"
+        where = f"ルール {rid}"
         if "runtime" in control and not any(m in d.get("how", "") for m in _lib.RUNTIME_MARKS):
             r.error(where, f"control に runtime があるので、how に共通ランタイムの仕組み（{'、'.join(_lib.RUNTIME_MARKS)} のどれか）を書いてください")
         if d.get("probes") == ["builtin"]:
             continue
-        if "format" in control:
-            if rid not in format_rules:
-                r.error(where, "control に format があるのに、outputs の format で使われていません")
-            if not any(probes.get(pid, {}).get("fixed") for pid in d.get("probes", [])):
-                r.error(where, "control に format があるので、probes に、自動で直ることを確かめる違反例（fixed を持つ probe）を書いてください")
-        if "validate" in control or "format" in control:
-            if "validate" in control and rid not in used:
-                r.error(where, "control に validate があるのに、契約（outputs の rule か checks の rule）で使われていません")
-            listed = d.get("probes", [])
-            if not listed:
-                r.error(where, "control に validate か format があるので、probes に違反例の ID を書いてください")
-            for pid in listed:
-                if pid not in probes:
-                    r.error(where, f"probe {pid} が dev/probes.json にありません")
-                elif probes[pid].get("rule") != rid:
-                    r.error(where, f"probe {pid} の rule が {probes[pid].get('rule')} になっています")
+        if "format" in control and rid not in format_rules:
+            r.error(where, "control に format があるのに、outputs の format で使われていません")
+        if "validate" in control and rid not in used:
+            r.error(where, "control に validate があるのに、契約（outputs の rule か checks の rule）で使われていません")
         if "script" in control:
             paths = re.findall(r"scripts/[A-Za-z0-9_./-]+", d.get("how", ""))
             if not paths:
@@ -514,57 +500,11 @@ def check_contract(skill_dir: Path, spec: dict, r: Report) -> None:
             paths = re.findall(r"assets/[A-Za-z0-9_./-]+", d.get("how", ""))
             if not paths or not all((skill_dir / p.rstrip(".。,、")).exists() for p in paths):
                 r.error(where, "control に template があるので、how に実在するひな形のパス（assets/...）を書いてください")
-    for pid, probe in probes.items():
-        where = f"dev/probes.json {pid}"
-        if not _lib.PROBE_ID_RE.match(pid or "") or not str(pid).startswith(f"{probe.get('rule')}-"):
-            r.error(where, "id は <ルールID>-<英小文字か数字>（例: OUT-02-a）にしてください", rule="OUT-04")
-        if probe.get("rule") not in decisions:
-            r.error(where, f"rule {probe.get('rule')} が decisions にありません")
-        check_changes(skill_dir, where, probe.get("files", []), r)
-        if probe.get("fixed") is not None:
-            try:
-                re.compile(probe["fixed"])
-            except re.error as exc:
-                r.error(where, f"fixed が正規表現として不正です: {exc}")
-            if "format" not in decisions.get(probe.get("rule"), {}).get("control", []):
-                r.error(where, f"fixed は、control に format を持つ決定の probe にだけ書けます（rule {probe.get('rule')}）")
-        try:
-            re.compile(probe.get("expect") or "")
-            if not probe.get("expect"):
-                r.error(where, "expect（出力に現れるべき文字列の正規表現。ふつうはルールID）がありません")
-        except re.error as exc:
-            r.error(where, f"expect が正規表現として不正です: {exc}")
-    reviewed = {}
-    for sample in probes_doc.get("reviews", []):
-        sid, rule = sample.get("id", ""), sample.get("rule")
-        where = f"dev/probes.json reviews {sid or '(id なし)'}"
-        if not re.fullmatch(r"[A-Z]{2,5}-\d{2}-r\d+", sid) or not sid.startswith(f"{rule}-"):
-            r.error(where, "id は <ルールID>-r<番号>（例: OUT-03-r1）にしてください", rule="OUT-04")
-        if sid in probes or sid in {x for v in reviewed.values() for x in v}:
-            r.error(where, "id が重複しています")
-        if rule not in decisions or "review" not in decisions[rule].get("control", []):
-            r.error(where, f"rule {rule} が、control に review を持つ決定ではありません")
-        if not str(sample.get("description", "")).strip():
-            r.error(where, "description（どんな違反を入れるか）がありません")
-        check_changes(skill_dir, where, sample.get("files", []), r)
-        reviewed.setdefault(rule, []).append(sid)
-    for rid, d in decisions.items():
-        if "review" in d.get("control", []) and rid not in _lib.STANDARD_IDS and rid not in reviewed:
-            r.error(f"decision {rid}", "control に review があるので、dev/probes.json の reviews に、機械の検査を通ってしまう違反の見本を"
-                                       "1つ以上書いてください（レビューの検出率を測る。control-ladder.md の7章）")
-    baseline = probes_doc.get("baseline", {})
-    if not baseline.get("files") and not baseline.get("commands"):
-        r.error("dev/probes.json baseline", "files か commands で、検査に通る出力の見本を作ってください（probe はこれを壊して作る）")
-    for change in baseline.get("files", []):
-        check_from(skill_dir, "dev/probes.json baseline", change, r)
     if not _lib.is_foundation(skill_dir):
         examples = [p for p in (skill_dir / _lib.EXAMPLES_DIR).rglob("*") if p.is_file() and p.name != ".DS_Store"] \
             if (skill_dir / _lib.EXAMPLES_DIR).is_dir() else []
         if not examples:
             r.error(_lib.EXAMPLES_DIR, "検査に通る出力の見本を1つ以上置いてください（AI が形を写す元になる）", rule="OUT-02")
-        if not any(str(c.get("from", "")).startswith(_lib.EXAMPLES_DIR + "/") for c in baseline.get("files", [])):
-            r.error("dev/probes.json baseline", f"files の1つ以上を from: {_lib.EXAMPLES_DIR}/<ファイル> にしてください"
-                                                "（見本が検査に通ることを probe.py で確かめる）", rule="OUT-02")
         check_examples(skill_dir, spec, decisions, examples, r)
         check_scripts(skill_dir, decisions, r)
     for path in sorted((skill_dir / "scripts").glob("*.py")):
@@ -584,8 +524,77 @@ def check_contract(skill_dir: Path, spec: dict, r: Report) -> None:
             r.error(rel, "dev/spec.json から生成した内容と違います（手で編集しない。render_skill.py を実行する）")
 
 
+def check_probes(skill_dir: Path, spec: dict, r: Report) -> None:
+    """dev/probes.json（フェーズ5で書く）: ルールと違反例の対応、違反例とレビューの見本の書式、baseline。"""
+    decisions = {d.get("id"): d for d in spec.get("decisions", []) if not retired(d)}
+    probes_doc = _lib.load_json(skill_dir / "dev/probes.json") if (skill_dir / "dev/probes.json").is_file() else {}
+    probes = {p.get("id"): p for p in probes_doc.get("probes", [])}
+    for d in decisions.values():
+        rid, control = d.get("id"), d.get("control", [])
+        where = f"ルール {rid}"
+        if d.get("probes") == ["builtin"] or not ("validate" in control or "format" in control):
+            continue
+        if "format" in control and not any(probes.get(pid, {}).get("fixed") for pid in d.get("probes", [])):
+            r.error(where, "control に format があるので、probes に、自動で直ることを確かめる違反例（fixed を持つ probe）を書いてください")
+        listed = d.get("probes", [])
+        if not listed:
+            r.error(where, "control に validate か format があるので、probes に違反例の ID を書いてください")
+        for pid in listed:
+            if pid not in probes:
+                r.error(where, f"probe {pid} が dev/probes.json にありません")
+            elif probes[pid].get("rule") != rid:
+                r.error(where, f"probe {pid} の rule が {probes[pid].get('rule')} になっています")
+    for pid, probe in probes.items():
+        where = f"dev/probes.json {pid}"
+        if not _lib.PROBE_ID_RE.match(pid or "") or not str(pid).startswith(f"{probe.get('rule')}-"):
+            r.error(where, "id は <ルールID>-<英小文字か数字>（例: OUT-02-a）にしてください", rule="OUT-04")
+        if probe.get("rule") not in decisions:
+            r.error(where, f"rule {probe.get('rule')} が decisions にありません")
+        check_changes(skill_dir, where, probe.get("files", []), r)
+        if probe.get("fixed") is not None:
+            try:
+                re.compile(probe["fixed"])
+            except re.error as exc:
+                r.error(where, f"fixed が正規表現として不正です: {exc}")
+            if "format" not in decisions.get(probe.get("rule"), {}).get("control", []):
+                r.error(where, f"fixed は、control に format を持つルールの probe にだけ書けます（rule {probe.get('rule')}）")
+        try:
+            re.compile(probe.get("expect") or "")
+            if not probe.get("expect"):
+                r.error(where, "expect（出力に現れるべき文字列の正規表現。ふつうはルールID）がありません")
+        except re.error as exc:
+            r.error(where, f"expect が正規表現として不正です: {exc}")
+    reviewed = {}
+    for sample in probes_doc.get("reviews", []):
+        sid, rule = sample.get("id", ""), sample.get("rule")
+        where = f"dev/probes.json reviews {sid or '(id なし)'}"
+        if not re.fullmatch(r"[A-Z]{2,5}-\d{2}-r\d+", sid) or not sid.startswith(f"{rule}-"):
+            r.error(where, "id は <ルールID>-r<番号>（例: OUT-03-r1）にしてください", rule="OUT-04")
+        if sid in probes or sid in {x for v in reviewed.values() for x in v}:
+            r.error(where, "id が重複しています")
+        if rule not in decisions or "review" not in decisions[rule].get("control", []):
+            r.error(where, f"rule {rule} が、control に review を持つルールではありません")
+        if not str(sample.get("description", "")).strip():
+            r.error(where, "description（どんな違反を入れるか）がありません")
+        check_changes(skill_dir, where, sample.get("files", []), r)
+        reviewed.setdefault(rule, []).append(sid)
+    for rid, d in decisions.items():
+        if "review" in d.get("control", []) and rid not in _lib.STANDARD_IDS and rid not in reviewed:
+            r.error(f"ルール {rid}", "control に review があるので、dev/probes.json の reviews に、機械の検査を通ってしまう違反の見本を"
+                                       "1つ以上書いてください（レビューの検出率を測る。control-ladder.md の7章）")
+    baseline = probes_doc.get("baseline", {})
+    if not baseline.get("files") and not baseline.get("commands"):
+        r.error("dev/probes.json baseline", "files か commands で、検査に通る出力の見本を作ってください（probe はこれを壊して作る）")
+    for change in baseline.get("files", []):
+        check_from(skill_dir, "dev/probes.json baseline", change, r)
+    if not _lib.is_foundation(skill_dir) and not any(str(c.get("from", "")).startswith(_lib.EXAMPLES_DIR + "/")
+                                                    for c in baseline.get("files", [])):
+        r.error("dev/probes.json baseline", f"files の1つ以上を from: {_lib.EXAMPLES_DIR}/<ファイル> にしてください"
+                                            "（見本が検査に通ることを probe.py で確かめる）", rule="OUT-02")
+
+
 def check_examples(skill_dir: Path, spec: dict, decisions: dict, files: list[Path], r: Report) -> None:
-    """見本はすべて spec の examples に載せ、出力の決定（OUT-*）をどれかの見本の shows で体現させる。"""
+    """見本はすべて spec の examples に載せ、出力のルール（OUT-*）をどれかの見本の shows で体現させる。"""
     listed, shown = set(), set()
     for i, example in enumerate(spec.get("examples", []), 1):
         where = f"dev/spec.json examples[{i}]"
@@ -604,15 +613,15 @@ def check_examples(skill_dir: Path, spec: dict, decisions: dict, files: list[Pat
     for path in files:
         rel = path.relative_to(skill_dir).as_posix()
         if rel not in listed:
-            r.error(rel, "dev/spec.json の examples に、この見本の path と shows（体現する決定の ID）を書いてください", rule="OUT-02")
+            r.error(rel, "dev/spec.json の examples に、この見本の path と shows（体現するルールID）を書いてください", rule="OUT-02")
     for rid in decisions:
         if rid.startswith("OUT-") and rid not in shown:
-            r.error(f"decision {rid}", "どの見本もこの決定を体現していません。見本を直し、dev/spec.json の examples の shows にこの ID を"
-                                       "足してください（AI は規則より、一番近い見本を写す）", rule="OUT-02")
+            r.error(f"ルール {rid}", "どの見本もこのルールを体現していません。見本を直し、dev/spec.json の examples の shows にこの ID を"
+                                       "足してください（AI はルールの文より、一番近い見本を写す）", rule="OUT-02")
 
 
 def check_scripts(skill_dir: Path, decisions: dict, r: Report) -> None:
-    """スキル固有のスクリプトの決定性と、決定との対応（control-ladder.md の5章）。"""
+    """スキル固有のスクリプトの決定性と、ルールとの対応（control-ladder.md の5章）。"""
     folder = skill_dir / "scripts"
     for path in sorted(folder.iterdir()) if folder.is_dir() else []:
         if not path.is_file() or path.name in _lib.RUNTIME_FILES or path.suffix not in (".py", ".sh"):
@@ -630,9 +639,9 @@ def check_scripts(skill_dir: Path, decisions: dict, r: Report) -> None:
             continue
         owners = [rid for rid, d in decisions.items() if rel in d.get("how", "")]
         if not owners:
-            r.error(rel, "どの決定の how にも挙がっていません。スクリプトは決定を守らせるためだけに置き、その決定の how に書いてください")
+            r.error(rel, "どのルールの how にも挙がっていません。スクリプトはルールを守らせるためだけに置き、そのルールの how に書いてください")
         elif not any(re.search(r"(?<![A-Z])" + re.escape(o) + r"(?![\d-])", text) for o in owners):
-            r.error(rel, f"先頭の docstring に、このスクリプトを how に挙げた決定の ID（{'、'.join(owners)}）を書いてください")
+            r.error(rel, f"先頭の docstring に、このスクリプトを how に挙げたルールID（{'、'.join(owners)}）を書いてください")
 
 
 # ---------------------------------------------------------------- フェーズ5
@@ -659,6 +668,9 @@ def check_entry(skill_dir: Path, spec: dict, r: Report) -> None:
     expected = _lib.SECTIONS[_lib.labels(spec)]
     if titles != expected:
         r.error("SKILL.md", f"## の見出しは {expected} の順で過不足なく並べてください（今: {titles}）", rule="OUT-02")
+        for title in titles:
+            if title in _lib.OLD_SECTIONS:
+                r.error("SKILL.md", f"見出し「{title}」は「{_lib.OLD_SECTIONS[title]}」に改めました。見出しを直してください", rule="OUT-02")
     found = _lib.blocks(text)
     for block_id in _lib.BLOCKS:
         if block_id not in found:
@@ -689,10 +701,10 @@ def check_entry(skill_dir: Path, spec: dict, r: Report) -> None:
     for i, step in enumerate(joined, 1):
         ids = _lib.ID_IN_TEXT.findall(step)
         if not ids and "`" not in step:
-            r.error(f"SKILL.md 手順 {i}", "各手順に、決定のIDか `` ` `` で囲んだコマンドを入れてください（何に従うかを一意にする）", rule="OUT-02")
+            r.error(f"SKILL.md 手順 {i}", "各手順に、ルールIDか `` ` `` で囲んだコマンドを入れてください（何に従うかを一意にする）", rule="OUT-02")
         for rid in ids:
             if rid in retired_ids:
-                r.error(f"SKILL.md 手順 {i}", f"{rid} は廃止した決定です。手順から外してください")
+                r.error(f"SKILL.md 手順 {i}", f"{rid} は廃止したルールです。手順から外してください")
             elif rid not in decisions:
                 r.error(f"SKILL.md 手順 {i}", f"{rid} が decisions にありません")
         for word in _lib.vague_words(step):
@@ -702,7 +714,7 @@ def check_entry(skill_dir: Path, spec: dict, r: Report) -> None:
                      if p.name != "decisions.md")
     for rid, d in decisions.items():
         if "doc" in d.get("control", []) and not re.search(r"(?<![A-Z])" + re.escape(rid) + r"(?![\d-])", handwritten + refs):
-            r.error(f"decision {rid}", "control に doc があるので、SKILL.md の手順か references/ の本文にこの ID を書いてください")
+            r.error(f"ルール {rid}", "control に doc があるので、SKILL.md の手順か references/ の本文にこの ID を書いてください")
     for target in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", text):
         if re.match(r"[a-z]+://", target):
             continue
@@ -716,6 +728,18 @@ def check_entry(skill_dir: Path, spec: dict, r: Report) -> None:
 
 
 # ---------------------------------------------------------------- 仕上げ
+
+def place_problem(skill_dir: Path, spec: dict, project: Path) -> str:
+    """本体が OUT-01 の表の置き場（codex だけなら .agents/skills、ほかは .claude/skills）に無ければ、その指摘。"""
+    targets = spec.get("targets", [])
+    base = ".agents/skills" if set(targets) == {"codex"} else ".claude/skills"
+    home = project / base / spec.get("name", skill_dir.name)
+    if skill_dir.resolve() == home:
+        return ""
+    where = skill_dir.relative_to(project).as_posix() if skill_dir.is_relative_to(project) else skill_dir.as_posix()
+    return (f"本体が {where} にあります。targets（{','.join(targets)}）なら、本体は {home.relative_to(project).as_posix()} に置く。"
+            "そこへ移し、install.py --project を実行し直してください")
+
 
 def check_final(skill_dir: Path, spec: dict, r: Report, project: Path | None) -> None:
     if spec.get("status") != "ready":
@@ -775,13 +799,13 @@ def check_final(skill_dir: Path, spec: dict, r: Report, project: Path | None) ->
         for x in results.get("results", []):
             if x.get("others"):
                 r.warn(f"dev/results/probe-results.json {x['id']}", f"別のルール {', '.join(x['others'])} の指摘も出ています。"
-                                                                   "1つの違反例は1つの決定だけを破るようにしてください（control-ladder.md の7章）")
+                                                                   "1つの違反例は1つのルールだけを破るようにしてください（control-ladder.md の7章）")
         platforms = {w.get("platform") for w in results.get("wiring", []) if w.get("passed")}
         for target in spec.get("targets", []):
             if spec.get("control", {}).get("hooks", True) and target not in platforms:
-                r.error("dev/results/probe-results.json", f"{target} の hooks の配線の確認が成功していません")
+                r.error("dev/results/probe-results.json", f"{target} の hooks の動作の確認が成功していません")
         if any(not w.get("passed") for w in results.get("wiring", [])):
-            r.error("dev/results/probe-results.json", "失敗した配線の確認があります")
+            r.error("dev/results/probe-results.json", "失敗した hooks の動作の確認があります")
     rounds = sorted((skill_dir / "dev/results/convergence").glob("round-*/report.json"))
     skip = str(spec.get("convergence", {}).get("skip_reason") or "").strip()
     if skip:
@@ -815,7 +839,21 @@ def check_final(skill_dir: Path, spec: dict, r: Report, project: Path | None) ->
                         r.error(review_path.relative_to(skill_dir).as_posix(),
                                 f"{sample['id']}（{sample.get('rule')}）を見逃したエージェントがいます。完了前チェックリストの項目を直して"
                                 "測り直すか、続けないなら dev/convergence-report.md の「結論」に見本の ID と残した理由を書いてください", rule="STEP-04")
+        for traces_path in sorted((skill_dir / "dev/results/convergence").glob("round-*/traces.json")):
+            rnd = int(traces_path.parent.name.split("-")[1])
+            lacking = _lib.stale_analyses(skill_dir, rnd)
+            if lacking:
+                r.error((traces_path.parent / "analysis.json").relative_to(skill_dir).as_posix(),
+                        f"AI の分析が無いか、記録（traces.json）を取り直す前の分析です（{', '.join(lacking[:4])}"
+                        + (f" ほか {len(lacking) - 4} 件" if len(lacking) > 4 else "") + "）。convergence.py の analysis-prepare、"
+                        "prompts か run（--kind analysis）、analysis-collect を実行してください（convergence-test.md の3章）", rule="STEP-02")
+            for problem in _lib.uncited_findings(skill_dir, rnd, text):
+                r.error("dev/convergence-report.md", f"{problem}。round-{rnd}/analysis.md の指摘を確かめて分類し、「## 動きの指摘」の表に"
+                                                     "書いてください（convergence-test.md の5章・7章）", rule="STEP-04")
     if project is not None:
+        problem = place_problem(skill_dir, spec, project)
+        if problem:
+            r.error("install", problem, rule="OUT-01")
         code, output = _lib.run([sys.executable, str(skill_dir / "scripts/install.py"), "--project", str(project),
                                  "--targets", ",".join(spec.get("targets", [])), "--check"]
                                 + ([] if spec.get("control", {}).get("hooks", True) else ["--no-hooks"]), skill_dir)
@@ -831,7 +869,7 @@ def main() -> int:
     parser.add_argument("--gate", action="store_true", help="status が building ならフェーズ1、ready なら --final")
     parser.add_argument("--project", help="--final のとき、置き場所と hooks も調べるプロジェクトのルート")
     parser.add_argument("--rule", help="エラーの行頭を ERROR でなくこのルールIDにする（契約の command 検査から呼ぶとき）")
-    parser.add_argument("--seal", action="store_true", help="--final でエラーが無ければ assets/seal.json を書く（封印）")
+    parser.add_argument("--seal", action="store_true", help="--final でエラーが無ければ assets/seal.json を書く（合格時の指紋）")
     args = parser.parse_args()
 
     skill_dir = Path(args.dir).resolve()
@@ -844,7 +882,7 @@ def main() -> int:
     r = Report()
     check_structure(skill_dir, spec, r)
     if args.seal and not final:
-        _lib.fail("--seal は --final と一緒に使います（全部の検査に通った状態だけを封印する）")
+        _lib.fail("--seal は --final と一緒に使います（全部の検査に通った状態だけを記録する）")
     if phase >= 3:
         check_decisions(skill_dir, spec, r)
         check_inputs(spec, r)
@@ -853,6 +891,8 @@ def main() -> int:
         check_contract(skill_dir, spec, r)
     elif phase >= 4:
         r.warn("skill_lint", "前のフェーズのエラーがあるため、フェーズ4以降の検査を飛ばしました")
+    if phase >= 5 and not r.errors:
+        check_probes(skill_dir, spec, r)
     if phase >= 5 and (skill_dir / "SKILL.md").is_file():
         check_entry(skill_dir, spec, r)
     if final:
@@ -862,11 +902,11 @@ def main() -> int:
     for rule, error in r.errors:
         print(f"{(rule or args.rule) if args.rule else 'ERROR'} {error}")
     label = "final" if final else f"phase {phase}"
-    print(f"[{label}] {spec.get('name')}: 決定 {len(spec.get('decisions', []))} 件、出力 {len(spec.get('outputs', []))} 件、"
+    print(f"[{label}] {spec.get('name')}: ルール {len(spec.get('decisions', []))} 件、出力 {len(spec.get('outputs', []))} 件、"
           f"エラー {len(r.errors)} 件、警告 {len(r.warnings)} 件")
     if args.seal and not r.errors:
         count = rt.write_seal(skill_dir, rt.load_contract(skill_dir))
-        print(f"封印しました: {rt.SEAL_REL}（保護ファイル {count} 件）。変えると、封印し直すまで start が止まります")
+        print(f"合格時の指紋を記録しました: {rt.SEAL_REL}（保護ファイル {count} 件）。変えると、指紋を記録し直すまで start が止まります")
     return 1 if r.errors else 0
 
 

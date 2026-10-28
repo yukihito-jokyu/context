@@ -1,12 +1,12 @@
 # 受付（フェーズ0）
 
-フェーズ0では、作るスキルの「受付の項目」を決めて `dev/spec.json` に書く。受付の項目は `name`、`kind`、`mode`、`language`、`targets`、`title`、`purpose`、`triggers` の8つである。ここで決めた値から、置き場所と description が機械的に決まる。skill-foundation 自身は、スキルを作る側なので `kind` を持たず、名前も `<動詞>-<目的語>` の形にしていない（`init_skill.py` と `skill_lint.py` が skill-foundation 自身を、この2つの検査から外す）。そのため、ここで揺れると後のすべてが揺れる。
+フェーズ0では、作るスキルの「受付の項目」を決めて `dev/spec.json` に書く。受付の項目は `name`、`kind`、`mode`、`language`、`targets`、`title`、`purpose`、`triggers` の8つである。ここで決めた値から、置き場所と description が機械的に決まる。skill-foundation 自身は、スキルを作る側なので `kind` を持たず、名前も `<動詞>-<目的語>` の形にしていない（`init_skill.py` と `skill_lint.py` が skill-foundation 自身を、この2つの検査から外す）。そのため、ここでばらつくと後のすべてがばらつく。
 
 この章は次の順に読む。1章でユーザーに何を聞くかを決め、2章から5章で各項目の値を決め、6章で対象外の依頼を断る。
 
 ## 1. 聞くことと、聞かずに決めること
 
-受付の質問は `run.py start` の前に1回だけまとめて行う（CTL-03）。次の表の「依頼に無いとき」に従う。表に無い項目は聞かない。start の後に聞くのは、OUT-06（既存のスキルへの後付け）、STEP-02（収束テストを実行するか）、STEP-04（ラウンドを足すか）の決定表が `run.py wait --question` を指示するときだけである。
+受付の質問は `run.py start` の前に1回だけまとめて行う（CTL-03）。次の表の「依頼に無いとき」に従う。表に無い項目は聞かない。start の後に聞くのは、OUT-06（既存のスキルへの後付け）、STEP-02（収束テストを実行するか）、STEP-04（ラウンドを足すか）の場合分けが `run.py wait --question` を指示するときだけである。
 
 | 項目 | 依頼に無いとき |
 |---|---|
@@ -69,6 +69,8 @@
 
 置き場は、作業しているプロジェクトのルートからの相対パスである。ユーザーのホーム（`~/.claude/skills`、`~/.agents/skills`）には置かない。
 
+`skill_lint.py --final --project` は、本体がこの表の置き場にあるかと、もう一方の置き場が本体へのリンクか（`install.py --check`）を確かめる。本体をほかの場所（プロジェクトの直下など）に置いたり、置き場に複製を置いたりすると、完了しない。依頼が表と違う置き場を求めるときは、先にユーザーに表の置き場でよいかを聞く。
+
 ## 5. 起動の条件（`triggers`）
 
 `triggers` は description の元になる。
@@ -92,6 +94,6 @@
 |---|---|
 | リポジトリ全体の規約、lint、ディレクトリ構造を作る | pattern-foundation |
 | 1回限りの作業をしてほしい（繰り返し使う手順ではない） | その作業を直接行う |
-| skill-foundation で作ったスキルの決定や契約の小さな修正 | そのスキルの `dev/spec.json` を直し、`render_skill.py` と `skill_lint.py` を実行する |
+| skill-foundation で作ったスキルのルールや契約の小さな修正 | そのスキルの `dev/spec.json` を直し、`render_skill.py` と `skill_lint.py` を実行する |
 | skill-foundation で作っていない既存のスキルを、誰が使っても同じ結果になるようにしたい | 対象である。spec の `mode` を `retrofit` にして SKILL.md の手順2に進む（OUT-06） |
 | 上のどれでもない | 対象である。SKILL.md の手順2に進む |
