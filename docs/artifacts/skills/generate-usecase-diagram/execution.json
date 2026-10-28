@@ -3,58 +3,6 @@
   "skill": "generate-usecase-diagram",
   "skill_source": "utils/skills/design/generate-usecase-diagram/SKILL.md",
   "skill_sha256": "e45d5cea82eeb724645a11d292ea44b3f9fef6243feea407a54f03bead8fbd48",
-  "recorded_at": "2026-10-26T23:43:19.040Z",
-  "runner": {
-    "kind": "subagent",
-    "agent_id": "/root/usecase_public_example",
-    "task": "共通Skillの公開作例を、作成に参加していない独立した新しいサブエージェントとして実行してください。依頼全文は /private/tmp/context-85-public-task.txt にあります。まず全文を読み、その内容を実際の作業依頼として遂行してください。あなたの実際の識別子は /root/usecase_public_example です。スキル正本は封印済みです。正本やリポジトリの設定、GitHubには変更を加えず、指定された作業用ディレクトリと公開成果物ディレクトリだけに作業を限定します。新規の実行を行い、実入力・実出力・画像・操作検査・来歴を保存してください。途中の詰まりは報告し、スキル正本を自分で直さないでください。execution.jsonのrunner.taskは、実際に渡されたこの指示と参照した依頼全文を保存してください。\n\n参照した依頼全文：\n完成版のgenerate-usecase-diagramを読み、次の公開可能な題材に実際に適用してください。正本は <user-home>/Documents/github_projects/context/utils/skills/design/generate-usecase-diagram/ です。SKILL.mdと必要な同梱資料を読んで実行し、正本を変更しないでください。PYTHONDONTWRITEBYTECODE=1を使ってください。\n\n実行用の作業場所は /private/tmp/context-85-public-example 、公開成果物の保存先は <user-home>/Documents/github_projects/context/docs/artifacts/skills/generate-usecase-diagram/ です。両者を分けてください。作業場所で初期化したGitは実行検査用で、リポジトリ本体ではコミットしません。GitHubへの投稿・PR作成・インストール・hooks登録・グローバル設定の変更は許可しません。既存のMermaidは <user-home>/Documents/github_projects/context/node_modules/mermaid/dist/mermaid.min.js をUSECASE_MERMAID_JSで指定できます。既存Chromeを使い、追加のパッケージは導入しません。Chromeがsandbox内で拒否される場合は、その実行だけ必要な権限を自動レビューに渡してください。\n\n実行する依頼：\n図書館システムのユースケース図をMermaid原本・PNG・HTMLカタログで作ってください。カタログ名はlibrary、機能範囲別に次の2枚に分けます。\n1. 貸出：利用者は本を借りる。司書も利用者に代わって本を貸し出せる。本の貸出には貸出資格の確認が必須である。利用者が希望した場合にだけ、貸出票の発行を貸出に追加する。\n2. 蔵書管理：司書は本を登録できる。主任司書は司書の操作を引き継ぎ、本を除籍できる。\n要件にない機能を追加せず、日本語ラベル、include・extend・汎化の向きを確認してください。\n\n実際にstart、build、preview、全PNGと画面の目視、review、check、finishまで行ってください。自動操作検査の成功と目視、利用者の最終確認を区別し、利用者の最終確認は未実施と記録します。画像を開いた事実を捏造しないでください。コマンド・終了コード・観測結果を実行記録の下に保存し、finish後に公開先へ整理してください。\n\n公開先へ input.md（上の実行する依頼そのもの）、output.md（finishのstdout全文をそのまま）、catalog/（index.html、catalog.json、validation.json、diagrams/原本とPNG）、preview.png（review後の実画面）、catalog.zip（index.htmlをルートにした一式）、validation.json（実コマンドと終了コード、画像の観測、HTML操作結果、利用者確認未実施）を保存してください。preview後に画面を開いて確認してください。ZIPと実ファイルの整合も検査します。\n\nexecution.jsonは既存の docs/artifacts/skills/skill-foundation/execution.json と scripts/sync-examples.mjs の構造を参考にし、schema_version、skill、skill_source、skill_sha256、recorded_at、runner、input、summary、stage、checks、downloads、text_output、html_output、preview、preview_alt、preview_note、source_files、source_sha256、artifactsを記録します。runnerはkind=subagent、agent_idはあなたの実際の識別子、taskはこの依頼全文です。sourceManifestは <user-home>/Documents/github_projects/context/scripts/example-skill-source.cjs のヘルパーを使い、正本ディレクトリ全体の実行前後の一致を確認してください。execution.json以外の全ファイルをartifactsへSHA-256付きで登録し、verifyExampleSkillSourceとverifyArtifactsも実行します。実行記録から本文を捏造したり、古い作例をコピーして作り直し扱いしたりしません。スキルの欠陥で進めない場合は正本を編集せず、失敗の具体的な根拠を返してください。\n\n実行場所、公開成果物、確認した画像・操作、コマンドの結果、実施していない利用者確認はvalidation.jsonへ記録してください。最後の返答にはfinishが出力した本文をそのまま使ってください。\n"
-  },
-  "input": "input.md",
-  "summary": "図書館システムの貸出と蔵書管理を2枚に分け、Mermaid原本・PNG・HTMLカタログを新規生成した例です。必須の資格確認、希望時の貸出票発行、主任司書の役割継承を表します。",
-  "stage": "start・build・preview・全PNGと実画面の目視・review・check・finishを実施（利用者の最終確認は未実施）",
-  "checks": [
-    "start・build・preview・review・check・finishは成功。sandbox内の初回buildはChrome exit=-6で停止し、その実行だけ権限レビュー後に再実行して成功しました。",
-    "全2枚のPNGとpreview後・review後の実画面をview_imageで開き、日本語、境界、関係線を目視しました。include・extend・汎化の向きを要件と照合しました。",
-    "Chromeによる自動操作検査で、一覧2枚、検索0件、拡大と閉じる、原本表示、取得リンク6本、相対リンク、横方向のはみ出しなしを確認しました。",
-    "追加の対話ブラウザでの手動操作はfile://のURLポリシーにより未実施です。利用者の最終確認は未実施です。",
-    "finishのstdout全文をoutput.mdへ保存し、カタログの7ファイルをZIPの同名ファイルとバイト単位で照合しました。",
-    "sourceManifestで実行前後の正本76ファイルが一致しました。verifyExampleSkillSourceとverifyArtifactsを実行し、全公開ファイルをSHA-256付きで登録しました。"
-  ],
-  "downloads": [
-    {
-      "file": "catalog.zip",
-      "label": "HTML・Mermaid原本・PNG・変換記録の一式（ZIP）"
-    },
-    {
-      "file": "output.md",
-      "label": "finishの実出力全文（Markdown）"
-    },
-    {
-      "file": "validation.json",
-      "label": "コマンド・画像目視・HTML操作の検証記録（JSON）"
-    },
-    {
-      "file": "catalog/diagrams/d01.mmd",
-      "label": "貸出のMermaid原本"
-    },
-    {
-      "file": "catalog/diagrams/d01.png",
-      "label": "貸出のPNG"
-    },
-    {
-      "file": "catalog/diagrams/d02.mmd",
-      "label": "蔵書管理のMermaid原本"
-    },
-    {
-      "file": "catalog/diagrams/d02.png",
-      "label": "蔵書管理のPNG"
-    }
-  ],
-  "text_output": "output.md",
-  "html_output": "catalog/index.html",
-  "preview": "preview.png",
-  "preview_alt": "図書館システムの貸出と蔵書管理の2枚を表示したHTMLカタログの実画面",
-  "preview_note": "review後に既存Chromeで保存し、view_imageで開いて確認した実画面です。操作は自動検査で確認し、利用者の最終確認は未実施です。",
   "source_files": [
     {
       "file": "SKILL.md",
@@ -94,7 +42,7 @@
     },
     {
       "file": "assets/examples/catalog/validation.json",
-      "sha256": "c6f4173fdcac5ae65c557315518177e05921b88c19efb938138aef50df7087f0"
+      "sha256": "0f96fe7fbff6ddeb2e561639d36102d9ef6708ecefc695437f66911178cddcb7"
     },
     {
       "file": "assets/examples/request.json",
@@ -110,11 +58,11 @@
     },
     {
       "file": "assets/examples/review/validation.json",
-      "sha256": "af6eee1961139f48e3eadb9197eb3cea28ac9a7517492ca514662f1afa418fec"
+      "sha256": "8a087b333d5a2afb754bb7e0410a938a5b35eb0fe07e2252366ef65d53fed0d3"
     },
     {
       "file": "assets/seal.json",
-      "sha256": "535581aefab0992e236fe77ba60da2199dc02020c40848d37aaaa43e4453e4fb"
+      "sha256": "24787be0d1a5783a3372c4ae6b439f27b01dcc81240434724a7d9bea6e32addf"
     },
     {
       "file": "dev/convergence-report.md",
@@ -130,7 +78,7 @@
     },
     {
       "file": "dev/probes.json",
-      "sha256": "e003b9b688fb35d68f626d232e41ff623888274f78dc4626d9e0e8f99458925b"
+      "sha256": "f0dd751ea61bf034c0bd6ad8d5623b7c2020289943b00deea72b9738f076e58e"
     },
     {
       "file": "dev/research.md",
@@ -138,51 +86,51 @@
     },
     {
       "file": "dev/results/convergence/round-1/T1-typical/claude-1.patch",
-      "sha256": "97e19e05e59d482a4cf9ec4ac0ee68d949d94db6b14cd69a013499d31df33a73"
+      "sha256": "2581a95a99c64b113664e0c34cd132221464ed25088912543259bcc53b8652f1"
     },
     {
       "file": "dev/results/convergence/round-1/T1-typical/claude-2.patch",
-      "sha256": "8865a596fee0179597e20c8134309acc0fb3471b0df7ba6ec92c93d7b6598f3b"
+      "sha256": "bc03cf040761c9983bc73cc2482ba5e200d5dfd32c761c9053cda51e8a2741f9"
     },
     {
       "file": "dev/results/convergence/round-1/T1-typical/codex-1.patch",
-      "sha256": "d392d3e9a5ad8580994faa3bec05de39e8f6226bdaa4424c82cc62b79e8ae799"
+      "sha256": "7e295af2d12ebaad92f63ec7cf00620fbcc45a50050ff4e625d98d68b6277d1f"
     },
     {
       "file": "dev/results/convergence/round-1/T1-typical/codex-2.patch",
-      "sha256": "27e03c12283376d77cac700c772e4b8749784412f40a71cb285578f11f0969d7"
+      "sha256": "d25d5ceedf60d7aa21774989fe42cef740f4f0e14acfabb92b2487f7e7c36e1c"
     },
     {
       "file": "dev/results/convergence/round-1/T2-default/claude-1.patch",
-      "sha256": "10bb7783642e653edd4761fe3df02a78fd79c6998c9b572f58623ea45443dce2"
+      "sha256": "258c35d34bf9bf1486db75479e2e23f0c77dcff9dce9678fcaf1513547e3bf47"
     },
     {
       "file": "dev/results/convergence/round-1/T2-default/claude-2.patch",
-      "sha256": "25d96b20884fa0b2df46ee56dedd1532d117b437347546e37d1ac5c9882c4bef"
+      "sha256": "b928641ab4e1b2008aedfe998345e7abf92093a199a1742badb7120f0d052640"
     },
     {
       "file": "dev/results/convergence/round-1/T2-default/codex-1.patch",
-      "sha256": "ffb7672bc59e164a7924b1b9a532f8feac8b012025ce26d26969bddb9a72f062"
+      "sha256": "31479f043718084813e86b5a6b6aa359919fcf42dfba543cb1c8bb63d8d89885"
     },
     {
       "file": "dev/results/convergence/round-1/T2-default/codex-2.patch",
-      "sha256": "4e6e24b7af3642d1659ad03ffeaff271b13dba873c4f7a2e209fa3ddfe050ce0"
+      "sha256": "21b86f6485cf0b25392e3d90c148508205e953c49d7e66e426d0e5ea0c834ae6"
     },
     {
       "file": "dev/results/convergence/round-1/T3-edge/claude-1.patch",
-      "sha256": "f62696ae5ea028d5a986d095cc187f6fc892b1d39955e29c6b152e99175cbfa1"
+      "sha256": "ea687875dc9dae3fefda5bf8234d2cd19f345b26c3ec06b79b2bfb4eb481dd6e"
     },
     {
       "file": "dev/results/convergence/round-1/T3-edge/claude-2.patch",
-      "sha256": "60a732a1749c3d2caedf5d27cfd4c40cc1d7fd0d05118da181f6a00af3dcb347"
+      "sha256": "d26577214399612d77bf02152bdb6220d5fc4ae1bd6deb23346f3da077648570"
     },
     {
       "file": "dev/results/convergence/round-1/T3-edge/codex-1.patch",
-      "sha256": "f8fd71a3965e24f5a1747c1bd57f6daaca368825104616b54f76c2bfc2cbbb1a"
+      "sha256": "349caf059834bc10d2614d795f43287b47b75e13a80f4858f58d57731189dc03"
     },
     {
       "file": "dev/results/convergence/round-1/T3-edge/codex-2.patch",
-      "sha256": "06328ae94ed8e8ced5914615c568d7a89ba6985abf35f27bb5958ff00573a079"
+      "sha256": "a4cb83c7bcf5cddb1ede2380a6890052c750302f01134cfb15017f3be96d47a3"
     },
     {
       "file": "dev/results/convergence/round-1/report.json",
@@ -194,35 +142,35 @@
     },
     {
       "file": "dev/results/convergence/round-2/T1-typical/claude-1.patch",
-      "sha256": "be2cd68fa7758f337ee27128e0196917f7433fbe81d26b39b5bfb48da85d5b81"
+      "sha256": "7102c53af5830eebbbf5b02359000bbd4aecd4c48ee1de91ee4863dd2ed694d2"
     },
     {
       "file": "dev/results/convergence/round-2/T1-typical/claude-2.patch",
-      "sha256": "7127f88a443427a87ced5edc51ad2cc452f00b06d29f916514762cca2d0b3823"
+      "sha256": "1974c854e1e3cdb94790795a8e0bfcdb37059775add5f6a9d106806775059606"
     },
     {
       "file": "dev/results/convergence/round-2/T1-typical/codex-1.patch",
-      "sha256": "bde5318976b117ae83f6d6ec34bccf2d0f6824486b5435935a2892e69488499c"
+      "sha256": "c105cd09b9bc6b4d67ac474c55132e9af7bd81c9c3bf327ffdec92ef3209883b"
     },
     {
       "file": "dev/results/convergence/round-2/T1-typical/codex-2.patch",
-      "sha256": "0e474d004a46f120749f97f0bed3ef920aaaa2fc7d260f7ad51d299f70eb221d"
+      "sha256": "3e58d6e226ba18b2c81a2657f1ae74fa021b87f5cfe5beab14384489e6f337b5"
     },
     {
       "file": "dev/results/convergence/round-2/T2-default/claude-1.patch",
-      "sha256": "309fdcbada5adb9a45b175232d9c6e980682c1435c267e12cbdbf11ffd64cf56"
+      "sha256": "e8e87b6db7bb5417328f1ab05959616aa911826a562688e076802658dd59ba43"
     },
     {
       "file": "dev/results/convergence/round-2/T2-default/claude-2.patch",
-      "sha256": "5c9e21873ee625488c63ab2f7310c20da317a471bb3de21cecebd1e2ecd83370"
+      "sha256": "c52995758d0d804a81583a2688c9e6c424ad6925d6f6146c76be805761f7b1d4"
     },
     {
       "file": "dev/results/convergence/round-2/T2-default/codex-1.patch",
-      "sha256": "fcd4ce746212e7b536a264b4d036f2acaa604557fcc369d6903d1499682565ca"
+      "sha256": "6e902be8a5229110683e7ec1f16544f7f63a9cac93d244cc7d4fdf287d865d85"
     },
     {
       "file": "dev/results/convergence/round-2/T2-default/codex-2.patch",
-      "sha256": "d0b2627c7f8ef47f1755a84003e4399d75c74e4ff2a4a1db6127e98f897252aa"
+      "sha256": "ed47dae525fbc49683991c742e0bf339d9f9b89a912e223243ebc7d48e6132b9"
     },
     {
       "file": "dev/results/convergence/round-2/T3-edge/claude-1.patch",
@@ -234,11 +182,11 @@
     },
     {
       "file": "dev/results/convergence/round-2/T3-edge/codex-1.patch",
-      "sha256": "b15bc3a959ce11c5bba28c2bfdb7674030102d34bff9f9b368c7ab789d1210c4"
+      "sha256": "2e2336fa780465dc2a52558312d5c68349d994aa9bc7146132e6cf78f4e40985"
     },
     {
       "file": "dev/results/convergence/round-2/T3-edge/codex-2.patch",
-      "sha256": "9ec155e1cd30b16a81687560834deaad584d0fc64d0932ddb6915648c4a4acc2"
+      "sha256": "6b02c88cc98b011752a2358cfc5108d53c4b05cfdd0daf8d6bf01672d5e382d1"
     },
     {
       "file": "dev/results/convergence/round-2/report.json",
@@ -250,35 +198,35 @@
     },
     {
       "file": "dev/results/convergence/round-3/T1-typical/codex-1.patch",
-      "sha256": "0af7d42016bb549a0edc7f30a79046f0c81010ed4b3e0ff9551452d5dd772d28"
+      "sha256": "755d9e95882abebde990bf7c37969221320c4e9c1da5d50e6e94e42f8fb38eef"
     },
     {
       "file": "dev/results/convergence/round-3/T1-typical/codex-2.patch",
-      "sha256": "f58f53092f404fe6ae18355e4dbe551825b68ba01cbe108ee90457d738859a74"
+      "sha256": "b22f8a03b1a63a6607ffa68a7c8dc9a4174b6a3be04b904248f5debf412adaaf"
     },
     {
       "file": "dev/results/convergence/round-3/T2-default/codex-1.patch",
-      "sha256": "7fe38d937781c1d748429caff9d4aeb82321dc987572c2d161a57ad9f09a51aa"
+      "sha256": "14bf837dcfb48c8ad5a292ae76c4959f7ddcd5a1c7048ae54de69f2f1b9dc777"
     },
     {
       "file": "dev/results/convergence/round-3/T2-default/codex-2.patch",
-      "sha256": "a0fc34ee2f2c1d7d01d10b2c744bded27ce2976c4eb63307f2f587ae36249303"
+      "sha256": "ee9e89418f911f4d5cf473c3661abac5338636a8beb8b4ce45ce900d13154170"
     },
     {
       "file": "dev/results/convergence/round-3/T3-edge/codex-1.patch",
-      "sha256": "66e5551c6dc716aab2e71a99f697e2d004db2ce70e031cf67a5ee437dcdd2e25"
+      "sha256": "778cd57627ebd35fc29d36df5071ef93583db000d6f1c758a45ee39e7cac8653"
     },
     {
       "file": "dev/results/convergence/round-3/T3-edge/codex-2.patch",
-      "sha256": "35097af3e7c5cfd916f800d801af2ec5ca9370021383f38a005b4614ec682890"
+      "sha256": "918ee6fed551ba9cb878133383559e7fda5338782339ed1c4168aaa824d5767a"
     },
     {
       "file": "dev/results/convergence/round-3/T4-holdout/codex-1.patch",
-      "sha256": "c6e965ff96d5e4355fe4c01654f6a1c70f673163561c0858452c57addcdb7724"
+      "sha256": "44a2a1d6560597c0de7300ac930342a870eec4c04d40cb3861cd81b7f01526b4"
     },
     {
       "file": "dev/results/convergence/round-3/T4-holdout/codex-2.patch",
-      "sha256": "c7b2960314f47fb8e6005e58c9bc4058cf4cba569cee35282def08d371fbc328"
+      "sha256": "2010c156b3cc6db1b9d71d504ee70cd363668b798237707a1285bdb7628c9075"
     },
     {
       "file": "dev/results/convergence/round-3/report.json",
@@ -306,7 +254,7 @@
     },
     {
       "file": "dev/results/render-validation.json",
-      "sha256": "52edeb6cd22bca678e8631098a5f751c67461276b005fa9c976fd8a1fd819eaf"
+      "sha256": "f09d7043be94c3fc5a577ed6f7bbe2c7b37b78586d2c2099ed0915bd805f03d7"
     },
     {
       "file": "dev/results/response-format.json",
@@ -326,7 +274,7 @@
     },
     {
       "file": "dev/spec.json",
-      "sha256": "aeb8af85bf6bd98e679c5e295af9bfe85ce1549d6cb824fa63eeb6442e8abebd"
+      "sha256": "e69f2e07ccc7a6f574579f6ea5d9cb145fde257f8fdf088b4d6fab3cecc33157"
     },
     {
       "file": "references/authoring.md",
@@ -361,267 +309,171 @@
       "sha256": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76"
     }
   ],
-  "source_sha256": "0fdd3f8a8a46af2cb14817e8ecd813fb939533ca2a1d6ce0a87ab65c7c60a341",
-  "artifacts": [
+  "source_sha256": "2e1829ac18a6ed26dcc2e3ae4a65fefb63ed8e04beca01b059ca4f8aaa985816",
+  "recorded_at": "2026-10-28T12:51:25.815997+00:00",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "/root/refresh_model_examples",
+    "task": "AGENTS.md / skill-authoring の公開成果物再作成要件に従う独立実行担当です。作業リポジトリは /private/tmp/context-privacy-rewrite。元ワークスペースは変更しない。正本は親が個人情報を除去して封印済みで一切変更しない。担当は generate-domain-model、generate-domain-model-from-code、generate-usecase-diagram の3つの docs/artifacts/skills/<name>/ を全削除し、現在のinput.mdとexecution.jsonを先に確認して、更新後のSKILL.mdを実際に同じ公開題材へ適用し再作成することです。utils/skills/authoring/skill-authoring/SKILL.md と references/docs-examples.md を読む。旧出力コピーやハッシュ付け替えで新規実行扱いしない。既存記録の実行用スクリプトを参考に新しい/tmp作業場所で実行することは可。start/build/PNG/HTML/ブラウザ操作/check/finish等はSkillに沿って行い、実施した事実と未実施の人間承認を分けて記録する。既存Chrome・node_modulesあり（repo node_modulesは用意済み）。外部インストールや投稿は不要。Chrome等がsandboxで拒否されたら必要な実行だけrequire_escalatedで再実行可能。出力公開前に /private/tmp/context-privacy-transform.py のsanitize(bytes, relativePath)をimportlibで読み、ホームユーザー名とChrome/Python等実環境詳細版を伏せる。mermaid major12等のスキル動作に必要な互換性情報は維持する。記録に環境情報マスクを明記し、execution.json runner.kind=subagent、agent_id実ID、task実依頼文、sourceManifest現在ソース、artifactsマスク後全SHAを scripts/example-skill-source.cjs のヘルパーで生成・検証する。公開用taskには個人ホーム絶対パスを書かない。ソースは封印済みのためsealの不整合等に気づいたら自分で直さず親へ連絡。全体sync、コミット、pushは親が担当。担当3ディレクトリ以外を変更せず、他エージェントと同時作業中なので全体restore/resetは禁止。各スキル完成時点で親へ進捗、3つ完了後最終報告してください。"
+  },
+  "input": "input.md",
+  "summary": "図書館の貸出と蔵書管理を2図に分け、必須の資格確認・希望時の貸出票・主任司書の役割継承を表すMermaid・PNG・HTMLを新規生成しました。",
+  "stage": "新規生成・PNGと実画面の目視・HTML操作・check・finish・ZIP照合まで完了。利用者の最終確認と製品内hooks自動発火は未実施。",
+  "checks": [
+    "preflight・start・build・preview・review・check・finish を実行し、指摘0件で終了。",
+    "全2枚のPNGとpreview実画面を開き、日本語・境界・関係線を目視。includeは必須資格確認へ、extendは追加の貸出票から貸出へ、汎化は主任司書から司書への向きを確認。",
+    "Chrome自動操作で一覧2枚・画像妥当性・検索0件・拡大と閉じる・原本表示・取得リンク6本・相対リンク・横はみ出しなしを確認。保存先への実ダウンロードは今回未検証。",
+    "公開前に個人ホーム名と実環境の詳細版をマスク。ZIP全件の展開内容が公開ファイルとbyte一致。正本全体は実行前後で不変。",
+    "マスク後の公開カタログを正本catalog.pyのcheck/verifyで再検査し合格。"
+  ],
+  "downloads": [
     {
       "file": "catalog.zip",
-      "sha256": "1f45546efca32f2c4f4e7cb765afa76a779049197398ee5259f5fdd075952e40",
-      "bytes": 42696
-    },
-    {
-      "file": "catalog/catalog.json",
-      "sha256": "c2d5ce2540ffbaf849dc55294c59789ea6a901840a13e217228647828aa33f0c",
-      "bytes": 1448
-    },
-    {
-      "file": "catalog/diagrams/d01.mmd",
-      "sha256": "d505966d36b5a63d2dd55b37aad6e7a398fcce95398ef84abf4091aa023674ae",
-      "bytes": 302
-    },
-    {
-      "file": "catalog/diagrams/d01.png",
-      "sha256": "63b0acb7403c0c17fa186b30aa2e1957d52e36e38fec5101f126f43c7a7735de",
-      "bytes": 22585
-    },
-    {
-      "file": "catalog/diagrams/d02.mmd",
-      "sha256": "726da31e5639df2e01e873a46fc407310f0a2bb3f8fca76a6383eb668b2501b0",
-      "bytes": 229
-    },
-    {
-      "file": "catalog/diagrams/d02.png",
-      "sha256": "b0b09e2aa3eb8c3f4b62a2c32cc6a39693c224ee8f958702515952c2eb026437",
-      "bytes": 16314
-    },
-    {
-      "file": "catalog/index.html",
-      "sha256": "c85b980a38813dd93bf3ebdd4b00361b92ce11ae840ea79438b87c1af3eb1f39",
-      "bytes": 7794
-    },
-    {
-      "file": "catalog/validation.json",
-      "sha256": "529e01522792e82315cca691376bb941b32441e1e87a94d0fde4ac2ecf67041c",
-      "bytes": 4623
-    },
-    {
-      "file": "input.md",
-      "sha256": "8ee3ca7240b2a1b815dd7a252b622ab4f6bf9e2b0e6f0e20a7a114e99a098678",
-      "bytes": 684
+      "label": "HTML・Mermaid原本・PNGの一式（ZIP）"
     },
     {
       "file": "output.md",
-      "sha256": "e905e1271b61f6d1db75829d1b5f35d31a9def2c8ca6ea710db4b017939ead36",
-      "bytes": 1222
+      "label": "finishの実出力全文（Markdown）"
+    },
+    {
+      "file": "verification.json",
+      "label": "実行と検証の記録（JSON）"
+    }
+  ],
+  "text_output": "output.md",
+  "html_output": "catalog/index.html",
+  "preview": "preview.png",
+  "preview_alt": "図書館の貸出と蔵書管理を2図に分け、必須の資格確認・希望時の貸出票・主任司書の役割継承を表すMermaid・PNG・HTMLを新規生成しました。",
+  "preview_note": "新規生成したカタログの実画面を保存し、画像を開いて確認しました。利用者の最終確認は未実施です。",
+  "excerpt_lines": 16,
+  "artifacts": [
+    {
+      "file": "catalog.zip",
+      "sha256": "2633666fcc3d4b500241303a28f466454ee2acb0e8f558d6f887ba84ad4fd3bf"
+    },
+    {
+      "file": "catalog/catalog.json",
+      "sha256": "3d0fd1ccccced3cfeb55299b81ee50a76cafc43c01d972702407ea967920f829"
+    },
+    {
+      "file": "catalog/diagrams/d01.mmd",
+      "sha256": "d505966d36b5a63d2dd55b37aad6e7a398fcce95398ef84abf4091aa023674ae"
+    },
+    {
+      "file": "catalog/diagrams/d01.png",
+      "sha256": "63b0acb7403c0c17fa186b30aa2e1957d52e36e38fec5101f126f43c7a7735de"
+    },
+    {
+      "file": "catalog/diagrams/d02.mmd",
+      "sha256": "726da31e5639df2e01e873a46fc407310f0a2bb3f8fca76a6383eb668b2501b0"
+    },
+    {
+      "file": "catalog/diagrams/d02.png",
+      "sha256": "b0b09e2aa3eb8c3f4b62a2c32cc6a39693c224ee8f958702515952c2eb026437"
+    },
+    {
+      "file": "catalog/index.html",
+      "sha256": "b52e6f2db0bf0a29510cc39348082c7def3edb3c4e41353ba35c5e06387e5cc9"
+    },
+    {
+      "file": "catalog/validation.json",
+      "sha256": "197f51ea2fa2554728f70172221c6bca6cf9727194697e7c4f6f393b0e8a15b6"
+    },
+    {
+      "file": "input.md",
+      "sha256": "8ee3ca7240b2a1b815dd7a252b622ab4f6bf9e2b0e6f0e20a7a114e99a098678"
+    },
+    {
+      "file": "output.md",
+      "sha256": "cd03bf30d6cab815ab733ad7b1ebeb217beb6e2eb0b208c4d938f1fe920912e6"
     },
     {
       "file": "preview.png",
-      "sha256": "06442682625be0540a5c66f240150a22f2f24f60c362dcf4ef8df845c2548fe5",
-      "bytes": 131005
+      "sha256": "1941691b38b8b8228f7dd4bdf78f57ab49411d466577969e708023a6fd9b5d85"
     },
     {
-      "file": "run-record/evidence/commands.json",
-      "sha256": "a6211ee5d060ce3a1a3d34398a28b57adb43a32de272d34faa320351173b91db",
-      "bytes": 10612
+      "file": "run-record/commands.json",
+      "sha256": "dfa2ed1d8b3c38535898d557e13a40523efea94112049dba16942137761eb7b6"
     },
     {
-      "file": "run-record/evidence/commands/build-authorized.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "file": "run-record/commands/build-authorized.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "file": "run-record/evidence/commands/build-authorized.stdout.txt",
-      "sha256": "ebeff83abdbc1f11099b58274cbd0e4ae2794a3eb97dc0310dfbef1b009a7ea8",
-      "bytes": 137
+      "file": "run-record/commands/build-authorized.stdout.txt",
+      "sha256": "14ad08f3fae48d2b1f85bb8b751da033ed1569b3e68c7cad38295480ede0f742"
     },
     {
-      "file": "run-record/evidence/commands/build.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "file": "run-record/commands/check.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "file": "run-record/evidence/commands/build.stdout.txt",
-      "sha256": "ef8c377e83167908d87d120f74db982f739612cb0c0420d5df0a2e0977945cfa",
-      "bytes": 141
+      "file": "run-record/commands/check.stdout.txt",
+      "sha256": "f46ff12d24d9b791694313ff4c4f50f8098f6033ea01d6e8a996fae08b084d99"
     },
     {
-      "file": "run-record/evidence/commands/catalog-check-public-preparation.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "file": "run-record/commands/finish.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "file": "run-record/evidence/commands/catalog-check-public-preparation.stdout.txt",
-      "sha256": "5739c503e1347388bec18ba1820b331f204d7d67e249bd20b631f2d82ab4d585",
-      "bytes": 100
+      "file": "run-record/commands/finish.stdout.txt",
+      "sha256": "cd03bf30d6cab815ab733ad7b1ebeb217beb6e2eb0b208c4d938f1fe920912e6"
     },
     {
-      "file": "run-record/evidence/commands/check.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "file": "run-record/commands/preflight.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "file": "run-record/evidence/commands/check.stdout.txt",
-      "sha256": "f46ff12d24d9b791694313ff4c4f50f8098f6033ea01d6e8a996fae08b084d99",
-      "bytes": 289
+      "file": "run-record/commands/preflight.stdout.txt",
+      "sha256": "94546bb190c251d0bb5da5ef2fdce336f76e85355c4fa1aa2556efb7f3dcf692"
     },
     {
-      "file": "run-record/evidence/commands/finish.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "file": "run-record/commands/preview.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "file": "run-record/evidence/commands/finish.stdout.txt",
-      "sha256": "e905e1271b61f6d1db75829d1b5f35d31a9def2c8ca6ea710db4b017939ead36",
-      "bytes": 1222
+      "file": "run-record/commands/preview.stdout.txt",
+      "sha256": "dd181c3237be7272dfd9203edd31ce3d2d5cff512a556a02f11fb6fb621d18cd"
     },
     {
-      "file": "run-record/evidence/commands/git-init.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "file": "run-record/commands/review.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "file": "run-record/evidence/commands/git-init.stdout.txt",
-      "sha256": "48c5fd83d06af6e3a3f51bb288a3bfa3fe32dfe377a3f4d7e105cfbf00d688da",
-      "bytes": 81
+      "file": "run-record/commands/review.stdout.txt",
+      "sha256": "c0e1bf715eeea7873e2a0bfbcb43dd4c193a3228be9f9fbfd136023d00cd75b9"
     },
     {
-      "file": "run-record/evidence/commands/preflight.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "file": "run-record/commands/start.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "file": "run-record/evidence/commands/preflight.stdout.txt",
-      "sha256": "7b61cdb63fc6a03476dc41ae7f273132903193eaa2ca1b265585cfc4340ca247",
-      "bytes": 241
-    },
-    {
-      "file": "run-record/evidence/commands/preview-after-review.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
-    },
-    {
-      "file": "run-record/evidence/commands/preview-after-review.stdout.txt",
-      "sha256": "dd181c3237be7272dfd9203edd31ce3d2d5cff512a556a02f11fb6fb621d18cd",
-      "bytes": 198
-    },
-    {
-      "file": "run-record/evidence/commands/preview.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
-    },
-    {
-      "file": "run-record/evidence/commands/preview.stdout.txt",
-      "sha256": "dd181c3237be7272dfd9203edd31ce3d2d5cff512a556a02f11fb6fb621d18cd",
-      "bytes": 198
-    },
-    {
-      "file": "run-record/evidence/commands/review.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
-    },
-    {
-      "file": "run-record/evidence/commands/review.stdout.txt",
-      "sha256": "c0e1bf715eeea7873e2a0bfbcb43dd4c193a3228be9f9fbfd136023d00cd75b9",
-      "bytes": 34
-    },
-    {
-      "file": "run-record/evidence/commands/source-manifest-check.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
-    },
-    {
-      "file": "run-record/evidence/commands/source-manifest-check.stdout.txt",
-      "sha256": "fcb80e9d96dcb70243453e5415fb694d637e8d47ba0069cdba2add44e1aa9218",
-      "bytes": 127
-    },
-    {
-      "file": "run-record/evidence/commands/start.stderr.txt",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
-    },
-    {
-      "file": "run-record/evidence/commands/start.stdout.txt",
-      "sha256": "7bcc7b75c7051a90b0a522e504f788448eea58044e312ac3bf7d0657e9c6ee07",
-      "bytes": 885
-    },
-    {
-      "file": "run-record/evidence/input.md",
-      "sha256": "8ee3ca7240b2a1b815dd7a252b622ab4f6bf9e2b0e6f0e20a7a114e99a098678",
-      "bytes": 684
-    },
-    {
-      "file": "run-record/evidence/metadata.cjs",
-      "sha256": "8ff9b4bfba3cebebe50fa9b7d649008ca72021dee41eedcb94d9fa3e8abedb70",
-      "bytes": 4467
-    },
-    {
-      "file": "run-record/evidence/package.py",
-      "sha256": "b1e7eaf377b7d7fe453aaa87e20c17116d808e3cc8c28a2a6a50d979d8a79c50",
-      "bytes": 5177
-    },
-    {
-      "file": "run-record/evidence/public-task.txt",
-      "sha256": "1f487cec54adbb282b9ed9bfd1c4960beedf33e198b8fba669b9af617a70b2ce",
-      "bytes": 4274
-    },
-    {
-      "file": "run-record/evidence/record.py",
-      "sha256": "775c51750e95e72cb9bb98c2945ffaaaf77d67ce8812e8b91de10f73301d0919",
-      "bytes": 1219
-    },
-    {
-      "file": "run-record/evidence/runner-task.txt",
-      "sha256": "69e1b37a5e5f8c72d564b413542c71753e3304c2a69a99c33b8955da33ffe9eb",
-      "bytes": 5236
-    },
-    {
-      "file": "run-record/evidence/source-after.json",
-      "sha256": "eed0bf63eaf0dc98ca5724c2bbd84a4d7de2fb35db3a93147631ca3854fb426c",
-      "bytes": 11843
-    },
-    {
-      "file": "run-record/evidence/source-before.json",
-      "sha256": "eed0bf63eaf0dc98ca5724c2bbd84a4d7de2fb35db3a93147631ca3854fb426c",
-      "bytes": 11843
-    },
-    {
-      "file": "run-record/evidence/visual-observations.json",
-      "sha256": "e2c7810112963b887f5d8d641d68012306082870ca5a9d373bae3b898965ec28",
-      "bytes": 3021
+      "file": "run-record/commands/start.stdout.txt",
+      "sha256": "985b8b42550dee41b5520573a37b5d559af3c91c1c23c09e57bdf6faee238269"
     },
     {
       "file": "run-record/notes.md",
-      "sha256": "09ff13b10ceb4be2b708f0fe88bc3132ea115cf6b77853af29e96878358a94b3",
-      "bytes": 275
+      "sha256": "bc95e1bf4c2dd2c8d733f552582b61f2cabb27746bd987775f7f088761b17125"
     },
     {
       "file": "run-record/preview.json",
-      "sha256": "e0cc950a4d9cbc7ecf497537e14a9b8da3c77e2b2cc57b6bf463b476fd30faed",
-      "bytes": 413
+      "sha256": "a634c1ee5bab7313f36a36ef4b66a8808635dcd4ee89ac62b00d57229f9dd9c5"
     },
     {
-      "file": "run-record/preview.png",
-      "sha256": "06442682625be0540a5c66f240150a22f2f24f60c362dcf4ef8df845c2548fe5",
-      "bytes": 131005
+      "file": "run-record/request.json",
+      "sha256": "80ddf562805659503761977705329871adeba7c7d5bcf321acc3d4aaa0f8a676"
     },
     {
-      "file": "run-record/report.md",
-      "sha256": "81df7dd3b9d0d381dc7bb61a8c89ad4c4a6c12b4b5a8936e9890e0a883655414",
-      "bytes": 1078
+      "file": "run-record/source-after.json",
+      "sha256": "49dd3ada9f76ca582c91872bc06324806de160ad92c50779f7cc102501965f3a"
     },
     {
-      "file": "run-record/source/request.json",
-      "sha256": "2af7cc75e318c0e06e5ca2311198a5a2c94cd1f22b85b91b9fd7e8d58b151a5d",
-      "bytes": 1295
+      "file": "run-record/source-before.json",
+      "sha256": "49dd3ada9f76ca582c91872bc06324806de160ad92c50779f7cc102501965f3a"
     },
     {
-      "file": "run-record/state.json",
-      "sha256": "bc19cdaa713549df8b660751253385847f6a7a85d98b299f54390b6dd679da16",
-      "bytes": 5798
-    },
-    {
-      "file": "validation.json",
-      "sha256": "b3915f151583dd939b9030548fa008ec7e3d86d9f9f6ee5f9ecc985ce451855a",
-      "bytes": 18974
+      "file": "verification.json",
+      "sha256": "c275a3cc05e9dd9d384a189ea61b231c002d45a8ab3ce5ee4fc26b629f55f4c6"
     }
   ]
 }

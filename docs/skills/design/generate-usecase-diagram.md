@@ -37,9 +37,9 @@ sidebar_label: generate-usecase-diagram
 
 ## 成果物の例
 
-図書館システムの貸出と蔵書管理を2枚に分け、Mermaid原本・PNG・HTMLカタログを新規生成した例です。必須の資格確認、希望時の貸出票発行、主任司書の役割継承を表します。
+図書館の貸出と蔵書管理を2図に分け、必須の資格確認・希望時の貸出票・主任司書の役割継承を表すMermaid・PNG・HTMLを新規生成しました。
 
-**到達点：start・build・preview・全PNGと実画面の目視・review・check・finishを実施（利用者の最終確認は未実施）。**
+**到達点：新規生成・PNGと実画面の目視・HTML操作・check・finish・ZIP照合まで完了。利用者の最終確認と製品内hooks自動発火は未実施。。**
 
 ### 実行した依頼
 
@@ -52,11 +52,11 @@ sidebar_label: generate-usecase-diagram
 
 ### 実際の画面
 
-![図書館システムの貸出と蔵書管理の2枚を表示したHTMLカタログの実画面](/skills/generate-usecase-diagram/preview.png)
+![図書館の貸出と蔵書管理を2図に分け、必須の資格確認・希望時の貸出票・主任司書の役割継承を表すMermaid・PNG・HTMLを新規生成しました。](/skills/generate-usecase-diagram/preview.png)
 
 [画像を原寸で開く](pathname:///skills/generate-usecase-diagram/preview.png)
 
-review後に既存Chromeで保存し、view_imageで開いて確認した実画面です。操作は自動検査で確認し、利用者の最終確認は未実施です。
+新規生成したカタログの実画面を保存し、画像を開いて確認しました。利用者の最終確認は未実施です。
 
 ### 実出力の抜粋
 
@@ -71,7 +71,7 @@ generate-usecase-diagram: 完了（検証に合格）
 
 ## カタログ
 
-- [HTMLを開く](/private/tmp/context-85-public-example/artifacts/usecase/library/index.html)
+- [HTMLを開く](/private/tmp/context-model-refresh/generate-usecase-diagram/project/artifacts/usecase/library/index.html)
 - 図: 2枚。原本・PNG・HTML・変換記録の対応を検査済み。
 - 目視: reviewed
 
@@ -83,25 +83,20 @@ generate-usecase-diagram: 完了（検証に合格）
 
 ### 成果物を取得する
 
-- [HTML・Mermaid原本・PNG・変換記録の一式（ZIP）](pathname:///skills/generate-usecase-diagram/catalog.zip#download)
+- [HTML・Mermaid原本・PNGの一式（ZIP）](pathname:///skills/generate-usecase-diagram/catalog.zip#download)
 - [finishの実出力全文（Markdown）](pathname:///skills/generate-usecase-diagram/output.md#download)
-- [コマンド・画像目視・HTML操作の検証記録（JSON）](pathname:///skills/generate-usecase-diagram/validation.json#download)
-- [貸出のMermaid原本](pathname:///skills/generate-usecase-diagram/catalog/diagrams/d01.mmd#download)
-- [貸出のPNG](pathname:///skills/generate-usecase-diagram/catalog/diagrams/d01.png#download)
-- [蔵書管理のMermaid原本](pathname:///skills/generate-usecase-diagram/catalog/diagrams/d02.mmd#download)
-- [蔵書管理のPNG](pathname:///skills/generate-usecase-diagram/catalog/diagrams/d02.png#download)
+- [実行と検証の記録（JSON）](pathname:///skills/generate-usecase-diagram/verification.json#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/generate-usecase-diagram/catalog/index.html)
 - [実行入力の原本](pathname:///skills/generate-usecase-diagram/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/generate-usecase-diagram/execution.json#download)
 
 ### 確認した結果
 
-- start・build・preview・review・check・finishは成功。sandbox内の初回buildはChrome exit=-6で停止し、その実行だけ権限レビュー後に再実行して成功しました。
-- 全2枚のPNGとpreview後・review後の実画面をview_imageで開き、日本語、境界、関係線を目視しました。include・extend・汎化の向きを要件と照合しました。
-- Chromeによる自動操作検査で、一覧2枚、検索0件、拡大と閉じる、原本表示、取得リンク6本、相対リンク、横方向のはみ出しなしを確認しました。
-- 追加の対話ブラウザでの手動操作はfile://のURLポリシーにより未実施です。利用者の最終確認は未実施です。
-- finishのstdout全文をoutput.mdへ保存し、カタログの7ファイルをZIPの同名ファイルとバイト単位で照合しました。
-- sourceManifestで実行前後の正本76ファイルが一致しました。verifyExampleSkillSourceとverifyArtifactsを実行し、全公開ファイルをSHA-256付きで登録しました。
+- preflight・start・build・preview・review・check・finish を実行し、指摘0件で終了。
+- 全2枚のPNGとpreview実画面を開き、日本語・境界・関係線を目視。includeは必須資格確認へ、extendは追加の貸出票から貸出へ、汎化は主任司書から司書への向きを確認。
+- Chrome自動操作で一覧2枚・画像妥当性・検索0件・拡大と閉じる・原本表示・取得リンク6本・相対リンク・横はみ出しなしを確認。保存先への実ダウンロードは今回未検証。
+- 公開前に個人ホーム名と実環境の詳細版をマスク。ZIP全件の展開内容が公開ファイルとbyte一致。正本全体は実行前後で不変。
+- マスク後の公開カタログを正本catalog.pyのcheck/verifyで再検査し合格。
 
 ## 確認するポイント
 

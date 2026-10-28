@@ -6,7 +6,7 @@ generate-usecase-diagram: 完了（検証に合格）
 
 ## カタログ
 
-- [HTMLを開く](/private/tmp/context-85-public-example/artifacts/usecase/library/index.html)
+- [HTMLを開く](/private/tmp/context-model-refresh/generate-usecase-diagram/project/artifacts/usecase/library/index.html)
 - 図: 2枚。原本・PNG・HTML・変換記録の対応を検査済み。
 - 目視: reviewed
 
@@ -33,4 +33,3 @@ generate-usecase-diagram: 完了（検証に合格）
 ## 補足
 
 - 利用者による最終確認は未実施です。
-- HTMLの操作はChromeによる自動検査で確認し、保存した実画面を目視しました。追加の対話ブラウザでの手動操作はfile://のURLポリシーによる拒否のため未実施です。
