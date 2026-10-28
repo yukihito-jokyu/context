@@ -42,11 +42,11 @@
     },
     {
       "file": "assets/seal.json",
-      "sha256": "6fbd7da7e6700c9a294339b3a0b75f3c551985f42db530223428f1d03892985c"
+      "sha256": "4924ebcb586e52afe31da2f60febc4a575f6d2bb5107fb4357115cd48bfaf56e"
     },
     {
       "file": "dev/convergence-report.md",
-      "sha256": "172bb93ae249d1023d973d98a5e92d62495b790804c3982781a7344a698870cf"
+      "sha256": "cdd700d719add8c53db7e128d80275b09c839967065bf1ffbb680f99fb8e0ca3"
     },
     {
       "file": "dev/evals.json",
@@ -334,7 +334,7 @@
     },
     {
       "file": "dev/spec.json",
-      "sha256": "2c979e6ff749920547c69b7d94e657a1219416270c96f5f882ce982e0eff4e7b"
+      "sha256": "ff19e5f0c20553b93d1507ddd4bc0914fd157b6c8f8dd815cd42e9e13fa40172"
     },
     {
       "file": "dev/test_catalog.py",
@@ -346,7 +346,7 @@
     },
     {
       "file": "references/setup.md",
-      "sha256": "ba80bfa300a527cafbb5f331c1c8c275aeaf5cc3fcb5379c36027c03f13e6b48"
+      "sha256": "340f8860b7e9a02830a4df06511910e1f7ff70680cffe7a0aaaf7cff17e38ef0"
     },
     {
       "file": "scripts/_skillrt.py",
@@ -369,44 +369,48 @@
       "sha256": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76"
     }
   ],
-  "source_sha256": "a139e210a5eafcf1f0a94b5606fa0ac590e8c56205a83c372f0d392ce684537c",
-  "recorded_at": "2026-10-26T23:42:40.399Z",
+  "source_sha256": "1bc0c406bf5e0a69e462302e74887c3e52cc54191a7f6173484fe9abe272ab56",
+  "recorded_at": "2026-10-28T12:51:25.520204+00:00",
   "runner": {
     "kind": "subagent",
-    "agent_id": "/root/public_catalog",
-    "task": "更新後のgenerate-domain-modelと同梱資料を読み、使い捨てプロジェクトで架空の受注と配送業務へ実際に適用する。salesカタログにorderとshipmentの2図を作り、資料にない配送の多重度を未確認事項に残す。Mermaid原本・実PNG・HTMLカタログ・ZIPと実出力を公開成果物へ保存し、PC/モバイルの実操作、資料との意味の照合、正本hash不変を記録する。"
+    "agent_id": "/root/refresh_model_examples",
+    "task": "AGENTS.md / skill-authoring の公開成果物再作成要件に従う独立実行担当です。作業リポジトリは /private/tmp/context-privacy-rewrite。元ワークスペースは変更しない。正本は親が個人情報を除去して封印済みで一切変更しない。担当は generate-domain-model、generate-domain-model-from-code、generate-usecase-diagram の3つの docs/artifacts/skills/<name>/ を全削除し、現在のinput.mdとexecution.jsonを先に確認して、更新後のSKILL.mdを実際に同じ公開題材へ適用し再作成することです。utils/skills/authoring/skill-authoring/SKILL.md と references/docs-examples.md を読む。旧出力コピーやハッシュ付け替えで新規実行扱いしない。既存記録の実行用スクリプトを参考に新しい/tmp作業場所で実行することは可。start/build/PNG/HTML/ブラウザ操作/check/finish等はSkillに沿って行い、実施した事実と未実施の人間承認を分けて記録する。既存Chrome・node_modulesあり（repo node_modulesは用意済み）。外部インストールや投稿は不要。Chrome等がsandboxで拒否されたら必要な実行だけrequire_escalatedで再実行可能。出力公開前に /private/tmp/context-privacy-transform.py のsanitize(bytes, relativePath)をimportlibで読み、ホームユーザー名とChrome/Python等実環境詳細版を伏せる。mermaid major12等のスキル動作に必要な互換性情報は維持する。記録に環境情報マスクを明記し、execution.json runner.kind=subagent、agent_id実ID、task実依頼文、sourceManifest現在ソース、artifactsマスク後全SHAを scripts/example-skill-source.cjs のヘルパーで生成・検証する。公開用taskには個人ホーム絶対パスを書かない。ソースは封印済みのためsealの不整合等に気づいたら自分で直さず親へ連絡。全体sync、コミット、pushは親が担当。担当3ディレクトリ以外を変更せず、他エージェントと同時作業中なので全体restore/resetは禁止。各スキル完成時点で親へ進捗、3つ完了後最終報告してください。"
   },
   "input": "input.md",
-  "summary": "受注と配送の2図をMermaid CLIでPNGへ描画し、一覧・検索・拡大と根拠を備えたHTMLカタログを生成しました。配送の未確定な多重度は図に書かず、確認したい点として残しています。",
-  "stage": "新規2図の生成・資料照合・PNG表示・PC/モバイルの操作確認・finish完了。hooksの自動発火は未検証。",
+  "summary": "受注と配送の業務資料から顧客・注文・配送の2図を新規生成しました。資料にない配送の多重度は確認事項に残しています。",
+  "stage": "新規生成・PNGと実画面の目視・HTML操作・check・finish・ZIP照合まで完了。利用者の最終確認と製品内hooks自動発火は未実施。",
   "checks": [
-    "使い捨てプロジェクトでstart→inspect→原本作成→deps→build→check→finishを実行し、finishの終了コード0・指摘0件を確認。",
-    "顧客・注文・配送の主な属性と関係を入力資料へ照合。顧客1対注文0..*を表示し、注文と配送の多重度は省略して未確認事項に記録。",
-    "PNG2件とPC/モバイルの全体画像を実際に表示し、日本語・属性・関係名と図に欠けがないことを確認。",
-    "既存ChromeのPC1440pxとモバイル390pxで全図、各6通りの検索と0件表示、拡大/縮小/全体表示、Escape/閉じる後のフォーカス復帰、根拠開閉を実操作。横はみ出し・外部HTTP通信・JavaScript/consoleエラーは0件。",
-    "各画面で原本とPNGの4取得リンクを実際に開き、Mermaid本文またはPNG寸法とハッシュの一致を確認。Chromeのfile://では表示に遷移し、保存ダイアログの強制は未検証。",
-    "ZIPの8ファイルを全件展開照合し、公開bundleのcatalog.py checkも指摘0件。output.mdはruntime report.mdの本文とバイト一致。",
-    "sourceManifestでSkill正本91ファイルと実行コピーを照合し、実行前後で不変。verifyArtifactsとverifyExampleSkillSourceに合格。"
+    "start・inspect・deps・build・check・finish を実行し、指摘0件で終了。",
+    "全2枚のPNGとPC1440px・モバイル390pxの実画面を開き、属性・日本語・関係線・多重度を資料と目視照合。",
+    "両画面で検索4通り、全2図の拡大と閉じるを確認。file://でも画像・検索・拡大が動作。横はみ出し・JavaScriptエラー・外部HTTP通信は0件。",
+    "HTTPループバックで原本・PNG全4件を実ダウンロードし、生成ファイルと全byte一致。",
+    "公開前に個人ホーム名と実環境の詳細版をマスク。ZIP全件の展開内容が公開ファイルとbyte一致。正本全体は実行前後で不変。",
+    "マスク後の公開カタログを正本catalog.pyのcheck/verifyで再検査し合格。"
   ],
   "downloads": [
     {
       "file": "sales-catalog.zip",
-      "label": "カタログ一式（ZIP）"
+      "label": "HTML・Mermaid原本・PNGの一式（ZIP）"
     },
     {
       "file": "output.md",
-      "label": "実出力の全文（Markdown）"
+      "label": "finishの実出力全文（Markdown）"
+    },
+    {
+      "file": "verification.json",
+      "label": "実行と検証の記録（JSON）"
     }
   ],
-  "preview": "preview.png",
-  "preview_alt": "顧客と注文、注文と配送の2図と説明・根拠・未確認事項を一覧できるPC版カタログ",
   "text_output": "output.md",
-  "excerpt_lines": 16,
   "html_output": "domain-models/sales/index.html",
+  "preview": "preview.png",
+  "preview_alt": "受注と配送の業務資料から顧客・注文・配送の2図を新規生成しました。資料にない配送の多重度は確認事項に残しています。",
+  "preview_note": "新規生成したカタログの実画面を保存し、画像を開いて確認しました。利用者の最終確認は未実施です。",
+  "excerpt_lines": 16,
   "artifacts": [
     {
       "file": "domain-models/sales/catalog.json",
-      "sha256": "cb55bb59cb157b908fb5de8cf0a7289b70f3bab5096f3e14a9f21288b102f2ac"
+      "sha256": "5c674dc87c3c8cc35f66ee31b60874497363eb0928daeb95b86f1b977bed74ce"
     },
     {
       "file": "domain-models/sales/diagrams/order.mmd",
@@ -426,43 +430,131 @@
     },
     {
       "file": "domain-models/sales/index.html",
-      "sha256": "88c7b24f958d77f154c793074c2c612a8c33063a383b3aeabc5be5009d35dfba"
+      "sha256": "57092e9e0072903202ae76ff9f6b7ce97b674ceed349e55a09fd601fb643a8b3"
     },
     {
       "file": "domain-models/sales/validation.json",
-      "sha256": "d21f7c89f5469b65407717d9ae77684c21b64b69bcc181032070d95e7e668ff4"
+      "sha256": "1c05a2e16104a14e6091fd4a57dd4448e524fcd439d057b3ccc37267d7720467"
     },
     {
       "file": "input.md",
       "sha256": "585ae2c3ca5220722249652b511d9ac0b5c15fe2dd95df2136fb2fb39a8466db"
     },
     {
-      "file": "mobile.png",
-      "sha256": "ffd23da78d1c1cb2f535b24e72a4e4bc045a643dc6ed6664b858589da9349ff5"
-    },
-    {
       "file": "output.md",
-      "sha256": "e8196b6f49488c9cd8d2a600322f4d73412a493185a6f41c3cd1d35a90c6e940"
+      "sha256": "00e4e7b38b78fb1320e60ebb83e02f69d207808048b15e91bf6263a1294dfd0f"
     },
     {
       "file": "preview.png",
-      "sha256": "7ef4b79052efef9fa3f57802d710926656f1567edcada6b9672096f998da56d3"
+      "sha256": "c967643653243144483d9146f166980c274b0405d6b0e61763ae77a56fdab66f"
+    },
+    {
+      "file": "run-record/commands.json",
+      "sha256": "209e7cde46b1cd9a465c66b7d598bddde256b9081564ccec3637daeb19ae6eb3"
+    },
+    {
+      "file": "run-record/commands/browser-http-downloads.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/browser-http-downloads.stdout.txt",
+      "sha256": "0a9667fe0357c05697fa56a6416241e1a5be11ee2db88f4acee66e441801090c"
+    },
+    {
+      "file": "run-record/commands/build-authorized.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/build-authorized.stdout.txt",
+      "sha256": "896c45c8f115a2578595f61f563c82279c1b155a813308fe88116a6ae39682be"
+    },
+    {
+      "file": "run-record/commands/catalog-check.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/catalog-check.stdout.txt",
+      "sha256": "63fb12a74ddf7b933fd41aa10b8c7a73960f85cc4c0e95236cc02ef98dccd6ef"
+    },
+    {
+      "file": "run-record/commands/check.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/check.stdout.txt",
+      "sha256": "5247f166fc7caf853b40bd0961b131baa288a1988404fcad2030bdb7f9209fce"
+    },
+    {
+      "file": "run-record/commands/deps.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/deps.stdout.txt",
+      "sha256": "be81186cc6b782e763b147c43996c8115b4a0aad15e50536a788f57737718000"
+    },
+    {
+      "file": "run-record/commands/finish.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/finish.stdout.txt",
+      "sha256": "4ac4e6c2a6c68b6409d562c0507d09f7edd781d20f2eabf9b56e91a564ec25ec"
+    },
+    {
+      "file": "run-record/commands/inspect.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/inspect.stdout.txt",
+      "sha256": "c968fc3ea20d54aca86c7e55bebdd3fa112415c1d10d7dd516f8c5d9bc28ce4e"
+    },
+    {
+      "file": "run-record/commands/start-current.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "run-record/commands/start-current.stdout.txt",
+      "sha256": "b1bc0f36f855635cdb967fa1fda9ff5b9b5b1515d6d4e425189ccf1693a60bbf"
+    },
+    {
+      "file": "run-record/notes.md",
+      "sha256": "701b967cd315cd68148dc5f81d190ea857538459251241b30ae4285da3c24957"
+    },
+    {
+      "file": "run-record/source-after.json",
+      "sha256": "139a0650228027d626f8c33cb1915b9da24e8d377085cd62ff14f0d05cd49f80"
+    },
+    {
+      "file": "run-record/source-before.json",
+      "sha256": "139a0650228027d626f8c33cb1915b9da24e8d377085cd62ff14f0d05cd49f80"
     },
     {
       "file": "sales-catalog.zip",
-      "sha256": "75eecc9adb817e04988554ced88468fe33bb6ad79a3a6373cfa509e6400df846"
+      "sha256": "c03101950dc22b3aa86e178dfa3aecde2f14f572a6cca33e9a045538504164d9"
     },
     {
-      "file": "ui-check.cjs",
-      "sha256": "6c0eb084ea162477f19fbe5d37067e8e86438d5f185b6bac1d7bfc733d4ab61d"
+      "file": "screenshots/desktop-zoom.png",
+      "sha256": "478b2b461e0d059b64272f4599cc90fa350f67a9263c1567206ebd6a22fbe40e"
+    },
+    {
+      "file": "screenshots/desktop.png",
+      "sha256": "c967643653243144483d9146f166980c274b0405d6b0e61763ae77a56fdab66f"
+    },
+    {
+      "file": "screenshots/mobile-zoom.png",
+      "sha256": "8ec42ef6b8de4f686da7fafaeda622afa89ba9d8d07d678fb69a9a85bc72f2ee"
+    },
+    {
+      "file": "screenshots/mobile.png",
+      "sha256": "8baaa902980d62cf1ca032a3d57debfc6a93eba258707f3390211bb55041798b"
     },
     {
       "file": "ui-validation.json",
-      "sha256": "9ffc495124c333e8e15b4e8c9ae6c4313c4cb7e4711a43ef48215439814d9d00"
+      "sha256": "2f6587c7aace3ec4774dfefb33756a724ec54e3ea87d6c66e00d56178be66c95"
     },
     {
       "file": "verification.json",
-      "sha256": "62b90340cbddebd2fafa06dc756f9696d4665e8193dad6d4e8f18d794d00b8cc"
+      "sha256": "9af2547b9528b126a50fbb494ec1ffc318e6831fb2da3914e1fc24b8f9288d91"
     }
   ]
 }

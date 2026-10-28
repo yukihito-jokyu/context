@@ -4,7 +4,7 @@ Issue #86のgenerate-domain-model pluginについて、新規サブエージェ�
 
 - 担当する公開先は `docs/artifacts/plugins/generate-domain-model/` だけとし、既存の対象成果物があれば全削除して再作成する。他の成果物、正本、ガイドは変更しない。
 - `utils/plugins/generate-domain-model/` のREADME、bundle.json、build.py、Agent別manifest/hooksと、同梱する `utils/skills/design/generate-domain-model/` のSKILL.md・必要なruntimeを読む。正本はready・sealedであり、変更しない。
-- `/private/tmp/issue-86-public-plugin` でbuild.pyを `--agent codex` と `--agent claude-code` で実行し、`generate-domain-model-codex.zip` と `generate-domain-model-claude-code.zip` を保存する。
+- `/private/tmp/context-model-plugin-refresh/generate-domain-model` でbuild.pyを `--agent codex` と `--agent claude-code` で実行し、`generate-domain-model-codex.zip` と `generate-domain-model-claude-code.zip` を保存する。
 - ZIPを実際に展開し、全ファイル一覧とバイト列を正本のSkill全体、Agent別manifest/hooksと照合する。assets/seal.jsonの封印も検査する。
 - 各ZIPに含まれるhooks.jsonから4イベントのcommandを読み、PLUGIN_ROOTまたはCLAUDE_PLUGIN_ROOTを展開して、使い捨てgitプロジェクトにJSONを標準入力で渡して直接実行する。無効時、実行中の出力検査、保護ファイルと実行記録の編集制御、finish前のStop差し戻し、waitとpromptによる再開を確かめる。
 - 有効な出力を検査するケースでは、同梱の封印済みサンプルをコピーして再検査する。Mermaid CLIによる新規描画やPNG・HTMLの目視確認はこのplugin配布物検証では行わない。runtime・検査・封印のバイパスや緩和はしない。

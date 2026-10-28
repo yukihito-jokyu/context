@@ -1,11 +1,11 @@
 {
   "name": "generate-domain-model",
   "kind": "plugin",
-  "executed_at": "2026-10-26T23:38:05.425740+00:00",
+  "executed_at": "2026-10-28T12:52:34.482541+00:00",
   "runner": {
     "kind": "subagent",
-    "agent_id": "/root/public_plugin",
-    "task": "Issue #86: generate-domain-model pluginの正本からCodex・Claude Code向けZIPを実際にビルドし、展開内容・封印・4イベントのhooks直接実行を検証して公開用配布物と実行記録を再作成する。正本、ガイド、ユーザーホーム、実repoの導入設定は変更せず、実クライアントへの導入・有効化・登録hooksの動作は未検証と区別する。"
+    "agent_id": "/root/refresh_model_examples",
+    "task": "3スキルの作例の後、対応する2つのplugin（generate-domain-model / generate-domain-model-from-code）の docs/artifacts/plugins/<name>/ も旧成果物を全削除し、新規ビルド・ZIP化・展開・検証してexecutionを再作成してください。canonical plugin/skillは凍結済みです。実行内容は旧verificationを参考に同等範囲、未実施の導入や外部投稿を主張せず、マスク後にhash登録。親は履歴書き換え・全体検査を並行しています。"
   },
   "stage": "built-content-seal-and-direct-hooks-verified",
   "input": "input.md",
@@ -18,7 +18,7 @@
     "展開した各pluginの全4イベントのcommandをroot変数展開後にJSON入力で直接実行し、inactive時の通過、保護ファイルのdeny/ask、state.json直接編集拒否、不正Mermaidと契約外出力の差し戻しを確認した",
     "同梱サンプル再検査、finish前Stop差し戻し、wait/prompt再開、finish成功、done時通過、Stop3回差し戻し後の打ち切りを直接実行で確認した",
     "正本plugin・SkillのsourceManifestが実行前後で変わらないことを確認した",
-    "node scripts/check-plugin-examples.cjs と verifyArtifacts により、正本・同梱Skill・全成果物の登録とSHA-256が一致することを確認した"
+    "公開前に個人ホーム名と実環境詳細版をマスクし、ZIP内を含めsanitizeで追加変更がないことを確認した。"
   ],
   "unverified": [
     "実クライアントへの導入",
@@ -108,11 +108,11 @@
         },
         {
           "file": "assets/seal.json",
-          "sha256": "6fbd7da7e6700c9a294339b3a0b75f3c551985f42db530223428f1d03892985c"
+          "sha256": "4924ebcb586e52afe31da2f60febc4a575f6d2bb5107fb4357115cd48bfaf56e"
         },
         {
           "file": "dev/convergence-report.md",
-          "sha256": "172bb93ae249d1023d973d98a5e92d62495b790804c3982781a7344a698870cf"
+          "sha256": "cdd700d719add8c53db7e128d80275b09c839967065bf1ffbb680f99fb8e0ca3"
         },
         {
           "file": "dev/evals.json",
@@ -400,7 +400,7 @@
         },
         {
           "file": "dev/spec.json",
-          "sha256": "2c979e6ff749920547c69b7d94e657a1219416270c96f5f882ce982e0eff4e7b"
+          "sha256": "ff19e5f0c20553b93d1507ddd4bc0914fd157b6c8f8dd815cd42e9e13fa40172"
         },
         {
           "file": "dev/test_catalog.py",
@@ -412,7 +412,7 @@
         },
         {
           "file": "references/setup.md",
-          "sha256": "ba80bfa300a527cafbb5f331c1c8c275aeaf5cc3fcb5379c36027c03f13e6b48"
+          "sha256": "340f8860b7e9a02830a4df06511910e1f7ff70680cffe7a0aaaf7cff17e38ef0"
         },
         {
           "file": "scripts/_skillrt.py",
@@ -435,25 +435,25 @@
           "sha256": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76"
         }
       ],
-      "source_sha256": "a139e210a5eafcf1f0a94b5606fa0ac590e8c56205a83c372f0d392ce684537c"
+      "source_sha256": "1bc0c406bf5e0a69e462302e74887c3e52cc54191a7f6173484fe9abe272ab56"
     }
   ],
   "artifacts": [
     {
       "file": "generate-domain-model-claude-code.zip",
-      "sha256": "9ba7d55871f6ab003ed0c95c83d0d3c01cbb4dcba3b9e3615ed68b61dbfe53e4"
+      "sha256": "38f061b080018f5cf290447359c98a91c6100785b29fd4fb3bca1815e3fd7b3b"
     },
     {
       "file": "generate-domain-model-codex.zip",
-      "sha256": "24c0f811f6cef0c9505152f2d2fbddf675bb2f0caf32ccc85730158615b312b0"
+      "sha256": "c7d56893c64c570d311aee8f81bebe224ee5a193af9b6aee0b620e0dfdee5c04"
     },
     {
       "file": "input.md",
-      "sha256": "7374df4ebe0b5e7d6a59cb818d67e54f505b6ef0b4db7cadf878b6ffb5aa5983"
+      "sha256": "a80dfdb9b930fccc97e4457b065ab4cb447b36d70b34a9727222f9d7128e8e88"
     },
     {
       "file": "verification.txt",
-      "sha256": "18e8c5112e55991930e034bf205cd01f9d0212aa625489745eb87f63af3b7488"
+      "sha256": "ccade04f1c35c67e6bd302f8c8803cede0bc5ae4f383b215678e36cfc413e705"
     }
   ]
 }

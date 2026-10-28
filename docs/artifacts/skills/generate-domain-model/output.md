@@ -3,7 +3,7 @@
 generate-domain-model: 完了（検証に合格）
 
 図: 2件
-カタログ: [開く](/private/tmp/issue-86-public-catalog/domain-models/sales/index.html)
+カタログ: [開く](/private/tmp/context-model-refresh/generate-domain-model/project/domain-models/sales/index.html)
 検証: 原本・画像・HTML・全ファイルの対応に合格
 
 ## 出力

@@ -1,155 +1,37 @@
 {
-  "schema_version": 1,
-  "runner": {
-    "kind": "subagent",
-    "agent_id": "/root/public_catalog"
-  },
-  "project": "/private/tmp/issue-86-public-catalog",
-  "source": "utils/skills/design/generate-domain-model",
-  "execution_scope": "git init、Skillコピー、hooks登録は使い捨てプロジェクト内だけで実行。追加インストールなし。",
-  "environment": {
-    "python": "Python [version redacted]",
-    "node": "[version redacted]",
-    "mermaid_cli": "12.0.0",
-    "chrome": "Chrome/redacted",
-    "DOMAIN_MODEL_MMDC": "/private/tmp/issue-86-tools/node_modules/.bin/mmdc",
-    "PUPPETEER_EXECUTABLE_PATH": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-  },
-  "runtime_status": "done",
-  "steps": [
+  "status": "passed",
+  "fresh_execution": true,
+  "source_manifest_unchanged": true,
+  "checks": [
+    "start・inspect・deps・build・check・finish を実行し、指摘0件で終了。",
+    "全2枚のPNGとPC1440px・モバイル390pxの実画面を開き、属性・日本語・関係線・多重度を資料と目視照合。",
+    "両画面で検索4通り、全2図の拡大と閉じるを確認。file://でも画像・検索・拡大が動作。横はみ出し・JavaScriptエラー・外部HTTP通信は0件。",
+    "HTTPループバックで原本・PNG全4件を実ダウンロードし、生成ファイルと全byte一致。"
+  ],
+  "visual_review": "実PNG全件と保存した実画面をview_imageで開いて確認済み。",
+  "user_final_approval": "未実施",
+  "client_hook_delivery": "未検証",
+  "environment_redaction": "公開前にsanitize(bytes, relativePath)で個人ホーム名・Chrome/Python等の実環境詳細版をマスク。Mermaid 12の互換性情報は保持。",
+  "earlier_attempts": [
     {
-      "command": "git init",
-      "exit_code": 0,
-      "stdout": "Initialized empty Git repository in /private/tmp/issue-86-public-catalog/.git/\n"
+      "label": "build",
+      "exit_code": 1
     },
     {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/install.py --project /private/tmp/issue-86-public-catalog --targets claude,codex",
-      "exit_code": 0,
-      "stdout": ".claude/skills/generate-domain-model をリンクで置く\n.claude/settings.json: PreToolUse に generate-domain-model の hook を足す\n.claude/settings.json: PostToolUse に generate-domain-model の hook を足す\n.claude/settings.json: Stop に generate-domain-model の hook を足す\n.claude/settings.json: UserPromptSubmit に generate-domain-model の hook を足す\n.codex/hooks.json: PreToolUse に generate-domain-model の hook を足す\n.codex/hooks.json: PostToolUse に generate-domain-model の hook を足す\n.codex/hooks.json: Stop に generate-domain-model の hook を足す\n.codex/hooks.json: UserPromptSubmit に generate-domain-model の hook を足す\ninstall: 変更 9 件\n注意: Codex は、足した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。信頼するまでは run.py の check と finish だけで検査される\n"
+      "label": "browser",
+      "exit_code": 1
     },
     {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/install.py --project /private/tmp/issue-86-public-catalog --targets claude,codex --check",
-      "exit_code": 0,
-      "stdout": "install --check: 問題 0 件\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/run.py start --set name=sales --set source=input.md --set update=false <input.mdの全文>",
-      "exit_code": 0,
-      "stdout": "generate-domain-model を始めました。実行記録: .skill-runs/generate-domain-model/state.json\nスキルのディレクトリ: /private/tmp/issue-86-public-catalog/.agents/skills/generate-domain-model\n入力（正規化の後）:\n  カタログ名（name）= \"sales\"\n  資料（source）= \"input.md\"\n  既存カタログの更新（update）= false\n作る出力:\n  catalog カタログ情報: domain-models/sales/catalog.json（0〜1 件）\n  index HTMLカタログ: domain-models/sales/index.html（0〜1 件）\n  validation 変換検証結果: domain-models/sales/validation.json（0〜1 件）\n  mermaid Mermaid原本: domain-models/sales/diagrams/*.mmd（0〜1000 件）\n次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/catalog.py inspect domain-models/sales",
-      "exit_code": 0,
-      "stdout": "カタログ: 新規\n出力先: /private/tmp/issue-86-public-catalog/domain-models/sales\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/catalog.py deps",
-      "environment": {
-        "DOMAIN_MODEL_MMDC": "/private/tmp/issue-86-tools/node_modules/.bin/mmdc",
-        "PUPPETEER_EXECUTABLE_PATH": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-      },
-      "exit_code": 0,
-      "stdout": "Mermaid CLI: 12.0.0\n実行ファイル: /private/tmp/issue-86-tools/node_modules/.bin/mmdc\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/catalog.py build domain-models/sales",
-      "environment": {
-        "DOMAIN_MODEL_MMDC": "/private/tmp/issue-86-tools/node_modules/.bin/mmdc",
-        "PUPPETEER_EXECUTABLE_PATH": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-      },
-      "exit_code": 0,
-      "stdout": "図: 2件\nbuild: 指摘 0 件\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/catalog.py check domain-models/sales",
-      "exit_code": 0,
-      "stdout": "図: 2件\ncheck: 指摘 0 件\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/run.py check",
-      "exit_code": 0,
-      "stdout": "出力 catalog: domain-models/sales/catalog.json\n出力 index: domain-models/sales/index.html\n出力 validation: domain-models/sales/validation.json\n出力 mermaid: domain-models/sales/diagrams/order.mmd, domain-models/sales/diagrams/shipment.mmd\ncheck: 指摘 0 件\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/catalog.py check domain-models/sales",
-      "exit_code": 0,
-      "stdout": "図: 2件\ncheck: 指摘 0 件\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/run.py check",
-      "exit_code": 0,
-      "stdout": "出力 catalog: domain-models/sales/catalog.json\n出力 index: domain-models/sales/index.html\n出力 validation: domain-models/sales/validation.json\n出力 mermaid: domain-models/sales/diagrams/order.mmd, domain-models/sales/diagrams/shipment.mmd\ncheck: 指摘 0 件\n"
-    },
-    {
-      "command": "python3 .agents/skills/generate-domain-model/scripts/run.py finish",
-      "exit_code": 0,
-      "stdout": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。\n========================================\n## 結果\n\ngenerate-domain-model: 完了（検証に合格）\n\n図: 2件\nカタログ: [開く](/private/tmp/issue-86-public-catalog/domain-models/sales/index.html)\n検証: 原本・画像・HTML・全ファイルの対応に合格\n\n## 出力\n\n- `domain-models/sales/catalog.json`（catalog カタログ情報）\n- `domain-models/sales/index.html`（index HTMLカタログ）\n- `domain-models/sales/validation.json`（validation 変換検証結果）\n- `domain-models/sales/diagrams/order.mmd`（mermaid Mermaid原本）\n- `domain-models/sales/diagrams/shipment.mmd`（mermaid Mermaid原本）\n\n## 既定値で決めた値\n\n- なし\n\n## 入力で読めなかった値\n\n- なし\n\n## 検証\n\n- `run.py finish`: 指摘 0 件\n\n## 補足\n\n- 資料照合: 確認済み\n- PNG表示: 確認済み\n- HTML操作: 確認済み\n"
-    },
-    {
-      "command": "python3 utils/skills/design/generate-domain-model/scripts/catalog.py check docs/artifacts/skills/generate-domain-model/domain-models/sales",
-      "exit_code": 0,
-      "stdout": "図: 2件\ncheck: 指摘 0 件\n"
+      "label": "browser-local-links",
+      "exit_code": 1
     }
   ],
-  "ui_command": "node docs/artifacts/skills/generate-domain-model/ui-check.cjs /private/tmp/issue-86-public-catalog docs/artifacts/skills/generate-domain-model",
-  "ui_result": {
-    "chunk_id": "26388a",
-    "wall_time_seconds": 0.000009542,
-    "exit_code": 0,
-    "original_token_count": 42,
-    "output": "{\"phase\":\"saved\",\"status\":\"passed\",\"links_opened\":8,\"files\":[\"preview.png\",\"mobile.png\",\"ui-validation.json\"],\"external_requests\":0,\"page_errors\":0,\"console_errors\":0}\n"
-  },
-  "visual_review": {
-    "method": "view_imageで生成PNG2件とPC・モバイルの全体スクリーンショットを表示",
-    "files": [
-      "domain-models/sales/images/order.png",
-      "domain-models/sales/images/shipment.png",
-      "preview.png",
-      "mobile.png"
-    ],
-    "result": "日本語の概念・属性・関係名と多重度が読め、図・説明・操作リンクに欠けがないことを確認。"
-  },
-  "semantic_review": [
-    {
-      "diagram": "order",
-      "source": "input.md:7-9",
-      "checks": [
-        "Customer/顧客に顧客番号・氏名を表示。Order/注文に注文番号・注文日を表示。",
-        "関係名は「申し込む」。顧客側1、注文側0..*で、各注文が1人の顧客に属する意味と一致。",
-        "資料にない概念・属性・多重度を追加していない。"
-      ],
-      "result": "passed"
-    },
-    {
-      "diagram": "shipment",
-      "source": "input.md:8-11",
-      "checks": [
-        "Order/注文に注文番号・注文日を表示。Shipment/配送に追跡番号を表示。",
-        "関係名は「配送する」。双方の多重度をMermaid原本にもPNGにも記載していない。",
-        "1注文あたりの配送件数と1配送あたりの注文件数を未確認事項に残している。"
-      ],
-      "result": "passed"
-    }
+  "attempt_note": "Chromeのsandbox拒否後、必要な実行だけ権限レビューを経て再実行した。salesのfileリンク保存検査は別のHTTP保存検査とfile閲覧検査へ分けて成功した。",
+  "unverified": [
+    "利用者による最終確認",
+    "実Agentクライアント内のhooks自動発火"
   ],
-  "bundle_verification": {
-    "relative_root": "domain-models/sales/",
-    "zip": "sales-catalog.zip",
-    "entries": 8,
-    "includes_input": true,
-    "all_zip_entry_bytes_match_public_files": true,
-    "output_md_matches_runtime_report_bytes": true
-  },
-  "source_verification": {
-    "manifest_helper": "scripts/example-skill-source.cjs sourceManifest",
-    "before_sha256": "a139e210a5eafcf1f0a94b5606fa0ac590e8c56205a83c372f0d392ce684537c",
-    "after_sha256": "a139e210a5eafcf1f0a94b5606fa0ac590e8c56205a83c372f0d392ce684537c",
-    "files": 91,
-    "source_unchanged": true,
-    "executed_copy_matches_source": true
-  },
-  "limitations": [
-    "hooksは使い捨てプロジェクトに登録してinstall --checkが合格。セッションでの信頼と自動発火は未検証。明示実行したrun.py check/finishは合格。",
-    "Chromeのfile://では原本・PNGの取得リンクはファイル表示に遷移した。本文・寸法・ハッシュの一致は確認。保存ダイアログの強制は未検証。",
-    "既存カタログの更新、別ブラウザでの動作は今回の公開例の対象外。"
-  ]
+  "zip_entries": 8,
+  "zip_all_bytes_match": true,
+  "public_catalog_check": "passed; masked public catalog checked with canonical catalog.py"
 }

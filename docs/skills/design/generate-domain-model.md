@@ -45,9 +45,9 @@ DBのテーブルと外部キーを表すER図や、コードの全クラスと�
 
 ## 成果物の例
 
-受注と配送の2図をMermaid CLIでPNGへ描画し、一覧・検索・拡大と根拠を備えたHTMLカタログを生成しました。配送の未確定な多重度は図に書かず、確認したい点として残しています。
+受注と配送の業務資料から顧客・注文・配送の2図を新規生成しました。資料にない配送の多重度は確認事項に残しています。
 
-**到達点：新規2図の生成・資料照合・PNG表示・PC/モバイルの操作確認・finish完了。hooksの自動発火は未検証。。**
+**到達点：新規生成・PNGと実画面の目視・HTML操作・check・finish・ZIP照合まで完了。利用者の最終確認と製品内hooks自動発火は未実施。。**
 
 ### 実行した依頼
 
@@ -71,9 +71,11 @@ order は顧客と注文、shipment は注文と配送を対象にしてくだ�
 
 ### 実際の画面
 
-![顧客と注文、注文と配送の2図と説明・根拠・未確認事項を一覧できるPC版カタログ](/skills/generate-domain-model/preview.png)
+![受注と配送の業務資料から顧客・注文・配送の2図を新規生成しました。資料にない配送の多重度は確認事項に残しています。](/skills/generate-domain-model/preview.png)
 
 [画像を原寸で開く](pathname:///skills/generate-domain-model/preview.png)
+
+新規生成したカタログの実画面を保存し、画像を開いて確認しました。利用者の最終確認は未実施です。
 
 ### 実出力の抜粋
 
@@ -85,7 +87,7 @@ order は顧客と注文、shipment は注文と配送を対象にしてくだ�
 generate-domain-model: 完了（検証に合格）
 
 図: 2件
-カタログ: [開く](/private/tmp/issue-86-public-catalog/domain-models/sales/index.html)
+カタログ: [開く](/private/tmp/context-model-refresh/generate-domain-model/project/domain-models/sales/index.html)
 検証: 原本・画像・HTML・全ファイルの対応に合格
 
 ## 出力
@@ -100,21 +102,21 @@ generate-domain-model: 完了（検証に合格）
 
 ### 成果物を取得する
 
-- [カタログ一式（ZIP）](pathname:///skills/generate-domain-model/sales-catalog.zip#download)
-- [実出力の全文（Markdown）](pathname:///skills/generate-domain-model/output.md#download)
+- [HTML・Mermaid原本・PNGの一式（ZIP）](pathname:///skills/generate-domain-model/sales-catalog.zip#download)
+- [finishの実出力全文（Markdown）](pathname:///skills/generate-domain-model/output.md#download)
+- [実行と検証の記録（JSON）](pathname:///skills/generate-domain-model/verification.json#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/generate-domain-model/domain-models/sales/index.html)
 - [実行入力の原本](pathname:///skills/generate-domain-model/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/generate-domain-model/execution.json#download)
 
 ### 確認した結果
 
-- 使い捨てプロジェクトでstart→inspect→原本作成→deps→build→check→finishを実行し、finishの終了コード0・指摘0件を確認。
-- 顧客・注文・配送の主な属性と関係を入力資料へ照合。顧客1対注文0..*を表示し、注文と配送の多重度は省略して未確認事項に記録。
-- PNG2件とPC/モバイルの全体画像を実際に表示し、日本語・属性・関係名と図に欠けがないことを確認。
-- 既存ChromeのPC1440pxとモバイル390pxで全図、各6通りの検索と0件表示、拡大/縮小/全体表示、Escape/閉じる後のフォーカス復帰、根拠開閉を実操作。横はみ出し・外部HTTP通信・JavaScript/consoleエラーは0件。
-- 各画面で原本とPNGの4取得リンクを実際に開き、Mermaid本文またはPNG寸法とハッシュの一致を確認。Chromeのfile://では表示に遷移し、保存ダイアログの強制は未検証。
-- ZIPの8ファイルを全件展開照合し、公開bundleのcatalog.py checkも指摘0件。output.mdはruntime report.mdの本文とバイト一致。
-- sourceManifestでSkill正本91ファイルと実行コピーを照合し、実行前後で不変。verifyArtifactsとverifyExampleSkillSourceに合格。
+- start・inspect・deps・build・check・finish を実行し、指摘0件で終了。
+- 全2枚のPNGとPC1440px・モバイル390pxの実画面を開き、属性・日本語・関係線・多重度を資料と目視照合。
+- 両画面で検索4通り、全2図の拡大と閉じるを確認。file://でも画像・検索・拡大が動作。横はみ出し・JavaScriptエラー・外部HTTP通信は0件。
+- HTTPループバックで原本・PNG全4件を実ダウンロードし、生成ファイルと全byte一致。
+- 公開前に個人ホーム名と実環境の詳細版をマスク。ZIP全件の展開内容が公開ファイルとbyte一致。正本全体は実行前後で不変。
+- マスク後の公開カタログを正本catalog.pyのcheck/verifyで再検査し合格。
 
 ## 確認するポイント
 
