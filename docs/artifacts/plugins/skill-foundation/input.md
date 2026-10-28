@@ -1,6 +1,6 @@
 # 実行入力
 
-plugin 専用テストを所有者の `utils/plugins/skill-foundation/tests/test_plugin.py` へ移した後の公開配布物を再作成する。
+個人ホームパスと観測した実行環境の詳細版を匿名化した現在の正本から、公開配布物を再作成する。
 
 `utils/plugins/skill-foundation/` の現在の12ファイルを配布定義とし、`utils/skills/authoring/skill-foundation/` の指定版97ファイルを一切変更せずに使う。旧版は参照しない。公開成果物の削除後、新しい一時作業場所で `build.py` から Codex と Claude Code 向けを実際に生成し、空白のある別の場所へ移動、ZIP 化、展開して再検証する。
 
@@ -12,7 +12,7 @@ plugin 専用テストを所有者の `utils/plugins/skill-foundation/tests/test
 python3 -m unittest discover -s utils/plugins/skill-foundation/tests -p 'test_*.py' -v
 ```
 
-実モデルは起動しない。ユーザーホームの設定や実リポジトリの導入設定は変更しない。実セッションによる自動 hooks 発火、Codex の信頼 UI、独立した AI による収束テストは未確認として区別する。このプロジェクトへの導入確認は親エージェントが別に記録する。
+実モデルは起動しない。ユーザーホームの設定や実リポジトリの導入設定は変更しない。実セッションによる自動 hooks 発火、Codex の信頼 UI、独立した AI による収束テストは未確認として区別する。このプロジェクトへの導入は実行しない。
 
 保存先は `docs/artifacts/plugins/skill-foundation/`。両製品の ZIP、実行入力、検証全文、JSON、専用テストと manifest 検査のログ、再実行用スクリプト、`execution.json` を保存する。plugin 全体と同梱スキル全体の正本一覧は `scripts/example-skill-source.cjs` の `sourceManifest` で作り、全成果物の SHA-256 を登録する。
 

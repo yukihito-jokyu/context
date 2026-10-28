@@ -195,12 +195,12 @@ def main():
     assert inventory(plugin) == before_plugin and inventory(skill) == before_skill
     check("canonical sources unchanged", plugin_files=12, skill_files=97)
     record = {"checked_at": datetime.now(timezone.utc).isoformat(), "status": "passed",
-              "purpose": "Rebuild plugin artifacts after moving plugin-only tests under their owner",
+              "purpose": "Rebuild and verify plugin artifacts from the privacy-redacted canonical sources",
               "checks": checks, "bundles": bundles, "commands": commands,
               "source_unchanged": {"plugin": True, "skill": True},
               "unit_test_command": "python3 -m unittest discover -s utils/plugins/skill-foundation/tests -p 'test_*.py' -v",
               "not_verified": ["Automatic hooks from a real product session", "Codex hooks trust UI",
-                               "Independent AI convergence execution", "Project installation (recorded separately by parent)"],
+                               "Independent AI convergence execution", "Project installation"],
               "redactions": ["repository absolute path → <repository>", "temporary workdir → <workdir>",
                              "user home absolute path → <user-home>", "system temporary path → <system-temp>"],
               "reproduction": "Run this script with --repo-root pointing to the complete current repository and a new --workdir. The plugin-owned tests are imported from that repository; copying a test file alone is insufficient."}

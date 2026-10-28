@@ -49,9 +49,9 @@ python3 <plugin-root>/runtime/skill-foundation/scripts/catalog.py --project .
 
 ## 成果物の例
 
-更新後の skill-foundation を新しいサブエージェントが一時gitプロジェクトに適用し、write-commit-message を新規作成しました。実出力、生成スキルとカタログ、検証ログを保存しています。
+匿名化後の正本から隔離プロジェクトへSkillを新規作成し、実出力、生成Skill、カタログ、検証ログを保存した。
 
-**到達点：生成スキルの作成・検証と run.py finish が完了。収束テストは依頼で指定して省略。**
+**到達点：run.py finish完了。収束テストは依頼に従い省略。**
 
 ### 実行した依頼
 
@@ -64,6 +64,8 @@ git diff を受け取り、日本語の1行コミットメッセージをUTF-8�
 以下は保存した原本の冒頭です。全文は原本から取得できます。
 
 ````markdown
+最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。
+========================================
 ## 結果
 
 skill-foundation: 完了（検証に合格）
@@ -71,7 +73,7 @@ skill-foundation: 完了（検証に合格）
 ## 作ったスキル
 
 - 名前: `write-commit-message`（コミットメッセージを書く）
-- 目的: ステージ済みの git diff を受け取り、日本語の1行コミットメッセージをUTF-8テキストに書く
+- 目的: ステージ済みの git diff から、日本語1行のコミットメッセージをUTF-8テキストに出す
 - 本体の置き場: `.claude/skills/write-commit-message`
 - Codex の置き場: `.agents/skills/write-commit-message`（本体へのリンク）
 - 対象の製品: Claude Code、Codex
@@ -79,31 +81,29 @@ skill-foundation: 完了（検証に合格）
 - 起動: 依頼の内容から自動で選ばれる。明示は `/write-commit-message`（Claude Code）、`$write-commit-message`（Codex）
 - 入力: なし
 - 出力: `commit-message`（コミットメッセージ。`.skill-runs/write-commit-message/out/commit-message.txt`）
-
-## ルールと守らせ方
 ````
 
 ### 成果物を取得する
 
 - [最終報告の原本（Markdown）](pathname:///skills/skill-foundation/output.md#download)
-- [生成スキル・設定・カタログ（ZIP）](pathname:///skills/skill-foundation/write-commit-message.zip#download)
+- [生成Skill・設定・カタログ（ZIP）](pathname:///skills/skill-foundation/write-commit-message.zip#download)
 - [検証の要約（JSON）](pathname:///skills/skill-foundation/validation.json#download)
-- [サブエージェントの生成・検査ログ](pathname:///skills/skill-foundation/execution.log#download)
-- [生成スキルの最終検査ログ](pathname:///skills/skill-foundation/final-lint.log#download)
-- [親エージェントの自己テストログ](pathname:///skills/skill-foundation/parent-selftest.log#download)
-- [親エージェントの指定版probeログ](pathname:///skills/skill-foundation/parent-foundation-probe.log#download)
+- [生成・検査の実行ログ](pathname:///skills/skill-foundation/execution.log#download)
+- [生成Skillの最終検査ログ](pathname:///skills/skill-foundation/final-lint.log#download)
+- [正本の別コピーでの自己テスト](pathname:///skills/skill-foundation/foundation-selftest.log#download)
+- [正本の別コピーでのprobe](pathname:///skills/skill-foundation/foundation-probe.log#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/skill-foundation/catalog.html)
 - [実行入力の原本](pathname:///skills/skill-foundation/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/skill-foundation/execution.json#download)
 
 ### 確認した結果
 
-- SKILL.md の手順に沿って受付、骨組み、調査、ルール、契約、違反例、収束テスト省略、仕上げを実施し、run.py finish が指摘0件で完了した。
-- 生成スキルの最終検査はエラー0件、警告1件。警告は指定した収束テストの省略による。
-- 生成スキルのprobeは19件、Claude Code・Codex形式のhooks確認は20件で、失敗はすべて0件。
-- 生成したカタログのSVG12個をXMLとして読み取れることを確認した。
-- 親エージェントの確認として指定版の自己テスト11段階成功と、別コピーでのprobe26件・hooks20件成功のログを添付した。
-- 独立したAIによる出力の一致・レビュー検出率と、実際の製品セッションからの自動hooks呼出しは未確認。公開ログの環境パスは置換し、置換内容をvalidation.jsonに記録した。
+- run.py check / finish: 指摘0件
+- 生成スキル: 17ルール、final lintエラー0件・警告2件
+- 生成スキル: probe19件・hooks20件、失敗0件
+- 正本の別コピー: selftest11段階、probe26件・hooks20件、失敗0件
+- カタログのSVG12個をXMLとして解析
+- 公開ZIPの展開バイト列を今回の新規生成ファイルと一致確認
 
 ## 確認するポイント
 

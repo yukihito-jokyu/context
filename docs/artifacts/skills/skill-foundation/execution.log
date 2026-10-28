@@ -1,4 +1,27 @@
-$ python3 init_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
+$ git init -q
+[cwd] <workdir>/project
+[exit] 0
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/run.py start --set name=write-commit-message --set targets=claude,codex --set language=ja --set base=.claude/skills --set measure=skip git diff を受け取り、日本語の1行コミットメッセージをUTF-8テキストに出すスキルを、Claude Code と Codex 両方向けに作る。収束テスト: 省く。入力不足はスキル既定値に従う。コミットや外部投稿は行わない。サンプル用の一時gitプロジェクト内のみに生成し、そのプロジェクトへのスキル配置とhooks登録は許可する
+[cwd] <workdir>/project
+[exit] 0
+skill-foundation を始めました。実行記録: .skill-runs/skill-foundation/state.json
+スキルのディレクトリ: <repository>/utils/skills/authoring/skill-foundation
+入力（正規化の後）:
+  作るスキルの名前（name）= "write-commit-message"
+  対象の製品（targets）= ["claude", "codex"]
+  言語（language）= "ja"
+  本体の置き場（base）= ".claude/skills"
+  収束テストの実行（measure）= "skip"
+作る出力:
+  skill-entry 作ったスキルの SKILL.md: .claude/skills/write-commit-message/SKILL.md（1〜1 件）
+次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/init_skill.py --dir <workdir>/project/.claude/skills/write-commit-message
+[cwd] <workdir>/project
+[exit] 0
 作成  dev/spec.json（標準のルールを追加、種類の追加の軸を extra_axes に追加）
 作成  SKILL.md
 作成  dev/research.md
@@ -13,47 +36,113 @@ $ python3 init_skill.py --dir <sample-workdir>/project/.claude/skills/write-comm
 
 11 件作成、0 件は既存のため変更なし、0 件は差分あり
 次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
-終了コード: 0
 
-$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 1
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/skill_lint.py <workdir>/project/.claude/skills/write-commit-message --phase 1
+[cwd] <workdir>/project
+[exit] 0
 [phase 1] write-commit-message: ルール 6 件、出力 0 件、エラー 0 件、警告 0 件
-終了コード: 0
 
-$ python3 render_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
-render: 2 件を書き換えました（SKILL.md, references/decisions.md）
-終了コード: 0
 
-$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 3
-[phase 3] write-commit-message: ルール 15 件、出力 0 件、エラー 0 件、警告 0 件
-終了コード: 0
+$ git init -q
+[cwd] <workdir>/git-research
+[exit] 0
 
-$ python3 render_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
-render: 2 件を書き換えました（SKILL.md, assets/contract.json）
-終了コード: 0
 
-$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 4
-[phase 4] write-commit-message: ルール 15 件、出力 1 件、エラー 0 件、警告 0 件
-終了コード: 0
+$ git add sample.txt
+[cwd] <workdir>/git-research
+[exit] 0
 
-$ python3 probe.py <sample-workdir>/project/.claude/skills/write-commit-message
-ERROR baseline.setup の `python3 -c 'from pathlib import Path; Path("src/util.py").write_text("def add(a, b):\n    return a + b\n".replace("\n", "
-"))'` が失敗しました:   File "<string>", line 1
-    from pathlib import Path; Path("src/util.py").write_text("def add(a, b):\n    return a + b\n".replace("\n", "
-                                                                                                                ^
-SyntaxError: unterminated string literal (detected at line 1)
-終了コード: 2
 
-$ python3 probe.py <sample-workdir>/project/.claude/skills/write-commit-message
+$ git diff --cached -- sample.txt
+[cwd] <workdir>/git-research
+[exit] 0
+diff --git a/sample.txt b/sample.txt
+new file mode 100644
+index 0000000..be5661a
+--- /dev/null
++++ b/sample.txt
+@@ -0,0 +1 @@
++staged line
+
+
+$ git diff -h
+[cwd] <workdir>/git-research
+[exit] 129
+usage: git diff [<options>] [<commit>] [--] [<path>...]
+   or: git diff [<options>] --cached [--merge-base] [<commit>] [--] [<path>...]
+   or: git diff [<options>] [--merge-base] <commit> [<commit>...] <commit> [--] [<path>...]
+   or: git diff [<options>] <commit>...<commit> [--] [<path>...]
+   or: git diff [<options>] <blob> <blob>
+   or: git diff [<options>] --no-index [--] <path> <path>
+
+common diff options:
+  -z            output diff-raw with lines terminated with NUL.
+  -p            output patch format.
+  -u            synonym for -p.
+  --patch-with-raw
+                output both a patch and the diff-raw format.
+  --stat        show diffstat instead of patch.
+  --numstat     show numeric diffstat instead of patch.
+  --patch-with-stat
+                output a patch and prepend its diffstat.
+  --name-only   show only names of changed files.
+  --name-status show names and status of changed files.
+  --full-index  show full object name on index lines.
+  --abbrev=<n>  abbreviate object names in diff-tree header and diff-raw.
+  -R            swap input file pairs.
+  -B            detect complete rewrites.
+  -M            detect renames.
+  -C            detect copies.
+  --find-copies-harder
+                try unchanged files as candidate for copy detection.
+  -l<n>         limit rename attempts up to <n> paths.
+  -O<file>      reorder diffs according to the <file>.
+  -S<string>    find filepair whose only one side contains the string.
+  --pickaxe-all
+                show all files diff when -S is used and hit is found.
+  -a  --text    treat all files as text.
+
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/skill_lint.py <workdir>/project/.claude/skills/write-commit-message --phase 3
+[cwd] <workdir>/project
+[exit] 0
+[phase 3] write-commit-message: ルール 17 件、出力 1 件、エラー 0 件、警告 0 件
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/render_skill.py --dir <workdir>/project/.claude/skills/write-commit-message
+[cwd] <workdir>/project
+[exit] 0
+render: 3 件を書き換えました（SKILL.md, references/decisions.md, assets/contract.json）
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/skill_lint.py <workdir>/project/.claude/skills/write-commit-message --phase 4
+[cwd] <workdir>/project
+[exit] 0
+[phase 4] write-commit-message: ルール 17 件、出力 1 件、エラー 0 件、警告 0 件
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/render_skill.py --dir <workdir>/project/.claude/skills/write-commit-message
+[cwd] <workdir>/project
+[exit] 0
+render: 0 件を書き換えました
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/probe.py <workdir>/project/.claude/skills/write-commit-message
+[cwd] <workdir>/project
+[exit] 0
 成功  RPT-01-builtin  finish が報告の本文（## 結果 から ## 補足 まで）を出す
 baseline  見本の出力で check と finish が通る
 成功  OUT-01-a  check の終了コード 1、expect 一致 あり
 成功  OUT-02-a  check の終了コード 1、expect 一致 あり
-成功  OUT-02-b  check の終了コード 0、expect 一致 あり、自動で直った はい
+    注意: 別のルール OUT-03 の指摘も出ました。1つの違反例は1つのルールだけを破るようにする
+成功  OUT-02-b  check の終了コード 1、expect 一致 あり
 成功  OUT-03-a  check の終了コード 1、expect 一致 あり
 成功  OUT-03-b  check の終了コード 0、expect 一致 あり、自動で直った はい
 成功  OUT-04-a  check の終了コード 1、expect 一致 あり
 成功  OUT-05-a  check の終了コード 1、expect 一致 あり
-成功  OUT-03-r1  レビューの見本が機械の検査を通る（終了コード 0。通らないなら review でなく validate にする）
+成功  IN-02-r1  レビューの見本が機械の検査を通る（終了コード 0。通らないなら review でなく validate にする）
 成功  CTL-01-builtin  出力が無いと finish が落ちる（終了コード 1）
 成功  CTL-02-builtin  保護ファイルを変えると check が落ちる（終了コード 1）
 成功  CTL-02-builtin-restart  保護ファイルを変えてから start --restart しても check が落ちる（終了コード 1）
@@ -86,17 +175,23 @@ baseline  見本の出力で check と finish が通る
 成功  hooks の動作 codex pre-tool-sealed  実行していないとき、指紋を記録した保護ファイルの編集の前に 何もしない（結果 何もしない。CTL-04）
 
 probe 19 件中 失敗 0 件／hooks の動作 20 件中 失敗 0 件
-終了コード: 0
 
-$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 5
-[phase 5] write-commit-message: ルール 15 件、出力 1 件、エラー 0 件、警告 0 件
-終了コード: 0
 
-$ python3 <sample-workdir>/foundation/scripts/render_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/skill_lint.py <workdir>/project/.claude/skills/write-commit-message --phase 5
+[cwd] <workdir>/project
+[exit] 0
+[phase 5] write-commit-message: ルール 17 件、出力 1 件、エラー 0 件、警告 0 件
+
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/render_skill.py --dir <workdir>/project/.claude/skills/write-commit-message
+[cwd] <workdir>/project
+[exit] 0
 render: 0 件を書き換えました
-終了コード: 0
 
-$ python3 <sample-workdir>/project/.claude/skills/write-commit-message/scripts/install.py --project <sample-workdir>/project
+
+$ python3 <workdir>/project/.claude/skills/write-commit-message/scripts/install.py --project <workdir>/project
+[cwd] <workdir>/project
+[exit] 0
 .claude/settings.json: PreToolUse に write-commit-message の hook を足す
 .claude/settings.json: PostToolUse に write-commit-message の hook を足す
 .claude/settings.json: Stop に write-commit-message の hook を足す
@@ -108,19 +203,26 @@ $ python3 <sample-workdir>/project/.claude/skills/write-commit-message/scripts/i
 .codex/hooks.json: UserPromptSubmit に write-commit-message の hook を足す
 install: 変更 9 件
 注意: Codex は、足した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。信頼するまでは run.py の check と finish だけで検査される
-終了コード: 0
 
-$ python3 <sample-workdir>/foundation/scripts/skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --final --project <sample-workdir>/project
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/skill_lint.py <workdir>/project/.claude/skills/write-commit-message --final --project <workdir>/project
+[cwd] <workdir>/project
+[exit] 0
+WARN dev/results/probe-results.json OUT-02-a: 別のルール OUT-03 の指摘も出ています。1つの違反例は1つのルールだけを破るようにしてください（control-ladder.md の7章）
 WARN dev/spec.json convergence.skip_reason: 収束テストを省いています（利用者が収束テストを省くと指定した）
-[final] write-commit-message: ルール 15 件、出力 1 件、エラー 0 件、警告 1 件
-終了コード: 0
+[final] write-commit-message: ルール 17 件、出力 1 件、エラー 0 件、警告 2 件
 
-$ python3 <sample-workdir>/foundation/scripts/run.py check
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/run.py check
+[cwd] <workdir>/project
+[exit] 0
 出力 skill-entry: .claude/skills/write-commit-message/SKILL.md
 check: 指摘 0 件
-終了コード: 0
 
-$ python3 <sample-workdir>/foundation/scripts/run.py finish
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/run.py finish
+[cwd] <workdir>/project
+[exit] 0
 最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。
 ========================================
 ## 結果
@@ -130,7 +232,7 @@ skill-foundation: 完了（検証に合格）
 ## 作ったスキル
 
 - 名前: `write-commit-message`（コミットメッセージを書く）
-- 目的: ステージ済みの git diff を受け取り、日本語の1行コミットメッセージをUTF-8テキストに書く
+- 目的: ステージ済みの git diff から、日本語1行のコミットメッセージをUTF-8テキストに出す
 - 本体の置き場: `.claude/skills/write-commit-message`
 - Codex の置き場: `.agents/skills/write-commit-message`（本体へのリンク）
 - 対象の製品: Claude Code、Codex
@@ -144,24 +246,26 @@ skill-foundation: 完了（検証に合格）
 | 区分 | ルールの数 | ID |
 |---|---|---|
 | スキル固有・機械が守ったかを確かめる（runtime・format・validate のどれかを含む） | 5 | OUT-01、OUT-02、OUT-03、OUT-04、OUT-05 |
-| スキル固有・機械で確かめない（review か doc で確かめる） | 4 | IN-01、IN-02、STEP-01、STEP-02 |
+| スキル固有・機械で確かめない（review か doc で確かめる） | 6 | IN-01、IN-02、STEP-01、STEP-02、STEP-03、STEP-04 |
 | 標準（全スキル共通） | 6 | CTL-01、CTL-02、CTL-03、CTL-04、CTL-05、RPT-01 |
-| 対象外にした軸 | 4 | O4（日付、ID、並べ順、計算した数値を出力しないため）、O6（実行記録の置き場に新しく出力し、既存のプロジェクトファイルを変更しないため）、O7（出力は1ファイルだけで、一緒に変えるファイルが無いため）、X1（コミットメッセージは差分の要約で、引用やリンクを出力しないため） |
+| 対象外にした軸 | 4 | O4（出力に日付とIDと連番を付けないため）、O6（実行ごとの新しい出力を作り、既存ファイルは書き換えないため）、O7（出力は1ファイルだけであるため）、X1（差分を要約する短い文であり引用やリンクを付けないため） |
 
-- 段（control）: runtime 6、format 2、validate 9、script 3、template 0、review 2、doc 5
-- 決めた根拠（スキル固有）: 依頼の指定 4、出力を使う道具や形式の公式の決まり 1、機械で守らせられる答え 1、道具・スクリプト・入力を増やさない答え 1、AI の判断と覚える概念が少ない答え 2
+- 段（control）: runtime 6、format 1、validate 9、script 4、template 0、review 2、doc 6
+- 決めた根拠（スキル固有）: 依頼の指定 4、機械で守らせられる答え 2、道具・スクリプト・入力を増やさない答え 1、AI の判断と覚える概念が少ない答え 4
 
 機械で守らせないルールと理由（spec の why_not_machine）:
-- IN-01: 痕跡が残らない：中断したときは出力が無く、出力の検査だけでは中断した理由を確かめられない
-- IN-02: 痕跡が残らない：読んだファイルの一覧は、メッセージの出力だけでは確かめられない
-- STEP-01: 痕跡が残らない：コマンドを実行した順序はメッセージに残らない
-- STEP-02: 痕跡が残らない：出力のメッセージだけでは git の操作履歴を確かめられない
+- IN-01: 痕跡が残らない：中断時は出力を作らない
+- IN-02: 意味の判断が要る：要約が差分と一致するかは文の意味を照合する
+- STEP-01: 痕跡が残らない：出力保存前の操作順を出力の内容だけでは確かめられない
+- STEP-02: 痕跡が残らない：中断した場合は本文が無い
+- STEP-03: 痕跡が残らない：外部の操作はメッセージの検査では検出できない
+- STEP-04: 痕跡が残らない：失敗した操作は出力の内容では検出できない
 
 ## 作ったスキルの検証
 
 | 検証 | 結果 |
 |---|---|
-| `skill_lint.py --final` | エラー 0 件、警告 1 件 |
+| `skill_lint.py --final` | エラー 0 件、警告 2 件 |
 | `probe.py` | 違反例 19 件中 失敗 0 件／hooks の動作 20 件中 失敗 0 件（Claude Code、Codex） |
 
 ## 収束テスト
@@ -172,10 +276,11 @@ skill-foundation: 完了（検証に合格）
 
 - 収束テストを実施していないため、別の AI で結果が揃うかは測っていない
 - Codex の hooks は、Codex の `/hooks` で信頼するまで動かない（それまでは `run.py check` と `finish` だけで検査される）
+- skill_lint.py の警告: dev/results/probe-results.json OUT-02-a: 別のルール OUT-03 の指摘も出ています。1つの違反例は1つのルールだけを破るようにしてください（control-ladder.md の7章）
 
 ## プロジェクトに置いたもの
 
-- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 16 個）
+- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 17 個）
 - `.agents/skills/write-commit-message`: 本体へのリンク
 - `.claude/settings.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
 - `.codex/hooks.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
@@ -209,5 +314,11 @@ skill-foundation: 完了（検証に合格）
 ## 補足
 
 - なし
-終了コード: 0
 
+
+$ python3 <repository>/utils/skills/authoring/skill-foundation/scripts/skill_lint.py <workdir>/project/.claude/skills/write-commit-message --final --project <workdir>/project
+[cwd] <workdir>/project
+[exit] 0
+WARN dev/results/probe-results.json OUT-02-a: 別のルール OUT-03 の指摘も出ています。1つの違反例は1つのルールだけを破るようにしてください（control-ladder.md の7章）
+WARN dev/spec.json convergence.skip_reason: 収束テストを省いています（利用者が収束テストを省くと指定した）
+[final] write-commit-message: ルール 17 件、出力 1 件、エラー 0 件、警告 2 件

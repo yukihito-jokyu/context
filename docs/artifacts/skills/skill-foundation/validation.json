@@ -1,42 +1,45 @@
 {
-  "stage": "run.py finish 完了",
-  "foundation_status": "done",
-  "generated_skill": {
-    "name": "write-commit-message",
-    "rules": 15,
-    "outputs": 1,
-    "final_lint": {
-      "exit_code": 0,
-      "errors": 0,
-      "warnings": 1,
-      "warning_reason": "収束テストを省く指定"
-    },
-    "probe_results": {
-      "total": 19,
-      "failed": 0
-    },
-    "hooks": {
-      "total": 20,
-      "failed": 0
-    },
-    "convergence": "利用者の指定により省略",
-    "seal_files": 9,
-    "codex_symlink": "../../.claude/skills/write-commit-message"
+  "status": "passed",
+  "generated_rules": 17,
+  "generated_probe": {
+    "cases": 19,
+    "hook_cases": 20,
+    "failures": 0
   },
-  "catalog": {
-    "svg_xml_parse": "passed",
-    "svg_count": 12
+  "final_lint": {
+    "errors": 0,
+    "warnings": 2,
+    "warning_reasons": [
+      "空出力の違反例は日本語文字条件にも違反する",
+      "依頼に従い収束テストを省略した"
+    ]
   },
-  "limits": [
-    "別のAIによる生成スキルの出力一致・レビュー検出率は未測定",
-    "実際のClaude Code/Codexセッションでの自動hooks呼出しは未確認。両製品形式の入力によるhookスクリプト呼出しを検証した",
-    "生成スキルを利用者の変更に実適用する確認はしていない"
+  "foundation_selftest_stages": 11,
+  "foundation_probe": {
+    "cases": 26,
+    "hook_cases": 20,
+    "failures": 0
+  },
+  "catalog_svg_count": 12,
+  "checks": [
+    "run.py check / finish: 指摘0件",
+    "生成スキル: 17ルール、final lintエラー0件・警告2件",
+    "生成スキル: probe19件・hooks20件、失敗0件",
+    "正本の別コピー: selftest11段階、probe26件・hooks20件、失敗0件",
+    "カタログのSVG12個をXMLとして解析",
+    "公開ZIPの展開バイト列を今回の新規生成ファイルと一致確認"
   ],
-  "log_notes": [
-    "execution.log はサブエージェントによる生成・検査の実記録で、準備スクリプトの失敗と修正後の再試行も含む",
-    "parent-selftest.log と parent-foundation-probe.log は親エージェントの確認結果として別添した",
-    "公開ログの作業場所は <sample-workdir>、ホームは ~、一時ディレクトリは <tmp> に置換した",
-    "output.md は run.py finish が保存した本文そのもの。公開ログのパス置換は output.md に適用していない",
-    "probe.py が検証用一時リポジトリの初期状態を作る内部コミットを行った。利用者リポジトリのコミット・外部投稿はしていない"
-  ]
+  "unverified": [
+    "独立したAIによる出力の一致・レビュー検出率",
+    "実製品セッションからの自動hooks呼び出し",
+    "Codexでのhooks信頼UI操作",
+    "生成したコミットメッセージSkillの実モデルによる利用"
+  ],
+  "redactions": [
+    "repository absolute path → <repository>",
+    "temporary execution workdir → <workdir>",
+    "system temporary directory → <system-temp>",
+    "personal home paths and observed detailed environment versions masked before publication"
+  ],
+  "selftest_scope": "自己テスト内の収束・分析データはテストfixtureであり、今回の独立モデル実行結果ではない"
 }

@@ -57,7 +57,7 @@ claude plugin install skill-foundation@context-local --scope project
 
 Codex の有効化設定は `.codex/config.toml`、Claude Code は `.claude/settings.json` にあります。Codex CLI の `plugin add` はユーザー設定でも有効にするため、このプロジェクトだけで使う場合はユーザー設定側を無効にし、プロジェクト設定側を有効にします。設定の優先順位は [OpenAI の導入・有効化仕様](https://developers.openai.com/plugins/build/plugins#enable-or-disable-a-plugin-for-a-repo)を参照してください。
 
-この作業では両製品への導入とプロジェクト設定を確認しました。以前の `.claude/skills/skill-foundation`・`.agents/skills/skill-foundation` と、スキル用の直接登録 hooks・プロジェクト専用 tester は削除しています。他の hooks は保持しています。製品を再起動して plugin の読み込みを反映し、Codex では hooks の信頼確認を行ってください。信頼確認を迂回する設定は追加していません。
+このプロジェクトは両製品向けの有効化設定を管理しています。同じスキルの単体配置・直接登録 hooks と plugin の二重登録は避けます。製品を再起動して plugin の読み込みを反映し、Codex では hooks の信頼確認を行ってください。今回の公開作例の再作成では、実製品への再導入や有効化は行っていません。
 
 別のプロジェクトへの導入は[導入を始める](getting-started.md)を参照してください。このローカルカタログは外部へ公開していません。
 
@@ -65,7 +65,7 @@ Codex の有効化設定は `.codex/config.toml`、Claude Code は `.claude/sett
 
 新しいサブエージェントが両製品向けの配布物を生成し、空白を含む別の場所へ移動して ZIP 化・展開した後に検証しました。Codex 用は103ファイル、Claude Code 用は104ファイルで、同梱した正本97ファイルはすべて元のバイト列と一致しました。
 
-**到達点：配布物の生成・移動・展開・hooks の直接実行まで検証済み。** 実セッションからの自動 hooks 呼び出しと、独立した AI による収束テストは未確認です。このプロジェクトへの導入確認は、上の導入欄に記載しています。
+**到達点：配布物の生成・移動・展開・hooks の直接実行まで検証済み。** 実セッションからの自動 hooks 呼び出し、実製品への導入、独立した AI による収束テストは未確認です。
 
 ### 配布物を取得する
 
@@ -75,7 +75,6 @@ Codex の有効化設定は `.codex/config.toml`、Claude Code は `.claude/sett
 - [実行したコマンドと検証結果（JSON）](pathname:///plugins/skill-foundation/validation.json#download)
 - [実行入力の原本](pathname:///plugins/skill-foundation/input.md#download)
 - [実行・検証記録（JSON）](pathname:///plugins/skill-foundation/execution.json#download)
-- [このプロジェクトへの導入確認（JSON）](pathname:///plugins/skill-foundation/project-installation.json#download)
 
 ### 確認した結果
 
