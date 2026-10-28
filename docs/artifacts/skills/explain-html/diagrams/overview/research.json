@@ -1,30 +1,41 @@
 {
+  "diagram_id": "overview",
+  "scope": "学習用の架空画像変換APIにおける4主体の責務と接続点。実在APIの解説ではない。",
+  "checked_at": "2026-10-28",
   "sources": [
     {
       "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
-      "checked_at": "2026-10-14",
-      "finding": "HTTP 202は処理の受付を示すが処理は完了していない。非同期処理の後にHTTPが同じ応答のステータスコードを送り直す仕組みはない。応答表現は現状と状態監視先を示すことが望ましい。",
-      "location": "§15.3.3 / lines 3327–3331",
-      "scope": "HTTPの一般的意味のみ"
+      "checked_at": "2026-10-28",
+      "location": "§15.3.3, 202 Accepted",
+      "finding": "202は処理を受け付けたが処理は未完了であることを示す。非同期処理の完了を同じ応答で後から通知する機構ではない。図ではサーバーの受付応答とワーカーの処理を別の責務として表す。",
+      "applies_to": "HTTPの一般的意味"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1",
+      "checked_at": "2026-10-28",
+      "location": "§9.3.1, GET",
+      "finding": "GETは対象リソースの現在選択された表現の転送を要求する。架空APIではGET /jobs/job_17で保存ジョブの状態を読むという個別規則へ対応させる。",
+      "applies_to": "一般的意味と架空API固有規則の境界"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4",
+      "checked_at": "2026-10-28",
+      "location": "§15.6.4, 503 Service Unavailable",
+      "finding": "503は一時的な過負荷や予定保守により現在要求を扱えない状態を示す。RFCはこの架空APIの追加再試行2回やrequestKey再利用規則を定めない。この全体図では再試行の詳細を描かない。",
+      "applies_to": "全体図から詳細図へ委ねる境界"
     }
   ],
-  "fictional_spec": {
-    "source": "../../input.md",
-    "claims": [
-      "POST /jobsへ画像IDとrequestKeyを送る",
-      "APIはjob_17を作成し初回202とjobIdを返す",
-      "同じrequestKeyは同じjobIdを返す",
-      "queuedからワーカーがrunningへ進める",
-      "成功ならcompletedとresultUrl、失敗ならfailedとreasonを保存",
-      "GET /jobs/job_17で状態を確認する"
+  "provided_facts": {
+    "source": "<workdir>/input.md と brief.json",
+    "rules": [
+      "クライアントはPOST /jobsへimageId: img_42とrequestKey: req_Aを送る。",
+      "初回のサーバーはjob_17を作り202とjobIdを返す。同じrequestKeyでは同じjobIdを返す。",
+      "ワーカーは保存ジョブを処理し状態を保存する。",
+      "クライアントはGET /jobs/job_17で状態を取得する。"
     ],
     "not_inferred": [
-      "データベース製品",
-      "物理テーブル",
-      "キュー製品",
-      "resultUrlの画像取得方式",
-      "処理時間",
-      "ワーカー起動方式"
+      "ジョブ保存先の実装製品、配備構成、ポーリング間隔、ワーカー起動機構は不明であり追加しない。"
     ]
-  }
+  },
+  "network_observation": "webツールでRFC 9110を実際にopenし、202・GET・503該当節をfindで読み取った。"
 }

@@ -2,132 +2,93 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "受付と変換を分ける",
-    "quality_profile": "showcase",
-    "visual_preset": "editorial",
+    "title": "架空APIの4つの役割",
     "locale": "ja",
-    "legend": {
-      "mode": "auto",
-      "entries": {
-        "frontend": {
-          "label": "利用者"
-        },
-        "backend": {
-          "label": "処理"
-        },
-        "database": {
-          "label": "保存"
-        }
-      }
-    }
+    "visual_preset": "editorial",
+    "quality_profile": "showcase",
+    "viewBox": [
+      380,
+      690
+    ]
   },
   "components": [
     {
-      "id": "client",
+      "id": "overview_client",
       "type": "frontend",
-      "label": "① 利用者",
+      "label": "① クライアント",
+      "sublabel": "依頼と状態照会",
       "pos": [
-        10,
-        20
+        84,
+        42
       ],
       "size": [
-        100,
-        36
-      ]
-    },
-    {
-      "id": "api",
-      "type": "backend",
-      "label": "② API",
-      "pos": [
-        10,
+        212,
         80
-      ],
-      "size": [
-        100,
-        36
       ]
     },
     {
-      "id": "jobs",
-      "type": "database",
-      "label": "③ 保存",
-      "pos": [
-        10,
-        140
-      ],
-      "size": [
-        100,
-        36
-      ]
-    },
-    {
-      "id": "worker",
+      "id": "overview_server",
       "type": "backend",
-      "label": "④ 変換",
+      "label": "② サーバー",
+      "sublabel": "受付と状態を返す",
       "pos": [
-        10,
-        200
+        84,
+        208
       ],
       "size": [
-        100,
-        36
+        212,
+        80
+      ]
+    },
+    {
+      "id": "overview_jobs",
+      "type": "database",
+      "label": "③ ジョブ保存先",
+      "sublabel": "job_17 の状態",
+      "pos": [
+        84,
+        374
+      ],
+      "size": [
+        212,
+        80
+      ]
+    },
+    {
+      "id": "overview_worker",
+      "type": "backend",
+      "label": "④ ワーカー",
+      "sublabel": "変換して状態を更新",
+      "pos": [
+        84,
+        540
+      ],
+      "size": [
+        212,
+        80
       ]
     }
   ],
   "connections": [
     {
-      "id": "request",
-      "from": "client",
-      "to": "api",
-      "label": "依頼",
-      "variant": "emphasis",
-      "labelAt": [
-        90,
-        67
-      ]
+      "id": "overview_http",
+      "from": "overview_client",
+      "to": "overview_server",
+      "label": "POST / GET",
+      "labelDy": 54
     },
     {
-      "id": "acceptance",
-      "from": "api",
-      "to": "client",
-      "label": "応答",
-      "variant": "dashed",
-      "labelAt": [
-        30,
-        67
-      ]
+      "id": "overview_storage",
+      "from": "overview_server",
+      "to": "overview_jobs",
+      "label": "作成・状態読取",
+      "labelDy": 54
     },
     {
-      "id": "persist",
-      "from": "api",
-      "to": "jobs",
-      "label": "作成・参照",
-      "labelAt": [
-        60,
-        127
-      ]
-    },
-    {
-      "id": "run",
-      "from": "jobs",
-      "to": "worker",
-      "label": "取得",
-      "labelAt": [
-        30,
-        187
-      ]
-    },
-    {
-      "id": "save-result",
-      "from": "worker",
-      "to": "jobs",
-      "label": "保存",
-      "variant": "dashed",
-      "labelAt": [
-        90,
-        187
-      ]
+      "id": "overview_processing",
+      "from": "overview_worker",
+      "to": "overview_jobs",
+      "label": "取得・状態保存"
     }
   ]
 }

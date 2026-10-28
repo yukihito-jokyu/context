@@ -1,13 +1,22 @@
-# job_17 の保存状態を追う
+# states の設計
 
-対象は1件のjob_17。通信の往復ではなく、同じ対象の状態と終端を説明するためlifecycle v2を選ぶ。queuedが開始、completed/failedが終端。runningから二つの代替結果へ分岐させ、completedからfailedへの矢印は持たない。
+問いは「ワーカー処理の状態とクライアント表示はどう対応するか」。対象は同じ job_17 であり、観測開始はサーバーが queued として作る時点、観測終了は completed または failed の保存である。将来の削除や再実行が分からないため、対象の全生涯ではなく partial の lifecycle v2 とした。
 
-図内は①〜④と正確な状態名、短い遷移条件だけを残す。サーバー/ワーカーという更新主体、POST/GET、requestKey、resultUrl/reasonは同じ番号のasideへ移す。長いsubject/noteの常時描画は読み幅を広げるため短文化し、具体条件はdescriptionとasideへ保持した。
+4状態を同じ粒度で置く。queued→runningはワーカー開始、running→completedは成功、running→failedは失敗とする。③と④の間に矢印は作らない。狭幅でも状態名を保つため1列とし、失敗の矢印はrunningから外側を通ってfailedへ届く。上下に並ぶことは順序ではなく、矢印だけが遷移を示すとcaptionでも説明する。
 
-狭幅も同じ意味モデルを使う。1列の状態と右側の失敗枝で横幅を抑え、右側枝は③を経由せず④へ着く。診断されたノード横断をright-channelで回避し、成功ラベルの衝突をlabelAtで解消した。標準SVGの余白による縮小を避けるため、全ノード・全枝・凡例が入る420×840のviewBoxをモデルに設定した。エクスポート後の図は編集していない。PCはfigure/aside横配置、狭幅は縦配置。局所投影は不要。
+図内には①〜④、正確な状態名、短い値名と成功／失敗の条件を残す。成功と失敗は主要文字でも示し、色だけには依存しない。resultUrl/reasonの表示条件とGET /jobs/job_17の取得は横の1番号1〜2文で説明する。GETは状態を変える処理ではないので、新しい遷移として描かない。
 
-HTTP資料はGETと202の一般意味を確認する目的で実閲覧し、架空状態機械の外部根拠と混同しない。
+対応は①サーバーによるqueued作成、②ワーカーのrunning、③成功時の保存と結果表示、④失敗時の保存と理由表示。HTTP一般のGETと202の意味はRFC 9110、各状態やフィールドの意味は架空依頼文と分ける。POST 202の詳細、503と再試行上限は別図の範囲とする。
 
-狭幅改善として開始・失敗のラベルを枝の内側へ配置し、schema許容の最小幅420へ縮めた。lifecycle v2はviewBox幅420以上・ノード幅120/高さ80以上、layout固定行間90のため、architecture例の153幅/36高さは流用できない。PC表示560pxならノード約18.7px、390画面の画像358pxなら約11.9px。
+同梱Archify 2.16.0、editorial/showcaseを使用。標準SVGの背景・グリッド・凡例・文字・viewBoxは無改変で埋め込む。標準出力の補助文字は主要状態名より小さいため、主題に必要な条件を主要ラベルと常時表示の横解説でも対応させ、実測値をreview.jsonへ残す。
 
-PC全体を見渡すため画像のmax-heightを800pxに制限し、width:autoで標準SVGの比率を維持した。モデル内の状態は120〜710px、凡例は784〜804pxにあり、固定rowStep170と凡例位置のため、余白だけでheight600へ圧縮できない。SVG/viewBoxの切抜きや図要素変更は行わない。PC実画像400×800でノード約13.3pxとなり、18px基準は未達に戻るが図全体を見渡せる。390では358×716・約11.9pxを保持。
+実行コマンドは<repository>をリポジトリ、<workdir>をこの成果物フォルダとして表記する。
+
+```sh
+node <repository>/utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs validate lifecycle <workdir>/model.json --quality showcase --json
+cd <workdir>
+node <repository>/utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs deliver lifecycle model.json figure.html --quality showcase --json > receipt.json
+python3 <repository>/utils/skills/discovery/explain-html/scripts/export_standard_svg.py figure.html figure.svg --model model.json
+node <repository>/utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs visual-check figure.html --json
+node <workdir>/check-panel.mjs
+```

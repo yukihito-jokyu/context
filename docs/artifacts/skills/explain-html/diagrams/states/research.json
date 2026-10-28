@@ -1,15 +1,41 @@
 {
+  "diagram_id": "states",
+  "agent_id": "/root/refresh_diagram_examples/explain_states",
+  "checked_at": "2026-10-28",
+  "scope": "架空APIの同じjob_17が作成されて処理結果を保存するまで。削除・期限・再実行は扱わない。",
+  "fictional_spec": {
+    "source": "input.md（依頼文。実在APIではない）",
+    "location": "ワーカーの状態更新とGET表示の文",
+    "facts": [
+      "サーバーがjob_17をqueuedとして作成する。",
+      "ワーカーはqueuedをrunningへ移す。",
+      "成功ならcompletedとresultUrl、失敗ならfailedとreasonを保存する。",
+      "クライアントはGET /jobs/job_17を読み、completedなら結果、failedなら理由を表示する。"
+    ],
+    "inference": "queued/runningは成功結果・失敗理由を表示する条件にまだ到達していない。",
+    "excluded": [
+      "completed→failed",
+      "再実行",
+      "削除",
+      "期限",
+      "GETの周期・HTTP応答コード・JSON形式"
+    ]
+  },
   "sources": [
     {
-      "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
-      "checked_at": "2026-10-14",
-      "location": "§9.3.1 GET; §15.3.3 202 Accepted",
-      "finding": "GET requests the current selected representation. 202 indicates accepted processing has not completed; it does not guarantee eventual success."
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1",
+      "checked_at": "2026-10-28",
+      "location": "9.3.1 GET（RFC HTML 行2000–2002を閲覧）",
+      "finding": "GETは対象リソースの現在の選択された表現の転送を求める。一般的な取得の意味を確認した。job_17のパス・状態名・表示条件はこのRFCから導いていない。"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+      "checked_at": "2026-10-28",
+      "location": "15.3.3 202 Accepted（RFC HTML 行3327–3330を閲覧）",
+      "finding": "202は処理を受け付けたが未完了である。受付と完了を区別する背景としてのみ参照し、202応答の通信図は別図が担当する。"
     }
   ],
-  "fictional_spec": {
-    "source": "../../input.md",
-    "finding": "queued作成はサーバー、running以降はワーカー。成功completed/resultUrl、失敗failed/reason。GETは読み出し。終端再開なし。"
-  },
-  "separation": "RFCはHTTPの一般意味だけの根拠。状態名、job_17、requestKey、保存フィールドは教材の架空仕様。"
+  "uncertainties": [
+    "GETのポーリング間隔、結果URLの形式、失敗理由の値は未指定。追加しない。"
+  ]
 }

@@ -1,0 +1,32 @@
+{
+  "repository": "<repository>",
+  "skill": "utils/skills/discovery/explain-html",
+  "audience": "画像変換の架空APIを初めて使う開発者",
+  "input": "input.md",
+  "shared_terms": {
+    "client": "クライアント",
+    "api": "サーバー",
+    "worker": "ワーカー",
+    "jobs": "ジョブ保存先",
+    "imageId": "img_42",
+    "requestKey": "req_A",
+    "jobId": "job_17"
+  },
+  "facts": "依頼文が架空APIの全仕様。実在APIの仕様を補ってはならない。POST /jobsはimageIdとrequestKeyを受け、初回にjob_17を作り202+jobId。同じrequestKeyは同じjobIdを返して重複ジョブを作らない。queued→running→completed+resultUrl または failed+reason。GET /jobs/job_17を読み、クライアントはcompletedで結果、failedで理由を表示。202は完了ではない。POSTが503なら同じrequestKeyで最大2回追加再試行し、さらに503なら受付結果不明を表示。",
+  "source_entries": [
+    "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+    "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4"
+  ],
+  "output_contract": "diagram-delegation.mdのresearch.json,design.md,model.json,figure.html,figure.svg,receipt.json,explanation.html,review.json,panel.html。Archify 2.16.0無改変、editorial/showcase、標準SVGの限定DOMadapterと再生成ゲート用のreceipt。PC横配置/390px縦配置、図の必要captionも実画面内で確認。",
+  "id": "overview",
+  "page_id": "overview",
+  "question": "全体で誰が何を受け持つか",
+  "takeaway": "受付と処理完了は別であり、状態は保存したジョブをクライアントがGETして読む",
+  "suggested_type": "architecture",
+  "selection_reason": "構成要素と責務・接続点を示し、通信の時間順は別図へ委ねる",
+  "scope": "クライアント、サーバー、ワーカー、ジョブ保存先の役割、POST、非同期処理、GETを示す。HTTP細部・成功失敗分岐・再試行は別図への入口として境界を示す。",
+  "save_to": "<workdir>/diagrams/overview",
+  "target_ids": [
+    "overview-detail"
+  ]
+}

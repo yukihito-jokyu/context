@@ -1,43 +1,40 @@
 {
-  "topic": "架空画像変換APIの正常通信",
-  "checked_at": "2026-10-14",
+  "diagram_id": "request",
+  "question": "同じrequestKeyで再送したときジョブはどうなるか",
+  "checked_at": "2026-10-28T13:04:37Z",
+  "fictional_api_source": {
+    "url": "input.md",
+    "location": "依頼文全文、特にPOST受付・同じキーの再送・GET状態取得・202の指定",
+    "finding": "img_42とreq_Aの初回POST /jobsでjob_17を作り202とjobIdを返す。同じrequestKeyで再送しても重複ジョブを作らず同じjobIdを返す。状態はGET /jobs/job_17で読む。",
+    "scope": "この架空APIだけの指定。HTTP一般の保証ではない。"
+  },
   "sources": [
     {
       "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
-      "checked_at": "2026-10-14",
-      "location": "RFC 9110 §15.3.3",
-      "finding": "202は処理を受け付けたが処理が完了していないことを示す。最終的な成功は保証しない。",
-      "classification": "確認したHTTP仕様"
+      "checked_at": "2026-10-28T13:04:37Z",
+      "location": "15.3.3 202 Accepted、RFC本文の当該段落",
+      "finding": "202は処理を受け付けたが未完了であり、将来の処理成立も保証しない。この図で202を完了表示に結び付けない根拠。",
+      "classification": "HTTP一般"
     },
     {
       "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1",
-      "checked_at": "2026-10-14",
-      "location": "RFC 9110 §9.3.1",
-      "finding": "GETは対象リソースの現在の表現の取得を要求する。",
-      "classification": "確認したHTTP仕様"
+      "checked_at": "2026-10-28T13:04:37Z",
+      "location": "9.3.1 GET、冒頭2段落",
+      "finding": "GETは対象資源の現在の表現の転送を求める。このAPIでどのパスがジョブ状態を返すかは依頼文の指定。",
+      "classification": "HTTP一般"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4",
+      "checked_at": "2026-10-28T13:04:37Z",
+      "location": "15.6.4 503 Service Unavailable",
+      "finding": "503は一時的過負荷や保守などにより現在リクエストを処理できないことを示す。再試行最大2回という条件はRFC由来でなく、この架空APIの別図で説明する。",
+      "classification": "HTTP一般、境界確認"
     }
   ],
-  "fictional_specification": {
-    "source": "../../input.md",
-    "input": {
-      "imageId": "img_42",
-      "requestKey": "req_42"
-    },
-    "jobId": "job_17",
-    "states": [
-      "queued",
-      "running",
-      "completed"
-    ],
-    "resultUrl": "https://example.invalid/results/job_17.png",
-    "scope": "初回受付が202となり、変換が成功する一例。HTTP自体がrequestKey、状態名、GETパス、再試行回数を規定するわけではない。"
-  },
-  "not_specified": [
-    "GET間隔",
-    "GET回数",
-    "処理時間",
-    "状態をすべて観測できる保証",
-    "ワーカー起動方式",
-    "保存実装"
-  ]
+  "not_inferred": [
+    "同じキーの再送時のHTTPステータスは原文未指定。初回と同じ202と断定しない。",
+    "キーの保持期限、異なる画像IDで同じキーを使った場合、再試行の待機時間、認証、GETのHTTPステータスは未指定。",
+    "ワーカーの実装方式・保存先のDB製品は補わない。"
+  ],
+  "version_difference": "RFC 9110の一般的意味と提供された架空API仕様を分離。架空APIに実在する版はない。"
 }

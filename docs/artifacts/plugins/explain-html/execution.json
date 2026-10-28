@@ -1,19 +1,22 @@
 {
   "name": "explain-html",
   "kind": "plugin",
-  "executed_at": "2026-10-15T14:48:31.803763+00:00",
+  "executed_at": "2026-10-28T12:50:03.296372+00:00",
   "runner": {
     "kind": "subagent",
-    "agent_id": "/root/plugin_guides",
-    "task": "Issue #79: canonical plugin builds and ZIP content verification"
+    "agent_id": "/root/refresh_foundation_examples",
+    "task": "変更された同梱explain-html正本から docs/artifacts/plugins/explain-html/ も旧成果物全削除→新規ビルド・ZIP化・展開バイト一致検証で再作成してください。旧verificationの範囲（導入や実client hookなし）で可。正本は凍結済み、マスク後hash登録でsourceManifest/verifyArtifactsを確認。"
   },
   "stage": "built-and-content-verified",
   "input": "input.md",
   "text_output": "verification.txt",
+  "validation": "validation.json",
+  "reproduction": "verify_plugin.py",
   "checks": [
     "Canonical build completed",
     "Extracted ZIP inventory and bytes match canonical sources",
-    "Manifest and hooks are valid JSON"
+    "Manifest and hooks are valid JSON",
+    "Canonical sources unchanged"
   ],
   "unverified": [
     "Installation",
@@ -22,7 +25,7 @@
   ],
   "downloads": [
     {
-      "label": "claude-code plugin ZIP",
+      "label": "Claude Code plugin ZIP",
       "file": "explain-html-claude-code.zip"
     }
   ],
@@ -83,7 +86,7 @@
         },
         {
           "file": "dependencies.lock.json",
-          "sha256": "9df66cf984562eb1963160ca85f013a4e9b57a5818020596cdecc65101d70ec5"
+          "sha256": "bb74be4c1020956efc3f898f159ec5be1b25f9bea917f65b4ecc0fe00eb36f18"
         },
         {
           "file": "evals/check-browser.mjs",
@@ -395,7 +398,7 @@
         },
         {
           "file": "vendor/archify-jp/examples/workflow-agent-tool-call-rendered.visual-check.json",
-          "sha256": "b732f62c82b48d8776fb57cd48b76cd6a4ac68a4283b3200104f94a779134f2b"
+          "sha256": "4006ebc9c4a14b9fcdb6c7ce466f943d3c35d943f0cd39442459a0115e07a357"
         },
         {
           "file": "vendor/archify-jp/migrations/workflow-v2.mjs",
@@ -1206,21 +1209,34 @@
           "sha256": "ae1dafe236a2076feb07f0929dc4a1f27ed4bdbbdab29c44c31cba0056bc2a65"
         }
       ],
-      "source_sha256": "1fb51e48c8065bd9ab4f9611055ef19489049d86a24c20e51633897e26ea8e95"
+      "source_sha256": "f9510bedbc0889e5987c94ca1fbc6814c3412813d98417da64c6a3c36a97e1ed"
     }
+  ],
+  "redactions": [
+    "repository absolute path → <repository>",
+    "temporary workdir → <workdir>",
+    "personal home path and observed detailed environment versions masked before publication"
   ],
   "artifacts": [
     {
       "file": "explain-html-claude-code.zip",
-      "sha256": "7e4a0409aa6cbd85cbb81f84f0825cec51923a6d9376e89abd1fc5056d0b75f9"
+      "sha256": "9f647d412466bda30ce7cdb2231f7cf27ccb8fd1b25fd34b8a1f38a10dc3280f"
     },
     {
       "file": "input.md",
-      "sha256": "ca054fc0e0cbad7e41ac86821f9ac56ee54c5652e359c0d03965bf018a9ac016"
+      "sha256": "85f18ade77f3f7968f0bfd91b97cec7374f8fdb1c4f1eb630745a5820e3c4d5e"
+    },
+    {
+      "file": "validation.json",
+      "sha256": "11891e5da8590ab5d3c9af194fd57c7f76966fac82b6f9d4b2ae8980f9e62017"
     },
     {
       "file": "verification.txt",
-      "sha256": "91f7d540f4a6023aa9ade0cfb1de8cec9c7b461e4d6b9026ac6535acfbbbb151"
+      "sha256": "25cef88c0021bb940598a6d38ea13ff80dfd29c1b7a3349eceb5d1e7418d447a"
+    },
+    {
+      "file": "verify_plugin.py",
+      "sha256": "f45097863e7556afadde0119460e4b87ef2ed60eed39177656b285fb58cc07ef"
     }
   ]
 }

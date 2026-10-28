@@ -1,118 +1,101 @@
 {
   "schema_version": 2,
-  "diagram_type": "workflow",
+  "diagram_type": "lifecycle",
   "meta": {
-    "title": "503からの再送と停止",
+    "title": "503時の受付確認と送信上限",
     "locale": "ja",
+    "animation": "none",
     "visual_preset": "editorial",
-    "quality_profile": "showcase"
+    "quality_profile": "showcase",
+    "viewBox": [
+      420,
+      670
+    ]
   },
+  "subject": {
+    "label": "1依頼",
+    "beginning": "初回POST",
+    "ending": "受付／不明",
+    "coverage": "partial"
+  },
+  "initial": [
+    "waiting"
+  ],
+  "terminal": [
+    "accepted",
+    "unknown"
+  ],
   "lanes": [
     {
-      "id": "client",
-      "label": "クライアント：送信と受付確認"
-    },
-    {
-      "id": "retry",
-      "label": "クライアント：503時の判断",
-      "variant": "exception"
+      "id": "request",
+      "label": "受付の確認範囲"
     }
   ],
-  "nodes": [
-    {
-      "id": "send",
-      "lane": "client",
-      "col": 0,
-      "type": "frontend",
-      "label": "① POST送信",
-      "sublabel": "同じキー",
-      "width": 116
-    },
-    {
-      "id": "response",
-      "lane": "client",
-      "col": 2,
-      "type": "frontend",
-      "label": "② 応答判定",
-      "width": 116
-    },
+  "states": [
     {
       "id": "accepted",
-      "lane": "client",
-      "col": 4,
-      "type": "frontend",
-      "label": "③ 受付確認",
-      "sublabel": "job_17",
-      "width": 116
+      "kind": "state",
+      "label": "④ 受付確認",
+      "description": "1・2・3回目のどれかで202とjobIdを受信した状態。GET /jobs/job_17で状態を取得する。202は変換完了ではない。",
+      "width": 120,
+      "lane": "request",
+      "row": 0,
+      "col": 0
     },
     {
-      "id": "budget",
-      "lane": "retry",
-      "col": 2,
-      "type": "frontend",
-      "label": "④ 回数判定",
-      "sublabel": "送信は最大3回",
-      "width": 140
-    },
-    {
-      "id": "again",
-      "lane": "retry",
-      "col": 0,
-      "type": "frontend",
-      "label": "⑤ 再送へ",
-      "sublabel": "キーを保持",
-      "width": 116
+      "id": "waiting",
+      "kind": "state",
+      "label": "①〜③ 応答待ち",
+      "description": "クライアントがPOST /jobsを送信した後の状態。初回①の送信数は1。503を受けたとき送信数が1または2なら、同じimageId=img_42とrequestKey=req_Aで追加送信し、送信数を1増やして同じ応答待ちへ戻る。②は追加1回目、③は追加2回目。送信数は最大3。",
+      "width": 160,
+      "lane": "request",
+      "row": 1,
+      "col": 0
     },
     {
       "id": "unknown",
-      "lane": "retry",
-      "col": 4,
-      "type": "frontend",
-      "label": "⑥ 結果不明",
-      "sublabel": "再送を停止",
-      "width": 116
+      "kind": "state",
+      "label": "⑤ 受付不明",
+      "description": "初回と追加2回の合計3回が503。4回目は送信せず、受付結果不明と表示する。ワーカーが保存するjob_17のfailedとは異なる。",
+      "width": 120,
+      "lane": "request",
+      "row": 2,
+      "col": 0
     }
   ],
-  "edges": [
+  "transitions": [
     {
-      "from": "send",
-      "to": "response"
-    },
-    {
-      "from": "response",
+      "id": "accepted-response",
+      "kind": "transition",
+      "from": "waiting",
       "to": "accepted",
-      "label": "202"
+      "event": "202"
     },
     {
-      "from": "response",
-      "to": "budget",
-      "label": "503"
-    },
-    {
-      "from": "budget",
-      "to": "again",
-      "label": "1・2回目",
-      "route": "straight",
-      "fromSide": "left",
-      "toSide": "right"
-    },
-    {
-      "from": "again",
-      "to": "send",
-      "route": "drop",
-      "fromSide": "top",
+      "id": "retry-response",
+      "kind": "transition",
+      "from": "waiting",
+      "to": "waiting",
+      "event": "503",
+      "condition": "1・2回目",
+      "action": "再送",
+      "fromSide": "right",
       "toSide": "bottom"
     },
     {
-      "from": "budget",
+      "id": "stop-response",
+      "kind": "transition",
+      "from": "waiting",
       "to": "unknown",
-      "label": "3回目"
+      "event": "503",
+      "condition": "3回目",
+      "route": "left-channel",
+      "fromSide": "left",
+      "toSide": "left",
+      "labelAt": [
+        75,
+        402
+      ]
     }
-  ],
-  "mainPath": [
-    "send",
-    "response",
-    "accepted"
-  ],
-  "cards": []
+  ]
 }

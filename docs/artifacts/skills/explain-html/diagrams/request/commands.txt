@@ -1,0 +1,11 @@
+作業ルート: <repository>。出力ルート: <workdir>/diagrams/request。
+node utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs validate architecture <workdir>/diagrams/request/model.json --quality showcase --json
+node utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs validate architecture <workdir>/diagrams/request/get.model.json --quality showcase --json
+node utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs deliver architecture <workdir>/diagrams/request/model.json <workdir>/diagrams/request/figure.html --quality showcase --json > <workdir>/diagrams/request/receipt.json
+node utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs deliver architecture <workdir>/diagrams/request/get.model.json <workdir>/diagrams/request/get.html --quality showcase --json > <workdir>/diagrams/request/get.receipt.json
+python3 utils/skills/discovery/explain-html/scripts/export_standard_svg.py <workdir>/diagrams/request/figure.html <workdir>/diagrams/request/figure.svg --model <workdir>/diagrams/request/model.json
+python3 utils/skills/discovery/explain-html/scripts/export_standard_svg.py <workdir>/diagrams/request/get.html <workdir>/diagrams/request/get.svg --model <workdir>/diagrams/request/get.model.json
+node utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs visual-check <workdir>/diagrams/request/figure.html --json
+node utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs visual-check <workdir>/diagrams/request/get.html --json
+node <workdir>/diagrams/request/check-panel.mjs
+python3 utils/skills/discovery/explain-html/scripts/check_archify.py <workdir>/diagrams/request/artifact-manifest.json --article <workdir>/diagrams/request/panel-check.html

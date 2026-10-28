@@ -1,0 +1,126 @@
+{
+  "notice": "提供された架空仕様の理解を助ける模擬実装であり、実サーバー、永続化、排他制御の実装保証ではない。",
+  "input": {
+    "imageId": "img_42",
+    "requestKey": "req_A"
+  },
+  "first": {
+    "status": 202,
+    "body": {
+      "jobId": "job_17"
+    }
+  },
+  "duplicate": {
+    "status": 202,
+    "body": {
+      "jobId": "job_17"
+    }
+  },
+  "queued": {
+    "jobId": "job_17",
+    "imageId": "img_42",
+    "status": "queued"
+  },
+  "success": {
+    "running": {
+      "jobId": "job_17",
+      "imageId": "img_42",
+      "status": "running"
+    },
+    "terminal": {
+      "jobId": "job_17",
+      "imageId": "img_42",
+      "status": "completed",
+      "resultUrl": "https://example.invalid/results/job_17.png"
+    }
+  },
+  "failure": {
+    "running": {
+      "jobId": "job_17",
+      "imageId": "img_42",
+      "status": "running"
+    },
+    "terminal": {
+      "jobId": "job_17",
+      "imageId": "img_42",
+      "status": "failed",
+      "reason": "画像を変換できませんでした"
+    }
+  },
+  "retries": [
+    {
+      "sent": [
+        {
+          "attempt": 1,
+          "requestKey": "req_A",
+          "status": 202
+        }
+      ],
+      "display": "受付済み。job_17の状態を取得する"
+    },
+    {
+      "sent": [
+        {
+          "attempt": 1,
+          "requestKey": "req_A",
+          "status": 503
+        },
+        {
+          "attempt": 2,
+          "requestKey": "req_A",
+          "status": 202
+        }
+      ],
+      "display": "受付済み。job_17の状態を取得する"
+    },
+    {
+      "sent": [
+        {
+          "attempt": 1,
+          "requestKey": "req_A",
+          "status": 503
+        },
+        {
+          "attempt": 2,
+          "requestKey": "req_A",
+          "status": 503
+        },
+        {
+          "attempt": 3,
+          "requestKey": "req_A",
+          "status": 202
+        }
+      ],
+      "display": "受付済み。job_17の状態を取得する"
+    },
+    {
+      "sent": [
+        {
+          "attempt": 1,
+          "requestKey": "req_A",
+          "status": 503
+        },
+        {
+          "attempt": 2,
+          "requestKey": "req_A",
+          "status": 503
+        },
+        {
+          "attempt": 3,
+          "requestKey": "req_A",
+          "status": 503
+        }
+      ],
+      "display": "受付結果不明"
+    }
+  ],
+  "unspecified": [
+    "再送時のHTTP応答状態",
+    "キーの有効期間",
+    "同じキーで異なる画像IDの場合",
+    "並行POSTの排他",
+    "GETの間隔",
+    "503の待ち時間・バックオフ",
+    "POST以外のエラー応答"
+  ]
+}

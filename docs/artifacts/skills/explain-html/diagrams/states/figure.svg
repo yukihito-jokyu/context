@@ -894,80 +894,80 @@ svg[data-preset="editorial"][data-animation="trace"] [data-animate="node"] {
         <rect width="100%" height="100%" fill="url(#grid)"></rect>
 
         
-<text data-boundary-label="" x="40" y="28" class="t-primary" font-size="12">架空例：job_17 · 全体のライフサイクル</text>
-    <text x="40" y="47" class="t-muted" font-size="10">初回受付 → 成功または失敗</text>
-    <text x="40" y="70" class="t-dim" font-size="10">保存状態</text>
+<text data-boundary-label="" x="40" y="28" class="t-primary" font-size="12">同じ job_17 · 部分のライフサイクル</text>
+    <text x="40" y="47" class="t-muted" font-size="10">サーバーが queued として作成 → completed または failed の保存まで</text>
+    <text x="40" y="70" class="t-dim" font-size="10">同じ job_17 の処理状態</text>
     
 
         
 
 
         
-        <path data-edge-from="queued" data-edge-to="running" data-edge-label="[遷移] 処理開始" data-edge-key="0" data-edge-id="start-work" data-composition-points="215,200;215,290" d="M 215 200 L 215 290" class="a-default" stroke-width="1.1" marker-end="url(#arrowhead)" data-relation-kind="transition"></path>
-        <path data-edge-from="running" data-edge-to="completed" data-edge-label="[遷移] [成功]" data-edge-key="1" data-edge-id="succeed" data-composition-points="215,370;215,460" d="M 215 370 L 215 460" class="a-default" stroke-width="1.1" marker-end="url(#arrowhead)" data-relation-kind="transition"></path>
-        <path data-edge-from="running" data-edge-to="failed" data-edge-label="[遷移] [失敗]" data-edge-key="2" data-edge-id="fail" data-composition-points="215,370;326,370;326,630;215,630" d="M 215 370 L 316 370 Q 326 370 326 380 L 326 620 Q 326 630 316 630 L 215 630" class="a-default" stroke-width="1.1" marker-end="url(#arrowhead)" data-relation-kind="transition"></path>
+        <path data-edge-from="st_queued" data-edge-to="st_running" data-edge-label="[遷移] ワーカーが開始" data-edge-key="0" data-edge-id="begin_work" data-composition-points="215,200;215,290" d="M 215 200 L 215 290" class="a-default" stroke-width="1.1" marker-end="url(#arrowhead)" data-relation-kind="transition"></path>
+        <path data-edge-from="st_running" data-edge-to="st_completed" data-edge-label="[遷移] [成功]" data-edge-key="1" data-edge-id="finish_ok" data-composition-points="215,370;215,460" d="M 215 370 L 215 460" class="a-default" stroke-width="1.1" marker-end="url(#arrowhead)" data-relation-kind="transition"></path>
+        <path data-edge-from="st_running" data-edge-to="st_failed" data-edge-label="[遷移] [失敗]" data-edge-key="2" data-edge-id="finish_fail" data-composition-points="215,370;351,370;351,630;215,630" d="M 215 370 L 341 370 Q 351 370 351 380 L 351 620 Q 351 630 341 630 L 215 630" class="a-default" stroke-width="1.1" marker-end="url(#arrowhead)" data-relation-kind="transition"></path>
 
         
-<g id="node-queued" data-node-id="queued" data-node-label="① queued" tabindex="0" role="button" aria-label="① queued にフォーカス、保存状態 · サーバーは初回受付でjob_17をqueuedとして作成する。同じrequestKeyの再送は同じjobIdを返す。" aria-pressed="false" data-node-kind="状態" data-node-tag="状態 / 開始" data-node-context="保存状態 · サーバーは初回受付でjob_17をqueuedとして作成する。同じrequestKeyの再送は同じjobIdを返す。" data-element-kind="state" data-lifecycle-initial="true" data-lifecycle-terminal="false">
-    <title>① queued · 保存状態 · サーバーは初回受付でjob_17をqueuedとして作成する。同じrequestKeyの再送は同じjobIdを返す。 · 状態 / 開始</title>
-    <rect x="140" y="120" width="150" height="80" rx="7" class="c-mask"></rect>
-    <rect x="140" y="120" width="150" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
+<g id="node-st_queued" data-node-id="st_queued" data-node-label="① queued" tabindex="0" role="button" aria-label="① queued にフォーカス、処理を待つ, 同じ job_17 の処理状態 · サーバーが作成した同じjob_17。queuedは処理完了ではない。" aria-pressed="false" data-node-kind="状態" data-node-sublabel="処理を待つ" data-node-tag="状態 / 開始" data-node-context="同じ job_17 の処理状態 · サーバーが作成した同じjob_17。queuedは処理完了ではない。" data-element-kind="state" data-lifecycle-initial="true" data-lifecycle-terminal="false">
+    <title>① queued · 処理を待つ · 同じ job_17 の処理状態 · サーバーが作成した同じjob_17。queuedは処理完了ではない。 · 状態 / 開始</title>
+    <rect x="115" y="120" width="200" height="80" rx="7" class="c-mask"></rect>
+    <rect x="115" y="120" width="200" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
     
-    <text x="152" y="137" class="t-muted" font-size="9">状態 / 開始</text>
+    <text x="127" y="137" class="t-muted" font-size="9">状態 / 開始</text>
     
     <text data-node-label="" x="215" y="160" class="t-primary" font-size="14" font-weight="600" text-anchor="middle">① queued</text>
-    
+    <text x="215" y="180" class="t-muted" font-size="10" text-anchor="middle">処理を待つ</text>
     
   </g>
 
-<g id="node-running" data-node-id="running" data-node-label="② running" tabindex="0" role="button" aria-label="② running にフォーカス、保存状態 · ワーカーがqueuedのジョブをrunningへ移す。GETはこの遷移を起こさない。" aria-pressed="false" data-node-kind="状態" data-node-tag="状態" data-node-context="保存状態 · ワーカーがqueuedのジョブをrunningへ移す。GETはこの遷移を起こさない。" data-element-kind="state" data-lifecycle-initial="false" data-lifecycle-terminal="false">
-    <title>② running · 保存状態 · ワーカーがqueuedのジョブをrunningへ移す。GETはこの遷移を起こさない。 · 状態</title>
-    <rect x="140" y="290" width="150" height="80" rx="7" class="c-mask"></rect>
-    <rect x="140" y="290" width="150" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
+<g id="node-st_running" data-node-id="st_running" data-node-label="② running" tabindex="0" role="button" aria-label="② running にフォーカス、ワーカーが処理中, 同じ job_17 の処理状態 · ワーカーがqueuedからrunningへ移す。runningは処理完了ではない。" aria-pressed="false" data-node-kind="状態" data-node-sublabel="ワーカーが処理中" data-node-tag="状態" data-node-context="同じ job_17 の処理状態 · ワーカーがqueuedからrunningへ移す。runningは処理完了ではない。" data-element-kind="state" data-lifecycle-initial="false" data-lifecycle-terminal="false">
+    <title>② running · ワーカーが処理中 · 同じ job_17 の処理状態 · ワーカーがqueuedからrunningへ移す。runningは処理完了ではない。 · 状態</title>
+    <rect x="115" y="290" width="200" height="80" rx="7" class="c-mask"></rect>
+    <rect x="115" y="290" width="200" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
     
-    <text x="152" y="307" class="t-muted" font-size="9">状態</text>
+    <text x="127" y="307" class="t-muted" font-size="9">状態</text>
     
     <text data-node-label="" x="215" y="330" class="t-primary" font-size="14" font-weight="600" text-anchor="middle">② running</text>
-    
-    
-  </g>
-
-<g id="node-completed" data-node-id="completed" data-node-label="③ completed" tabindex="0" role="button" aria-label="③ completed にフォーカス、保存状態 · ワーカーは成功時にcompletedとresultUrlを保存する。この例の終端。" aria-pressed="false" data-node-kind="状態" data-node-tag="状態 / 終端" data-node-context="保存状態 · ワーカーは成功時にcompletedとresultUrlを保存する。この例の終端。" data-element-kind="state" data-lifecycle-initial="false" data-lifecycle-terminal="true">
-    <title>③ completed · 保存状態 · ワーカーは成功時にcompletedとresultUrlを保存する。この例の終端。 · 状態 / 終端</title>
-    <rect x="140" y="460" width="150" height="80" rx="7" class="c-mask"></rect>
-    <rect x="140" y="460" width="150" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
-    <rect x="144" y="464" width="142" height="72" rx="4" fill="none" class="a-default" stroke-width="1"></rect>
-    <text x="152" y="477" class="t-muted" font-size="9">状態 / 終端</text>
-    
-    <text data-node-label="" x="215" y="500" class="t-primary" font-size="14" font-weight="600" text-anchor="middle">③ completed</text>
-    
+    <text x="215" y="350" class="t-muted" font-size="10" text-anchor="middle">ワーカーが処理中</text>
     
   </g>
 
-<g id="node-failed" data-node-id="failed" data-node-label="④ failed" tabindex="0" role="button" aria-label="④ failed にフォーカス、保存状態 · ワーカーは失敗時にfailedとreasonを保存する。この例の終端。" aria-pressed="false" data-node-kind="状態" data-node-tag="状態 / 終端" data-node-context="保存状態 · ワーカーは失敗時にfailedとreasonを保存する。この例の終端。" data-element-kind="state" data-lifecycle-initial="false" data-lifecycle-terminal="true">
-    <title>④ failed · 保存状態 · ワーカーは失敗時にfailedとreasonを保存する。この例の終端。 · 状態 / 終端</title>
-    <rect x="140" y="630" width="150" height="80" rx="7" class="c-mask"></rect>
-    <rect x="140" y="630" width="150" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
-    <rect x="144" y="634" width="142" height="72" rx="4" fill="none" class="a-default" stroke-width="1"></rect>
-    <text x="152" y="647" class="t-muted" font-size="9">状態 / 終端</text>
+<g id="node-st_completed" data-node-id="st_completed" data-node-label="③ 成功 completed" tabindex="0" role="button" aria-label="③ 成功 completed にフォーカス、resultUrl を保存, 同じ job_17 の処理状態 · 処理が成功した場合の観測終端。GET /jobs/job_17でこの状態を読んだクライアントは結果を表示する。" aria-pressed="false" data-node-kind="状態" data-node-sublabel="resultUrl を保存" data-node-tag="状態 / 終端" data-node-context="同じ job_17 の処理状態 · 処理が成功した場合の観測終端。GET /jobs/job_17でこの状態を読んだクライアントは結果を表示する。" data-element-kind="state" data-lifecycle-initial="false" data-lifecycle-terminal="true">
+    <title>③ 成功 completed · resultUrl を保存 · 同じ job_17 の処理状態 · 処理が成功した場合の観測終端。GET /jobs/job_17でこの状態を読んだクライアントは結果を表示する。 · 状態 / 終端</title>
+    <rect x="115" y="460" width="200" height="80" rx="7" class="c-mask"></rect>
+    <rect x="115" y="460" width="200" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
+    <rect x="119" y="464" width="192" height="72" rx="4" fill="none" class="a-default" stroke-width="1"></rect>
+    <text x="127" y="477" class="t-muted" font-size="9">状態 / 終端</text>
     
-    <text data-node-label="" x="215" y="670" class="t-primary" font-size="14" font-weight="600" text-anchor="middle">④ failed</text>
+    <text data-node-label="" x="215" y="500" class="t-primary" font-size="14" font-weight="600" text-anchor="middle">③ 成功 completed</text>
+    <text x="215" y="520" class="t-muted" font-size="10" text-anchor="middle">resultUrl を保存</text>
     
+  </g>
+
+<g id="node-st_failed" data-node-id="st_failed" data-node-label="④ 失敗 failed" tabindex="0" role="button" aria-label="④ 失敗 failed にフォーカス、reason を保存, 同じ job_17 の処理状態 · 処理が失敗した場合の代替観測終端。GET /jobs/job_17でこの状態を読んだクライアントは理由を表示する。completedからfailedへ移るという意味ではない。" aria-pressed="false" data-node-kind="状態" data-node-sublabel="reason を保存" data-node-tag="状態 / 終端" data-node-context="同じ job_17 の処理状態 · 処理が失敗した場合の代替観測終端。GET /jobs/job_17でこの状態を読んだクライアントは理由を表示する。completedからfailedへ移るという意味ではない。" data-element-kind="state" data-lifecycle-initial="false" data-lifecycle-terminal="true">
+    <title>④ 失敗 failed · reason を保存 · 同じ job_17 の処理状態 · 処理が失敗した場合の代替観測終端。GET /jobs/job_17でこの状態を読んだクライアントは理由を表示する。completedからfailedへ移るという意味ではない。 · 状態 / 終端</title>
+    <rect x="115" y="630" width="200" height="80" rx="7" class="c-mask"></rect>
+    <rect x="115" y="630" width="200" height="80" rx="7" class="c-database" stroke-width="1.5"></rect>
+    <rect x="119" y="634" width="192" height="72" rx="4" fill="none" class="a-default" stroke-width="1"></rect>
+    <text x="127" y="647" class="t-muted" font-size="9">状態 / 終端</text>
+    
+    <text data-node-label="" x="215" y="670" class="t-primary" font-size="14" font-weight="600" text-anchor="middle">④ 失敗 failed</text>
+    <text x="215" y="690" class="t-muted" font-size="10" text-anchor="middle">reason を保存</text>
     
   </g>
 
         
-        <g data-edge-from="queued" data-edge-to="running" data-edge-label="[遷移] 処理開始" data-edge-key="0" data-edge-id="start-work">
-          <rect x="182.25" y="229" width="85.5" height="16" rx="4" class="c-mask"></rect>
-          <text x="225" y="240" class="t-muted" font-size="8" text-anchor="middle">[遷移] 処理開始</text>
+        <g data-edge-from="st_queued" data-edge-to="st_running" data-edge-label="[遷移] ワーカーが開始" data-edge-key="0" data-edge-id="begin_work">
+          <rect x="223" y="224" width="114.9" height="16" rx="4" class="c-mask"></rect>
+          <text x="280.45" y="235" class="t-muted" font-size="8" text-anchor="middle">[遷移] ワーカーが開始</text>
         </g>
-        <g data-edge-from="running" data-edge-to="completed" data-edge-label="[遷移] [成功]" data-edge-key="1" data-edge-id="succeed">
-          <rect x="142.15" y="399" width="75.7" height="16" rx="4" class="c-mask"></rect>
-          <text x="180" y="410" class="t-muted" font-size="8" text-anchor="middle">[遷移] [成功]</text>
+        <g data-edge-from="st_running" data-edge-to="st_completed" data-edge-label="[遷移] [成功]" data-edge-key="1" data-edge-id="finish_ok">
+          <rect x="223.00000000000003" y="394" width="75.7" height="16" rx="4" class="c-mask"></rect>
+          <text x="260.85" y="405" class="t-muted" font-size="8" text-anchor="middle">[遷移] [成功]</text>
         </g>
-        <g data-edge-from="running" data-edge-to="failed" data-edge-label="[遷移] [失敗]" data-edge-key="2" data-edge-id="fail">
-          <rect x="187.15" y="569" width="75.7" height="16" rx="4" class="c-mask"></rect>
-          <text x="225" y="580" class="t-muted" font-size="8" text-anchor="middle">[遷移] [失敗]</text>
+        <g data-edge-from="st_running" data-edge-to="st_failed" data-edge-label="[遷移] [失敗]" data-edge-key="2" data-edge-id="finish_fail">
+          <rect x="322.15" y="399" width="75.7" height="16" rx="4" class="c-mask"></rect>
+          <text x="360" y="410" class="t-muted" font-size="8" text-anchor="middle">[遷移] [失敗]</text>
         </g>
 
         

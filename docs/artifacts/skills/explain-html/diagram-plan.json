@@ -1,25 +1,120 @@
 {
-  "scope": "架空の画像変換API、input.mdに固定した仕様",
   "diagrams": [
     {
       "id": "overview",
-      "question": "受付と変換を誰が担うか",
-      "page": "overview"
+      "page_id": "overview",
+      "role": "overview",
+      "question": "全体で誰が何を受け持つか",
+      "takeaway": "受付と処理完了は別であり、状態は保存したジョブをクライアントがGETして読む",
+      "type": "architecture",
+      "selection_reason": "構成要素と責務・接続点を示し、通信の時間順は別図へ委ねる",
+      "scope": "クライアント、サーバー、ワーカー、ジョブ保存先の役割、POST、非同期処理、GETを示す。HTTP細部・成功失敗分岐・再試行は別図への入口として境界を示す。",
+      "sources": [
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4"
+      ],
+      "entities": [
+        "クライアント",
+        "サーバー",
+        "ワーカー",
+        "ジョブ保存先",
+        "img_42",
+        "req_A",
+        "job_17"
+      ],
+      "relations": "クライアント、サーバー、ワーカー、ジョブ保存先の役割、POST、非同期処理、GETを示す。HTTP細部・成功失敗分岐・再試行は別図への入口として境界を示す。",
+      "parent_diagram_id": null,
+      "model_path": "diagrams/overview/model.json",
+      "target_ids": [
+        "overview-detail"
+      ]
     },
     {
       "id": "request",
-      "question": "POSTの202とGETの完了応答は何が違うか",
-      "page": "request"
+      "page_id": "request",
+      "role": "overview",
+      "question": "同じrequestKeyで再送したときジョブはどうなるか",
+      "takeaway": "最初のPOSTも再送も同じjob_17へ結び付き、202では完了を判断しない",
+      "type": "architecture",
+      "selection_reason": "同じrequestKeyの初回と再送が同じjob_17へ結び付く対応関係を、350px幅で保てる構成図として専任担当が選択。GETによる同じjobIdの照会は同担当の局所投影へ分け、具体的通信の順序は本文の通信例で補う。",
+      "scope": "POST img_42+req_A→202 job_17、同じreq_Aの再送→同じjob_17、GET状態取得。重複ジョブを作らない。ワーカーの状態遷移全体や503枝は別図にあることを短く説明する。",
+      "sources": [
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4"
+      ],
+      "entities": [
+        "クライアント",
+        "サーバー",
+        "ワーカー",
+        "ジョブ保存先",
+        "img_42",
+        "req_A",
+        "job_17"
+      ],
+      "relations": "POST img_42+req_A→202 job_17、同じreq_Aの再送→同じjob_17、GET状態取得。重複ジョブを作らない。ワーカーの状態遷移全体や503枝は別図にあることを短く説明する。",
+      "parent_diagram_id": null,
+      "model_path": "diagrams/request/model.json",
+      "target_ids": [
+        "request-detail"
+      ]
     },
     {
       "id": "states",
-      "question": "成功と失敗へどう状態が変わるか",
-      "page": "states"
+      "page_id": "states",
+      "role": "overview",
+      "question": "ワーカー処理の状態とクライアント表示はどう対応するか",
+      "takeaway": "queued/runningでは待ち、completedならresultUrl、failedならreasonを表示する",
+      "type": "lifecycle",
+      "selection_reason": "同じjob_17の状態が起点と条件によって変化し、成功失敗が代替終端になる",
+      "scope": "queued→running、runningから成功completed+resultUrlまたは失敗failed+reasonへ実分岐。クライアントがGETで観測して結果か理由を表示する。成功と失敗を連続矢印にしない。削除・期限・再実行の遷移を発明しない。",
+      "sources": [
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4"
+      ],
+      "entities": [
+        "クライアント",
+        "サーバー",
+        "ワーカー",
+        "ジョブ保存先",
+        "img_42",
+        "req_A",
+        "job_17"
+      ],
+      "relations": "queued→running、runningから成功completed+resultUrlまたは失敗failed+reasonへ実分岐。クライアントがGETで観測して結果か理由を表示する。成功と失敗を連続矢印にしない。削除・期限・再実行の遷移を発明しない。",
+      "parent_diagram_id": null,
+      "model_path": "diagrams/states/model.json",
+      "target_ids": [
+        "states-detail"
+      ]
     },
     {
       "id": "retry",
-      "question": "再送時に重複を防ぎ、いつ再試行を止めるか",
-      "page": "retry"
+      "page_id": "retry",
+      "role": "overview",
+      "question": "POSTの503が続くとき何回送信しどこで止まるか",
+      "takeaway": "初回＋同じキーの最大2追加送信で、なお503なら受付結果不明と表示する",
+      "type": "lifecycle",
+      "selection_reason": "同じ受付手続きの応答待ち、202受付、503の上限付き再送と不明停止を状態と条件付き遷移で保つ。workflowの広い固定幅よりも狭幅で主要ラベルを読める配置を専任担当が選択。",
+      "scope": "クライアントの初回、503時の追加1回、さらに503時の追加2回、なお503で受付結果不明。途中202なら同じjob_17の状態取得へ渡す。これは成功失敗ではなく受付結果の分岐。タイムアウト・他HTTP・待ち時間・バックオフは仕様未定。",
+      "sources": [
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+        "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4"
+      ],
+      "entities": [
+        "クライアント",
+        "サーバー",
+        "ワーカー",
+        "ジョブ保存先",
+        "img_42",
+        "req_A",
+        "job_17"
+      ],
+      "relations": "クライアントの初回、503時の追加1回、さらに503時の追加2回、なお503で受付結果不明。途中202なら同じjob_17の状態取得へ渡す。これは成功失敗ではなく受付結果の分岐。タイムアウト・他HTTP・待ち時間・バックオフは仕様未定。",
+      "parent_diagram_id": null,
+      "model_path": "diagrams/retry/model.json",
+      "target_ids": [
+        "retry-detail"
+      ]
     }
   ]
 }

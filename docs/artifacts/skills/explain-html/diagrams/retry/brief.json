@@ -1,0 +1,32 @@
+{
+  "repository": "<repository>",
+  "skill": "utils/skills/discovery/explain-html",
+  "audience": "画像変換の架空APIを初めて使う開発者",
+  "input": "input.md",
+  "shared_terms": {
+    "client": "クライアント",
+    "api": "サーバー",
+    "worker": "ワーカー",
+    "jobs": "ジョブ保存先",
+    "imageId": "img_42",
+    "requestKey": "req_A",
+    "jobId": "job_17"
+  },
+  "facts": "依頼文が架空APIの全仕様。実在APIの仕様を補ってはならない。POST /jobsはimageIdとrequestKeyを受け、初回にjob_17を作り202+jobId。同じrequestKeyは同じjobIdを返して重複ジョブを作らない。queued→running→completed+resultUrl または failed+reason。GET /jobs/job_17を読み、クライアントはcompletedで結果、failedで理由を表示。202は完了ではない。POSTが503なら同じrequestKeyで最大2回追加再試行し、さらに503なら受付結果不明を表示。",
+  "source_entries": [
+    "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+    "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4"
+  ],
+  "output_contract": "diagram-delegation.mdのresearch.json,design.md,model.json,figure.html,figure.svg,receipt.json,explanation.html,review.json,panel.html。Archify 2.16.0無改変、editorial/showcase、標準SVGの限定DOMadapterと再生成ゲート用のreceipt。PC横配置/390px縦配置、図の必要captionも実画面内で確認。",
+  "id": "retry",
+  "page_id": "retry",
+  "question": "POSTの503が続くとき何回送信しどこで止まるか",
+  "takeaway": "初回＋同じキーの最大2追加送信で、なお503なら受付結果不明と表示する",
+  "suggested_type": "workflow",
+  "selection_reason": "503条件、再試行数の上限、202受付と不明の代替出口を示す",
+  "scope": "クライアントの初回、503時の追加1回、さらに503時の追加2回、なお503で受付結果不明。途中202なら同じjob_17の状態取得へ渡す。これは成功失敗ではなく受付結果の分岐。タイムアウト・他HTTP・待ち時間・バックオフは仕様未定。",
+  "save_to": "<workdir>/diagrams/retry",
+  "target_ids": [
+    "retry-detail"
+  ]
+}

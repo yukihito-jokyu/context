@@ -1,4 +1,11 @@
-<p data-diagram-intro>受付後は、同じ job_17 の保存状態が変わります。サーバーが①を作り、ワーカーが②から成功③または失敗④へ進めます。</p><p data-diagram-reading>①から矢印を追ってください。②の成功は③へ、失敗は右側の枝で④へ進みます。③から④への遷移はありません。</p><p data-diagram-explanation><strong>① queued — サーバーが受付を保存</strong><br>サーバーは初回の POST /jobs で job_17 を作成します。同じ requestKey の再送では、同じ jobId を返します。</p>
-<p data-diagram-explanation><strong>② running — ワーカーが処理を開始</strong><br>ワーカーが queued を running へ移します。クライアントの GET は保存状態を読み出すだけで、遷移を起こしません。</p>
-<p data-diagram-explanation><strong>③ completed — 成功した結果を保存</strong><br>ワーカーが変換に成功すると、completed と resultUrl を保存します。クライアントは GET で確認し、結果を表示します。</p>
-<p data-diagram-explanation><strong>④ failed — 失敗した理由を保存</strong><br>ワーカーが変換に失敗すると、failed と reason を保存します。クライアントは GET で確認し、理由を表示します。</p><p data-diagram-conditions>③と④はこの架空例の終端です。終端から再開する処理はありません。POST の再送と、ワーカーによる状態変更は別の動作です。</p><p>HTTP の一般仕様では、202 は処理の完了を表さず、GET は現在の表現を取得します。四つの状態名や保存フィールドは、この教材だけの架空仕様です。<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">RFC 9110 §15.3.3</a>・<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1">§9.3.1</a>（確認日：2026-10-14）</p>
+<p data-diagram-intro>受付後に追うのは、同じ <code>job_17</code> の状態です。ワーカーが処理結果を保存し、クライアントはGETで読んだ状態に応じて表示を決めます。</p>
+<p data-diagram-reading>①→②から、成功なら③、失敗なら④の矢印を追います。上下の位置は連続した遷移を意味せず、③と④はどちらかに至る代替の終端です。</p>
+<div data-diagram-explanation>
+<aside class="archify-notes" aria-label="図中番号に対応する説明">
+<p><strong>① queued</strong> — サーバーが作った <code>job_17</code> は処理待ちです。完了した結果はまだ表示しません。</p>
+<p><strong>② running</strong> — ワーカーが①から移して画像変換を実行します。クライアントは <code>GET /jobs/job_17</code> で状態を読み、②も未完了として扱います。</p>
+<p><strong>③ 成功 completed</strong> — 成功したワーカーは <code>completed</code> と <code>resultUrl</code> を保存します。GETで③を読んだクライアントは結果を表示します。</p>
+<p><strong>④ 失敗 failed</strong> — 失敗したワーカーは <code>failed</code> と <code>reason</code> を保存します。GETで④を読んだクライアントは理由を表示します。</p>
+</aside>
+</div>
+<div data-diagram-conditions><p>①queuedと②runningは未完了です。③completedでだけ結果、④failedでだけ理由を表示します。GETは状態を取得する操作であり、ワーカーの状態遷移を起こす矢印にはしていません。</p><p>この4状態、<code>resultUrl</code>、<code>reason</code>、GETのパスと表示条件は依頼文が定める架空仕様です。取得の一般的な意味は <a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1">RFC 9110 §9.3.1</a>、受付と処理完了の区別は <a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">§15.3.3</a> で確認できます。RFCはこの架空APIの状態名やJSON形式を定めていません。</p></div>

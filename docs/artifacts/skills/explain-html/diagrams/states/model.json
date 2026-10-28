@@ -12,100 +12,110 @@
     ]
   },
   "subject": {
-    "label": "架空例：job_17",
-    "beginning": "初回受付",
-    "ending": "成功または失敗",
-    "coverage": "complete"
+    "label": "同じ job_17",
+    "beginning": "サーバーが queued として作成",
+    "ending": "completed または failed の保存まで",
+    "coverage": "partial"
   },
+  "initial": [
+    "st_queued"
+  ],
+  "terminal": [
+    "st_completed",
+    "st_failed"
+  ],
   "lanes": [
     {
-      "id": "job",
-      "label": "保存状態"
+      "id": "job_status",
+      "label": "同じ job_17 の処理状態"
     }
   ],
   "states": [
     {
-      "id": "queued",
+      "id": "st_queued",
       "kind": "state",
       "label": "① queued",
-      "lane": "job",
+      "sublabel": "処理を待つ",
+      "description": "サーバーが作成した同じjob_17。queuedは処理完了ではない。",
+      "lane": "job_status",
       "row": 0,
       "col": 0,
-      "width": 150,
-      "description": "サーバーは初回受付でjob_17をqueuedとして作成する。同じrequestKeyの再送は同じjobIdを返す。"
+      "width": 200,
+      "height": 80
     },
     {
-      "id": "running",
+      "id": "st_running",
       "kind": "state",
       "label": "② running",
-      "lane": "job",
+      "sublabel": "ワーカーが処理中",
+      "description": "ワーカーがqueuedからrunningへ移す。runningは処理完了ではない。",
+      "lane": "job_status",
       "row": 1,
       "col": 0,
-      "width": 150,
-      "description": "ワーカーがqueuedのジョブをrunningへ移す。GETはこの遷移を起こさない。"
+      "width": 200,
+      "height": 80
     },
     {
-      "id": "completed",
+      "id": "st_completed",
       "kind": "state",
-      "label": "③ completed",
-      "lane": "job",
+      "label": "③ 成功 completed",
+      "sublabel": "resultUrl を保存",
+      "description": "処理が成功した場合の観測終端。GET /jobs/job_17でこの状態を読んだクライアントは結果を表示する。",
+      "lane": "job_status",
       "row": 2,
       "col": 0,
-      "width": 150,
-      "description": "ワーカーは成功時にcompletedとresultUrlを保存する。この例の終端。"
+      "width": 200,
+      "height": 80
     },
     {
-      "id": "failed",
+      "id": "st_failed",
       "kind": "state",
-      "label": "④ failed",
-      "lane": "job",
+      "label": "④ 失敗 failed",
+      "sublabel": "reason を保存",
+      "description": "処理が失敗した場合の代替観測終端。GET /jobs/job_17でこの状態を読んだクライアントは理由を表示する。completedからfailedへ移るという意味ではない。",
+      "lane": "job_status",
       "row": 3,
       "col": 0,
-      "width": 150,
-      "description": "ワーカーは失敗時にfailedとreasonを保存する。この例の終端。"
+      "width": 200,
+      "height": 80
     }
   ],
   "transitions": [
     {
-      "id": "start-work",
+      "id": "begin_work",
       "kind": "transition",
-      "from": "queued",
-      "to": "running",
-      "event": "処理開始",
-      "labelAt": [
-        225,
-        240
-      ]
+      "from": "st_queued",
+      "to": "st_running",
+      "event": "ワーカーが開始"
     },
     {
-      "id": "succeed",
+      "id": "finish_ok",
       "kind": "transition",
-      "from": "running",
-      "to": "completed",
-      "condition": "成功",
-      "labelAt": [
-        180,
-        410
-      ]
+      "from": "st_running",
+      "to": "st_completed",
+      "condition": "成功"
     },
     {
-      "id": "fail",
+      "id": "finish_fail",
       "kind": "transition",
-      "from": "running",
-      "to": "failed",
+      "from": "st_running",
+      "to": "st_failed",
       "condition": "失敗",
       "route": "right-channel",
       "labelAt": [
-        225,
-        580
+        360,
+        410
       ]
     }
   ],
-  "initial": [
-    "queued"
-  ],
-  "terminal": [
-    "completed",
-    "failed"
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "状態を読む",
+      "items": [
+        "GET /jobs/job_17 で取得する。",
+        "①②は未完了。③は結果、④は理由を表示する。"
+      ]
+    }
   ]
 }

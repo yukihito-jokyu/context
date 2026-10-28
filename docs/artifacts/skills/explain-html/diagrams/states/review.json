@@ -1,89 +1,597 @@
 {
   "diagram_id": "states",
-  "type": "lifecycle",
-  "archify_version": "2.16.0",
+  "agent_id": "/root/refresh_diagram_examples/explain_states",
+  "diagram_type": "lifecycle",
+  "schema_version": 2,
+  "status": "delivered_with_unmet_visual_requirements",
   "validation": {
-    "showcase": "pass",
-    "artifact_checks": 9,
+    "status": "pass",
+    "showcase_checks": "9/9",
     "errors": 0,
-    "warnings": 0
+    "warnings": 0,
+    "receipt": "receipt.json"
   },
-  "standard_svg": {
-    "method": "canonical-svg-offline-adapter",
-    "unmodified": true,
-    "browser_export_verified": false,
-    "pixel_equivalence_verified": false
-  },
-  "semantic_review": {
+  "semantics": {
+    "status": "checked",
     "same_subject": "job_17",
     "initial": [
       "queued"
     ],
-    "terminal": [
+    "terminals": [
       "completed",
       "failed"
     ],
-    "alternative_results": true,
-    "no_completed_to_failed_transition": true,
-    "get_is_read_only": true,
-    "post_server_vs_worker_updates_separated": true,
-    "resultUrl_and_reason_in_numbered_aside": true,
-    "terminal_resume": "not included; none in example",
-    "source_vs_fiction_separated": true
-  },
-  "numbered_mapping": {
-    "①": "queued/server initial creation/same requestKey returns same jobId",
-    "②": "running/worker start/GET reads only",
-    "③": "completed/resultUrl/client shows result",
-    "④": "failed/reason/client shows reason"
-  },
-  "browser_review": {
-    "browser": "real headless Google Chrome via Playwright",
-    "screenshots_viewed_with": "view_image",
-    "sizes": [
+    "transitions": [
+      "queued→running: ワーカーが開始",
+      "running→completed: 成功",
+      "running→failed: 失敗"
+    ],
+    "forbidden_serial_success_failure_transition": false,
+    "get_observation": "GET /jobs/job_17は状態を読む。状態を更新する矢印は追加しない。",
+    "omitted_fictional_rules": [
+      "再実行",
+      "削除",
+      "期限",
+      "GETの周期・JSON形式・応答コード"
+    ],
+    "fact_locations": [
       {
-        "viewport": [
-          1440,
-          900
-        ],
-        "scrollWidth": 1440,
-        "imageWidth": 400,
-        "figureBottom": 965.421875,
-        "requiredReadingBottom": 965.421875,
-        "layout": "figure and aside horizontal",
-        "screenshot": "panel-1440.png"
+        "fact": "サーバーがqueuedを作成",
+        "diagram": "① / subject.beginning",
+        "explanation": "①"
       },
       {
-        "viewport": [
-          390,
-          900
-        ],
-        "scrollWidth": 390,
-        "imageWidth": 358,
-        "figureBottom": 1084.265625,
-        "requiredReadingBottom": 1936.21875,
-        "layout": "figure then numbered aside vertical",
-        "screenshot": "panel-390.png"
+        "fact": "ワーカーがrunningへ変更",
+        "diagram": "② / begin_work",
+        "explanation": "②"
+      },
+      {
+        "fact": "成功ならcompletedとresultUrl",
+        "diagram": "③ / finish_ok",
+        "explanation": "③"
+      },
+      {
+        "fact": "失敗ならfailedとreason",
+        "diagram": "④ / finish_fail",
+        "explanation": "④"
+      },
+      {
+        "fact": "GETでcompletedなら結果、failedなら理由を表示",
+        "diagram": "③④のdescription、原図カード",
+        "explanation": "②③④"
+      },
+      {
+        "fact": "queued/runningは未完了",
+        "diagram": "①②のdescription",
+        "explanation": "①② / data-diagram-conditions"
       }
     ],
-    "horizontal_overflow": false,
-    "all_nodes_branches_and_legend_visible_in_full_page": true,
-    "diagram_with_required_explanation_fits_first_viewport": false,
-    "body_and_aside_px": 19,
-    "node_text_base_px": 14,
-    "mobile_node_text_estimate_px": 11.93,
-    "readability_limitation": "図全体を見渡すためPC画像高さを800px（幅400px）に制限。PCノード約13.3px、390pxノード約11.9px、図内18〜19px基準は両幅未達。asideは19px。lifecycle固定layoutでは凡例804pxまで必要であり、model高さを600程度へ圧縮できない。比率/全枝/凡例を保持。",
-    "integration_css_fix": "width:auto;max-width:100%;max-height:800px;height:auto;margin-inline:auto。テンプレート350px制限を上書きし、PC高さ800px制限を追加。1440/390実Chrome再撮影・view_image確認済み。SVG/model/viewerは未変更。",
-    "viewBox": [
-      420,
-      840
-    ],
-    "desktop_node_text_estimate_px": 13.33
+    "identifier_correspondence": {
+      "diagram": [
+        "①",
+        "②",
+        "③",
+        "④"
+      ],
+      "notes": [
+        "①",
+        "②",
+        "③",
+        "④"
+      ],
+      "missing": [],
+      "mismatched": []
+    }
   },
-  "unverified": [
-    "browser standard PNG export/pixel equivalence",
-    "figure.html desktop viewer 1600/1920/2048 sizes",
-    "integrated article final scale"
+  "execution": {
+    "archify_version": "2.16.0",
+    "preset": "editorial",
+    "renderer_modified": false,
+    "standard_svg_modified": false,
+    "model_sha256": "e8a95620ff531315d40fae2cc0e11e03463c0c56e62200b7acf9ddf329dfc36d",
+    "viewer_sha256": "b18c1d1168c4cb7feca05304e754ad6d9783e56341ee42fab8221893f7507701",
+    "svg_sha256": "b08d73f1c28daf7cba84c4f68ba3cfa6a578a1006980e02d202f6cd7185acd59",
+    "standard_export": "canonical-svg-offline-adapter",
+    "browser_export_verified": false,
+    "pixel_equivalence_verified": false,
+    "panel_image_matches_standard_svg": true,
+    "raw_deliver_stdout": "receipt.json"
+  },
+  "panel_display": {
+    "status": "checked_with_small_auxiliary_text",
+    "artifact": "panel-preview.html",
+    "browser": "Google Chrome via CDP",
+    "screenshots_viewed": [
+      "panel-pc.png",
+      "panel-mobile.png"
+    ],
+    "measurements": "panel-metrics.json",
+    "viewports": [
+      {
+        "name": "pc",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scroll": {
+          "width": 1440,
+          "height": 900
+        },
+        "pairDisplay": "grid",
+        "figure": {
+          "x": 220,
+          "y": 16,
+          "width": 350,
+          "height": 804.3125,
+          "bottom": 820.3125,
+          "right": 570
+        },
+        "image": {
+          "x": 220,
+          "y": 16,
+          "width": 350,
+          "height": 700,
+          "bottom": 716,
+          "right": 570
+        },
+        "caption": {
+          "x": 220,
+          "y": 724,
+          "width": 350,
+          "height": 88.3125,
+          "bottom": 812.3125,
+          "right": 570
+        },
+        "notes": {
+          "x": 598,
+          "y": 16,
+          "width": 622,
+          "height": 345.125,
+          "bottom": 361.125,
+          "right": 1220
+        },
+        "notesFontPx": 19,
+        "figureBottom": 716,
+        "requiredCaptionBottom": 812.3125,
+        "horizontalOverflow": false,
+        "figureAndRequiredCaptionFit": true,
+        "viewBox": [
+          0,
+          0,
+          420,
+          840
+        ],
+        "scale": 0.8333333333333334,
+        "texts": [
+          {
+            "text": "同じ job_17 · 部分のライフサイクル",
+            "svgPx": 12,
+            "cssPx": 10,
+            "category": "auxiliary"
+          },
+          {
+            "text": "サーバーが queued として作成 → completed または failed の保存まで",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "同じ job_17 の処理状態",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態 / 開始",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "① queued",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "処理を待つ",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "② running",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "ワーカーが処理中",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態 / 終端",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "③ 成功 completed",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "resultUrl を保存",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態 / 終端",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "④ 失敗 failed",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "reason を保存",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "[遷移] ワーカーが開始",
+            "svgPx": 8,
+            "cssPx": 6.666666666666667,
+            "category": "relation"
+          },
+          {
+            "text": "[遷移] [成功]",
+            "svgPx": 8,
+            "cssPx": 6.666666666666667,
+            "category": "relation"
+          },
+          {
+            "text": "[遷移] [失敗]",
+            "svgPx": 8,
+            "cssPx": 6.666666666666667,
+            "category": "relation"
+          },
+          {
+            "text": "凡例",
+            "svgPx": 12,
+            "cssPx": 10,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態",
+            "svgPx": 6,
+            "cssPx": 5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "開始",
+            "svgPx": 7,
+            "cssPx": 5.833333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "開始",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "終端",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "遷移",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          }
+        ],
+        "screenshot": "panel-pc.png"
+      },
+      {
+        "name": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scroll": {
+          "width": 390,
+          "height": 1443
+        },
+        "pairDisplay": "block",
+        "figure": {
+          "x": 16,
+          "y": 16,
+          "width": 358,
+          "height": 796.3125,
+          "bottom": 812.3125,
+          "right": 374
+        },
+        "image": {
+          "x": 16,
+          "y": 16,
+          "width": 350,
+          "height": 700,
+          "bottom": 716,
+          "right": 366
+        },
+        "caption": {
+          "x": 16,
+          "y": 724,
+          "width": 358,
+          "height": 88.3125,
+          "bottom": 812.3125,
+          "right": 374
+        },
+        "notes": {
+          "x": 16,
+          "y": 836.3125,
+          "width": 358,
+          "height": 575.109375,
+          "bottom": 1411.421875,
+          "right": 374
+        },
+        "notesFontPx": 19,
+        "figureBottom": 716,
+        "requiredCaptionBottom": 812.3125,
+        "horizontalOverflow": false,
+        "figureAndRequiredCaptionFit": true,
+        "viewBox": [
+          0,
+          0,
+          420,
+          840
+        ],
+        "scale": 0.8333333333333334,
+        "texts": [
+          {
+            "text": "同じ job_17 · 部分のライフサイクル",
+            "svgPx": 12,
+            "cssPx": 10,
+            "category": "auxiliary"
+          },
+          {
+            "text": "サーバーが queued として作成 → completed または failed の保存まで",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "同じ job_17 の処理状態",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態 / 開始",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "① queued",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "処理を待つ",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "② running",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "ワーカーが処理中",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態 / 終端",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "③ 成功 completed",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "resultUrl を保存",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態 / 終端",
+            "svgPx": 9,
+            "cssPx": 7.5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "④ 失敗 failed",
+            "svgPx": 14,
+            "cssPx": 11.666666666666668,
+            "category": "primary"
+          },
+          {
+            "text": "reason を保存",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "[遷移] ワーカーが開始",
+            "svgPx": 8,
+            "cssPx": 6.666666666666667,
+            "category": "relation"
+          },
+          {
+            "text": "[遷移] [成功]",
+            "svgPx": 8,
+            "cssPx": 6.666666666666667,
+            "category": "relation"
+          },
+          {
+            "text": "[遷移] [失敗]",
+            "svgPx": 8,
+            "cssPx": 6.666666666666667,
+            "category": "relation"
+          },
+          {
+            "text": "凡例",
+            "svgPx": 12,
+            "cssPx": 10,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態",
+            "svgPx": 6,
+            "cssPx": 5,
+            "category": "auxiliary"
+          },
+          {
+            "text": "状態",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "開始",
+            "svgPx": 7,
+            "cssPx": 5.833333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "開始",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "終端",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          },
+          {
+            "text": "遷移",
+            "svgPx": 10,
+            "cssPx": 8.333333333333334,
+            "category": "auxiliary"
+          }
+        ],
+        "screenshot": "panel-mobile.png"
+      }
+    ],
+    "reading": "PCは350px図+横解説。390pxは350px図→caption→縦解説。図と必要captionの底812.3125pxはPC900px/狭幅844pxに収まる。狭幅の横はみ出しなし。解説は縦スクロールで読む。",
+    "primary_text_css_px": 11.666666666666668,
+    "relation_text_css_px": 6.666666666666667,
+    "sublabel_text_css_px": 8.333333333333334,
+    "state_kind_marker_text_css_px": 7.5,
+    "minimum_auxiliary_text_css_px": 5,
+    "notes_text_css_px": 19,
+    "visual_review": "主要状態名・独立した失敗経路・代替終端の関係・図captionを画像で確認。枝ラベルと凡例は小さく、全補助文字が快適に読めるとは判定しない。"
+  },
+  "standalone_viewer": {
+    "status": "fail",
+    "receipt": "figure.visual-check.json",
+    "exit_code": 1,
+    "readability_metric_status": "pass",
+    "containment_status": "fail",
+    "chrome_ui_clearance_status": "pass",
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 2943
+      },
+      {
+        "width": 1600,
+        "height": 1000,
+        "scrollWidth": 1600,
+        "scrollHeight": 3147
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "scrollWidth": 1920,
+        "scrollHeight": 3147
+      },
+      {
+        "width": 2048,
+        "height": 1320,
+        "scrollWidth": 2048,
+        "scrollHeight": 3149
+      }
+    ],
+    "screenshots_viewed": [
+      "figure.visual-check.1440x900.light.png",
+      "figure.visual-check.2048x1320.dark.png"
+    ],
+    "finding": "初期の単体Viewerは図を大きく配置し、下部状態とカードを見るため縦スクロールが必要。最初の画面への収容要件は未達。"
+  },
+  "unknown_or_unverified": [
+    "記事への統合後の実際の縮尺・見出し込みの収容は親担当で未確認。",
+    "限定DOM標準SVG出力を使った。ブラウザ書き出しや標準PNGとの同一性は未検証。"
   ],
-  "status": "artifacts_generated_visual_review_with_readability_limitation"
+  "unmet": [
+    "350px掲載時の標準枝ラベルは6.67px、補助記号最小5pxで小さい。主要ラベルと19pxの番号対応解説で意味を補うが、補助文字の快適な可読性は未達。",
+    "単体Archify Viewerは全指定PC寸法で縦はみ出し。HTML/SVG/vendorを改変して隠さず記録。"
+  ],
+  "environment": {
+    "sandbox_attempt": "Chrome SIGABRT",
+    "resolution": "そのChrome表示確認のみrequire_escalatedで実行して計測完了。"
+  },
+  "commands": [
+    "node <repository>/utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs validate lifecycle <workdir>/model.json --quality showcase --json",
+    "node <repository>/utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs deliver lifecycle model.json figure.html --quality showcase --json > receipt.json （cwd=<workdir>）",
+    "python3 <repository>/utils/skills/discovery/explain-html/scripts/export_standard_svg.py figure.html figure.svg --model model.json （cwd=<workdir>）",
+    "node <repository>/utils/skills/discovery/explain-html/vendor/archify-jp/bin/archify.mjs visual-check figure.html --json （cwd=<workdir>、exit1）",
+    "node <workdir>/check-panel.mjs （cwd=<repository>、exit0）"
+  ],
+  "final_record": "review.json"
 }

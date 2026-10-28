@@ -1,93 +1,94 @@
 {
   "schema_version": 1,
-  "diagram_type": "sequence",
+  "diagram_type": "architecture",
   "meta": {
-    "title": "受付から結果の表示まで",
+    "title": "同じキーは同じジョブへ",
     "locale": "ja",
     "viewBox": [
-      560,
-      760
+      340,
+      400
     ],
-    "column_fit": "spread",
     "visual_preset": "editorial",
     "quality_profile": "showcase"
   },
-  "participants": [
+  "components": [
     {
-      "id": "client",
+      "id": "request-first",
       "type": "frontend",
-      "label": "クライアント"
+      "label": "① req_A",
+      "pos": [
+        20,
+        55
+      ],
+      "size": [
+        130,
+        60
+      ]
     },
     {
-      "id": "api",
-      "type": "backend",
-      "label": "API"
+      "id": "request-repeat",
+      "type": "frontend",
+      "label": "② req_A",
+      "pos": [
+        190,
+        55
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "request-job",
+      "type": "database",
+      "label": "job_17",
+      "pos": [
+        105,
+        235
+      ],
+      "size": [
+        130,
+        60
+      ]
     }
   ],
-  "messages": [
+  "boundaries": [
     {
-      "id": "request-m1",
-      "from": "client",
-      "to": "api",
-      "y": 180,
-      "label": "① POST /jobs",
-      "variant": "emphasis"
+      "kind": "region",
+      "label": "クライアントの POST /jobs",
+      "wraps": [
+        "request-first",
+        "request-repeat"
+      ],
+      "pad": 12
     },
     {
-      "id": "request-m2",
-      "from": "api",
-      "to": "client",
-      "y": 245,
-      "label": "② 202 + job_17",
-      "variant": "return"
+      "kind": "region",
+      "label": "サーバー",
+      "wraps": [
+        "request-job"
+      ],
+      "pad": 12
+    }
+  ],
+  "connections": [
+    {
+      "id": "request-first-job",
+      "from": "request-first",
+      "to": "request-job",
+      "label": "作成",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
     },
     {
-      "id": "request-m3",
-      "from": "client",
-      "to": "api",
-      "y": 330,
-      "label": "③ 状態をGET",
-      "variant": "default"
-    },
-    {
-      "id": "request-m4",
-      "from": "api",
-      "to": "client",
-      "y": 395,
-      "label": "③ queued",
-      "variant": "return"
-    },
-    {
-      "id": "request-m5",
-      "from": "client",
-      "to": "api",
-      "y": 470,
-      "label": "③ 状態をGET",
-      "variant": "default"
-    },
-    {
-      "id": "request-m6",
-      "from": "api",
-      "to": "client",
-      "y": 535,
-      "label": "③ running",
-      "variant": "return"
-    },
-    {
-      "id": "request-m7",
-      "from": "client",
-      "to": "api",
-      "y": 610,
-      "label": "④ 状態をGET",
-      "variant": "default"
-    },
-    {
-      "id": "request-m8",
-      "from": "api",
-      "to": "client",
-      "y": 675,
-      "label": "④ completed + URL",
-      "variant": "return"
+      "id": "request-repeat-job",
+      "from": "request-repeat",
+      "to": "request-job",
+      "label": "再利用",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
     }
   ]
 }

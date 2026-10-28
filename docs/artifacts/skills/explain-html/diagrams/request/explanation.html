@@ -1,5 +1,9 @@
-<p data-diagram-intro>画像変換の受付と完了は、別の通信で確認します。架空APIの成功例で、クライアントが受付番号を受け取り、同じジョブの状態を取得する流れを追います。</p>
-<p data-diagram-reading>①から④へ上から下に読みます。③のqueuedとrunningは、この例で観測した未完了状態です。</p>
-<div data-diagram-explanation><p>① クライアントの入力はimageId: img_42とrequestKey: req_42です。② APIが返すjobId: job_17を、③と④のGET /jobs/job_17で使います。④ completedの応答にはresultUrlが入り、クライアントは結果を表示します。</p></div>
-<p data-diagram-conditions>202だけでは結果を表示できません。クライアントがすべての途中状態を観測できるとは限らず、GETの間隔や処理時間は架空仕様で指定されていません。この図は503やfailedを含まない正常例です。</p>
-<p>HTTPの202の意味は<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">RFC 9110 §15.3.3</a>、GETの意味は<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1">§9.3.1</a>で確認しました。requestKey、状態名、パスは説明用の架空仕様です。</p>
+<p data-diagram-intro>同じ画像変換を再送するときは、初回と同じ <code>requestKey</code> を使います。ここでは画像 <code>img_42</code> をキー <code>req_A</code> で依頼し、返される <code>job_17</code> を追います。</p>
+<p data-diagram-reading>①初回と②再送から出る線が、同じ <code>job_17</code> に合流する点を読みます。主図の線は依頼とジョブの対応を示します。HTTP応答の向きや処理時間は表しません。③はそのjobIdを使う状態照会の局所投影です。</p>
+<section data-diagram-explanation data-flow-stage="1" data-diagram-ref="request-first request-first-job request-job"><h4>① 初回はジョブを作る</h4><p><code>POST /jobs</code> へ <code>img_42</code> と <code>req_A</code> を送ると、サーバーは <code>job_17</code> を作り、202とjobIdを返します。202は受付であり、変換の完了ではありません。</p></section>
+<section data-diagram-explanation data-flow-stage="2" data-diagram-ref="request-repeat request-repeat-job request-job"><h4>② 再送も同じジョブへ</h4><p>同じ依頼を同じ <code>req_A</code> で送ると、サーバーは重複ジョブを作らず、同じ <code>job_17</code> を返します。キーを新しく作り直さないことが対応を保つ条件です。</p></section>
+<section data-diagram-explanation data-flow-stage="3" data-diagram-ref="request-get-client request-get-http request-get-server"><h4>③ jobIdで状態を読む</h4><p>クライアントは <code>GET /jobs/job_17</code> で同じジョブの状態を取得します。202だけで成功を表示せず、取得した状態に応じた表示へ進みます。</p><p>完了・失敗の状態と表示内容は状態の図で説明します。</p></section>
+<p data-diagram-conditions>この図は、同じ依頼に同じrequestKeyを使う場合を扱います。同じキーで異なる画像を送った場合やキーの保存期限は未指定です。再送時のHTTPステータスも指定されていないため、ここでは同じjobIdだけを示します。503の再試行上限は別図の範囲です。</p>
+<details><summary>①②の具体的な入力と返り値</summary><p>初回と再送で同じ本文を送ります。</p><pre><code>POST /jobs
+{"imageId":"img_42","requestKey":"req_A"}</code></pre><p>①初回の応答は202、本文は <code>{"jobId":"job_17"}</code>。②再送の返すjobIdも <code>job_17</code> です。②のHTTPステータスは原文で指定されていません。</p></details>
+<p>出典：この架空APIの動作は依頼文、202の一般的意味は <a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">RFC 9110 §15.3.3</a>、GETの一般的意味は <a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1">同 §9.3.1</a> に基づきます。同じキーを同じジョブに結び付ける規則は、この架空API固有の仕様です。</p>

@@ -1,29 +1,36 @@
 {
+  "diagram_id": "retry",
+  "agent_id": "/root/refresh_diagram_examples/explain_retry",
+  "checked_at": "2026-10-28T13:06:35.077212+00:00",
+  "fictional_api_source": {
+    "path": "input.md",
+    "location": "入力全文第1段落、POSTの503とrequestKeyに関する文",
+    "finding": "同じrequestKeyで最大2回の追加再試行。初回を含め最大3送信。なお503なら受付結果不明。202は完了ではない。"
+  },
   "sources": [
     {
-      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2",
-      "checked_at": "2026-10-14",
-      "location": "9.2.2 Idempotent Methods",
-      "finding": "非冪等メソッドの自動再送には、要求の意味が実際に冪等と知る手段等が必要。POSTに普遍的な重複防止を与えない。"
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3",
+      "checked_at": "2026-10-28T13:06:35.077262+00:00",
+      "finding": "HTTPの202は処理受付を示すが処理は未完了。図の④を完了とは呼ばない。",
+      "location": "RFC 9110 §15.3.3 第1〜2段落"
     },
     {
       "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4",
-      "checked_at": "2026-10-14",
-      "location": "15.6.4 503 Service Unavailable",
-      "finding": "503は一時的過負荷や保守により要求を処理できない状態。Retry-Afterは待機時間を提案できる。キー・試行回数・ジョブ状態は定義しない。"
+      "checked_at": "2026-10-28T13:06:35.077263+00:00",
+      "finding": "503は一時的に要求を扱えない応答。Retry-Afterは任意で、架空仕様に待ち時間はない。",
+      "location": "RFC 9110 §15.6.4 第1段落"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2",
+      "checked_at": "2026-10-28T13:06:35.077264+00:00",
+      "finding": "POSTの一般的な自動再試行を無条件とはしない。図の同じキー・追加2回の規則は架空API原文に限定する。",
+      "location": "RFC 9110 §9.2.2 第4〜5段落"
     }
   ],
-  "provided_source": "../../input.md",
-  "fictional_contract": [
-    "同じキーreq_42の再送は同じjob_17、重複生成なし",
-    "503だけを最大2回再試行、計3送信",
-    "3回目も503なら受付結果不明、failedとは別"
-  ],
-  "undefined": [
-    "再送待機時間",
-    "キー保存期間",
-    "異なるpayloadを同じキーで送る",
-    "202/503以外",
-    "通信断"
+  "network_read": "web toolでRFC本文を実際に開き、該当節を読んだ。",
+  "limits": [
+    "RFCはこの架空APIの存在・jobId・requestKey・再試行上限を規定しない。",
+    "503が生じるサーバー内部の処理時点、ジョブの有無は原文にない。",
+    "原文のJSON完全形式、imageIdフィールド名は説明上の具体例。"
   ]
 }

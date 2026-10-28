@@ -1,114 +1,350 @@
 {
   "diagram_id": "request",
-  "diagram_type": "sequence",
-  "status": "complete",
-  "visual_review": "failed",
-  "correction_rounds": 0,
-  "validation": {
-    "showcase": "9/9",
-    "errors": 0,
-    "warnings": 0,
-    "standard_svg_export": "canonical-svg-offline-adapter",
-    "browser_export_verified": false,
-    "pixel_equivalence_verified": false
+  "agent_id": "/root/refresh_diagram_examples/explain_request",
+  "status": "article-panel-complete-with-standalone-viewer-limitation",
+  "logical_diagrams": 1,
+  "standard_projections": 2,
+  "types": {
+    "primary": "architecture",
+    "get": "architecture"
   },
-  "semantics": {
-    "passed": true,
-    "scope": "正常例の外部通信のみ",
-    "preserved_values": [
-      "img_42",
-      "req_42",
-      "job_17",
-      "queued",
-      "running",
-      "completed",
-      "resultUrl"
-    ],
-    "identifiers": [
-      "①",
-      "②",
-      "③",
-      "④"
-    ],
-    "omitted_internal_details": "ワーカーがrunning/completedとresultUrlを保存することは③④の横解説に保持。キューや保存実装は指定がないため描かない。",
-    "conditions": "202は完了ではない。途中状態をすべてGETで観測できる保証はない。"
+  "semantic_checks": {
+    "pass": true,
+    "source_is_fictional": true,
+    "first_and_repeat_distinguished": "①初回と②再送を番号、作成/再利用の枝、対応解説で区別。2人のクライアントを表さない。",
+    "same_job_preserved": "req_Aの初回も再送も同じjob_17へ接続。",
+    "no_duplicate_job": "②の本文と再利用の枝。",
+    "202_is_not_complete": "①の解説と主図caption。初回だけ202と明記。",
+    "get_boundary": "get局所投影と③の解説。",
+    "not_added": "キー保持期限、同じキーで異なる画像を送った場合、再送時ステータス、GETステータス、DB製品、待機時間を追加していない。",
+    "worker_and_503_boundary": "主図captionとconditionsで別図へ案内。",
+    "mapping_not_response": "主図は対応関係。矢印をHTTP応答方向として説明しない。",
+    "identifier_consistency": "①→request-first、②→request-repeat、③→request-get-client/request-get-http。asideにdata-flow-stage=1/2/3。",
+    "all_required_meanings_locations": {
+      "img_42": "①横解説とexplanation詳細JSON",
+      "req_A": "主図①②と対応解説",
+      "job_17": "主図共有ノード、GET投影、対応解説",
+      "initial_202": "①解説とcaption",
+      "same_key_same_id": "②と主図合流",
+      "GET_state": "get投影と③",
+      "worker_states": "この図の境界。別図を参照。",
+      "503_retry_limit": "この図の境界。別図を参照。"
+    }
   },
-  "browser": {
-    "executed": true,
-    "engine": "Chrome via Playwright",
-    "viewports": [
-      {
-        "width": 1440,
-        "scrollWidth": 1440,
-        "figureBottom": 1033.234375,
-        "requiredReadingBottom": 789.109375,
-        "layout": "665.219px 458.781px",
-        "imgWidth": 665.21875,
-        "stageSelection": true,
-        "pausedStatus": "② 受付を確認",
-        "reset": true,
-        "smallest_svg_text_px": 10.691015625,
-        "smallest_message_text_px": 10.691015625
+  "execution_checks": {
+    "validate": "両モデルshowcase 9/9、構成errors=0,warnings=0",
+    "deliver": "両projection exit 0、stdoutをreceiptへ保存",
+    "standard_export": "限定DOMアダプターで2.16.0標準serializeSvgを実行。両export exit 0。",
+    "actual_regeneration": {
+      "pass": true,
+      "checked_diagrams": [
+        "request",
+        "request::get"
+      ],
+      "issues": [],
+      "scope": "Actual vendored showcase delivery, byte-exact standard SVG and article image correspondence.",
+      "limits": "No agent/network authentication, semantic/readability proof, CSS-drawn graph detection or malicious same-user isolation. Browser PNG/inline overlays unsupported and blocked."
+    },
+    "immutability": "配布HTML・標準SVGの編集、SVG切抜き、vendor修正を実施していない。",
+    "repository_writes": "封印された<repository>への書込みなし。保存先はこの図の<workdir>のみ。"
+  },
+  "display_checks": {
+    "article_panel": {
+      "visual_review": "passed",
+      "method": "Chrome CDPの実DOM計測とPNG取得後、画像リーダーでPC主図、390px主図・GET・横解説を目視。",
+      "viewports": [
+        {
+          "width": 1440,
+          "height": 900,
+          "scrollWidth": 1440,
+          "pairs": [
+            {
+              "variant": "primary",
+              "display": "grid",
+              "columns": "350px 594px",
+              "pair": {
+                "x": 234,
+                "y": 75.59375,
+                "width": 972,
+                "height": 483.796875,
+                "bottom": 559.390625
+              },
+              "figure": {
+                "x": 234,
+                "y": 75.59375,
+                "width": 350,
+                "height": 483.796875,
+                "bottom": 559.390625
+              },
+              "image": {
+                "x": 234,
+                "y": 75.59375,
+                "width": 350,
+                "height": 411.40625,
+                "bottom": 487
+              },
+              "caption": {
+                "x": 234,
+                "y": 497,
+                "width": 350,
+                "height": 62.390625,
+                "bottom": 559.390625
+              },
+              "notes": {
+                "x": 612,
+                "y": 75.59375,
+                "width": 594,
+                "height": 286,
+                "bottom": 361.59375
+              },
+              "loaded": true,
+              "capture": {
+                "file": "panel-primary-1440.png",
+                "scrollY": 76,
+                "figureTop": -0.40625,
+                "diagramBottom": 411,
+                "requiredCaptionBottom": 483.390625,
+                "requiredCaptionFits": true,
+                "notesTop": -0.40625,
+                "notesBottom": 285.59375
+              }
+            },
+            {
+              "variant": "get",
+              "display": "grid",
+              "columns": "350px 594px",
+              "pair": {
+                "x": 234,
+                "y": 595.390625,
+                "width": 972,
+                "height": 422.0625,
+                "bottom": 1017.453125
+              },
+              "figure": {
+                "x": 234,
+                "y": 595.390625,
+                "width": 350,
+                "height": 422.0625,
+                "bottom": 1017.453125
+              },
+              "image": {
+                "x": 234,
+                "y": 595.390625,
+                "width": 350,
+                "height": 370.46875,
+                "bottom": 965.859375
+              },
+              "caption": {
+                "x": 234,
+                "y": 975.859375,
+                "width": 350,
+                "height": 41.59375,
+                "bottom": 1017.453125
+              },
+              "notes": {
+                "x": 612,
+                "y": 595.390625,
+                "width": 594,
+                "height": 180.5,
+                "bottom": 775.890625
+              },
+              "loaded": true,
+              "capture": {
+                "file": "panel-get-1440.png",
+                "scrollY": 177,
+                "figureTop": 418.390625,
+                "diagramBottom": 788.859375,
+                "requiredCaptionBottom": 840.453125,
+                "requiredCaptionFits": true,
+                "notesTop": 418.390625,
+                "notesBottom": 598.890625
+              }
+            }
+          ]
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "scrollWidth": 390,
+          "pairs": [
+            {
+              "variant": "primary",
+              "display": "grid",
+              "columns": "350px",
+              "pair": {
+                "x": 20,
+                "y": 71.59375,
+                "width": 350,
+                "height": 879.796875,
+                "bottom": 951.390625
+              },
+              "figure": {
+                "x": 20,
+                "y": 71.59375,
+                "width": 350,
+                "height": 483.796875,
+                "bottom": 555.390625
+              },
+              "image": {
+                "x": 20,
+                "y": 71.59375,
+                "width": 350,
+                "height": 411.40625,
+                "bottom": 483
+              },
+              "caption": {
+                "x": 20,
+                "y": 493,
+                "width": 350,
+                "height": 62.390625,
+                "bottom": 555.390625
+              },
+              "notes": {
+                "x": 20,
+                "y": 571.390625,
+                "width": 350,
+                "height": 380,
+                "bottom": 951.390625
+              },
+              "loaded": true,
+              "capture": {
+                "file": "panel-primary-390.png",
+                "scrollY": 72,
+                "figureTop": -0.40625,
+                "diagramBottom": 411,
+                "requiredCaptionBottom": 483.390625,
+                "requiredCaptionFits": true,
+                "notesTop": 499.390625,
+                "notesBottom": 879.390625
+              }
+            },
+            {
+              "variant": "get",
+              "display": "grid",
+              "columns": "350px",
+              "pair": {
+                "x": 20,
+                "y": 987.390625,
+                "width": 350,
+                "height": 665.5625,
+                "bottom": 1652.953125
+              },
+              "figure": {
+                "x": 20,
+                "y": 987.390625,
+                "width": 350,
+                "height": 422.0625,
+                "bottom": 1409.453125
+              },
+              "image": {
+                "x": 20,
+                "y": 987.390625,
+                "width": 350,
+                "height": 370.46875,
+                "bottom": 1357.859375
+              },
+              "caption": {
+                "x": 20,
+                "y": 1367.859375,
+                "width": 350,
+                "height": 41.59375,
+                "bottom": 1409.453125
+              },
+              "notes": {
+                "x": 20,
+                "y": 1425.453125,
+                "width": 350,
+                "height": 227.5,
+                "bottom": 1652.953125
+              },
+              "loaded": true,
+              "capture": {
+                "file": "panel-get-390.png",
+                "scrollY": 865,
+                "figureTop": 122.390625,
+                "diagramBottom": 492.859375,
+                "requiredCaptionBottom": 544.453125,
+                "requiredCaptionFits": true,
+                "notesTop": 560.453125,
+                "notesBottom": 787.953125
+              }
+            }
+          ]
+        }
+      ],
+      "pc_horizontal": "1440×900、図350px・解説594px・gap28px。",
+      "narrow_vertical": "390×844、図350px、解説が図の後。横はみ出しなし。",
+      "necessary_caption": "全projectionで図と必要captionの底を測定。各対象へスクロールした画面でともに表示。",
+      "narrow_notes": "primaryの全解説は1画面を越すため通常縦スクロールで確認。図・captionと解説全体が同じ画面に収まるとは主張しない。",
+      "projected_text_px": {
+        "primary_nodes_and_values": 11.258823529411766,
+        "primary_branch_labels": 8.188235294117646,
+        "get_nodes": 11.258823529411766,
+        "get_path": 8.188235294117646
       },
-      {
-        "width": 390,
-        "scrollWidth": 390,
-        "figureBottom": 648.4375,
-        "requiredReadingBottom": 1426.6875,
-        "layout": "366px",
-        "imgWidth": 366,
-        "stageSelection": true,
-        "pausedStatus": "② 受付を確認",
-        "reset": true,
-        "smallest_svg_text_px": 5.882142857142857,
-        "smallest_message_text_px": 5.882142857142857
-      }
-    ],
-    "images_inspected": [
-      "panel-1440.png",
-      "panel-390.png"
-    ],
-    "pc_side_by_side": true,
-    "narrow_stacked": true,
-    "horizontal_overflow": false,
-    "failure": "390pxの最小図中文字は約5.88px、1440pxでは約10.69px。18px基準を満たさず、1440pxの図と読み方の底も画面外へ続く。標準SVG無改変と横解説19pxは保持。",
-    "panel_css_recheck": "2026-10-14: previewの図専用CSSを除去し、panel内スコープCSSだけで1440px/390pxを再実行。配置と文字の問題は同一。390画像を再目視。"
+      "readability_observation": "主要値と番号は約11.3px、枝とGETパスは約8.2px。標準の小さい枝文字を拡大改変せず、同じ番号の具体説明を15pxの本文に残した。",
+      "captures": [
+        "panel-primary-1440.png",
+        "panel-primary-390.png",
+        "panel-get-390.png",
+        "panel-primary-390-notes.png",
+        "panel-get-390-notes.png"
+      ]
+    },
+    "standalone_viewer": {
+      "visual_review": "failed",
+      "figure": {
+        "containment": "failed",
+        "scroll_heights": {
+          "1440x900": 1723,
+          "1600x1000": 1874,
+          "1920x1080": 1874,
+          "2048x1320": 1884
+        }
+      },
+      "get": {
+        "containment": "failed",
+        "scroll_heights": {
+          "1440x900": 1564,
+          "1600x1000": 1708,
+          "1920x1080": 1708,
+          "2048x1320": 1721
+        }
+      },
+      "observed": "両projection・全4desktop寸法で縦overflow。横overflowなし。readability、viewerChrome、自動captureはpass。",
+      "runtime": "sandbox実行はChrome SIGABRT。許可された同じ表示検査だけrequire_escalatedで再実行して実測。",
+      "records": [
+        "figure.visual-check.json",
+        "get.visual-check.json"
+      ]
+    }
   },
-  "viewer_visual_check": {
-    "command_executed": true,
-    "status": "fail",
-    "exit_code": 1,
-    "receipt": "figure.visual-check.json",
-    "reason": "全デスクトップ幅でViewerの縦オーバーフロー。"
-  },
-  "motion": {
-    "implementation": "同梱assets/flow.jsの無改変をpreviewで実行し、aside説明だけを段階強調。panel統合時は親のflow.jsが必要。",
-    "checked": [
-      "段階選択",
-      "再生開始",
-      "一時停止",
-      "全体表示へ戻る"
-    ],
-    "unchecked": [
-      "再生完了",
-      "タブ非表示",
-      "reduced-motion",
-      "印刷"
-    ],
-    "diagram_synchronized": false,
-    "edge_motion": false,
-    "reason": "標準SVG overlayは現ゲートで未対応。"
-  },
-  "alternative_attempt": {
-    "type": "workflow v2",
-    "result": "不採用",
-    "reason": "標準出力864幅、主ラベル11px、補足8px、凡例7.5px。狭幅ではsequenceより文字が小さくなる。",
-    "additional_check": "幅100のworkflow v2候補でlayout-jsonを取得。未使用colも含む6列 [98,218,338,458,578,698] が保持されviewBox784×676。250〜350幅に縮められず不採用。"
-  },
-  "not_verified": [
-    "最終記事への統合後の表示",
-    "ブラウザ標準PNGエクスポートとの画素同一性"
+  "performed": [
+    "RFC一次資料のネット閲覧",
+    "初稿と最終モデルのvalidate",
+    "deliver",
+    "標準SVG限定DOMexport",
+    "実再生成・バイト一致検査",
+    "PC350px横配置・390px縦配置の実Chrome計測",
+    "スクリーンショット目視",
+    "必要caption底の実測"
   ],
-  "completion_scope": "制作束の受領状態。visual_review failedを解消したことは意味しない。",
-  "panel_styles": "panel.html内の.request-panelスコープstyleでPC横配置・700px以下縦配置・img width100% max-width:none・notes19pxを設定。preview専用CSSへ依存しない。"
+  "not_performed": [
+    "親の記事統合後の表示確認",
+    "ブラウザのExport SVG操作",
+    "ブラウザPNGと標準SVGの画素同一性確認",
+    "印刷と実機モバイル確認",
+    "Viewerの検索・フォーカス・テーマ等の操作試験",
+    "単体Viewer縦overflowの修正"
+  ],
+  "correction_rounds": {
+    "sequence": "不採用。記事幅で小さい文字。",
+    "dataflow": "不採用。stage幅と標準文字。",
+    "final_architecture_primary": 1,
+    "get": 1
+  },
+  "open_limitations": [
+    "単体Viewerのdesktop containment未達。記事内350px表示の成功と区別する。",
+    "最終記事の縮尺・文章統合後は親による再確認が必要。"
+  ]
 }

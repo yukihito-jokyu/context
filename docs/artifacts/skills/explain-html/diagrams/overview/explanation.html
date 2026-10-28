@@ -1,5 +1,10 @@
-<p data-diagram-intro>この架空APIでは、APIが依頼を受け付け、ワーカーが後から画像を変換します。利用者が202を受け取った時点と、画像が完成した時点を分けて読みます。</p>
-<p data-diagram-reading>①利用者と②APIの間は依頼と応答の往復です。③保存と④変換の間はジョブの取得と結果の保存です。矢印は受け渡し方向であり、上から下へ一度だけ実行する工程を示していません。</p>
-<div data-diagram-explanation><p>①クライアントは画像IDとrequestKeyをPOST /jobsへ送ります。②APIは初回に③へjob_17を作り、①へ202とjobIdを返します。同じ依頼の再送では同じrequestKeyを使い、②は重複ジョブを作らず同じjobIdを返します。</p><p>④ワーカーは③のqueuedジョブを取得し、runningに変更して画像を変換します。④は成功ならcompletedとresultUrl、失敗ならfailedとreasonを③へ保存します。①は②へGET /jobs/job_17を送り、②が③から参照した状態を受け取ります。completedなら結果、failedなら理由を表示します。</p></div>
-<p data-diagram-conditions>②の202は受付の応答です。POSTが503の場合の最大2回の再試行、再試行後も503の場合の受付結果不明、および成功・失敗の分岐は、それぞれの詳説で扱います。③の保存技術、④の起動方法、resultUrlでの画像取得方式は架空仕様では未指定です。</p>
-<p>202の一般的な意味は<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">RFC 9110 §15.3.3</a>で確認しました。job_17、requestKey、各状態、エンドポイントは提供された架空仕様です。</p>
+<p data-diagram-intro>これは学習用の架空APIです。画像の変換依頼を受け付けるサーバーと、変換を進めるワーカーを分け、保存したジョブを通して状態を共有します。</p>
+<p data-diagram-reading>①から②への線はHTTPの窓口、②と④から③への線はジョブ保存先の利用を表します。矢印はアクセス先であり、通信の厳密な時間順は別の通信例で確認します。</p>
+<div data-diagram-explanation>
+<p id="overview-note-1"><strong>① クライアント</strong> — <code>POST /jobs</code>へ<code>img_42</code>と<code>req_A</code>を送ります。受け取った<code>job_17</code>を使い、<code>GET /jobs/job_17</code>で状態を読みます。</p>
+<p id="overview-note-2"><strong>② サーバー</strong> — 初回はジョブを作り、<code>202</code>と<code>jobId: job_17</code>を返します。この受付応答は、画像変換の完了を意味しません。</p>
+<p id="overview-note-3"><strong>③ ジョブ保存先</strong> — サーバーが作った<code>job_17</code>を保持します。ワーカーが保存する状態を、サーバーが読み取ってクライアントへ返します。</p>
+<p id="overview-note-4"><strong>④ ワーカー</strong> — 保存されたジョブを取得し、画像変換を進めて状態を更新します。クライアントは次の照会で、保存済みの状態を取得します。</p>
+</div>
+<p data-diagram-conditions>この図は4主体の責務と接続点を示します。同じ<code>requestKey</code>で同じ<code>jobId</code>を返すこと、保存状態の成功・失敗、503時の再試行上限は、この架空APIが定める個別の規則であり、それぞれの詳細で扱います。</p>
+<p>202が処理の受付を示し、完了を保証しない一般的な意味は、<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">RFC 9110 §15.3.3</a>を参照しています。GETによる取得の一般的な意味は、<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3.1">同 §9.3.1</a>を参照しています。</p>

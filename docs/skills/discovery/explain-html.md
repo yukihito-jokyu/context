@@ -27,13 +27,9 @@ explain-htmlで、この仕組みを初めて学ぶ読者向けに解説HTMLを�
 
 ## 成果物の例
 
-現在のexplain-html手順で、架空の画像変換APIを新規制作しました。全体構成・通信・状態・再送の4図は、それぞれ別の専任エージェントが調査・作図・解説を担当しています。過去の成果物・実行記録は削除しました。
+提供された架空画像変換APIを同じ題材で新規制作。4名が調査・設計・作図・短い番号解説・表示確認を担当し、統合担当が5関心の単体HTMLを組み立てました。
 
-**到達点：新規HTML生成・Archify再生成照合・PC/狭幅の表示と操作を確認。図内文字の狭幅可読性には未達が残る。**
-
-**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
-
-このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+**到達点：4論理図・5標準投影の再生成一致、記事HTMLと表示・操作の確認済み。探索用原図Viewerの縦overflowは未達として記録。。**
 
 ### 実行した依頼
 
@@ -45,31 +41,31 @@ explain-htmlで、この仕組みを初めて学ぶ読者向けに解説HTMLを�
 
 ### 実際の画面
 
-![新規画像変換API解説の全体像ページ](/skills/explain-html/page-overview-1440.png)
+![全体図と番号解説を新しい記事のPC画面で表示](/skills/explain-html/preview.png)
 
-[画像を原寸で開く](pathname:///skills/explain-html/page-overview-1440.png)
-
-新規制作したHTMLを1440px幅のChromeで撮影。狭幅の図中文字に課題が残るため、品質合格済みの見本とは扱いません。
+[画像を原寸で開く](pathname:///skills/explain-html/preview.png)
 
 ### 成果物を取得する
 
-- [新規解説HTML（単体）](pathname:///skills/explain-html/output.html#download)
-- [4図の専任担当と生成元（JSON）](pathname:///skills/explain-html/diagram-agent-manifest.json#download)
-- [入力仕様と説明先の対応（JSON）](pathname:///skills/explain-html/coverage.json#download)
-- [新規記事のブラウザ確認記録（JSON）](pathname:///skills/explain-html/browser-check.json#download)
+- [図と通信例を含む解説原本（HTML）](pathname:///skills/explain-html/output.html#download)
+- [図・入力・調査・検証記録一式（ZIP）](pathname:///skills/explain-html/bundle.zip#download)
+- [専任担当と標準図の対応（JSON）](pathname:///skills/explain-html/diagram-agent-manifest.json#download)
+- [架空仕様と説明先の照合表（JSON）](pathname:///skills/explain-html/coverage.json#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/explain-html/output.html)
 - [実行入力の原本](pathname:///skills/explain-html/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/explain-html/execution.json#download)
 
 ### 確認した結果
 
-- 別々の実エージェント4人の起動と返却を照合。各担当がRFC 9110の一次資料を実際に閲覧。架空API独自の約束とHTTP一般仕様を分離。
-- 同梱Archify 2.16.0は無改変。4図をshowcase配布し、検査器が再生成した標準SVG・記事埋込み・モデルhashを照合。
-- 5ページの全体図/文字による資料一覧、入力仕様8項目の説明先、ID重複とページ内参照を静的検査。これは説明の正しさや人間の理解を認証する検査ではありません。
-- 1440pxと390pxで5ページを新たに表示確認。ページ切替、コード行への直接リンクとdetails展開、戻る操作、説明の段階選択・再生・停止、JavaScript無効時の表示を確認。
-- 架空APIの実装・実通信、コード抜粋の実動作、ブラウザPNGと補助標準SVGの画像一致は未検証。
-- 通信ページの段階再生は解説を強調する操作です。図の矢印の動き・図と解説の動的同期は未実装。
-- 一部の図は390px幅で図内の文字が18px基準を満たしません。横解説19pxとは別の問題として各図review.jsonに記録。主観的な品質点数は付けていません。
+- 図担当はoverview/request/states/retryの各1名をfork_turns=noneで新規起動。実IDと担当範囲をmanifestへ起動直後に記録。各担当の一次資料実閲覧と最終返却を照合。
+- 同梱Archify 2.16.0を無改変で使用。editorial/showcaseで4論理図・5標準投影をdeliver。限定DOM標準serializerでSVG出力。図種の変更理由を図計画へ反映。
+- render_html.py --manifest、check_diagram_delegation.py --article --observed-agentsによる全標準出力の再生成・バイト一致を確認。check_overviews.pyとcheck_coverage.pyも成功。
+- インメモリ模擬実装を実行し、同じキーの同じjobId、queued/running/成功・失敗終端、初回＋最大2追加送信を確認。再送応答202は模擬実装の仮定であり原文未指定と明示。実APIへの通信は未実施。
+- 実Chromeで統合後1440px/390px×5ページを確認。各図・必要caption・番号解説を実掲載幅で観察。ページ移動、深いコードリンク、details、履歴、連続選択、有限の解説再生、reduced-motion、JavaScript無効を検査。静止画像の目視範囲はbrowser-check.jsonに記録。
+- 現行の必須ゲートはinline SVG overlayを認めないため、画像を無改変のまま番号解説の段階強調を採用。独自SVGは使用していない。
+- 主要文字は図により約10〜12px、枝・補助文字は約7pxで小さい。条件は19pxのcaptionと対応解説にも保持。標準Viewer自体のvisual-checkは縦overflowで未達。記事内の収まりと分けて各reviewへ記録。印刷・タブ非表示・再生パルスの目視は未実施。
+- 公開直前に最新版sanitize(bytes, relativePath)で実ホームパスと実環境詳細版をマスクし、作業/正本パスを<workdir>/<repository>へ置換。ZIPもマスク後ファイルから作成。全成果物SHAはマスク後に登録。
+- 利用者承認、外部投稿、plugin導入は未実施。
 
 ## 確認するポイント
 

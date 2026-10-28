@@ -1,5 +1,8 @@
-<p data-diagram-intro>クライアントが503を受け取っても、この架空APIは同じrequestKeyの再送を同じジョブにまとめる。その約束のもとで、受付を確認できるまで最大3回だけ送る。</p><p data-diagram-reading>①→②から読み、202なら③、503なら④へ進む。④の回数は再試行回数ではなく、初回を含む送信回数である。</p><div data-diagram-explanation><p><strong>① 同じ依頼を送信</strong><br>クライアントは画像IDとrequestKey: req_42をPOST /jobsへ送る。再送でも同じ画像IDとキーを保持する。</p>
-<p><strong>② 応答で分岐</strong><br>202なら③へ、503なら④へ進む。ほかの応答や通信断の扱いは、この架空APIでは未定義。無条件では再送しない。</p>
-<p><strong>③ 受付を確認</strong><br>サーバーは同じreq_42から重複ジョブを作らず、同じjob_17を返す。クライアントはGETで状態を確認する。202は画像変換の完了を意味しない。</p>
-<p><strong>④・⑤ 503のときだけ再送</strong><br>1・2回目の送信が503なら、クライアントは同じreq_42で再送する。初回1回と再試行2回で、送信は最大3回となる。</p>
-<p><strong>⑥ 3回目も503なら停止</strong><br>クライアントは「受付結果不明」と表示する。ジョブが作られたか確認できない状態であり、ワーカーが保存するfailedとは区別する。</p></div><div data-diagram-conditions><p>この再送規則と重複防止は入力資料で定めた架空APIの約束である。HTTP全般の保証ではない。待機時間、キーの保存期間、同じキーで別の画像を送る場合、ほかの応答、通信断の扱いは未定義。</p><p>HTTPの一般原則では、POSTの自動再送には同じ意図した効果が保たれると知る手段などが必要となる。503は一時的な過負荷や保守で要求を処理できない状態を示し、Retry-Afterで待機を提案できる。RFCは、この例の2回再試行やjob_17の再利用を定義しない。<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2">RFC 9110 §9.2.2</a>、<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4">§15.6.4</a>。</p></div>
+<p data-diagram-intro>クライアントはPOSTの503を受けたとき、同じ依頼として受付を確認し直します。この架空APIでは初回の後に最大2回だけ追加送信するため、送信は合計3回までです。</p>
+<p data-diagram-reading>①から読み始めます。中央の①〜③は各POSTを送信した後の応答待ちです。右の戻り矢印は1・2回目の503で再送し、左の枝は3回目の503で⑤へ止まることを示します。どの回の202も上の④へ進む代替出口です。</p>
+<div data-diagram-explanation><p><strong>① 初回。</strong><code>POST /jobs</code>へ画像<code>img_42</code>と<code>requestKey=req_A</code>を送ります。</p>
+<p><strong>② 追加1回目。</strong>①が503なら、同じ<code>req_A</code>で2回目を送ります。</p>
+<p><strong>③ 追加2回目。</strong>②も503なら、同じ<code>req_A</code>で3回目を送ります。追加送信はここまでです。</p>
+<p><strong>④ 受付確認。</strong>①〜③のどこでも202なら再送をやめ、<code>GET /jobs/job_17</code>へ進みます。202は変換完了を表しません。</p>
+<p><strong>⑤ 受付不明。</strong>3回とも503なら「受付結果不明」と表示します。これは変換失敗の<code>failed</code>とは別です。</p><p>例えば応答が503、503、202なら、同じreq_Aを3回送り、3回目に返されたjob_17の状態を取得します。503、503、503なら4回目を送らず、受付結果不明と表示します。同じrequestKeyでは同じjobIdを返すという架空仕様により、再送で重複ジョブを作りません。</p></div>
+<div data-diagram-conditions><p>この図はクライアントが受付を確認する範囲です。⑤はジョブの存在や変換失敗を断定する表示ではなく、ワーカーが保存するfailedと区別します。待ち時間、バックオフ、期限、通信断、503以外のエラーは原文に定義がありません。</p><p>回数とキーの規則は<a href="input.md">提供された架空仕様</a>です。HTTPの202は処理の受付と未完了を表し、503は一時的に要求を扱えない応答です。RFCが定めるRetry-Afterは任意であり、この図に待ち時間は補いません（<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3">RFC 9110 §15.3.3</a>、<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4">§15.6.4</a>）。</p></div>

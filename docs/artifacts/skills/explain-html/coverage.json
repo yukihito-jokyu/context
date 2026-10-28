@@ -1,70 +1,105 @@
 {
-  "scope": "架空APIの解説例 · 入力仕様とRFC 9110 · 確認日 2026-10-14",
+  "scope": "提供された架空API全文と、補足するHTTP 202/503。認証等は仕様未定として明記。",
   "sources": [
     {
       "url": "input.md",
-      "title": "架空APIの入力仕様"
+      "title": "利用者が提供した架空API仕様"
     },
     {
       "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
-      "title": "HTTP Semantics RFC 9110"
+      "title": "RFC 9110 HTTP Semantics"
     }
   ],
   "items": [
     {
       "key": "actors",
-      "topic": "actors",
+      "topic": "クライアント・サーバー・ワーカー・保存先",
       "source_url": "input.md",
       "target_id": "overview-detail",
       "status": "explained"
     },
     {
-      "key": "scope",
-      "topic": "scope",
+      "key": "input",
+      "topic": "画像IDとrequestKey",
       "source_url": "input.md",
-      "target_id": "scope-details",
+      "target_id": "request-detail",
       "status": "explained"
     },
     {
-      "key": "post",
-      "topic": "post",
+      "key": "created",
+      "topic": "初回POSTの202とjob_17",
       "source_url": "input.md",
-      "target_id": "post-details",
+      "target_id": "post-line-1",
+      "status": "explained"
+    },
+    {
+      "key": "duplicate",
+      "topic": "同じキーで同じjobId・重複を作らない",
+      "source_url": "input.md",
+      "target_id": "request-detail",
+      "status": "explained"
+    },
+    {
+      "key": "accepted",
+      "topic": "202は完了ではない",
+      "source_url": "input.md",
+      "target_id": "overview-detail",
+      "status": "explained"
+    },
+    {
+      "key": "queued",
+      "topic": "queuedからrunning",
+      "source_url": "input.md",
+      "target_id": "states-detail",
+      "status": "explained"
+    },
+    {
+      "key": "success",
+      "topic": "completedとresultUrl・結果表示",
+      "source_url": "input.md",
+      "target_id": "get-line-7",
+      "status": "explained"
+    },
+    {
+      "key": "failure",
+      "topic": "failedとreason・理由表示",
+      "source_url": "input.md",
+      "target_id": "failed-line-1",
       "status": "explained"
     },
     {
       "key": "get",
-      "topic": "get",
+      "topic": "GET /jobs/job_17",
       "source_url": "input.md",
-      "target_id": "get-details",
+      "target_id": "get-line-1",
       "status": "explained"
     },
     {
-      "key": "status",
-      "topic": "status",
+      "key": "retry-key",
+      "topic": "503で同じキーを使う",
       "source_url": "input.md",
-      "target_id": "state-details",
+      "target_id": "retry-detail",
       "status": "explained"
     },
     {
-      "key": "retry",
-      "topic": "retry",
+      "key": "retry-limit",
+      "topic": "追加最大2回・合計最大3送信",
       "source_url": "input.md",
-      "target_id": "retry-details",
+      "target_id": "retry-line-1",
       "status": "explained"
     },
     {
-      "key": "limits",
-      "topic": "limits",
+      "key": "unknown",
+      "topic": "503継続で受付結果不明・failedと区別",
       "source_url": "input.md",
-      "target_id": "retry-limits",
+      "target_id": "retry-detail",
       "status": "explained"
     },
     {
-      "key": "http",
-      "topic": "http",
-      "source_url": "https://www.rfc-editor.org/rfc/rfc9110.html",
-      "target_id": "sources-detail",
+      "key": "unspecified",
+      "topic": "未定義条件と補ったJSON形式",
+      "source_url": "input.md",
+      "target_id": "request-detail",
       "status": "explained"
     }
   ]
