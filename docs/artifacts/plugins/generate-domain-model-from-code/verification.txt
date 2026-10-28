@@ -1,12 +1,12 @@
 generate-domain-model-from-code plugin: 新規生成・検証結果
-Executed at: 2026-10-27T16:20:54.170773+00:00
-Working directory: /private/tmp/domain-model-plugin-sample.kLnflq
+Executed at: 2026-10-28T12:52:32.596146+00:00
+Working directory: /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code
 Environment: PYTHONDONTWRITEBYTECODE=1; isolated XDG_CONFIG_HOME; GIT_CONFIG_GLOBAL=/dev/null; GIT_CONFIG_NOSYSTEM=1
 Plugin source: 8 files; sha256=11856f8f760d45e08315de6a30767145f7f5e2f82e14adfdbefaa0d169ed465d
-Skill source (including dev/): 92 files; sha256=b53d11e4d3096c7ff79c84f49d9612d290df82e72f0261e5b6f4915e43133138
+Skill source (including dev/): 92 files; sha256=ec2def37722bf096698880fba2c7d77f42765b6ded74c0af1675546647cd2da1
 
 [codex]
-Build command: python3 <user-home>/orca/workspaces/context/issue-87/utils/plugins/generate-domain-model-from-code/build.py --agent codex --output /private/tmp/domain-model-plugin-sample.kLnflq/build-codex
+Build command: python3 /private/tmp/context-privacy-rewrite/utils/plugins/generate-domain-model-from-code/build.py --agent codex --output /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/build-codex
 PASS: output has 95 files; all bytes match selected manifest/hooks/scripts and the complete canonical skill (including dev/).
 PASS: ZIP has 95 entries; extracted inventory and every byte match generated output.
 PASS: rebuild into existing output is rejected with exit 2; output bytes unchanged.
@@ -14,7 +14,7 @@ Rejection stderr: usage: build.py [-h] --agent {codex,claude-code} --output OUTP
 build.py: error: 既存の出力と正本を保持し、別の出力先を指定してください
 Inactive Stop command: python3 "${PLUGIN_ROOT}/scripts/gate.py" --platform codex stop
 PASS: inactive Stop returns exit 0 with empty stdout/stderr and no project changes.
-Start command: python3 /private/tmp/domain-model-plugin-sample.kLnflq/extracted-codex/skills/generate-domain-model-from-code/scripts/run.py start --root /private/tmp/domain-model-plugin-sample.kLnflq/projects/codex --set repo=/private/tmp/domain-model-plugin-sample.kLnflq/projects/codex --set name=hook-verification --set scope=. 配布物のhookコマンドを隔離環境で確認する
+Start command: python3 /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/extracted-codex/skills/generate-domain-model-from-code/scripts/run.py start --root /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/projects/codex --set repo=/private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/projects/codex --set name=hook-verification --set scope=. 配布物のhookコマンドを隔離環境で確認する
 PASS: bundled run.py start returns exit 0 and records status=active after checking the bundled seal.
 PostToolUse command: python3 "${PLUGIN_ROOT}/scripts/gate.py" --platform codex post-tool
 Model payload: {"skip_validation": true}
@@ -22,11 +22,11 @@ PASS: PostToolUse returns decision=block with OUT-07.
 Actual stdout: {"decision": "block", "reason": "generate-domain-model-from-code の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください（検査や契約を変えて通さない）:\nOUT-07 .skill-runs/generate-domain-model-from-code/out/hook-verification/model.json:2 /^  \"(?:skip_validation|no_verify|ignore_errors|disable_checks)\":/ は使えません: \"skip_validation\": true"}
 PreToolUse command: python3 "${PLUGIN_ROOT}/scripts/gate.py" --platform codex pre-tool
 PASS: active PreToolUse returns permissionDecision=deny; no protected file is modified.
-Actual stdout: {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "generate-domain-model-from-code の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 /private/tmp/domain-model-plugin-sample.kLnflq/extracted-codex/skills/generate-domain-model-from-code/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。"}}
+Actual stdout: {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "generate-domain-model-from-code の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/extracted-codex/skills/generate-domain-model-from-code/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。"}}
 PASS: every extracted distribution byte remains unchanged after hook execution.
 
 [claude-code]
-Build command: python3 <user-home>/orca/workspaces/context/issue-87/utils/plugins/generate-domain-model-from-code/build.py --agent claude-code --output /private/tmp/domain-model-plugin-sample.kLnflq/build-claude-code
+Build command: python3 /private/tmp/context-privacy-rewrite/utils/plugins/generate-domain-model-from-code/build.py --agent claude-code --output /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/build-claude-code
 PASS: output has 95 files; all bytes match selected manifest/hooks/scripts and the complete canonical skill (including dev/).
 PASS: ZIP has 95 entries; extracted inventory and every byte match generated output.
 PASS: rebuild into existing output is rejected with exit 2; output bytes unchanged.
@@ -34,7 +34,7 @@ Rejection stderr: usage: build.py [-h] --agent {codex,claude-code} --output OUTP
 build.py: error: 既存の出力と正本を保持し、別の出力先を指定してください
 Inactive Stop command: python3 "${CLAUDE_PLUGIN_ROOT}/scripts/gate.py" --platform claude stop
 PASS: inactive Stop returns exit 0 with empty stdout/stderr and no project changes.
-Start command: python3 /private/tmp/domain-model-plugin-sample.kLnflq/extracted-claude-code/skills/generate-domain-model-from-code/scripts/run.py start --root /private/tmp/domain-model-plugin-sample.kLnflq/projects/claude-code --set repo=/private/tmp/domain-model-plugin-sample.kLnflq/projects/claude-code --set name=hook-verification --set scope=. 配布物のhookコマンドを隔離環境で確認する
+Start command: python3 /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/extracted-claude-code/skills/generate-domain-model-from-code/scripts/run.py start --root /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/projects/claude-code --set repo=/private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/projects/claude-code --set name=hook-verification --set scope=. 配布物のhookコマンドを隔離環境で確認する
 PASS: bundled run.py start returns exit 0 and records status=active after checking the bundled seal.
 PostToolUse command: python3 "${CLAUDE_PLUGIN_ROOT}/scripts/gate.py" --platform claude post-tool
 Model payload: {"skip_validation": true}
@@ -42,10 +42,12 @@ PASS: PostToolUse returns decision=block with OUT-07.
 Actual stdout: {"decision": "block", "reason": "generate-domain-model-from-code の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください（検査や契約を変えて通さない）:\nOUT-07 .skill-runs/generate-domain-model-from-code/out/hook-verification/model.json:2 /^  \"(?:skip_validation|no_verify|ignore_errors|disable_checks)\":/ は使えません: \"skip_validation\": true"}
 PreToolUse command: python3 "${CLAUDE_PLUGIN_ROOT}/scripts/gate.py" --platform claude pre-tool
 PASS: active PreToolUse returns permissionDecision=ask; no protected file is modified.
-Actual stdout: {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": "generate-domain-model-from-code の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 /private/tmp/domain-model-plugin-sample.kLnflq/extracted-claude-code/skills/generate-domain-model-from-code/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。"}}
+Actual stdout: {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": "generate-domain-model-from-code の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 /private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/extracted-claude-code/skills/generate-domain-model-from-code/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。"}}
 PASS: every extracted distribution byte remains unchanged after hook execution.
 
 PASS: canonical plugin and skill source manifests are unchanged after generation and hook verification.
 未確認: 実Agentクライアントへのインストール、有効化、イベント配送、信頼操作。
 未実施: 実ユーザー環境への変更、外部投稿、Mermaid/ブラウザーを使うカタログ生成。
 公開ZIPは生成済み配布物から新規作成した。旧成果物は利用していない。
+
+公開前に sanitize(bytes, relativePath) で個人ホーム名と実環境詳細版をマスクした。Mermaid 12 の互換性情報と依存要件は維持した。ZIPはマスク処理後も変化せず、展開した全バイトが正本と一致する。

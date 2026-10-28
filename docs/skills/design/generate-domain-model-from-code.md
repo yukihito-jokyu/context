@@ -37,9 +37,9 @@ Skill単体の取得は[初めて使う](../getting-started.md)、hooksと一緒
 
 ## 成果物の例
 
-定期契約と請求のTypeScriptコード2ファイルから、4概念・3参照・2領域を根拠付きで整理し、全体図と領域別の計3図をMermaid原本・PNG・HTMLカタログとして新規生成しました。
+定期契約と請求のTypeScript2ファイルを読み、4概念・3参照・2領域を整理した全体図と領域別の3図を新規生成しました。
 
-**到達点：start・inspect・全コード読解・新規モデル作成・build・check・全PNGの目視・PC/モバイルの実操作・finish・公開カタログ検証・ZIP照合まで完了。hooksの製品内自動発火と利用者の最終確認は未実施。。**
+**到達点：新規生成・PNGと実画面の目視・HTML操作・check・finish・ZIP照合まで完了。利用者の最終確認と製品内hooks自動発火は未実施。。**
 
 ### 実行した依頼
 
@@ -58,11 +58,11 @@ scopeは未指定のため既定値を使います。分類や多重度、寿命
 
 ### 実際の画面
 
-![顧客・定期契約・プラン・請求書の3枚の図と、コードの根拠・確認事項を表示したPC版カタログ](/skills/generate-domain-model-from-code/preview.png)
+![定期契約と請求のTypeScript2ファイルを読み、4概念・3参照・2領域を整理した全体図と領域別の3図を新規生成しました。](/skills/generate-domain-model-from-code/preview.png)
 
 [画像を原寸で開く](pathname:///skills/generate-domain-model-from-code/preview.png)
 
-既存Chromeで生成カタログを開き、操作後に保存してview_imageで確認した実画面。モバイル実画面もscreenshotsへ保存。
+新規生成したカタログの実画面を保存し、画像を開いて確認しました。利用者の最終確認は未実施です。
 
 ### 実出力の抜粋
 
@@ -89,24 +89,22 @@ generate-domain-model-from-code: 完了（検証に合格）
 
 ### 成果物を取得する
 
-- [HTML・Mermaid・PNG・根拠モデル・入力コード一式（ZIP）](pathname:///skills/generate-domain-model-from-code/subscription-billing.zip#download)
+- [HTML・Mermaid原本・PNGの一式（ZIP）](pathname:///skills/generate-domain-model-from-code/subscription-billing.zip#download)
 - [finishの実出力全文（Markdown）](pathname:///skills/generate-domain-model-from-code/report.md#download)
-- [実行・画像・操作・ZIPの検証記録（JSON）](pathname:///skills/generate-domain-model-from-code/verification.json#download)
-- [全体図のMermaid原本](pathname:///skills/generate-domain-model-from-code/catalog/diagrams/overview.mmd#download)
-- [全体図のPNG](pathname:///skills/generate-domain-model-from-code/catalog/diagrams/overview.png#download)
+- [実行と検証の記録（JSON）](pathname:///skills/generate-domain-model-from-code/verification.json#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/generate-domain-model-from-code/catalog/index.html)
 - [実行入力の原本](pathname:///skills/generate-domain-model-from-code/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/generate-domain-model-from-code/execution.json#download)
 
 ### 確認した結果
 
-- 新しい隔離Gitプロジェクトでstart→inspect→コード読解→model→build→check→画像とHTMLの実確認→finishを実行。finishは終了コード0・指摘0件。scopeは未指定で["."]を採用。
-- TypeScript2ファイル22行とREADMEを読解し未読0件。Planはリテラル選択型を根拠にenum、残る3クラスは分類宣言がないためconcept。参照3本はassociation・参照先1・逆方向nullとして根拠行と全文抜粋を照合。
-- 全3枚のPNGとPC1440px／モバイル390pxのChrome実画面をview_imageで開き、日本語・属性・関係名・矢印・領域を跨ぐ端点・可読性を目視。
-- 両画面で5検索（0件とリセットを含む）、領域2種類と解除、検索との組合せ、根拠の開閉、全3図の拡大と閉じる／Escape、モバイルの横スクロールを実操作。ページ横はみ出し、JavaScript/consoleエラー、外部HTTP通信は0件。
-- Mermaid原本3本をChromeで実ダウンロードし、生成したmmdと全byte一致。全3PNGをChromeでも開いて実画像寸法を確認。
-- 公開カタログのverifyに合格。catalogとsourceを含むZIP13ファイルを全件展開照合。report.mdはrun.py finishが保存した実本文とbyte一致。
-- sourceManifestでdevを含む正本92ファイルと実行コピーの一致、実行前後の不変を確認。全公開成果物をSHA-256で登録し、verifyExampleSkillSourceとverifyArtifactsで照合。
+- start・inspect・READMEとコード全22行の読解・新規model作成・build・check・finish を実行し、指摘0件で終了。scopeは未指定の既定値["."]。
+- Planはリテラル型を根拠にenum、他3クラスはconcept。参照3本はassociation・参照先1・逆方向nullとしてコードの実記述と根拠行を照合。
+- 全3枚のPNGとPC1440px・モバイル390pxの実画面を開き、ラベル・属性・関係線・領域間の参照と可読性を目視。
+- 両画面で検索5通り・領域2種類と解除・根拠展開・全3図の拡大と閉じるを操作。横はみ出し・JavaScriptエラー・外部HTTP通信は0件。
+- Mermaid全3件を実ダウンロードしbyte一致、全3枚のPNGをブラウザーでも開いて寸法を確認。
+- 公開前に個人ホーム名と実環境の詳細版をマスク。ZIP全件の展開内容が公開ファイルとbyte一致。正本全体は実行前後で不変。
+- マスク後の公開カタログを正本catalog.pyのcheck/verifyで再検査し合格。
 
 ## 確認するポイント
 

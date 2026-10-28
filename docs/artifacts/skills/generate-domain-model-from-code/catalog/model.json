@@ -27,7 +27,7 @@
           "type": "number"
         }
       ],
-      "description": "請求書の識別子と円建ての請求額を保持し、請求対象となる契約を必須で参照する。",
+      "description": "請求書の識別子と円単位の金額を持ち、請求対象の契約を単一プロパティとして参照する。",
       "domain": "billing",
       "evidence": [
         {
@@ -70,7 +70,7 @@
           "type": "string"
         }
       ],
-      "description": "顧客の識別子と変更可能な表示名を保持する。識別子は読み取り専用で、同一性の判定規則は宣言されていない。",
+      "description": "顧客の識別子と表示名を保持する。識別子の読み取り専用指定はあるが、業務上の同一性の判定規則は宣言されていない。",
       "domain": "subscriptions",
       "evidence": [
         {
@@ -88,7 +88,7 @@
     },
     {
       "attributes": [],
-      "description": "定期契約の料金プランを monthly または annual から選ぶ文字列の選択型。",
+      "description": "月次または年次のプランを示す文字列の選択型。",
       "domain": "subscriptions",
       "evidence": [
         {
@@ -119,7 +119,7 @@
           "type": "string"
         }
       ],
-      "description": "定期契約の識別子を保持し、必須の顧客と料金プランを参照する。",
+      "description": "契約の識別子を持ち、契約対象の顧客とプランを必須の単一プロパティとして参照する。",
       "domain": "subscriptions",
       "evidence": [
         {
@@ -138,17 +138,17 @@
   ],
   "domains": [
     {
-      "description": "請求対象の契約と請求額を保持するコードの配置領域。",
+      "description": "請求書の宣言元ディレクトリ。",
       "name": "billing",
       "path": "billing"
     },
     {
-      "description": "顧客、定期契約、料金プランの選択肢を定義するコードの配置領域。",
+      "description": "顧客・契約・プランの宣言元ディレクトリ。",
       "name": "subscriptions",
       "path": "subscriptions"
     }
   ],
-  "questions": "Customer・Subscription・InvoiceにはEntity基底型やentity注釈がないためconceptにした。業務上の同一性をどの規則で判定するかは未確認。\n参照先の多重度1は必須の単一プロパティ宣言に基づく。顧客ごとの契約数、契約ごとの請求書数、プランごとの契約数を制限するコードはなく、逆方向の多重度は未確認。\nreadonlyはプロパティの再代入を制限するが、参照先の寿命を所有する根拠にはならない。顧客・契約・請求書の削除や生成を連動させる規則は未確認。\n領域は宣言元の親ディレクトリによる配置単位であり、業務上の境界として妥当かは未確認。",
+  "questions": "Customer・Subscription・InvoiceにはEntityやValueObjectの基底型・注釈がないためconceptとした。業務上の同一性や値の同値性は未確認。\n必須の単一プロパティから参照先の多重度を1とした。顧客ごとの契約数・契約ごとの請求書数・プランごとの契約数はコードから決まらない。\nreadonlyは再代入の制約であり、参照先の生成・削除や寿命の所有を示すものではない。関係はassociationとした。\n領域は宣言元ディレクトリに基づく配置単位であり、業務上の境界としての妥当性は未確認。",
   "relations": [
     {
       "evidence": [

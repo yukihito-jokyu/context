@@ -7,7 +7,7 @@
 - plugin: `utils/plugins/generate-domain-model-from-code/`
 - 同梱Skill: `utils/skills/design/generate-domain-model-from-code/`（`dev/`を含む全ファイル）
 - Agent: `codex`、`claude-code`
-- 生成先: 新規の`/private/tmp/domain-model-plugin-sample.*/build-<agent>`
+- 生成先: 新規の`/private/tmp/context-model-plugin-refresh/generate-domain-model-from-code/build-<agent>`
 - 旧成果物を使わず、それぞれ`build.py --agent <agent> --output <新規出力先>`で生成する。
 
 ## 検査用入力
