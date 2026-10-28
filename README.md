@@ -169,6 +169,7 @@ npm run typecheck
 npm run test:search
 npm run test:workflows
 npm run examples:check
+npm run check:privacy
 npm run build
 npm run test:docs
 npm run serve
@@ -181,6 +182,8 @@ npm run serve
 Skillの成果物は`docs/artifacts/skills/<skill-name>/`、pluginの配布・検証例は`docs/artifacts/plugins/<plugin-name>/`に保存します。Skill本文または同梱資料を更新した場合は、該当成果物を全削除し、更新後のSkillをサブエージェントで実行して作り直します。具体的な手順と保存する実行記録は[skill-authoringの成果物再作成手順](utils/skills/authoring/skill-authoring/references/docs-examples.md)を参照してください。
 
 `execution.json`は正本全体のファイル一覧・SHA-256、実行担当、到達点、全成果物の一覧・SHA-256を持ちます。`npm run examples:sync`でSkillページへ反映し、`npm run examples:check`で正本の変更、未登録・欠落した成果物、ガイドとの不一致を検出します。pluginでは同梱Skillの変更も検査します。旧版の本文保存で再作成を省略する例外はありません。
+
+公開用の記録では、個人のホームディレクトリと実行端末の詳細な環境情報を伏せます。`npm run check:privacy`は追跡ファイルとZIP内部を確認し、`npm run check:privacy -- --history`はmainから到達できる過去のファイルとコミットも確認します。公開前の同じ検査は`npm run test:docs`にも含まれます。依存パッケージの指定版や動作に必要な最低版は、この検査による削除対象ではありません。
 
 今回移行した既存例には、過去の同梱資料全体の実行版を特定できないものがあります。`source_baseline`に移行時点の変更検知用の一覧とその限界を記録し、再実行済みとは表示しません。移行後の正本変更は検査で拒否します。
 
