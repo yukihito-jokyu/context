@@ -5,7 +5,7 @@ AI はスキルの手順の最初に start、出力を書いたら check、最�
 編集の直後と応答を終える前に、hook.py が同じ検査を自動で回す。
 
   start   入力を正規化（表記ゆれ・全角・未知のキーを受け入れ、既定値で補う）し、実行記録を作る。
-          保護ファイルが封印（assets/seal.json）と違えば始めない（終了コード1）
+          保護ファイルが合格時の指紋（assets/seal.json）と違えば始めない（終了コード1）
   check   契約（assets/contract.json）の format で出力を直してから検査する。--file でファイル1つだけ
   finish  検査に通れば実行を終え、報告の本文を出す。通らなければ指摘を出して終わらない
   wait    ユーザーへの質問を待つ間、hooks の強制を止める（返答の後に resume）
@@ -88,8 +88,8 @@ def cmd_start(args, contract: dict, name: str) -> int:
     if unsealed:
         # 実行していない間（hooks が止めない間）にスキル自身が変わった。変わったまま検査すると、緩んだ検査で通ってしまう
         print_findings(unsealed)
-        rt.emit(f"ERROR {name} のファイルが封印（{rt.SEAL_REL}）と違うため、始めません。この出力をユーザーに伝えて止まってください。"
-                "スキルを変えたのが意図どおりなら、SKILL.md の「8. 制御の仕組み」の変え方で直し、封印し直します（CTL-02）")
+        rt.emit(f"ERROR {name} のファイルが合格時の指紋（{rt.SEAL_REL}）と違うため、始めません。この出力をユーザーに伝えて止まってください。"
+                "スキルを変えたのが意図どおりなら、SKILL.md の「8. 制御の仕組み」の変え方で直し、指紋を記録し直します（CTL-02）")
         return 1
     raw, text = parse_raw(args)
     normalized = rt.normalize_input(raw, text, contract)

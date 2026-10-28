@@ -1,0 +1,213 @@
+$ python3 init_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
+作成  dev/spec.json（標準のルールを追加、種類の追加の軸を extra_axes に追加）
+作成  SKILL.md
+作成  dev/research.md
+作成  dev/convergence-report.md
+作成  dev/evals.json
+作成  dev/probes.json
+作成  scripts/_skillrt.py
+作成  scripts/run.py
+作成  scripts/hook.py
+作成  scripts/install.py
+作成  生成部分（SKILL.md の frontmatter と GENERATED、references/decisions.md、assets/contract.json）
+
+11 件作成、0 件は既存のため変更なし、0 件は差分あり
+次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
+終了コード: 0
+
+$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 1
+[phase 1] write-commit-message: ルール 6 件、出力 0 件、エラー 0 件、警告 0 件
+終了コード: 0
+
+$ python3 render_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
+render: 2 件を書き換えました（SKILL.md, references/decisions.md）
+終了コード: 0
+
+$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 3
+[phase 3] write-commit-message: ルール 15 件、出力 0 件、エラー 0 件、警告 0 件
+終了コード: 0
+
+$ python3 render_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
+render: 2 件を書き換えました（SKILL.md, assets/contract.json）
+終了コード: 0
+
+$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 4
+[phase 4] write-commit-message: ルール 15 件、出力 1 件、エラー 0 件、警告 0 件
+終了コード: 0
+
+$ python3 probe.py <sample-workdir>/project/.claude/skills/write-commit-message
+ERROR baseline.setup の `python3 -c 'from pathlib import Path; Path("src/util.py").write_text("def add(a, b):\n    return a + b\n".replace("\n", "
+"))'` が失敗しました:   File "<string>", line 1
+    from pathlib import Path; Path("src/util.py").write_text("def add(a, b):\n    return a + b\n".replace("\n", "
+                                                                                                                ^
+SyntaxError: unterminated string literal (detected at line 1)
+終了コード: 2
+
+$ python3 probe.py <sample-workdir>/project/.claude/skills/write-commit-message
+成功  RPT-01-builtin  finish が報告の本文（## 結果 から ## 補足 まで）を出す
+baseline  見本の出力で check と finish が通る
+成功  OUT-01-a  check の終了コード 1、expect 一致 あり
+成功  OUT-02-a  check の終了コード 1、expect 一致 あり
+成功  OUT-02-b  check の終了コード 0、expect 一致 あり、自動で直った はい
+成功  OUT-03-a  check の終了コード 1、expect 一致 あり
+成功  OUT-03-b  check の終了コード 0、expect 一致 あり、自動で直った はい
+成功  OUT-04-a  check の終了コード 1、expect 一致 あり
+成功  OUT-05-a  check の終了コード 1、expect 一致 あり
+成功  OUT-03-r1  レビューの見本が機械の検査を通る（終了コード 0。通らないなら review でなく validate にする）
+成功  CTL-01-builtin  出力が無いと finish が落ちる（終了コード 1）
+成功  CTL-02-builtin  保護ファイルを変えると check が落ちる（終了コード 1）
+成功  CTL-02-builtin-restart  保護ファイルを変えてから start --restart しても check が落ちる（終了コード 1）
+成功  CTL-02-builtin-seal  合格した後に保護ファイルを変えると start が始めない（指紋どおりの start 0、変えた後の start 1）
+成功  CTL-02-builtin-between  abort の後に保護ファイルを変えて start し直すと、報告の「検証」に出る（終了コード 0）
+成功  CTL-02-builtin-hooks-claude  .claude/settings.json からこのスキルの hooks を外すと check が落ちる（終了コード 1）
+成功  CTL-02-builtin-hooks-codex  .codex/hooks.json からこのスキルの hooks を外すと check が落ちる（終了コード 1）
+成功  CTL-05-builtin  契約の外にファイルを作ると check が落ちる（終了コード 1）
+成功  RPT-01-builtin-notes  notes.md が箇条書きでないと check が落ちる（終了コード 1）
+成功  RPT-01-builtin-abort  abort が中断の本文を出し、次の start が前の中断を記録に残す
+成功  hooks の動作 claude registered  .claude/settings.json に4つの hook がある
+成功  hooks の動作 claude matcher  matcher が編集ツール Write に当たる
+成功  hooks の動作 claude inactive  実行していないセッションでは何もしない（CTL-04）
+成功  hooks の動作 claude post-tool  OUT-02-a の出力を編集した後に指摘を返す
+成功  hooks の動作 claude post-tool-scope  契約の外のファイルを編集した後に指摘を返す（CTL-05）
+成功  hooks の動作 claude prompt  ユーザーの発言は止めない（CTL-04）
+成功  hooks の動作 claude stop  finish の前に応答を終えようとすると差し戻す
+成功  hooks の動作 claude wait  wait 中は応答の終了を止めない（CTL-03）
+成功  hooks の動作 claude pre-tool  保護ファイルの編集の前に止める（期待 ask、結果 ask）
+成功  hooks の動作 claude pre-tool-sealed  実行していないとき、指紋を記録した保護ファイルの編集の前に ask（結果 ask。CTL-04）
+成功  hooks の動作 codex registered  .codex/hooks.json に4つの hook がある
+成功  hooks の動作 codex matcher  matcher が編集ツール apply_patch に当たる
+成功  hooks の動作 codex inactive  実行していないセッションでは何もしない（CTL-04）
+成功  hooks の動作 codex post-tool  OUT-02-a の出力を編集した後に指摘を返す
+成功  hooks の動作 codex post-tool-scope  契約の外のファイルを編集した後に指摘を返す（CTL-05）
+成功  hooks の動作 codex prompt  ユーザーの発言は止めない（CTL-04）
+成功  hooks の動作 codex stop  finish の前に応答を終えようとすると差し戻す
+成功  hooks の動作 codex wait  wait 中は応答の終了を止めない（CTL-03）
+成功  hooks の動作 codex pre-tool  保護ファイルの編集の前に止める（期待 deny、結果 deny）
+成功  hooks の動作 codex pre-tool-sealed  実行していないとき、指紋を記録した保護ファイルの編集の前に 何もしない（結果 何もしない。CTL-04）
+
+probe 19 件中 失敗 0 件／hooks の動作 20 件中 失敗 0 件
+終了コード: 0
+
+$ python3 skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --phase 5
+[phase 5] write-commit-message: ルール 15 件、出力 1 件、エラー 0 件、警告 0 件
+終了コード: 0
+
+$ python3 <sample-workdir>/foundation/scripts/render_skill.py --dir <sample-workdir>/project/.claude/skills/write-commit-message
+render: 0 件を書き換えました
+終了コード: 0
+
+$ python3 <sample-workdir>/project/.claude/skills/write-commit-message/scripts/install.py --project <sample-workdir>/project
+.claude/settings.json: PreToolUse に write-commit-message の hook を足す
+.claude/settings.json: PostToolUse に write-commit-message の hook を足す
+.claude/settings.json: Stop に write-commit-message の hook を足す
+.claude/settings.json: UserPromptSubmit に write-commit-message の hook を足す
+.agents/skills/write-commit-message をリンクで置く
+.codex/hooks.json: PreToolUse に write-commit-message の hook を足す
+.codex/hooks.json: PostToolUse に write-commit-message の hook を足す
+.codex/hooks.json: Stop に write-commit-message の hook を足す
+.codex/hooks.json: UserPromptSubmit に write-commit-message の hook を足す
+install: 変更 9 件
+注意: Codex は、足した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。信頼するまでは run.py の check と finish だけで検査される
+終了コード: 0
+
+$ python3 <sample-workdir>/foundation/scripts/skill_lint.py <sample-workdir>/project/.claude/skills/write-commit-message --final --project <sample-workdir>/project
+WARN dev/spec.json convergence.skip_reason: 収束テストを省いています（利用者が収束テストを省くと指定した）
+[final] write-commit-message: ルール 15 件、出力 1 件、エラー 0 件、警告 1 件
+終了コード: 0
+
+$ python3 <sample-workdir>/foundation/scripts/run.py check
+出力 skill-entry: .claude/skills/write-commit-message/SKILL.md
+check: 指摘 0 件
+終了コード: 0
+
+$ python3 <sample-workdir>/foundation/scripts/run.py finish
+最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。
+========================================
+## 結果
+
+skill-foundation: 完了（検証に合格）
+
+## 作ったスキル
+
+- 名前: `write-commit-message`（コミットメッセージを書く）
+- 目的: ステージ済みの git diff を受け取り、日本語の1行コミットメッセージをUTF-8テキストに書く
+- 本体の置き場: `.claude/skills/write-commit-message`
+- Codex の置き場: `.agents/skills/write-commit-message`（本体へのリンク）
+- 対象の製品: Claude Code、Codex
+- 言語: 日本語（ja）
+- 起動: 依頼の内容から自動で選ばれる。明示は `/write-commit-message`（Claude Code）、`$write-commit-message`（Codex）
+- 入力: なし
+- 出力: `commit-message`（コミットメッセージ。`.skill-runs/write-commit-message/out/commit-message.txt`）
+
+## ルールと守らせ方
+
+| 区分 | ルールの数 | ID |
+|---|---|---|
+| スキル固有・機械が守ったかを確かめる（runtime・format・validate のどれかを含む） | 5 | OUT-01、OUT-02、OUT-03、OUT-04、OUT-05 |
+| スキル固有・機械で確かめない（review か doc で確かめる） | 4 | IN-01、IN-02、STEP-01、STEP-02 |
+| 標準（全スキル共通） | 6 | CTL-01、CTL-02、CTL-03、CTL-04、CTL-05、RPT-01 |
+| 対象外にした軸 | 4 | O4（日付、ID、並べ順、計算した数値を出力しないため）、O6（実行記録の置き場に新しく出力し、既存のプロジェクトファイルを変更しないため）、O7（出力は1ファイルだけで、一緒に変えるファイルが無いため）、X1（コミットメッセージは差分の要約で、引用やリンクを出力しないため） |
+
+- 段（control）: runtime 6、format 2、validate 9、script 3、template 0、review 2、doc 5
+- 決めた根拠（スキル固有）: 依頼の指定 4、出力を使う道具や形式の公式の決まり 1、機械で守らせられる答え 1、道具・スクリプト・入力を増やさない答え 1、AI の判断と覚える概念が少ない答え 2
+
+機械で守らせないルールと理由（spec の why_not_machine）:
+- IN-01: 痕跡が残らない：中断したときは出力が無く、出力の検査だけでは中断した理由を確かめられない
+- IN-02: 痕跡が残らない：読んだファイルの一覧は、メッセージの出力だけでは確かめられない
+- STEP-01: 痕跡が残らない：コマンドを実行した順序はメッセージに残らない
+- STEP-02: 痕跡が残らない：出力のメッセージだけでは git の操作履歴を確かめられない
+
+## 作ったスキルの検証
+
+| 検証 | 結果 |
+|---|---|
+| `skill_lint.py --final` | エラー 0 件、警告 1 件 |
+| `probe.py` | 違反例 19 件中 失敗 0 件／hooks の動作 20 件中 失敗 0 件（Claude Code、Codex） |
+
+## 収束テスト
+
+実施していない（理由: 利用者が収束テストを省くと指定した）。
+
+## 確かめていないこと
+
+- 収束テストを実施していないため、別の AI で結果が揃うかは測っていない
+- Codex の hooks は、Codex の `/hooks` で信頼するまで動かない（それまでは `run.py check` と `finish` だけで検査される）
+
+## プロジェクトに置いたもの
+
+- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 16 個）
+- `.agents/skills/write-commit-message`: 本体へのリンク
+- `.claude/settings.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
+- `.codex/hooks.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
+
+## 改変チェックの記録
+
+- `.claude/skills/write-commit-message/assets/seal.json` に保護ファイル 9 件のハッシュを書いた
+- これより後に保護ファイルを変えると、指紋を記録し直すまで `write-commit-message` の `run.py start` が止まる。変え方は、作ったスキルの SKILL.md の「8. 制御の仕組み」にある
+
+## カタログ
+
+- `.skill-runs/catalog.html` に一覧を書いた。ブラウザで開いて見る
+- スキル 1 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`.skill-runs/catalog/write-commit-message.html`）
+
+## 出力
+
+- `.claude/skills/write-commit-message/SKILL.md`（skill-entry 作ったスキルの SKILL.md）
+
+## 既定値で決めた値
+
+- なし
+
+## 入力で読めなかった値
+
+- なし
+
+## 検証
+
+- `run.py finish`: 指摘 0 件
+
+## 補足
+
+- なし
+終了コード: 0
+

@@ -1,0 +1,49 @@
+成功  RPT-01-builtin  finish が報告の本文（## 結果 から ## 補足 まで）を出す
+baseline  見本の出力で check と finish が通る
+成功  STEP-01-a  check の終了コード 1、expect 一致 あり
+成功  STEP-02-a  check の終了コード 1、expect 一致 あり
+成功  STEP-04-a  check の終了コード 1、expect 一致 あり
+成功  STEP-04-b  check の終了コード 1、expect 一致 あり
+成功  OUT-01-a  check の終了コード 1、expect 一致 あり
+成功  OUT-02-a  check の終了コード 1、expect 一致 あり
+成功  OUT-02-b  check の終了コード 1、expect 一致 あり
+成功  OUT-02-c  check の終了コード 1、expect 一致 あり
+成功  OUT-02-d  check の終了コード 1、expect 一致 あり
+成功  OUT-03-a  check の終了コード 1、expect 一致 あり
+成功  OUT-04-a  check の終了コード 1、expect 一致 あり
+成功  OUT-05-a  check の終了コード 1、expect 一致 あり
+成功  OUT-06-a  check の終了コード 1、expect 一致 あり
+成功  OUT-03-r1  レビューの見本が機械の検査を通る（終了コード 0。通らないなら review でなく validate にする）
+成功  CTL-01-builtin  出力が無いと finish が落ちる（終了コード 1）
+成功  CTL-02-builtin  保護ファイルを変えると check が落ちる（終了コード 1）
+成功  CTL-02-builtin-restart  保護ファイルを変えてから start --restart しても check が落ちる（終了コード 1）
+成功  CTL-02-builtin-seal  合格した後に保護ファイルを変えると start が始めない（指紋どおりの start 0、変えた後の start 1）
+成功  CTL-02-builtin-between  abort の後に保護ファイルを変えて start し直すと、報告の「検証」に出る（終了コード 0）
+成功  CTL-02-builtin-hooks-claude  .claude/settings.json からこのスキルの hooks を外すと check が落ちる（終了コード 1）
+成功  CTL-02-builtin-hooks-codex  .codex/hooks.json からこのスキルの hooks を外すと check が落ちる（終了コード 1）
+成功  CTL-05-builtin  契約の外にファイルを作ると check が落ちる（終了コード 1）
+成功  RPT-01-builtin-notes  notes.md が箇条書きでないと check が落ちる（終了コード 1）
+成功  RPT-01-builtin-abort  abort が中断の本文を出し、次の start が前の中断を記録に残す
+成功  CTL-03-builtin-ask  聞くべき入力が無いと start が止まる（終了コード 3）
+成功  hooks の動作 claude registered  .claude/settings.json に4つの hook がある
+成功  hooks の動作 claude matcher  matcher が編集ツール Write に当たる
+成功  hooks の動作 claude inactive  実行していないセッションでは何もしない（CTL-04）
+成功  hooks の動作 claude post-tool  OUT-02-d の出力を編集した後に指摘を返す
+成功  hooks の動作 claude post-tool-scope  契約の外のファイルを編集した後に指摘を返す（CTL-05）
+成功  hooks の動作 claude prompt  ユーザーの発言は止めない（CTL-04）
+成功  hooks の動作 claude stop  finish の前に応答を終えようとすると差し戻す
+成功  hooks の動作 claude wait  wait 中は応答の終了を止めない（CTL-03）
+成功  hooks の動作 claude pre-tool  保護ファイルの編集の前に止める（期待 ask、結果 ask）
+成功  hooks の動作 claude pre-tool-sealed  実行していないとき、指紋を記録した保護ファイルの編集の前に ask（結果 ask。CTL-04）
+成功  hooks の動作 codex registered  .codex/hooks.json に4つの hook がある
+成功  hooks の動作 codex matcher  matcher が編集ツール apply_patch に当たる
+成功  hooks の動作 codex inactive  実行していないセッションでは何もしない（CTL-04）
+成功  hooks の動作 codex post-tool  OUT-02-d の出力を編集した後に指摘を返す
+成功  hooks の動作 codex post-tool-scope  契約の外のファイルを編集した後に指摘を返す（CTL-05）
+成功  hooks の動作 codex prompt  ユーザーの発言は止めない（CTL-04）
+成功  hooks の動作 codex stop  finish の前に応答を終えようとすると差し戻す
+成功  hooks の動作 codex wait  wait 中は応答の終了を止めない（CTL-03）
+成功  hooks の動作 codex pre-tool  保護ファイルの編集の前に止める（期待 deny、結果 deny）
+成功  hooks の動作 codex pre-tool-sealed  実行していないとき、指紋を記録した保護ファイルの編集の前に 何もしない（結果 何もしない。CTL-04）
+
+probe 26 件中 失敗 0 件／hooks の動作 20 件中 失敗 0 件

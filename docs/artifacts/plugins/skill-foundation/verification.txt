@@ -1,0 +1,461 @@
+skill-foundation plugin: PASS
+
+Checks:
+PASS {"check": "codex: relocation, zip, extraction, runtime, seal, manifest, thin entry, hooks", "status": "passed", "distribution_files": 103, "runtime_files": 97, "sealed_files": 49, "archive_sha256": "d468bf862f7133476b0087a91c0d5f62d701f4bb0406ed5a84d8e5aa378208b2"}
+PASS {"check": "codex: configured hook commands directly executed", "status": "passed", "events": ["PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit"], "protected_edit_decision": "deny", "post_tool_decision": "block", "stop_decision": "block", "wait_stop_output": "", "resumed_status": "active"}
+PASS {"check": "codex: convergence prepare/prompts", "status": "passed", "project_agent_directories": 0, "tester_type": "skill-foundation:skill-foundation-tester", "independent_ai_sessions": 0}
+PASS {"check": "claude-code: relocation, zip, extraction, runtime, seal, manifest, thin entry, hooks", "status": "passed", "distribution_files": 104, "runtime_files": 97, "sealed_files": 49, "archive_sha256": "ef5665855dd5424c51ebec08ff71332d99d9d776f6df13fddc1081e4a49fc4dc"}
+PASS {"check": "claude-code: configured hook commands directly executed", "status": "passed", "events": ["PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit"], "protected_edit_decision": "ask", "post_tool_decision": "block", "stop_decision": "block", "wait_stop_output": "", "resumed_status": "active"}
+PASS {"check": "Claude namespaced tester fence", "status": "passed", "allowed_inside": true, "denied_outside": true, "unrelated_agent_transparent": true}
+PASS {"check": "claude-code: convergence prepare/prompts", "status": "passed", "project_agent_directories": 0, "tester_type": "skill-foundation:skill-foundation-tester", "independent_ai_sessions": 0}
+PASS {"check": "plugin-owned unit tests", "status": "passed", "count": 7}
+PASS {"check": "Claude Code CLI manifest validation", "status": "passed", "model_sessions": 0, "isolated_config_directory": true}
+PASS {"check": "canonical sources unchanged", "status": "passed", "plugin_files": 12, "skill_files": 97}
+
+Commands executed:
+
+codex: build
+command: ["python3", "<repository>/utils/plugins/skill-foundation/build.py", "--agent", "codex", "--output", "<workdir>/build/codex"]
+cwd: <repository>
+exit: 0
+stdout:
+<workdir>/build/codex
+
+stderr:
+
+
+codex: final runtime lint and seal
+command: ["python3", "<workdir>/unpacked path with spaces/codex/runtime/skill-foundation/scripts/skill_lint.py", "<workdir>/unpacked path with spaces/codex/runtime/skill-foundation", "--final"]
+cwd: <repository>
+exit: 0
+stdout:
+[final] skill-foundation: ルール 20 件、出力 1 件、エラー 0 件、警告 0 件
+
+stderr:
+
+
+codex: project init
+command: ["git", "init", "-q", "<workdir>/project-codex"]
+cwd: <repository>
+exit: 0
+stdout:
+
+stderr:
+2026-10-28 20:48:28.326 xcodebuild[83181:29328125]  DVTFilePathFSEvents: Failed to start fs event stream.
+2026-10-28 20:48:28.530 xcodebuild[83181:29328123] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 "Input/output error". Using NSCachesDirectory instead.
+
+
+codex: inactive PreToolUse
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex pre-tool"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+
+stderr:
+
+
+codex: inactive PostToolUse
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex post-tool"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+
+stderr:
+
+
+codex: inactive Stop
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex stop"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+
+stderr:
+
+
+codex: inactive UserPromptSubmit
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex prompt"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+
+stderr:
+
+
+codex: start
+command: ["python3", "<workdir>/unpacked path with spaces/codex/runtime/skill-foundation/scripts/run.py", "start", "--set", "name=write-sample", "--set", "measure=skip", "文章を書くスキルを作る"]
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+skill-foundation を始めました。実行記録: .skill-runs/skill-foundation/state.json
+スキルのディレクトリ: <workdir>/unpacked path with spaces/codex/runtime/skill-foundation
+入力（正規化の後）:
+  作るスキルの名前（name）= "write-sample"
+  対象の製品（targets）= ["claude", "codex"]（既定値）
+  言語（language）= "ja"（既定値）
+  本体の置き場（base）= ".claude/skills"（既定値）
+  収束テストの実行（measure）= "skip"
+作る出力:
+  skill-entry 作ったスキルの SKILL.md: .claude/skills/write-sample/SKILL.md（1〜1 件）
+次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
+
+stderr:
+
+
+codex: protected runtime edit
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex pre-tool"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "skill-foundation の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 <workdir>/unpacked path with spaces/codex/runtime/skill-foundation/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。"}}
+
+stderr:
+
+
+codex: malformed output feedback
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex post-tool"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+{"decision": "block", "reason": "skill-foundation の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください（検査や契約を変えて通さない）:\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）"}
+
+stderr:
+
+
+codex: unfinished output stop
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex stop"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+{"decision": "block", "reason": "skill-foundation の出力に、まだ指摘が 3 件あります。直してから `python3 <workdir>/unpacked path with spaces/codex/runtime/skill-foundation/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 <workdir>/unpacked path with spaces/codex/runtime/skill-foundation/scripts/run.py wait --question <質問>` を実行してから質問してください。\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）\nSTEP-01 .claude/skills/write-sample/SKILL.md 検査コマンドが失敗しました: ERROR <workdir>/project-codex/.claude/skills/write-sample/dev/spec.json がありません"}
+
+stderr:
+
+
+codex: wait
+command: ["python3", "<workdir>/unpacked path with spaces/codex/runtime/skill-foundation/scripts/run.py", "wait", "--question", "検証用の質問"]
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+質問を待っています。ユーザーの返答を受けたら resume（または check）を実行してください
+
+stderr:
+
+
+codex: waiting stop
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex stop"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+
+stderr:
+
+
+codex: waiting resume
+command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex prompt"
+cwd: <workdir>/project-codex
+exit: 0
+stdout:
+
+stderr:
+
+
+codex: build convergence fixture
+command: ["python3", "<workdir>/unpacked path with spaces/codex/runtime/skill-foundation/scripts/selftest.py", "--build", "<workdir>/preparation-codex"]
+cwd: <repository>
+exit: 0
+stdout:
+成功  init_skill.py（終了コード 0）
+    
+    8 件作成、3 件は既存のため変更なし、0 件は差分あり
+    次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
+成功  SKILL.md の「2. 手順」に procedure.md を入れる
+
+stderr:
+
+
+codex: convergence prepare
+command: ["python3", "<workdir>/unpacked path with spaces/codex/scripts/convergence.py", "prepare", "<workdir>/preparation-codex/.claude/skills/write-commit-message", "--round", "1", "--runners", "subagent", "--agents", "1", "--workdir", "<workdir>/preparation-codex/work"]
+cwd: <workdir>/preparation-codex
+exit: 0
+stdout:
+準備しました: <workdir>/preparation-codex/work/round-1
+課題 3 件 × runner 1 種 × 1 人 = セッション 3 回
+専用のエージェント型: skill-foundation:skill-foundation-tester（plugin 同梱。プロジェクトには書き出さない）
+次: python3 convergence.py prompts --workdir <workdir>/preparation-codex/work --round 1
+
+stderr:
+
+
+codex: convergence prompts
+command: ["python3", "<workdir>/unpacked path with spaces/codex/scripts/convergence.py", "prompts", "--workdir", "<workdir>/preparation-codex/work", "--round", "1"]
+cwd: <workdir>/preparation-codex
+exit: 0
+stdout:
+各プロンプトファイルの中身を、そのまま新しいエージェントに渡す（Agent ツール。subagent_type は skill-foundation:skill-foundation-tester。前後に説明を足さない。並べて起動してよい）。エージェントの最終の返答は、保存先にそのまま書く。全件を書いたら run を実行する。
+skill-foundation:skill-foundation-tester が見つからないと言われたら、Claude Code を再起動してから起動し直す。ほかの型で代わりに動かさない（fence.py が働かない）。
+- T1-typical/subagent-1: プロンプト <workdir>/preparation-codex/work/round-1/_prompts/T1-typical__subagent-1.md → 保存先 <workdir>/preparation-codex/work/round-1/_results/T1-typical__subagent-1.last.txt
+- T2-default/subagent-1: プロンプト <workdir>/preparation-codex/work/round-1/_prompts/T2-default__subagent-1.md → 保存先 <workdir>/preparation-codex/work/round-1/_results/T2-default__subagent-1.last.txt
+- T3-edge/subagent-1: プロンプト <workdir>/preparation-codex/work/round-1/_prompts/T3-edge__subagent-1.md → 保存先 <workdir>/preparation-codex/work/round-1/_results/T3-edge__subagent-1.last.txt
+
+stderr:
+
+
+claude-code: build
+command: ["python3", "<repository>/utils/plugins/skill-foundation/build.py", "--agent", "claude-code", "--output", "<workdir>/build/claude-code"]
+cwd: <repository>
+exit: 0
+stdout:
+<workdir>/build/claude-code
+
+stderr:
+
+
+claude-code: final runtime lint and seal
+command: ["python3", "<workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation/scripts/skill_lint.py", "<workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation", "--final"]
+cwd: <repository>
+exit: 0
+stdout:
+[final] skill-foundation: ルール 20 件、出力 1 件、エラー 0 件、警告 0 件
+
+stderr:
+
+
+claude-code: project init
+command: ["git", "init", "-q", "<workdir>/project-claude-code"]
+cwd: <repository>
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: inactive PreToolUse
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude pre-tool"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: inactive PostToolUse
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude post-tool"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: inactive Stop
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude stop"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: inactive UserPromptSubmit
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude prompt"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: start
+command: ["python3", "<workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation/scripts/run.py", "start", "--set", "name=write-sample", "--set", "measure=skip", "文章を書くスキルを作る"]
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+skill-foundation を始めました。実行記録: .skill-runs/skill-foundation/state.json
+スキルのディレクトリ: <workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation
+入力（正規化の後）:
+  作るスキルの名前（name）= "write-sample"
+  対象の製品（targets）= ["claude", "codex"]（既定値）
+  言語（language）= "ja"（既定値）
+  本体の置き場（base）= ".claude/skills"（既定値）
+  収束テストの実行（measure）= "skip"
+作る出力:
+  skill-entry 作ったスキルの SKILL.md: .claude/skills/write-sample/SKILL.md（1〜1 件）
+次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
+
+stderr:
+
+
+claude-code: protected runtime edit
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude pre-tool"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": "skill-foundation の実行中は、スキル自身のファイル（SKILL.md）を変えられません。出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、`python3 <workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の変え方で変更します。"}}
+
+stderr:
+
+
+claude-code: malformed output feedback
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude post-tool"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+{"decision": "block", "reason": "skill-foundation の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください（検査や契約を変えて通さない）:\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）"}
+
+stderr:
+
+
+claude-code: unfinished output stop
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude stop"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+{"decision": "block", "reason": "skill-foundation の出力に、まだ指摘が 3 件あります。直してから `python3 <workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation/scripts/run.py finish` を実行してください。ユーザーに質問が必要なら、先に `python3 <workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation/scripts/run.py wait --question <質問>` を実行してから質問してください。\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）\nSTEP-01 .claude/skills/write-sample/SKILL.md 検査コマンドが失敗しました: ERROR <workdir>/project-claude-code/.claude/skills/write-sample/dev/spec.json がありません"}
+
+stderr:
+
+
+claude-code: wait
+command: ["python3", "<workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation/scripts/run.py", "wait", "--question", "検証用の質問"]
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+質問を待っています。ユーザーの返答を受けたら resume（または check）を実行してください
+
+stderr:
+
+
+claude-code: waiting stop
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude stop"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: waiting resume
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude prompt"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: tester allowed read
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude pre-tool"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: tester denied outside read
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude pre-tool"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "[skill-foundation の fence.py] <workdir>/project-claude-code/outside.txt は依頼文にある作業ディレクトリの外です。作業ディレクトリの外は読まず、変えません。一時ファイルは <作業ディレクトリ>/.skill-runs/_fence/tmp/ に置いてください（パスでない文字列なら、ファイルの中身は Write、文字列の検索は Grep の道具で扱ってください）"}}
+
+stderr:
+
+
+claude-code: unrelated agent read
+command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude pre-tool"
+cwd: <workdir>/project-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: build convergence fixture
+command: ["python3", "<workdir>/unpacked path with spaces/claude-code/runtime/skill-foundation/scripts/selftest.py", "--build", "<workdir>/preparation-claude-code"]
+cwd: <repository>
+exit: 0
+stdout:
+成功  init_skill.py（終了コード 0）
+    
+    8 件作成、3 件は既存のため変更なし、0 件は差分あり
+    次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
+成功  SKILL.md の「2. 手順」に procedure.md を入れる
+
+stderr:
+
+
+claude-code: convergence prepare
+command: ["python3", "<workdir>/unpacked path with spaces/claude-code/scripts/convergence.py", "prepare", "<workdir>/preparation-claude-code/.claude/skills/write-commit-message", "--round", "1", "--runners", "subagent", "--agents", "1", "--workdir", "<workdir>/preparation-claude-code/work"]
+cwd: <workdir>/preparation-claude-code
+exit: 0
+stdout:
+準備しました: <workdir>/preparation-claude-code/work/round-1
+課題 3 件 × runner 1 種 × 1 人 = セッション 3 回
+専用のエージェント型: skill-foundation:skill-foundation-tester（plugin 同梱。プロジェクトには書き出さない）
+次: python3 convergence.py prompts --workdir <workdir>/preparation-claude-code/work --round 1
+
+stderr:
+
+
+claude-code: convergence prompts
+command: ["python3", "<workdir>/unpacked path with spaces/claude-code/scripts/convergence.py", "prompts", "--workdir", "<workdir>/preparation-claude-code/work", "--round", "1"]
+cwd: <workdir>/preparation-claude-code
+exit: 0
+stdout:
+各プロンプトファイルの中身を、そのまま新しいエージェントに渡す（Agent ツール。subagent_type は skill-foundation:skill-foundation-tester。前後に説明を足さない。並べて起動してよい）。エージェントの最終の返答は、保存先にそのまま書く。全件を書いたら run を実行する。
+skill-foundation:skill-foundation-tester が見つからないと言われたら、Claude Code を再起動してから起動し直す。ほかの型で代わりに動かさない（fence.py が働かない）。
+- T1-typical/subagent-1: プロンプト <workdir>/preparation-claude-code/work/round-1/_prompts/T1-typical__subagent-1.md → 保存先 <workdir>/preparation-claude-code/work/round-1/_results/T1-typical__subagent-1.last.txt
+- T2-default/subagent-1: プロンプト <workdir>/preparation-claude-code/work/round-1/_prompts/T2-default__subagent-1.md → 保存先 <workdir>/preparation-claude-code/work/round-1/_results/T2-default__subagent-1.last.txt
+- T3-edge/subagent-1: プロンプト <workdir>/preparation-claude-code/work/round-1/_prompts/T3-edge__subagent-1.md → 保存先 <workdir>/preparation-claude-code/work/round-1/_results/T3-edge__subagent-1.last.txt
+
+stderr:
+
+
+plugin-owned tests
+command: ["python3", "-m", "unittest", "discover", "-s", "utils/plugins/skill-foundation/tests", "-p", "test_*.py", "-v"]
+cwd: <repository>
+exit: 0
+stdout:
+
+stderr:
+test_active_protection_stop_and_resume (test_plugin.PluginTest.test_active_protection_stop_and_resume) ... ok
+test_complete_core_is_byte_identical_and_sealed (test_plugin.PluginTest.test_complete_core_is_byte_identical_and_sealed) ... ok
+test_existing_output_is_not_overwritten (test_plugin.PluginTest.test_existing_output_is_not_overwritten) ... ok
+test_inactive_events_are_transparent (test_plugin.PluginTest.test_inactive_events_are_transparent) ... ok
+test_missing_runtime_fails_closed (test_plugin.PluginTest.test_missing_runtime_fails_closed) ... ok
+test_subagent_prepare_uses_packaged_agent (test_plugin.PluginTest.test_subagent_prepare_uses_packaged_agent) ... ok
+test_tester_is_fenced_but_other_agents_are_not (test_plugin.PluginTest.test_tester_is_fenced_but_other_agents_are_not) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 3.813s
+
+OK
+
+
+Claude manifest validation
+command: ["claude", "plugin", "validate", "<workdir>/unpacked path with spaces/claude-code"]
+cwd: <repository>
+exit: 0
+stdout:
+Validating plugin manifest: <workdir>/unpacked path with spaces/claude-code/.claude-plugin/plugin.json
+
+✔ Validation passed
+
+stderr:
+
+
+Not verified:
+Automatic hooks from a real product session
+Codex hooks trust UI
+Independent AI convergence execution
+Project installation (recorded separately by parent)
+
+Redactions:
+repository absolute path → <repository>
+temporary workdir → <workdir>
+user home absolute path → <user-home>
+system temporary path → <system-temp>
+
+Reproduction:
+Run this script with --repo-root pointing to the complete current repository and a new --workdir. The plugin-owned tests are imported from that repository; copying a test file alone is insufficient.

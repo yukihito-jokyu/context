@@ -32,7 +32,7 @@ hooks は、AI がファイルを編集した後、応答を終える前、保�
 | 使うイベント | PreToolUse、PostToolUse、Stop、UserPromptSubmit | 同じ |
 | ファイル編集のツール | `Edit`、`Write`、`MultiEdit`、`NotebookEdit`（`tool_input.file_path`） | `apply_patch`（`tool_input.command` のパッチ本文の `*** Add File:`、`*** Update File:`、`*** Delete File:`、`*** Move to:` の行） |
 | 編集の前に止める | `permissionDecision: "ask"`（ユーザーに確かめる） | `permissionDecision: "deny"`（ask が無い） |
-| 実行していないときの、封印したスキルの編集 | `permissionDecision: "ask"`（ユーザーに確かめる） | 何もしない（deny にすると利用者の保守まで止まる。次の `run.py start` が封印との違いで止める） |
+| 実行していないときの、合格時の指紋があるスキルの編集 | `permissionDecision: "ask"`（ユーザーに確かめる） | 何もしない（deny にすると利用者の保守まで止まる。次の `run.py start` が合格時の指紋との違いで止める） |
 | 編集の後と終える前の差し戻し | `{"decision": "block", "reason": ...}` | 同じ。Stop の `reason` は新しいユーザーの指示として扱われる |
 | Stop の出力 | JSON か空 | JSON でなければならない |
 | 差し戻しの回数 | `hook.py` が `state.json` の `stop_blocks` で数える（製品の仕組みに頼らない） | 同じ |
@@ -50,9 +50,11 @@ Codex の信頼は、hooks の宣言（コマンドの文字列）から計算�
 | runner | コマンド | 理由 |
 |---|---|---|
 | `claude` | `claude -p {prompt} --output-format json --permission-mode acceptEdits --no-session-persistence --setting-sources project,local --allowedTools <一覧>` | ユーザー単位の設定（グローバルの指示と hooks）を読ませず、プロジェクトの設定だけで動かす |
-| `codex` | `codex exec --json --sandbox workspace-write --skip-git-repo-check --ephemeral --dangerously-bypass-hook-trust -c projects."{dir}".trust_level="trusted" -C {dir} -o <最後の発言> {prompt}` | 一時プロジェクトの hooks は `/hooks` の信頼の手続きを経ていないため、このテストに限って信頼を飛ばす |
-| `subagent` | 起動しない。`convergence.py prompts` が出したプロンプトを、呼び出し元の AI が Agent ツールで新しいエージェントに渡す | 上の2つを起動できない環境での代わり。hooks が働かないなどの制約は [convergence-test.md](convergence-test.md) の3章 |
+| `codex` | `codex exec --json --sandbox workspace-write --skip-git-repo-check --ephemeral --dangerously-bypass-hook-trust -c projects."{dir}".trust_level="trusted" -c sandbox_workspace_write.exclude_slash_tmp=true -c sandbox_workspace_write.exclude_tmpdir_env_var=true -C {dir} -o <最後の発言> {prompt}` | 一時プロジェクトの hooks は `/hooks` の信頼の手続きを経ていないため、このテストに限って信頼を飛ばす。`/tmp` と `$TMPDIR` を書き込み先から外し、作業ディレクトリの外への書き込みをサンドボックスで止める |
+| `subagent` | 起動しない。`convergence.py prompts` が出したプロンプトを、呼び出し元の AI が Agent ツールで専用のエージェント型 `skill-foundation-tester` に渡す | 上の2つを起動できない環境での代わり。スキルの hooks が働かないなどの限界は [convergence-test.md](convergence-test.md) の3章 |
 
 - `codex` が PATH に無いときは、`$CODEX_HOME/packages/*/current/bin/codex` を探す。環境変数 `SKILL_FOUNDATION_CODEX` でパスを指定できる
 - `codex exec` の既定のサンドボックスは読み取り専用なので、`--sandbox workspace-write` を付ける
+- `--ephemeral` でセッションの記録を残さないので、`run` が `--json` の出力を行ごとに届いた時刻を付けて保存し、`trace` がエージェントの動きを読む（[convergence-test.md](convergence-test.md) の7章）
+- どの runner でも、作業ディレクトリの外への操作は `fence.py` が止める。runner `claude`・`codex` では、`run` が環境変数 `TMPDIR` を一時プロジェクトの `.skill-runs/_fence/tmp` に向ける（[convergence-test.md](convergence-test.md) の3章）
 - Claude Code の `--setting-sources project,local` は、ユーザーのグローバルの CLAUDE.md を読ませないためである。グローバルの指示がテストの結果に混ざると、スキルの効果を測れない

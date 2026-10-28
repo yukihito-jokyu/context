@@ -2,7 +2,7 @@
 """Claude Code と Codex の hooks から呼ばれ、実行中のスキルの出力を検査する。skill-foundation の共通ランタイム。
 
 このスキルの実行記録（.skill-runs/<name>/state.json）が status: active のときだけ働く。実行していない
-セッションでは、封印したスキル（assets/seal.json がある）の保護ファイルの編集に Claude Code で確認を求める
+セッションでは、合格時の指紋があるスキル（assets/seal.json がある）の保護ファイルの編集に Claude Code で確認を求める
 ことだけをする（入力側＝ユーザーの操作は妨げない。縛るのは AI の出力だけ）。
 
   pre-tool   編集の前: スキル自身の保護ファイルと実行記録への直接の編集を止める
@@ -109,15 +109,15 @@ def pre_tool(event: dict, platform: str, root: Path, state: dict, contract: dict
 
 
 def sealed_pre_tool(event: dict, platform: str, contract: dict, name: str) -> int:
-    """実行していないときの pre-tool。封印したスキルの保護ファイルの編集に、Claude Code で確認を求める（CTL-04）。
-    Codex には確認が無く、拒否すると利用者の保守も止まるので何もしない。次の start が封印との違いで止める（CTL-02）。"""
+    """実行していないときの pre-tool。合格時の指紋があるスキルの保護ファイルの編集に、Claude Code で確認を求める（CTL-04）。
+    Codex には確認が無く、拒否すると利用者の保守も止まるので何もしない。次の start が合格時の指紋との違いで止める（CTL-02）。"""
     if platform != "claude" or not (rt.SKILL_DIR / rt.SEAL_REL).is_file():
         return 0
     globs = contract.get("control", {}).get("protected", [])
     for path in edited_paths(event, Path(event.get("cwd") or os.getcwd())):
         in_skill = relative(path, rt.SKILL_DIR)
         if in_skill is not None and rt.matches_any(in_skill, globs):
-            return deny(platform, f"{name} は封印したスキルです（{rt.SEAL_REL}）。{in_skill} を変えると、封印し直すまで "
+            return deny(platform, f"{name} は合格時の指紋があるスキルです（{rt.SEAL_REL}）。{in_skill} を変えると、指紋を記録し直すまで "
                                   f"{name} の start が止まります。変えるなら SKILL.md の「8. 制御の仕組み」の変え方に従ってください。")
     return 0
 
@@ -136,7 +136,7 @@ def post_tool(event: dict, root: Path, state: dict, contract: dict) -> int:
     if not findings and not fixes:
         return 0
     lines = [rt.format_fix(f) for f in fixes] + [f["message"] if f.get("raw") else rt.format_finding(f) for f in findings]
-    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の決定表で引いて直してください"
+    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください"
             "（検査や契約を変えて通さない）" if findings else
             f"{state['skill']} の出力を契約の format で自動で直しました。編集を続ける前にファイルを読み直してください")
     return feedback(head + ":\n" + "\n".join(lines))

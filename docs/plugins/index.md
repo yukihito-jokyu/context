@@ -9,6 +9,7 @@ pluginは、作業手順であるSkillと、その工程を検査するhooksを�
 
 | plugin | できること | 生成できる形式 |
 | --- | --- | --- |
+| [skill-foundation](skill-foundation.md) | ルールと検査を備えたスキルの作成を hooks と専用エージェントで支える | Codex、Claude Code |
 | [skill-refiner](skill-refiner.md) | スキルの独立実行・評価・改善工程をhooksで検査する | Codex、Claude Code |
 | [explain-html](explain-html.md) | 解説HTMLのArchify完了検査をStop hookから呼ぶ | Claude Code |
 | [generate-domain-model](generate-domain-model.md) | 業務の概念をMermaid・PNG・HTMLカタログにし、出力をhooksで検査する | Codex、Claude Code |

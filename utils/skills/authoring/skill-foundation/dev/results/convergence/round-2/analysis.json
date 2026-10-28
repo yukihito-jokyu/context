@@ -1,0 +1,2010 @@
+{
+  "round": 2,
+  "runs": {
+    "T1-typical/subagent-1": {
+      "based_on": "09038b3e03028a47",
+      "runner": "subagent",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "flow": {
+        "verdict": "fair",
+        "summary": "依頼どおり measure=skip で始め、手順 1 から 12 を進めて finish が終了コード0で通り、検査に合格したスキルと finish の本文の返答で終えた。道筋はおおむね手順どおりだが、spec の書き方を知るために skill-foundation のスクリプト本体を9回読み、スクリプトを手で試し、--final の lint を早く流すといった寄り道があった。手順 7 と 8 の行き来は、フェーズ4 の lint が probes.json を求めるためで、エージェントの誤りではない。",
+        "issues": [
+          "#35 #36 #39〜#44 #48 spec の書き方（rules、impact、basis の値、fixture の扱い）を知るため、skill-foundation のスクリプト本体を9回読んだ。references だけでは書き方が決まらなかったと見られる",
+          "#62 手順 7 の --phase 4 の lint が probes.json の違反例と baseline を求めてエラー 15 件になり、#63 #64 で手順 8 の probes.json を先に書いた。手順が 7→8→7→8 と戻った",
+          "#56 #57 プロジェクト内の .skill-runs/skill-foundation/lab-test に一時の git リポジトリを作り、固有のスクリプトを手で試した。手順に無く、#57 では一時ファイルの書き込み先を誤るコマンドもあった",
+          "#71 手順 10 で status を ready にする前に --final の lint を流し、予想できるエラー（status と hooks の未登録）を出した",
+          "#27 #28 同じ Pro Git のページを2回 WebFetch した。1回で要点と見本の原文の両方を求めれば済んだ"
+        ],
+        "suggestions": [
+          "references/control-ladder.md か assets/templates/spec.example.json に、spec の欄（checks の rules、inputs の case・impact、decisions の basis）の取りうる値と例を載せ、スクリプトを読まずに書けるようにする",
+          "scripts/skill_lint.py の --phase 4 で行う probes.json（違反例の有無と baseline の from）の検査を --phase 5 に移すか、SKILL.md 手順 7 に probes.json も書くと明記し、手順の行き来を無くす",
+          "references/control-ladder.md の7章に、git の状態を前提にする probe の fixture と setup の書き方の例（fixture が git のリポジトリとしてどう用意されるか）を書く",
+          "SKILL.md 手順 9 に、measure が skip のときにすること（spec の skip_reason、evals.json と convergence-report.md を書くかどうか）を直接書き、--final は手順 10 で流すと添える",
+          "scripts/skill_lint.py の「ほか」の警告を、列挙の後に付く「ほか」だけに絞る。#49 では「〜のほかに」に警告が出て、#50 で書き直しが要った"
+        ]
+      },
+      "compare": "subagent-2 も手順 7 と 8 を行き来しており、フェーズ4 の lint が probes.json を求める点が共通の原因と見られる。違いは、subagent-1 が一時の git リポジトリで固有のスクリプトを手で試した（#56 #57）のに対し、subagent-2 はスクリプトを1回実行しただけで probe.py に進んだ点と、固有のスクリプトの名前が staged_changes.py と staged_files.py に分かれた点である。名前が分かれたのは、固有のスクリプトの名付け方が手順に無いためと推測する。",
+      "ops": [
+        {
+          "fit": "detour",
+          "why": "SKILL.md を読む前に、プロジェクトの構成を知るためファイルを一覧した（.git の中まで出て、出力の大半は不要だった）"
+        },
+        {
+          "fit": "ok",
+          "why": "手順を知るため、最初に skill-foundation の SKILL.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "置き場と hooks の登録の有無、git の履歴を知るため、README・hooks の設定・git の状態をまとめて見た"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 1 の対象外の確認と、聞く項目・名前・言語・置き場の決め方を知るため intake.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "環境にある進行マップのツールに作業の手順を登録した。スキルの手順には無いが害は無い"
+        },
+        {
+          "fit": "detour",
+          "why": "手順 2 の start を実行する前に、run.py の引数を help で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 2 として、名前・対象・言語・置き場と、依頼の「収束テストは省いて」に当たる measure=skip を渡して start した"
+        },
+        {
+          "fit": "detour",
+          "why": "見本（assets/examples）の書き方の在りかと references の分量を先に確かめたと見られる。理由は記録からは分からない"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 3 で写す spec のひな形と、skill-profiles.md の種類の節の位置を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 3 で kind を write にするため、skill-profiles.md の write の節を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "手順 4 で使う init_skill.py と skill_lint.py の引数を、先に help で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "OUT-06 のため既存のスキルが無いことを確かめ、手順 3 どおり spec.example.json を dev/spec.json に写した"
+        },
+        {
+          "fit": "ok",
+          "why": "写した spec.json を Write で書き換えるため、ツールの決まりに従って先に読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 3 の受付の項目（name、kind、mode など）を spec.json に書いた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 1（受付と start）を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 4 として init_skill.py で骨組みを作り、--phase 1 の lint を通し、作られたファイルを一覧した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ1 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ0 を、フェーズ1 の後から完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 の指示どおり runtime.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 の指示どおり platforms.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 の調査の情報源と記録の書式を知るため research.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 の調査として、コミットメッセージの慣習を手元の git の公式の文書で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "メッセージの整形（--cleanup）、変更の一覧（--name-status）、パスの引用（core.quotePath）の仕様を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "固有のスクリプトで使う git commit -F、--diff-filter、-z、branch --show-current の仕様を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "公式のページを読むため、WebFetch のツールを読み込んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "チケットIDを1行目の先頭に置く書き方の出典として、Jira の公式ページを読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "1行目の長さ、空行、本文の折り返しの慣習の出典として Pro Git を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "見本のメッセージの原文と箇条書きの書き方を得るため、#27 と同じ Pro Git のページを読み直した"
+        },
+        {
+          "fit": "ok",
+          "why": "Backlog の課題キーの形式を確かめようとしたが、HTTP 403 で取れなかった"
+        },
+        {
+          "fit": "ok",
+          "why": "#29 が取れなかったため、チケットIDの形式の出典として Jira のプロジェクトキーの規則を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 で research.md を書く前に、そのひな形と生成された SKILL.md の冒頭を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 の軸と決定の書き方を知るため variance-axes.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 の指示どおり writing.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 と 7 の指示どおり control-ladder.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "報告の節と行の長さの扱いを、references でなく render_skill.py・_skillrt.py・契約から調べた"
+        },
+        {
+          "fit": "detour",
+          "why": "出力の自動の整形（format）と検査の実装を知るため、_skillrt.py を約200行読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "メッセージに入れない語の根拠として、CI を飛ばす「[skip ci]」などの公式の一覧を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "固有のスクリプトのため、ステージした差分の読み方と名前の変更の検出（-M、diff.renames）を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "probe の一時プロジェクトと fixture の扱いを知るため、probe.py と fill_command の実装を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "probe の setup と baseline の動きを確かめるため、probe.py と _skillrt.py の続きを読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "fixture が git のリポジトリとして用意されるかを、_lib.py の git_init で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "inputs の書き方（case、ask、impact）を、skill_lint.py と skill-foundation 自身の契約から推し量った"
+        },
+        {
+          "fit": "detour",
+          "why": "outputs と control の書き方の例を、skill-foundation 自身の契約と lint から見た"
+        },
+        {
+          "fit": "detour",
+          "why": "command 検査の rules の欄の意味を、render_skill.py と skill_lint.py から確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "research.md の3章の決まり・分布のため、CLAUDE.md の有無と、履歴でチケットIDで始まる件数を数えた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ2 を進行中にした（調査は既に始めていた）"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 で調べた事実を、出典・日付・確認の状態を付けて research.md に書いた"
+        },
+        {
+          "fit": "detour",
+          "why": "impact と basis の取りうる値と probe の sub の動きを、スクリプトから確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 の決定 20 件と入力を spec に書き、--phase 3 の lint を通した（警告 1 件）"
+        },
+        {
+          "fit": "ok",
+          "why": "#49 で lint が「ほか」を列挙が閉じていない恐れと警告したため、OUT-03 の文を書き直して警告を0件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ3 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ2 を、フェーズ3 の後から完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ4 を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 のスキル固有のスクリプトとして、ステージした変更を集めて検査する staged_changes.py を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "probe と収束テストで使う fixture（小さなプロジェクトの元のファイル）を作った"
+        },
+        {
+          "fit": "detour",
+          "why": "一時の git リポジトリを作り、staged_changes.py の collect が期待どおり動くかを手で試した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 の見本を書き、check・command・空のときの collect を手で試した（一時ファイルの書き込み先を一度誤った）"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 の spec の outputs（format と checks）などを書き、生成された SKILL.md の手順の節を表示した"
+        },
+        {
+          "fit": "ok",
+          "why": "SKILL.md の手順の TODO を Edit で書き換えるため、その部分を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 として、SKILL.md の「2. 手順」にスキル固有の手順を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 として SKILL.md の手順をさらに書き直した。何を直したかは記録からは分からない"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 の render_skill.py と --phase 4 の lint を実行し、probes.json が空のためエラー 15 件になった"
+        },
+        {
+          "fit": "ok",
+          "why": "#62 のエラーを受けて、probes.json のひな形の形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "probes.json に baseline と違反例を書き、--phase 4 の lint を0件にした（手順 8 の作業を先に行った）"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ4 を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 8 として probe.py を実行し、違反例 25 件・配線 20 件がすべて成功した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 8 の --phase 5 の lint を通し、ほかのルールにも当たった違反例が無いかを結果から確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ5 を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 9 で、収束テストを省くときに何を書くかを知るため convergence-test.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 9 で書く evals.json と convergence-report.md のひな形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 9 の evals.json と記録を書き、手順 10 の前に --final の lint を流して残りの項目を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのフェーズ6 を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 10 として status を ready にし、install.py で hooks を登録して --final の lint を0件にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 11 として run.py check を実行し、指摘0件と変更したファイルを確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "仕上がりを確かめるため、作った SKILL.md の入力から報告までの節と行数を表示した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 12 として決めきれなかったことを notes.md に書き、check をもう一度通した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 12 として run.py finish を実行し、終了コード0で報告の本文を得た"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの最後の手順を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "RPT-01 に従い、finish の本文を最終の返答として呼び出し元に返した"
+        }
+      ]
+    },
+    "T1-typical/subagent-2": {
+      "based_on": "37e1bc7faa0d539e",
+      "runner": "subagent",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "flow": {
+        "verdict": "fair",
+        "summary": "最後は finish が合格し、違反例 26 件と配線 20 件がすべて成功した write-commit-message を作り、finish の本文を返した。道筋はおおむね手順どおりだが、手順 6〜7 で skill-foundation と作ったスキルのスクリプトの中身を 9 回読み、フェーズ4の lint が違反例を求めたため、手順 8 の probes.json を手順 7 の中で先に書いた。進行マップの更新 17 件も手順の外の操作として混ざった。",
+        "issues": [
+          "#59 フェーズ4の lint が probes.json の違反例と baseline の見本を求めて 16 件のエラーになり、#60 で手順 8 の probes.json を手順 7 の中で先に書いた。手順の順番と検査の範囲がずれている",
+          "#13・#36〜#40・#50〜#52 で skill-foundation と作ったスキルのスクリプトの中身を 9 回読んだ。spec の書き方を references から引けなかったためとみられ、#35 から #47 まで約 450 秒かかった",
+          "#32 で #31 と同じページを取り直し、#41・#42 で調べた CI スキップの記法は最終の返答に現れない。決定に使ったかは記録からは分からない",
+          "#5 の grep は zsh のグロブで失敗して #6 でやり直し、#64 は zsh に無い PIPESTATUS で probe.py の終了コードを取れず、#65 で結果の JSON を読んで補った",
+          "#70〜#73 で収束テストを省くのに evals.json と convergence-report.md を書いたが、手順 9 にある convergence.py prepare は実行していない。STEP-02 の中身が記録に無く、省いてよかったかは分からない"
+        ],
+        "suggestions": [
+          "skill_lint.py の --phase 4 から probes.json の違反例と baseline の検査を --phase 5 に移すか、SKILL.md の手順 7 に「decisions の probes に挙げた ID の違反例と baseline もここで書く」と書く",
+          "control-ladder.md（または spec.example.json の注記）に、checks・format の type ごとのキーと report.sections・inputs の書き方を表で載せ、SKILL.md の手順 6・7 からその章を名指しする",
+          "SKILL.md の手順 9 に、measure=skip のときに書くもの（evals.json、convergence-report.md、spec の convergence.skip_reason）と、convergence.py prepare を実行するかを書く",
+          "references/research.md の 2 章に、調べるのは決定・検査・スクリプトが使う事実に限り、「使った決定」を付けられない調べものはしないと書く"
+        ]
+      },
+      "compare": "subagent-1 も手順 7 と 8 を行き来しており、フェーズ4の lint が違反例を求める点は共通の原因とみられる。違いは、subagent-1 がスクリプトを staged_changes.py と名付けて手で実行・試験した（#56〜#58）のに対し、subagent-2 は staged_files.py と名付けて確かめを probe.py に任せた点と、evals.json と convergence-report.md を書いたのが subagent-2 だけである点。スクリプト名の決め方と、省くときの手順 9 が文書で固定されていないためと推定する。",
+      "ops": [
+        {
+          "fit": "ok",
+          "why": "手順を知るため、最初に skill-foundation の SKILL.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "プロジェクトの中身と既存のスキルの有無を見るため一覧した。手順に無いが置き場を決める助けになる"
+        },
+        {
+          "fit": "detour",
+          "why": "環境の進行マップの指示に従い計画を登録した。手順には無いが害は無い"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 1 の対象外の判定と、ユーザーに聞く項目の確認のため intake.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "README・hooks の設定・git の状態と同梱の見本の参照先を見た。grep は zsh のグロブで失敗した"
+        },
+        {
+          "fit": "detour",
+          "why": "#5 で失敗した grep をやり直し、run.py の使い方を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "同梱の見本 assets/example がどこで使われるかを確かめた。手順には無い確認"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 2 で名前・対象・言語・置き場を決め、依頼の「収束テストは省いて」から measure=skip を付けて start した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 1 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 2 を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 3 で写す spec の雛形の中身を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 3 の kind=write の節を読むため skill-profiles.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "triggers の検査の中身を知るため skill_lint.py を grep し、スクリプトと references の行数を数えた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 3 のとおり雛形を dev/spec.json に写した"
+        },
+        {
+          "fit": "ok",
+          "why": "Edit の前提として、写した spec.json を読んだ。中身は #11 と同じ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 3 の受付の項目（name、kind、purpose、triggers など）を spec に埋めた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 4 の init_skill.py と lint --phase 1 を実行し、骨組みとエラー 0 件を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 2 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 3 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 4 を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 で読むと書かれた runtime.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 で読むと書かれた platforms.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 で読むと書かれた research.md（情報源の順と記録の書式）を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "書き込む先の dev/research.md の雛形の書式を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 の調査として、git の版・今日の日付と git commit の公式の1行目の書き方を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "-F・--cleanup・diff の出力形式とブランチ・履歴を確かめた。スクリプトと決定の前提にする事実"
+        },
+        {
+          "fit": "ok",
+          "why": "ステージしたファイルを取る diff の --diff-filter・-z・名前の変更の扱いを確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "調査で公式のページを読むため WebFetch を読み込んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "チケットIDの形の出典として、Jira の課題キーの説明を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "Backlog の課題キーの出典を読もうとしたが、403 で取れなかった"
+        },
+        {
+          "fit": "ok",
+          "why": "Jira のプロジェクトキーと課題キーの既定の形を公式の文書で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "#31 と同じページを、キーに使える文字の条件を知るため取り直した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 で読むと書かれた variance-axes.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 で読むと書かれた writing.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 で読むと書かれた control-ladder.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "spec の input・report・sections の扱いを知るため、probe.py などスクリプトの中身を grep した"
+        },
+        {
+          "fit": "detour",
+          "why": "baseline と違反例の書き方を知るため probe.py の前半を読んだ。手順 8 の先読み"
+        },
+        {
+          "fit": "detour",
+          "why": "probe の一時プロジェクトでの git の扱いを知るため、_lib.py と probe.py の続きを読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "excluded_axes・excluded_inputs の検査の条件を知るため skill_lint.py を grep した"
+        },
+        {
+          "fit": "detour",
+          "why": "フェーズ3の検査（basis と research.md の対応など）を知るため skill_lint.py を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "コミットメッセージでの CI スキップの記法を調べた。決定に使ったかは記録からは分からない"
+        },
+        {
+          "fit": "detour",
+          "why": "GitLab の CI スキップの記法を調べた。使い道は記録からは分からない"
+        },
+        {
+          "fit": "ok",
+          "why": "名前の変更の扱いと、プロジェクトの履歴でのチケットIDの書き方の件数（分布）を数えた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 5 で調べた事実を、出典・日付・確認の状態付きで dev/research.md に書いた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 4 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 5 を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 6 の決定 18 件などを spec に書き、lint --phase 3 でエラー 0 件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 5 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 6 を進行中にした"
+        },
+        {
+          "fit": "detour",
+          "why": "契約の checks と format に使える種類を知るため、写した _skillrt.py を grep した"
+        },
+        {
+          "fit": "detour",
+          "why": "{in:キー} の展開と各検査の実装を確かめるため _skillrt.py を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "command の検査での置き換えと、報告の節の作り方を _skillrt.py で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 で書き足す SKILL.md の現状と、probes.json・evals.json の雛形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 のスキル固有のスクリプト staged_files.py を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "書いた直後に staged_files.py を直した。直した中身は記録からは分からない"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 の出力の見本 commit-message.txt と、違反例で使うフィクスチャを作った"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 の outputs（format・checks）と not_for などを spec に書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 の SKILL.md の「2. 手順」を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 7 の render と lint --phase 4 を実行した。probes.json が雛形のままで 16 件のエラー"
+        },
+        {
+          "fit": "ok",
+          "why": "#59 のエラーを消すため、手順 8 の probes.json を先に書き、lint --phase 4 を 0 件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "スクリプトが起動することと、生成された入力・契約・報告の節を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 6 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 7 を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 8 の probe.py を実行し、全件の成功を確かめた。終了コードは zsh で取れなかった"
+        },
+        {
+          "fit": "ok",
+          "why": "probe の結果に想定外の指摘が無いかを見て、lint --phase 5 でエラー 0 件を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 7 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 8 を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 9 で読むと書かれた convergence-test.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "書き込む先の convergence-report.md の雛形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 9 の evals.json を、種類の「課題の例」に沿って書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "収束テストを省いたことを convergence-report.md に書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "spec に収束テストを省く理由 skip_reason を書き、lint --phase 5 を通した"
+        },
+        {
+          "fit": "ok",
+          "why": "#71 で書いた convergence-report.md を直した。直した中身は記録からは分からない"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 10 で status を ready にし、install.py と lint --final を実行してエラー 0 件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 8 を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 9 を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 11 の run.py check を実行し、指摘 0 件を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 12 のとおり、決めきれなかったことを notes.md に書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順 12 の run.py finish を実行し、終了コード 0 と返答の本文を得た"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順 9 を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "finish が出した本文を、呼び出し元への最終の返答として渡した（RPT-01）"
+        }
+      ]
+    },
+    "T2-default/subagent-1": {
+      "based_on": "9bc854e3285a5031",
+      "runner": "subagent",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "flow": {
+        "verdict": "fair",
+        "summary": "手順1〜12を順に通り、probe 29件と配線20件がすべて成功し、--final の lint と check が0件で finish まで届いた。誤った操作は無く、手戻りは phase 3 の lint の2件の修正だけだった。ただし途中で skill-foundation のスクリプトの中身を何度も読んで時間を使い、手順7の lint が手順8の probes.json を求めたため違反例を前倒しで書いた。",
+        "issues": [
+          "#49 手順7の skill_lint.py --phase 4 が、手順8で書くはずの dev/probes.json の違反例と baseline を求めて20件のエラーを出した。#50〜#53 で手順8の作業を前倒しした",
+          "#13・#30〜#34・#41〜#42 で init_skill.py、_skillrt.py、skill_lint.py、probe.py の中身を読み、#29〜#43 の間に約7分かかった。references だけでは検査や報告の節の書き方が分からなかったとみられる",
+          "#12 で見本 write-commit-message を読み、STEP-02 の境目（5件と6件の間）を調べずに写した。#64 の補足で本人も「調査で決めた数ではない」と書いている",
+          "#24 で #21 と同じ keepachangelog.com/en/1.1.0/ を取り直した。別の部分を抜き出すためとみられ、1回の問いにまとめられた",
+          "#54 で zsh では空になる ${PIPESTATUS[0]} を使い、probe.py の終了コードが出ていない（exit= が空）。出力の「失敗 0 件」で成否を判断した"
+        ],
+        "suggestions": [
+          "skill_lint.py の --phase 4 から dev/probes.json の検査（probe の有無、baseline の from）を --phase 5 へ移す。移さないなら SKILL.md の手順7に「probes.json もここで書く」と書く",
+          "references/runtime.md に、契約の command 検査と report.sections（run、stage、timeout、{in:…} の置き換え）の書き方を例付きで書き、スクリプトの中身を読まずに済むようにする",
+          "references/convergence-test.md の1章に、課題の fixture は git init と base のコミットだけがされ user.name などの設定が無いので、setup の git commit には -c を付けると書く",
+          "references/variance-axes.md の2章に、assets/example の見本の数値（STEP-02 の境目など）を写すときは、basis と dev/research.md に写した理由を書くと足す"
+        ]
+      },
+      "compare": "subagent-2 は86件で、手順を 6→8→6→7→8→9→8 と行き来し probe.py を2回流したが、subagent-1 は65件で行き来が無く probe.py を1回で通した。件数の差21件のうち13件は進行マップの更新（17件と4件）である。subagent-1 は先に skill_lint.py と probe.py の中身を読んで検査を見越し、spec と probes を生成スクリプトでまとめて書いたため、手戻りが少なかったとみられる。",
+      "ops": [
+        {
+          "fit": "detour",
+          "why": "手順を始める前に、プロジェクトの中身と置かれたスキルの場所を一覧で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "README、hooks の登録、skill-foundation のファイル一覧、git の状態をまとめて見て、作業の前提を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順を知るため、最初に skill-foundation の SKILL.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "環境の進行マップの決まりに従って作業の手順を登録した。スキルの手順には無い"
+        },
+        {
+          "fit": "ok",
+          "why": "手順1の対象外の確認と、手順2の名前・言語・置き場を決めるために intake.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "読む量を見積もり、手順2の run.py start の引数を確かめるため、行数と --help を見た"
+        },
+        {
+          "fit": "ok",
+          "why": "手順2として、名前 write-changelog-entry、ja、.claude/skills、依頼にある measure=skip を渡して start した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順を完了にした。スキルの手順には無い"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3で spec のひな形を確かめ、skill-profiles.md の種類ごとの節の位置を探した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3で、kind=write の節（軸の読み替え、入力・検査・課題の候補）を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "受付の項目の書き方の手本にするため、同じ write の見本 write-commit-message の spec を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "見本の手順・調査・スクリプト・probes・evals・出力を読み、作るスキルの形の手本にした"
+        },
+        {
+          "fit": "detour",
+          "why": "置き場に同名のスキルが無い（mode=new）ことを確かめ、init_skill.py が何を作るかを中身で読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3のとおり、spec.example.json を dev/spec.json に写した"
+        },
+        {
+          "fit": "ok",
+          "why": "Edit で書き換える前に、写した spec.json の中身を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3の受付の項目（name、kind、mode、language、targets、title、purpose、triggers）を埋めた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップの手順を完了にした。init_skill.py を実行する前の更新だった"
+        },
+        {
+          "fit": "ok",
+          "why": "手順4として init_skill.py で骨組みを作り、phase 1 の lint が0件であることを確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5で読むと書かれた runtime.md、platforms.md、research.md をまとめて読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5で公式の情報源を読むため、WebFetch を使えるようにした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5で、Keep a Changelog 1.1.0 の変更の種類と書き方を公式の情報源で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5で、差分の取り方（--cached、--name-status、--diff-filter）を手元の git の help で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5で、Keep a Changelog の実際の CHANGELOG.md の見出しと空行の並びを確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "#21 と同じページを取り直し、指針と悪い書き方の部分を抜き出した。1回の問いにまとめられた"
+        },
+        {
+          "fit": "ok",
+          "why": "#23 の CHANGELOG が 2.0.0 を指していたため、2.0.0 の種類と破壊的変更の書き方を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5でプロジェクトに既存の CHANGELOG が無いことと research.md のひな形を確かめ、手順6の variance-axes.md も読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5で、名前の変更や削除が --name-status と -z でどう出るかを一時リポジトリで実際に確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の結果を、出典・日付・確認の状態を付けて dev/research.md に書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6で読むと書かれた writing.md と control-ladder.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "契約の command 検査と報告の節の作りを知るため _skillrt.py を探した。references に無い情報とみられる"
+        },
+        {
+          "fit": "detour",
+          "why": "#30 の続きで、_skillrt.py の検査の処理と render_skill.py の報告の扱いを読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "skill-foundation 自身の契約の report.sections を手本に、報告に節を足す書き方を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "lint が何を検査するかを先に知るため、skill_lint.py のエラーと警告の一覧を抜き出した"
+        },
+        {
+          "fit": "detour",
+          "why": "#33 で見つけた検査のうち、フェーズ4の契約の検査と「上のどれでもない」の扱いを読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "決定と報告を書く前に、init_skill.py が spec に入れた control・report・convergence を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "spec を組み立てる生成スクリプトを置く一時ディレクトリを、実行記録の下に作った"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6の decisions・inputs・excluded_axes を spec に一度に書くため、生成用の Python を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "生成スクリプトから split_reason の行を消して spec を作り、手順6の phase 3 の lint を流した"
+        },
+        {
+          "fit": "ok",
+          "why": "#38 の lint のエラー（あいまいな語「推奨」、research.md の使った決定の欠け）と警告「を含む」を直した"
+        },
+        {
+          "fit": "ok",
+          "why": "直した spec で phase 3 の lint を流し直し、エラー0件を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "probe の一時プロジェクトで fixture と git がどう用意されるかを知るため、probe.py を探した"
+        },
+        {
+          "fit": "detour",
+          "why": "#41 の続きで、probe.py の一時プロジェクトの作り方と files の from の扱いを読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7のスキル固有のスクリプト（差分の収集、検査、CHANGELOG.md への写し方）を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7の出力の見本と、probes・evals で使う fixture のプロジェクトを作った"
+        },
+        {
+          "fit": "detour",
+          "why": "書いたスクリプトを一時リポジトリで試し、ステージ無しの中断、収集、見本の検査、写し方の出力を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "違反を混ぜた節で check が各ルールの違反を出すかと、ディレクトリ単位への切り替えを試した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7で「2. 手順」を書く前に、生成された SKILL.md の中身を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7として、作るスキルの SKILL.md の「2. 手順」を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "使わない依頼の代わり「その作業を直接行う」を具体的に直し、手順7の render と phase 4 の lint を流した"
+        },
+        {
+          "fit": "ok",
+          "why": "#49 の probes の不足を受けて probes.json と evals.json のひな形を見て、見本を課題に合う形に直した"
+        },
+        {
+          "fit": "ok",
+          "why": "#49 の lint が違反例と baseline を求めたため、probes.json を作る生成スクリプトを書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "probes.json を作り、行の長さの違反例 OUT-05-a の最長行を測り、phase 4 の lint を0件にした"
+        },
+        {
+          "fit": "ok",
+          "why": "OUT-05-a の最長行が92字で違反にならないとみて、行を伸ばして109字にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順8として probe.py を流し、probe 29件と配線20件がすべて成功した"
+        },
+        {
+          "fit": "ok",
+          "why": "違反例が他のルールを巻き込んでいないかを結果から確かめ、手順8の phase 5 の lint を0件にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9で convergence-test.md の前半と、収束の記録のひな形を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "measure=skip のときの扱いを知るため、convergence-test.md と skill_lint.py の skip_reason を探した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9で課題の例に沿って evals.json を書き、課題の一時プロジェクトの git の作り方を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "#58 で git の user 設定が無いと分かり commit に -c を足し、測らない課題の setup が通るかも試した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9で、measure=skip で収束テストを省いたことを convergence-report.md に書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順10として一時ファイルを消し、status を ready にして install と --final の lint を通した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順11の run.py check で指摘0件を確かめ、git status でプロジェクトに置いたファイルを見た"
+        },
+        {
+          "fit": "detour",
+          "why": "返答の前に、生成された SKILL.md の契約と報告の節を見て最終の形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順12として決めきれなかったことを notes.md に書き、run.py finish を流した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順12のとおり、finish が出した本文を最終の返答として呼び出し元に返した"
+        }
+      ]
+    },
+    "T2-default/subagent-2": {
+      "based_on": "e3d5dbbdc9d58b59",
+      "runner": "subagent",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "flow": {
+        "verdict": "fair",
+        "summary": "最後は skill_lint.py --final が0件、probe.py が違反例25件・配線20件すべて成功、run.py finish が終了コード0で通り、その本文をそのまま返した。道筋は start・受付・骨組みまで手順どおりだったが、調査の記録と決定を書く前に固有スクリプト・見本・フィクスチャを作ってフェーズの順が前後した。skill-foundation のソースを読む寄り道と、進行マップの更新（17件）も多かった。",
+        "issues": [
+          "#39〜#43 フィクスチャ、固有スクリプト changelog_entry.py、見本を、調査の記録（#44）と決定（#49〜#51）より先に作り、手順5→6→7の順が前後した",
+          "#34〜#38、#72〜#74 skill-foundation のスクリプト（_skillrt.py、probe.py、convergence.py、skill_lint.py、_lib.py）のソースを読み、references に無い検査の種類や setup の扱いを調べた",
+          "#57 --phase 4 の lint が、手順8で書くはずの違反例が probes.json に無いことを21件のエラーにし、違反例をフェーズ4の中で書くことになった（#63）",
+          "#75〜#77 dev/fixtures に置いた basic.patch を外へ移し、probes の setup を差分の埋め込みに書き換えて probe.py を流し直す手戻りがあった",
+          "#61 長すぎる項目の違反例の文が91字で100字に届かず assert で止まり、#62〜#63 で書き直した"
+        ],
+        "suggestions": [
+          "SKILL.md の手順5〜7に「固有スクリプト・見本・フィクスチャは、手順6の --phase 3 の lint が通ってから作る」と書く（#39〜#43）",
+          "skill_lint.py の違反例の有無の検査を --phase 5 に移すか、SKILL.md の手順7に「違反例の ID と骨組みも probes.json に書く」と書く（#57）",
+          "references/control-ladder.md の出力の章（3〜5章）に、契約で使える検査の種類と command 検査の置換子（{file}、{root}、{in:キー}）の一覧を書く（#34〜#38）",
+          "references/convergence-test.md の1章に、課題の setup で dev/ の下のファイル（差分など）を使えるかと、使えないときに差分を setup に埋める見本を書く（#72〜#76）"
+        ]
+      },
+      "compare": "subagent-1 は調査の記録（#28）→決定（#37〜#40）→固有スクリプト（#43）→フィクスチャ（#44）と手順の順に進み、65件で終えた。subagent-2 はスクリプトと見本を決定より先に作り、進行マップの更新が17件（subagent-1 は3件）、課題ごとの差分を作って collect を試す確かめも多く86件になった。両者とも skill-foundation のソースを読んでいる。順を変えたわけは記録からは分からない。",
+      "ops": [
+        {
+          "fit": "detour",
+          "why": "作業を始める前に、プロジェクトの構成と skill-foundation の置き場を一覧で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順を知るため、最初に skill-foundation の SKILL.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "README、hooks の設定、git の状態、.agents のリンクを見て、プロジェクトの現状を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順1の対象外の判定、聞く項目、名前の決め方を知るため intake.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップのツールの指示に従い、作業の計画を9手順で登録した"
+        },
+        {
+          "fit": "ok",
+          "why": "名前の動詞から種類を決め、その種類の節を読むため skill-profiles.md を読んだ（手順3の先取り）"
+        },
+        {
+          "fit": "ok",
+          "why": "手順2として、名前・対象・言語・置き場と、依頼にある measure: skip を渡して run.py start を実行した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、受付と start の手順を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ0の手順を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "OUT-06 の状態確認のため .claude/skills の中を見て、spec の雛形の中身を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "見本（assets/examples）の扱いが references のどこに書かれているかを grep で探した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3どおり、spec.example.json を dev/spec.json に写した"
+        },
+        {
+          "fit": "ok",
+          "why": "受付の項目を埋める前に、写した spec.json を読んだ（Edit を使う前提）"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3の受付の項目（name、kind、mode、title など）を spec.json に書き込んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ0を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順4どおり init_skill.py で骨組みを作り、--phase 1 の lint を流した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ1を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ2を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の指示どおり runtime.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の指示どおり platforms.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の指示どおり、情報源の順と記録の書式を知るため research.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "書き込み先になる、骨組みの dev/research.md の雛形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "Keep a Changelog の公式ページを確かめるため、WebFetch を使えるようにした"
+        },
+        {
+          "fit": "ok",
+          "why": "調査として git の版と diff の引数を確かめ、決まりを書いた CLAUDE.md・AGENTS.md の有無を見た"
+        },
+        {
+          "fit": "ok",
+          "why": "変更の種類の順と Unreleased の扱いを、Keep a Changelog 1.1.0 の公式ページで確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "言語が ja なので、日本語版でも種類の見出しが英語のままかを確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "#25 と同じページを開き直し、例の CHANGELOG の冒頭と項目の文末の書き方を取り出した"
+        },
+        {
+          "fit": "ok",
+          "why": "一時リポジトリで diff --cached の終了コードや name-status の出力を実際に確かめた（調査）"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6の指示どおり variance-axes.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6の指示どおり writing.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6と手順7で使う control-ladder.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "init_skill.py が作った probes.json・evals.json・契約・SKILL.md の雛形をまとめて確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "probe.py・render_skill.py・skill_lint.py の使い方を --help で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "報告の節（report.sections）の扱いと probe.py の git の使い方を、ソースを grep して調べた"
+        },
+        {
+          "fit": "detour",
+          "why": "#34 の続きで、_skillrt.py の report_sections と probe.py の git の箇所を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "probe の一時プロジェクトの作り方と git_init の中身を、ソースで確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "fixed の判定のしかたと、契約で使える検査の種類を、ソースから探した"
+        },
+        {
+          "fit": "detour",
+          "why": "headings や command など各検査の実装を _skillrt.py で読み、契約の書き方を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "probe と収束テストで使うフィクスチャ（CHANGELOG と小さなプロジェクト）を作った（フェーズ5の先取り）"
+        },
+        {
+          "fit": "ok",
+          "why": "フィクスチャに変更を入れてステージし、baseline の setup に使う差分 basic.patch を作った"
+        },
+        {
+          "fit": "ok",
+          "why": "スキル固有のスクリプト changelog_entry.py を書いた（フェーズ4の先取りで、決定を spec に書く前）"
+        },
+        {
+          "fit": "ok",
+          "why": "書いた直後にスクリプトを直した。直した中身とわけは記録からは分からない"
+        },
+        {
+          "fit": "ok",
+          "why": "出力の見本を書き、一時リポジトリでスクリプトの collect・check・guide を試した"
+        },
+        {
+          "fit": "ok",
+          "why": "調べた事実を、出典・日付・確認の状態を付けて dev/research.md に書いた（手順5）"
+        },
+        {
+          "fit": "detour",
+          "why": "プロジェクトに CHANGELOG.md があるかと -U の意味を確かめた。CHANGELOG.md は無かった"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ2を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ3を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "決定を書く前に、spec.json の decisions と extra_axes（X1）の雛形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "決定を spec.json に書き込む作業用スクリプトを .skill-runs の下に書いた（手順6）"
+        },
+        {
+          "fit": "ok",
+          "why": "決定を spec に入れて --phase 3 の lint を流した。「推奨」があいまいな語として1件エラーになった"
+        },
+        {
+          "fit": "ok",
+          "why": "#50 のエラーに従い「非推奨」を言い換え、--phase 3 の lint を0件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ3を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ4を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "出力（outputs）と検査を spec に書く作業用スクリプトを書いた（手順7）"
+        },
+        {
+          "fit": "ok",
+          "why": "outputs を spec に入れ、手で書く SKILL.md の「2. 手順」の今の中身を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "SKILL.md の「2. 手順」に、スキル固有の手順を書いた（手順7）"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7どおり render_skill.py と --phase 4 の lint を流した。違反例が無いなど21件のエラーが出た"
+        },
+        {
+          "fit": "ok",
+          "why": "検査をルールごとに分けるため、自作スクリプトの cmd_check の中身を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "check に --only を足し、構造・言語・文体・数・パスを1つずつ検査できるようにした"
+        },
+        {
+          "fit": "ok",
+          "why": "契約の command 検査をルールごとに分けるよう outputs.py を直し、spec に反映した"
+        },
+        {
+          "fit": "waste",
+          "why": "probes.json を書こうとしたが、長すぎる項目の例が91字で assert に止まり、書けなかった"
+        },
+        {
+          "fit": "ok",
+          "why": "#61 の失敗を受け、100字を超える長い項目の例を作り直して字数を数えた"
+        },
+        {
+          "fit": "ok",
+          "why": "違反例12件とレビューの見本2件を probes.json に書き、--phase 4 の lint を0件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ4を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ5を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順8どおり probe.py を流し、違反例25件・配線20件がすべて成功した"
+        },
+        {
+          "fit": "ok",
+          "why": "probe の結果にほかのルールの指摘が混ざっていないかを見て、--phase 5 の lint を0件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "fix の各部分と、空の差分・内部のファイルだけ・git の外での collect の動きを手で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ5を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ6を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9の指示どおり convergence-test.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "課題の setup の置換子と fixture の決まりを、convergence.py と skill_lint.py のソースで探した"
+        },
+        {
+          "fit": "detour",
+          "why": "#72 の箇所を読み、収束テストがスキルを dev/ 抜きで写すことと fixture の決まりを確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "setup のコマンドがどう実行されるか（シェル経由か、時間切れ）を _lib.run で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "評価の課題ごとの差分（t2、t3、h1）を作り、basic.patch を dev/fixtures の外へ移した"
+        },
+        {
+          "fit": "ok",
+          "why": "probes の setup を差分の埋め込みに改め、4課題の evals.json を書いて各課題の collect を試した"
+        },
+        {
+          "fit": "ok",
+          "why": "probes の setup を変えたので、probe.py を流し直して全件成功を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "収束テストを省いたことを dev/convergence-report.md に書いた（手順9）"
+        },
+        {
+          "fit": "ok",
+          "why": "measure: skip に従い spec に skip_reason を書き、--phase 5 と --final の lint を流した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ6を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ7を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順10どおり status を ready にし、install.py と --final --project . の lint を0件にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順11どおり run.py check を実行し、指摘0件を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "一時ディレクトリを消し、決めきれなかったことを notes.md に書いて run.py finish を実行した（手順12）"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで、フェーズ7を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "finish が出した本文を、最終の返答として呼び出し元に渡した（RPT-01）"
+        }
+      ]
+    },
+    "T3-edge/subagent-1": {
+      "based_on": "45e3e220560a2a9b",
+      "runner": "subagent",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "flow": {
+        "verdict": "fair",
+        "summary": "最後は run.py finish が通り、Codex だけを対象に .agents/skills/analyze-todo-comment を作り、依頼どおり収束テストを省いて理由を記録した。手順1〜12はおおむね順に進めたが、skill-foundation の内部スクリプトを読む寄り道（#33〜#39）と、違反例を probe.py の前に手で試す寄り道（#52〜#53）があった。phase 4 の lint が違反例を求めたため、手順7と8を行き来した（#57〜#60）。",
+        "issues": [
+          "#57 手順7（フェーズ4）の lint が、手順8（フェーズ5）で書く dev/probes.json の違反例が無いことを10件のエラーにした。違反例を先に書くことになり、手順7と8を行き来した",
+          "#33〜#39 契約の置き換え（{in:キー}）、検査の種類、違反例の書き方を知るため、skill-foundation の _skillrt.py・probe.py・skill_lint.py を約250秒読んだ。references だけでは足りなかったとみられる",
+          "#47 入力 source の impact を、skill-profiles.md の analyze の目安 target ではなく reversible にした。notes.md に理由はあるが、目安から外れた判断はエージェントごとに揺れうる",
+          "#52〜#53 違反例が止まるかを probe.py の前に手で試しており、#62 の probe.py と同じことを2度確かめた"
+        ],
+        "suggestions": [
+          "SKILL.md の手順7に「phase 4 の lint は決定の probes の ID が dev/probes.json にあるかを確かめるので、先に違反例を書く」と書くか、skill_lint.py のこの検査を phase 5 に移す",
+          "control-ladder.md の3〜5章に、契約のパスとコマンドで使える置き換え（{run}・{in:キー}・{file} など）と検査の種類の一覧を例付きで書き、スクリプトを読まずに済むようにする",
+          "control-ladder.md の7章に、probes.json の files の mode（sub・delete など）と、置き換えが0件なら失敗することを書く",
+          "skill-profiles.md の analyze の「入力の候補」で、範囲の入力の impact を固定するか、目安から外してよい条件を書く"
+        ]
+      },
+      "compare": "subagent-2 も同じ名前・置き場で完了し、内部スクリプトを読む寄り道と、phase 4 の lint による手順の行き来も同じだった。違いは、subagent-1 が処理系を動かしてコメントの書き方を確かめ（#40〜#43）、違反例を手で先に試した点と、subagent-2 が記録を書く前に --final の lint を流して手順10から8へ戻った点である。調べ方の慎重さの差とみられるが、理由は記録からは分からない。",
+      "ops": [
+        {
+          "fit": "ok",
+          "why": "作業場所の構成と skill-foundation の SKILL.md の場所を知るため、最初にプロジェクトの中身を一覧した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順を知るため、skill-foundation の SKILL.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "環境にある進行マップの道具の指示に従い、作業の計画を登録した。スキルの手順には無い"
+        },
+        {
+          "fit": "detour",
+          "why": "README、hooks の設定、.agents/skills の中身、git の状態を見て、プロジェクトの前提を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順1のため、依頼が対象外でないか、聞く項目が欠けていないかを intake.md で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "手順2の start を実行する前に、run.py と start の引数を help で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順2のため、依頼の「Codex だけ」「収束テスト: しない」から targets=codex・measure=skip で start した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップを更新した。受付の項目を書く前に「フェーズ0」を完了にしており、実際の進み具合と1つずれている"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3のため、写す元の spec のひな形を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3で kind を analyze に決めるため、skill-profiles.md の種類の節を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "spec の書き方の手本として、同梱の作例 write-commit-message の spec を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "作例の手順・調査・違反例・課題・見本も読み、各ファイルの書き方の見当を付けた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3のため、置き場が空なのを確かめて spec のひな形を写した。init_skill.py の中身も覗いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3のため、受付の8項目を spec に書いた。続けて init_skill.py を dry-run で試した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップを更新した。init_skill.py を実行する前に「フェーズ1」を完了にしている"
+        },
+        {
+          "fit": "ok",
+          "why": "手順4のため、init_skill.py で骨組みを作り、phase 1 の lint が通ることを確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップを更新した。調査を始める前に「フェーズ2 調査」を完了にしており、実際と1つずれている"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5のため、runtime.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5のため、platforms.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5のため、調査の情報源の順と記録の書式を research.md で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の調査の前に、init_skill.py が作った SKILL.md・research.md・spec の中身を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の調査として、git と Python の版と、git ls-files の引数をこの環境で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5で公式の資料を読むため、WebFetch を使えるようにした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の調査として、TODO の印の既定と大文字小文字の扱いを ESLint の資料で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の調査として、出力する Markdown の表の決まり（列数、| のエスケープ）を GFM の仕様で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の調査として C++ の規約の TODO の節を読もうとしたが、ページが長く該当の節に届かなかった"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の調査として pylint の notes の既定を読もうとしたが、ページが長く該当の箇所に届かなかった"
+        },
+        {
+          "fit": "ok",
+          "why": "#26 で届かなかった TODO の節を、ページの続きの範囲を読んで得た"
+        },
+        {
+          "fit": "ok",
+          "why": "#27 で届かなかった notes と notes-rgx の既定を、ページの続きの範囲を読んで得た"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6のため、variance-axes.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6のため、writing.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6のため、control-ladder.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "契約で使える {in:キー} などの置き換えを知るため、skill-foundation の _skillrt.py を検索した"
+        },
+        {
+          "fit": "detour",
+          "why": "#33 の続きで、パスとコマンドの置き換えの実装と入力の型の扱いを _skillrt.py で読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "違反例を流す一時プロジェクトの作り方を知るため、probe.py の冒頭と fixture の扱いを読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "#35 の続きで、probe.py の一時プロジェクトの準備と、検査の multiline の扱いを読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "検査の種類の実装と git の初期化の仕方を _skillrt.py と _lib.py で読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "control に validate を選んだときに何が求められるかを skill_lint.py で検索した"
+        },
+        {
+          "fit": "detour",
+          "why": "#38 の続きで、出力と違反例について skill_lint.py が何を確かめるかを読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "言語ごとのコメントの書き方を実際に動かして確かめるため、使える処理系を調べた"
+        },
+        {
+          "fit": "ok",
+          "why": "#40 で go の版が取れず、ほかの処理系も残っていたので、続けて有無を調べた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5の調査として、言語ごとのコメントの記号と、文字列の中の TODO の扱いを実際に動かして確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "Python の複数行の文字列と、git ls-files が無視・削除済みのファイルをどう扱うかを確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "research.md を書き直す前に、init_skill.py が作ったひな形を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5のため、#22〜#43 で確かめた事実を出典・日付・確認の状態を付けて research.md に書いた"
+        },
+        {
+          "fit": "detour",
+          "why": "GFM の仕様の版を確かめた。research.md を書いた後で、記録に反映したかは記録からは分からない"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6のため、入力・除いた入力・決定を spec に書き、phase 3 の lint を流した"
+        },
+        {
+          "fit": "ok",
+          "why": "#47 の lint の警告「を含む」を消すため、決定の文を直して phase 3 の lint を通した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップを更新した。フェーズ4に入る前に「フェーズ4 縛る」を完了にしている"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7のため、TODO コメントを集めて一覧を書き、--check で検査するスクリプトを書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "違反例と課題で使うため、TODO の当たりと外れを含む見本のプロジェクト（fixture）を作った"
+        },
+        {
+          "fit": "detour",
+          "why": "fixture を git のリポジトリとして作業場に写し、collect_todo.py の出力と終了コードを手で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "違反例を probes.json に書く前に、各ルールの違反を --check が止めるかを手で試し、見本の元も作った"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7のため、#53 の出力を見本に写し、spec の outputs と checks を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7で SKILL.md の「2. 手順」を書くため、生成された SKILL.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7のため、SKILL.md の「2. 手順」にスキル固有の手順を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7のため render_skill.py と phase 4 の lint を流した。違反例が無いため10件のエラーが出た"
+        },
+        {
+          "fit": "ok",
+          "why": "#57 のエラーを直すため、probes.json・evals.json・収束テストの記録のひな形を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "違反例の mode: sub の動き（置き換えが0件なら失敗）を probe.py で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "#57 のエラーを消すため、baseline と違反例を probes.json に書き、phase 4 の lint を通した"
+        },
+        {
+          "fit": "detour",
+          "why": "render の後の SKILL.md の全体を見て、書いた手順と生成部分を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順8のため probe.py を流し、違反例19件と配線10件がすべて成功した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順8のため phase 5 の lint を通した。違反例がほかのルールにも当たっていないかも見た"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9で収束テストを省くときの扱いを知るため、convergence-test.md と lint の skip_reason を検索した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9のため、convergence-test.md の1〜2章と、記録について lint が確かめることを読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9のため、evals.json に4つの課題を書き、依頼どおり skip_reason を spec に書いた"
+        },
+        {
+          "fit": "detour",
+          "why": "holdout の課題の準備が意図どおりに動くかを、作業場で collect_todo.py を流して確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "Write で上書きする前に必要な読み込みとして、収束テストの記録のひな形を Read で読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9のため、収束テストを省いた条件と結論を convergence-report.md に書いた"
+        },
+        {
+          "fit": "detour",
+          "why": "spec と記録を変えたので phase 5 の lint をやり直し、手順10の install.py の使い方を見た"
+        },
+        {
+          "fit": "ok",
+          "why": "手順10のため status を ready にし、install.py で置いて --final の lint を通した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順11のため run.py check を実行し、指摘0件を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順12のため作業場を消し、決めきれなかったことを notes.md に書いて check をやり直した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順12のため run.py finish を実行し、最終の返答の本文を得た"
+        },
+        {
+          "fit": "waste",
+          "why": "進行マップの最後の手順を完了にしようとしたが、手順の番号が範囲外で失敗した。結果には響かない"
+        },
+        {
+          "fit": "ok",
+          "why": "finish が出した本文を、呼び出し元への最終の返答として渡した"
+        }
+      ]
+    },
+    "T3-edge/subagent-2": {
+      "based_on": "409f226e7a683d7b",
+      "runner": "subagent",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "flow": {
+        "verdict": "fair",
+        "summary": "結果は done で、check と finish の指摘は0件、--final の lint はエラー0件、probe は19件すべて成功した。手順1から12をおおむね番号の順に進めたが、手順を読む前の環境の確認、skill-foundation のスクリプトの中身の読み込み（10件）、進行マップの操作（14件）といった寄り道があった。手順の抜けや結果に響く誤りは無いが、作ったスキルには、対象をプロジェクト全体にすると自分の見本まで拾う弱さが残った。",
+        "issues": [
+          "#31〜#38 と #53・#54 で skill-foundation の _skillrt.py・probe.py・skill_lint.py の中身を読み、command 検査の置き換えや実行場所、validate の判定を調べた。references だけでは足りなかったとみられる",
+          "#10 で triggers に FIXME や TODO.md を作る例文を入れ、#41 で決定 IN-01（TODO だけを集め、リポジトリにファイルを作らない）と食い違うため書き直した",
+          "#72 の notes に書いたとおり、入力 source の impact を skill-profiles の目安（target＝聞く）ではなく reversible（既定値 .）にした。種類の目安から外れ、ほかのエージェントと揺れる元になる",
+          "#48 で対象を . にすると dev/fixtures や skill-foundation の雛形の TODO まで一覧に入ると分かったが、除外せず notes に書くだけにした（#72）",
+          "#47 で dev/fixtures/basic に .gitignore を置き、ホストのリポジトリで commit すると src/generated/schema.py が git に入らない問題を残した（#72 の notes）"
+        ],
+        "suggestions": [
+          "control-ladder.md の出力の検査の章に、command 検査の実行場所（cwd）、shell での実行、{in:キー} の置き換え、probe の一時プロジェクトが git init 済みかを書き、validate のエラー文で checks の rules を案内する",
+          "SKILL.md の手順6の終わりに、決定を書いた後で triggers の use_when が対象外にした依頼（ほかの印、ファイルへの書き出し）を含まないかを見直す、と書く",
+          "skill-profiles.md の analyze の節の「入力の候補」で source の impact を固定し、目安と違う impact を選んだら skill_lint.py --phase 3 が警告する",
+          "skill-profiles.md の analyze の節に、対象をプロジェクト全体にできるときは、スキルの置き場（.agents/skills、.claude/skills）を除くかを決定に書く、と足す",
+          "convergence-test.md の1章に、fixture の .gitignore は evals.json の setup で作ると書き、skill_lint.py が dev/fixtures の下の .gitignore を警告する"
+        ]
+      },
+      "compare": "subagent-1 も手順の並びと操作数（76件）はほぼ同じで、同じ公式ページを WebFetch で調べ、skill-foundation のスクリプトの中身も読んだ。違いは、subagent-1 が start の前に run.py --help、init_skill.py --dry-run、作例 write-commit-message を見て、多くの言語の処理系の有無まで確かめたのに対し、subagent-2 は生成された骨組みと contract.json を見て、見本のプロジェクトで collect_todo.py を試した点である。前者は形を作例から、後者は生成物から掴もうとしたとみられる。",
+      "ops": [
+        {
+          "fit": "detour",
+          "why": "手順を読む前に、作業ディレクトリの構成（.agents、.claude、.codex の有無）を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "hooks の設定、置かれたスキル、git の状態を見て、プロジェクトの前提を掴もうとした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順を知るため、skill-foundation の SKILL.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順1に従い、依頼が対象外か、聞く項目が欠けていないかを intake.md で確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "環境にある進行マップに作業の手順を登録した。スキルの手順には無いが害は無い"
+        },
+        {
+          "fit": "ok",
+          "why": "手順2で、Codex だけなので置き場を .agents/skills、「収束テスト: しない」から measure=skip にして start した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3で kind を analyze にするため、skill-profiles.md の節の位置を調べた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3に従い、skill-profiles.md の analyze の節と spec の雛形を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3に従い spec.example.json を dev/spec.json に写し、start の記録も確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順3の受付の項目（name、kind、mode、title、purpose、triggers）を spec に埋めた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで受付の手順を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順4に従い init_skill.py を実行し、--phase 1 の lint をエラー0件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで骨組みの手順を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5に従い runtime.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5に従い platforms.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5に従い research.md を読み、記録の書式と完了の条件を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "雛形の research.md と、init_skill.py が足した決定・軸を見て、調べて書く中身を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "調べる事実として、日付、Python・git・rg のバージョン、codex の有無、git ls-files の引数を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "公式の情報源を読むため、WebFetch を使えるようにした"
+        },
+        {
+          "fit": "ok",
+          "why": "出力の Markdown の表（パイプの逃がし方、区切りの行）を GFM の仕様で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "ファイルの列挙に使う git ls-files の引数を公式の文書で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "TODO の書き方の出典として Google のスタイルガイドを読もうとしたが、該当の節まで届かなかった"
+        },
+        {
+          "fit": "ok",
+          "why": "TODO を検出する既定の語と大文字小文字の扱いを ESLint の規則で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "#22 で TODO の節まで届かなかったので、続きの位置から読み直した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順5に従い、調べた事実を出典・日付・確認の状態つきで dev/research.md に書いた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで調査の手順を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6に従い variance-axes.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6に従い writing.md を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6（3章）と手順7のため control-ladder.md を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "決定を書く前に、init_skill.py が作った SKILL.md・probes.json・evals.json・記録の雛形を確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "command 検査でスクリプトを呼ぶため、ランタイムのコマンドの置き換えと実行のしかたを調べた"
+        },
+        {
+          "fit": "detour",
+          "why": "検査の実行のしかたと、probe の一時プロジェクトが fixture をどう写すかを調べた"
+        },
+        {
+          "fit": "detour",
+          "why": "probe.py の一時プロジェクト（Lab）の作り方を読み、git が使えるかを確かめようとした"
+        },
+        {
+          "fit": "detour",
+          "why": "一時プロジェクトが git init されるか、写したランタイムに TODO が含まれるかを確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "検査の種類ごとの判定（check_file）の書き方を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "入力の型（path など）の正規化のしかたを調べた"
+        },
+        {
+          "fit": "detour",
+          "why": "#36 に続けて、path 型の入力の正規化を読んだ"
+        },
+        {
+          "fit": "detour",
+          "why": "プロジェクトのルートの決め方を調べ、スクリプトがどこから動くかを確かめた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで決める手順を進行中にした（実際には #27 から始めていた）"
+        },
+        {
+          "fit": "detour",
+          "why": "生成された contract.json の形を見て、inputs と outputs の書き方を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順6で決定と入力を spec に書き、--phase 3 の lint を実行した。triggers も IN-01 に合わせ直した"
+        },
+        {
+          "fit": "ok",
+          "why": "#41 のエラー（「など」、research.md に使った決定の ID が無い）を直し、lint を0件にした"
+        },
+        {
+          "fit": "ok",
+          "why": "research.md の情報源の食い違いの記述を、決めた STEP-01 の中身に揃えた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで決める手順を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで縛る手順を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7のスキル固有の scripts/ として、TODO を集める collect_todo.py を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "collect_todo.py の不具合を直し、見本のプロジェクト（dev/fixtures）を作って動きを試した"
+        },
+        {
+          "fit": "ok",
+          "why": "ヘルプの説明を docstring に変え、プロジェクト全体を対象に collect を試した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7に従い、見本 assets/examples と spec の outputs（format と checks）を書いた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7で SKILL.md の「2. 手順」を書くため、今の中身を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "SKILL.md の「2. 手順」の雛形の行を、スキル固有の手順に書き換えた"
+        },
+        {
+          "fit": "ok",
+          "why": "手順7に従い render_skill.py と --phase 4 の lint を実行し、エラー14件が出た"
+        },
+        {
+          "fit": "detour",
+          "why": "#52 の validate のエラーがどう判定されるかを skill_lint.py で調べた"
+        },
+        {
+          "fit": "detour",
+          "why": "契約で使われたとみなすルールの集め方（contract_rules）を確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "#54 で分かった rules を command 検査に足し、probes を書いて --phase 4 の lint を0件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで縛る手順を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで証明する手順を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順8に従い probe.py を実行し、19件すべてが成功した"
+        },
+        {
+          "fit": "ok",
+          "why": "probe の結果にほかのルールの指摘が混じっていないかを見て、--phase 5 の lint を0件にした"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで証明する手順を完了にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9で、measure が skip のときの扱いを convergence-test.md で探した"
+        },
+        {
+          "fit": "ok",
+          "why": "convergence-test.md の1章・2章（課題と実行するか）と7章（記録）を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "手順9に従い evals.json を書き、要らない fixture を消して、残りを --final の lint で確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "#63 で指摘された convergence-report.md の TODO を埋めるため、中身を読んだ"
+        },
+        {
+          "fit": "ok",
+          "why": "収束テストを省いた理由を書いて、convergence-report.md の TODO を埋めた"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで収束テストの手順を完了にした"
+        },
+        {
+          "fit": "detour",
+          "why": "仕上げの前に、生成された SKILL.md の全体を読み直して確かめた"
+        },
+        {
+          "fit": "ok",
+          "why": "#67 で読みにくかった not_for の言い回しを直し、status を ready にして render と probe をやり直した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで仕上げの手順を進行中にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順10に従い install.py と --final --project . の lint を実行し、エラー0件にした"
+        },
+        {
+          "fit": "ok",
+          "why": "手順11に従い run.py check を実行し、指摘は0件だった"
+        },
+        {
+          "fit": "ok",
+          "why": "手順12に従い、決めきれなかったことを notes.md に書いて finish を実行した"
+        },
+        {
+          "fit": "detour",
+          "why": "進行マップで仕上げの手順を完了にした"
+        },
+        {
+          "fit": "waste",
+          "why": "進行マップに無い手順番号を完了にしようとして失敗した"
+        },
+        {
+          "fit": "ok",
+          "why": "手順12に従い、finish が出した本文を最終の返答として呼び出し元に渡した"
+        }
+      ]
+    }
+  }
+}

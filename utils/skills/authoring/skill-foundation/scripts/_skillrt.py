@@ -24,7 +24,7 @@ from pathlib import Path
 RUNTIME_VERSION = "1.0.0"
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CONTRACT_REL = "assets/contract.json"
-SEAL_REL = "assets/seal.json"  # 封印。skill_lint.py --seal と、skill-foundation の finish が書く（CTL-02）
+SEAL_REL = "assets/seal.json"  # 合格時の指紋。skill_lint.py --seal と、skill-foundation の finish が書く（CTL-02）
 RUNS_DIRNAME = ".skill-runs"
 HOOK_CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
 # 出力の探索で入らないディレクトリ（パターンの固定部分に含まれる場合は入る）
@@ -202,7 +202,7 @@ def protected_hashes(skill_dir: Path, contract: dict) -> dict:
 
 
 def seal_hashes(skill_dir: Path, contract: dict) -> dict:
-    """封印に書く保護ファイルのハッシュ。封印のファイル自身は除く。"""
+    """合格時の指紋（seal.json）に書く保護ファイルのハッシュ。seal.json 自身は除く。"""
     return {rel: digest for rel, digest in protected_hashes(skill_dir, contract).items() if rel != SEAL_REL}
 
 
@@ -213,7 +213,7 @@ def write_seal(skill_dir: Path, contract: dict) -> int:
 
 
 def seal_findings(skill_dir: Path, contract: dict) -> list[dict]:
-    """封印（assets/seal.json）と今の保護ファイルの違い。封印の無いスキル（作っている途中）では何も返さない。
+    """合格時の指紋（assets/seal.json）と今の保護ファイルの違い。合格時の指紋の無いスキル（作っている途中）では何も返さない。
     hooks は実行していない間の変更を止められないので、次の start がここで見つける（CTL-02）。"""
     path = skill_dir / SEAL_REL
     if not path.is_file():
@@ -222,13 +222,13 @@ def seal_findings(skill_dir: Path, contract: dict) -> list[dict]:
     try:
         sealed = load_json(path).get("files", {})
     except (OSError, ValueError, AttributeError):
-        return [finding(rule, f"{skill_dir.name}/{SEAL_REL}", 0, "封印が読めません")]
+        return [finding(rule, f"{skill_dir.name}/{SEAL_REL}", 0, "合格時の指紋が読めません")]
     current = seal_hashes(skill_dir, contract)
     result = []
     for rel in sorted(set(sealed) | set(current)):
         if sealed.get(rel) != current.get(rel):
             what = "変わりました" if rel in sealed and rel in current else ("足されました" if rel in current else "消されました")
-            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0, f"封印の後に{what}"))
+            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0, f"合格した後に{what}"))
     return result
 
 
@@ -667,7 +667,7 @@ def fill_command(template: str, root: Path, name: str, skill_dir: Path, values: 
 def report_sections(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
                     stage: str = "finish") -> tuple[list[str], list[dict]]:
     """契約の report.sections のコマンドを実行し、その出力（Markdown の節）を返す。失敗は指摘にする。
-    stage: finish の節（封印のように、終えるときだけ行うもの）は、check からは実行しない。"""
+    stage: finish の節（合格時の指紋の記録のように、終えるときだけ行うもの）は、check からは実行しない。"""
     rule = contract.get("report", {}).get("rule", "RPT")
     texts, findings = [], []
     for i, section in enumerate(contract.get("report", {}).get("sections", []), 1):
