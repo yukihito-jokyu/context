@@ -9,7 +9,7 @@ title: スキル作成・管理
 | スキル | できること |
 | --- | --- |
 | [skill-authoring](skill-authoring.md) | 正本とカタログを整えて配置する |
-| [skill-foundation](skill-foundation.md) | 決定表と出力検査を備え、実行者による結果の違いを減らすスキルを作る |
+| [skill-foundation](skill-foundation.md) | ルール・出力検査・hooks・違反例・収束テストを備えたスキルを作る。[pluginで導入](../../plugins/skill-foundation.md) |
 | [my-skill-creator](my-skill-creator.md) | スキルを作成・改善して検証する |
 | [skill-refiner](skill-refiner.md) | 1つのスキルを独立実行し、HTMLで指摘・評価・改善を進める |
 
