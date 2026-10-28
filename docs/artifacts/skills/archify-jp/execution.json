@@ -3,15 +3,16 @@
   "skill": "archify-jp",
   "skill_source": "utils/skills/design/archify-jp/SKILL.md",
   "skill_sha256": "3ebbc143163c8646b216f6c5251ccd73eacd30d87d74e6a6dab52615bfbf58e3",
-  "recorded_at": "2026-10-11T11:09:02.365140+09:00",
-  "executor": "Codex（この会話のエージェント）",
+  "recorded_at": "2026-10-28T12:44:14.054Z",
+  "executor": "Codex サブエージェント",
   "input": "input.md",
-  "summary": "実際にarchify-jpのCLIで生成したシーケンス図です。",
-  "stage": "単体HTML生成・CLI検証・画像確認済み",
+  "summary": "公開ガイドの読者が実行例の画面を確認して原本を取得する流れを、新しいモデルから実際に生成したシーケンス図。",
+  "stage": "新規モデルのCLI生成・検証・Chrome表示検査・1440×900ライト画像の目視確認済み",
   "checks": [
-    "validate / deliverが終了コード0。showcaseの9項目、エラー0、警告0。",
-    "visual-checkで1440×900、1600×1000、1920×1080、2048×1320のlight/dark包含検査が成功。",
-    "1440×900と2048×1320のlight画像を目視確認。検査JSONのvisualReviewは自動処理ではpendingのまま保持。"
+    "validate / deliver が成功。showcase の9項目、エラー0、警告0。",
+    "Chrome visual-check が1440×900・2048×1320の各ライト/ダークで成功。",
+    "1440×900ライト画像で主体・5通信・原本の取得順序・表示範囲を目視確認。その他の画像の目視とエクスポート操作は未実施。",
+    "公開ログから実ユーザーのホームパスと詳細な実行環境版を伏せ、作業ディレクトリを<workdir>へ置換。環境マスク後に成果物SHAを記録。利用者承認は要求も実施もしていない。"
   ],
   "downloads": [
     {
@@ -20,50 +21,20 @@
     },
     {
       "file": "input.json",
-      "label": "生成に使った入力（JSON）"
+      "label": "新規作成した生成モデル（JSON）"
     },
     {
       "file": "browser-validation.json",
-      "label": "ブラウザ検証結果（環境パスを伏せたJSON）"
+      "label": "ブラウザ検証結果（環境情報をマスク）"
     }
   ],
   "preview": "preview.png",
-  "preview_alt": "生成したシーケンス図を1440×900で開いた実画面",
+  "preview_alt": "新しく生成したシーケンス図を1440×900で開いた実画面",
   "html_output": "output.html",
-  "artifacts": [
-    {
-      "file": "browser-validation.json",
-      "sha256": "708c65925c9619ab15e7b52c2e92a02a762cf05da6dc626bd97cf8eeffd229dc",
-      "bytes": 16880
-    },
-    {
-      "file": "input.json",
-      "sha256": "a22d49d62b4a312b64cd42c29e6067b7982fd3f1d455cd36c1d6fcf3b4d44380",
-      "bytes": 2393
-    },
-    {
-      "file": "input.md",
-      "sha256": "17ce8081a36d8520bcfef3ca64dd62a0e93aec098b3d9ce85eee8867f654ac2e",
-      "bytes": 225
-    },
-    {
-      "file": "output.html",
-      "sha256": "8315f18f9ffb5b1f69150995a7be4808c819398e19eafc060047ec21687b40fb",
-      "bytes": 845949
-    },
-    {
-      "file": "preview.png",
-      "sha256": "0a4873058930e2c0d5454853b7d7c8436bc8864417e2632e2176f5002c902d12",
-      "bytes": 98611
-    }
-  ],
-  "revalidation": {
-    "previous_skill_sha256": "4aa9e78150d6298bd3bc53b8fdc52d6f28630825574e42c108e425a4aad8c44c",
-    "checked_at": "2026-10-11T08:46:25.730275+00:00",
-    "checks": [
-      "更新したスキルのCLIで同じinput.jsonをdeliverし、showcaseの9項目が成功。",
-      "生成HTMLのSHA-256が保存済み原本と一致。原本HTML・画像・過去の実行時刻は保持。"
-    ]
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "/root/refresh_diagram_examples",
+    "task": "AGENTS.md / skill-authoring の公開成果物再作成要件に従う独立実行担当です。作業リポジトリは /private/tmp/context-privacy-rewrite です（元のユーザーワークスペースには変更しない）。正本は親が個人情報を除去して封印済みで、このタスクでは一切変更しない。担当は archify-jp、compare、explain-html の3スキルの docs/artifacts/skills/<name>/ の完全削除→更新後のSKILL.mdを実際に適用した公開サンプル再作成です。utils/skills/authoring/skill-authoring/SKILL.md と references/docs-examples.md を読み、既存input.mdとexecution.jsonの題材を先に確認し、各作例は同じ題材で新しく実行してください。必要な実コマンド、画像/HTML/操作検証を行い、未実施の利用者承認は未実施と記録。旧成果物のコピーやハッシュ付け替えで再作成扱いしない。新規実行用作業場所は公開ディレクトリ外の /private/tmp のみ。node_modules は既存依存へのリンクを親が用意済み。Chrome等がsandboxで失敗する場合は必要なその実行だけrequire_escalatedで再実行可能。ブラウザ目視は実際に行った範囲だけ報告。公開前に /private/tmp/context-privacy-transform.py のsanitize(bytes, relativePath)をimportlibで読み、出力中の実ユーザー名入りホームパスとChrome等の実環境の詳細版を伏せてください。生成環境の正本パスは相対パスか<repository>、自分のタスクも個人ホームの絶対パスを記載しないこと。環境情報のマスクを明記したうえで execution.json を作成（runner.kind=subagent、agent_idはあなたの実ID、taskはこの依頼の実文、sourceManifestを現在の凍結ソースから作成、artifactsはマスク後の各ファイルSHA）。sourceManifest/verifyArtifactsを scripts/example-skill-source.cjs から使用。ガイド更新・全体sync・コミット・pushは親が担当するため行わない。担当ディレクトリ以外は変更しない。他エージェントが別スキルを同時に作業中なので全体git restore/reset等は禁止。各作例の完了時に親へ進捗とsource hash、実行・確認した範囲を報告し、3つ終えたら最終報告してください。"
   },
   "source_files": [
     {
@@ -272,7 +243,7 @@
     },
     {
       "file": "examples/workflow-agent-tool-call-rendered.visual-check.json",
-      "sha256": "b732f62c82b48d8776fb57cd48b76cd6a4ac68a4283b3200104f94a779134f2b"
+      "sha256": "4006ebc9c4a14b9fcdb6c7ce466f943d3c35d943f0cd39442459a0115e07a357"
     },
     {
       "file": "migrations/workflow-v2.mjs",
@@ -1079,9 +1050,42 @@
       "sha256": "ea3ee45fcc037045c2d8b0ff1776a6ea1afb01c73858af64e7c39bb1bd16ae1e"
     }
   ],
-  "source_sha256": "b4e54d84d5f5480e2aad117055218c9dbc0b9be437ba447884c74cf4e1277624",
-  "source_baseline": {
-    "reason": "既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。",
-    "recorded_at": "2026-10-15T14:50:33.934Z"
-  }
+  "source_sha256": "b970d5381cca8d9dfe8138174cfb21578dd49a155130ececb9e2b75952571b1d",
+  "artifacts": [
+    {
+      "file": "browser-validation.json",
+      "sha256": "1ebf99783e072c31399906f712381141468363c5a43b242030f8dbfc96e9be1f",
+      "bytes": 16723
+    },
+    {
+      "file": "delivery.json",
+      "sha256": "bbab454bc5701aa364b4b0ccfc1dce1d4506403bc78e9c2b6d221ddf1ea6957d",
+      "bytes": 579
+    },
+    {
+      "file": "input.json",
+      "sha256": "8d4cd9d1a368aa4af72674e45d0b930d9553e0241548033bd2ff307a858bd7d4",
+      "bytes": 2245
+    },
+    {
+      "file": "input.md",
+      "sha256": "17ce8081a36d8520bcfef3ca64dd62a0e93aec098b3d9ce85eee8867f654ac2e",
+      "bytes": 225
+    },
+    {
+      "file": "output.html",
+      "sha256": "7033f01a472231c7fca2b7209ea7921dd14501daf7b257dd95da8c3164097cab",
+      "bytes": 844171
+    },
+    {
+      "file": "preview.png",
+      "sha256": "939abcee5780568b34d933171b8eb10b95093ade2720c65b7e9ccbf8990304ae",
+      "bytes": 172628
+    },
+    {
+      "file": "validation.json",
+      "sha256": "ebb217dd5cc896ec9e1273df0295bf94f3e97d43b0107b4c57be630295f4f458",
+      "bytes": 1870
+    }
+  ]
 }

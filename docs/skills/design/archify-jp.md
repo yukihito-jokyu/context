@@ -25,13 +25,9 @@ archify-jpを使って、依頼登録の画面、API、DBの呼び出しをシ�
 
 ## 成果物の例
 
-実際にarchify-jpのCLIで生成したシーケンス図です。
+公開ガイドの読者が実行例の画面を確認して原本を取得する流れを、新しいモデルから実際に生成したシーケンス図。
 
-**到達点：単体HTML生成・CLI検証・画像確認済み。**
-
-**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
-
-このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+**到達点：新規モデルのCLI生成・検証・Chrome表示検査・1440×900ライト画像の目視確認済み。**
 
 ### 実行した依頼
 
@@ -41,24 +37,25 @@ archify-jpを使って、依頼登録の画面、API、DBの呼び出しをシ�
 
 ### 実際の画面
 
-![生成したシーケンス図を1440×900で開いた実画面](/skills/archify-jp/preview.png)
+![新しく生成したシーケンス図を1440×900で開いた実画面](/skills/archify-jp/preview.png)
 
 [画像を原寸で開く](pathname:///skills/archify-jp/preview.png)
 
 ### 成果物を取得する
 
 - [生成した原本（HTML）](pathname:///skills/archify-jp/output.html#download)
-- [生成に使った入力（JSON）](pathname:///skills/archify-jp/input.json#download)
-- [ブラウザ検証結果（環境パスを伏せたJSON）](pathname:///skills/archify-jp/browser-validation.json#download)
+- [新規作成した生成モデル（JSON）](pathname:///skills/archify-jp/input.json#download)
+- [ブラウザ検証結果（環境情報をマスク）](pathname:///skills/archify-jp/browser-validation.json#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/archify-jp/output.html)
 - [実行入力の原本](pathname:///skills/archify-jp/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/archify-jp/execution.json#download)
 
 ### 確認した結果
 
-- validate / deliverが終了コード0。showcaseの9項目、エラー0、警告0。
-- visual-checkで1440×900、1600×1000、1920×1080、2048×1320のlight/dark包含検査が成功。
-- 1440×900と2048×1320のlight画像を目視確認。検査JSONのvisualReviewは自動処理ではpendingのまま保持。
+- validate / deliver が成功。showcase の9項目、エラー0、警告0。
+- Chrome visual-check が1440×900・2048×1320の各ライト/ダークで成功。
+- 1440×900ライト画像で主体・5通信・原本の取得順序・表示範囲を目視確認。その他の画像の目視とエクスポート操作は未実施。
+- 公開ログから実ユーザーのホームパスと詳細な実行環境版を伏せ、作業ディレクトリを<workdir>へ置換。環境マスク後に成果物SHAを記録。利用者承認は要求も実施もしていない。
 
 ## 確認するポイント
 

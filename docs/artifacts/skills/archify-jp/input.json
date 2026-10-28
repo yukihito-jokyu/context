@@ -2,14 +2,17 @@
   "schema_version": 1,
   "diagram_type": "sequence",
   "meta": {
-    "title": "スキル実行成果物を閲覧・取得する",
+    "title": "実行例から原本の取得まで",
+    "subtitle": "読者は画面を確かめてから必要な原本を選ぶ",
     "locale": "ja",
     "quality_profile": "showcase",
-    "column_fit": "spread",
+    "visual_preset": "editorial",
+    "animation": "none",
     "viewBox": [
-      1400,
-      560
-    ]
+      1600,
+      600
+    ],
+    "column_fit": "spread"
   },
   "participants": [
     {
@@ -20,95 +23,81 @@
     {
       "id": "guide",
       "type": "frontend",
-      "label": "ガイド"
+      "label": "活用ガイド"
     },
     {
-      "id": "pages",
-      "type": "cloud",
-      "label": "公開ファイル"
+      "id": "artifact",
+      "type": "backend",
+      "label": "保存済み原本"
+    }
+  ],
+  "segments": [
+    {
+      "from": 160,
+      "to": 320,
+      "label": "入力と画面を確認"
     },
     {
-      "id": "local",
-      "type": "external",
-      "label": "取得先"
+      "from": 340,
+      "to": 530,
+      "label": "原本を選んで取得"
     }
   ],
   "messages": [
     {
-      "id": "visit",
+      "id": "open-example",
       "from": "reader",
       "to": "guide",
-      "y": 180,
-      "label": "実行例のページを開く"
+      "y": 190,
+      "label": "実行例を開く"
     },
     {
-      "id": "image",
-      "from": "guide",
-      "to": "pages",
-      "y": 220,
-      "label": "実際の画面画像を取得"
-    },
-    {
-      "id": "image-return",
-      "from": "pages",
-      "to": "guide",
-      "y": 260,
-      "label": "撮影済みのPNGを返す",
-      "variant": "return"
-    },
-    {
-      "id": "inspect",
+      "id": "show-input",
       "from": "guide",
       "to": "reader",
-      "y": 300,
-      "label": "入力と成果物を表示",
+      "y": 245,
+      "label": "依頼文と画面を表示",
       "variant": "return"
     },
     {
-      "id": "download",
+      "id": "choose-original",
       "from": "reader",
-      "to": "pages",
-      "y": 340,
-      "label": "原本をダウンロード"
+      "to": "guide",
+      "y": 365,
+      "label": "原本リンクを選ぶ",
+      "variant": "emphasis"
     },
     {
-      "id": "save",
-      "from": "pages",
-      "to": "local",
-      "y": 380,
-      "label": "HTML・文章・ZIPを保存"
-    },
-    {
-      "id": "open",
-      "from": "reader",
-      "to": "local",
+      "id": "read-artifact",
+      "from": "guide",
+      "to": "artifact",
       "y": 420,
-      "label": "取得した成果物を開く"
+      "label": "HTML・文章・ZIPを取得"
+    },
+    {
+      "id": "return-artifact",
+      "from": "artifact",
+      "to": "reader",
+      "y": 490,
+      "label": "選んだ原本を返す",
+      "variant": "return"
     }
   ],
   "cards": [
     {
       "dot": "emerald",
-      "title": "画像で確認",
+      "title": "先に確かめる",
       "items": [
-        "生成した成果物を実ブラウザで撮影する",
-        "説明から想像で画面を作り直さない"
-      ]
-    },
-    {
-      "dot": "cyan",
-      "title": "原本を取得",
-      "items": [
-        "HTMLは実際に生成したファイルを渡す",
-        "複数ファイルは相対参照を保つZIPにする"
+        "読者は実行した依頼と実画面を読む。",
+        "画面画像は原本を選ぶための手掛かりになる。"
       ]
     },
     {
       "dot": "orange",
-      "title": "実行条件を残す",
+      "title": "用途に合わせて取る",
       "items": [
-        "入力・スキル・検証結果を同じ例に保存",
-        "未承認の段階を完成と表示しない"
+        "HTMLは画面、文章は全文、ZIPは関連ファイル一式。",
+        "保存済みの原本を配信し、閲覧時に生成しない。"
       ]
     }
   ]
