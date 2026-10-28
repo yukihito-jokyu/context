@@ -1,48 +1,19 @@
 {
-  "schema_version": 1,
   "skill": "skill-foundation",
   "skill_source": "utils/skills/authoring/skill-foundation/SKILL.md",
-  "skill_sha256": "fd9aa81f6989b113d29bd065fcb4697711988a18cb3f0b889e1d67c2bf8ee3a4",
-  "recorded_at": "2026-10-26T15:10:47.541322+00:00",
-  "runner": {
-    "kind": "subagent",
-    "agent_id": "/root/skill_foundation_example",
-    "task": "Git差分を受け取り、日本語のコミットメッセージを出力する write-commit-message スキルを新規作成してください。対象は Claude Code と Codex、日本語です。今回は受付と骨組み生成（フェーズ0・1）までを実行し、フェーズ1のlint結果を記録して止めてください。収束テスト、製品仕様の外部調査、インストール、hooks登録は実行しません。完成扱いにせず、実行を abort して中断理由を記録してください。 一時ディレクトリで実行し、実入力・abortの実出力・未完成の骨組みZIP・コマンドと終了コード・全正本と成果物のハッシュを保存する。"
-  },
-  "input": "input.md",
-  "summary": "Git差分から日本語のコミットメッセージを書くスキルに、受付と骨組み生成だけを実際に適用した例です。フェーズ1のlintに合格した後、指定に従ってabortしました。ZIPは未完成の骨組みと実行記録です。",
-  "stage": "フェーズ0・1のみ実施、フェーズ1 lint合格後に中断（スキルはbuilding、実行はaborted）",
-  "checks": [
-    "run.py start・init_skill.py・skill_lint.py --phase 1・run.py abort はすべて終了コード0。",
-    "骨組み12ファイルと中断の実行記録をZIPへ保存。TODOと未確定の項目を残した未完成品です。",
-    "abortのstdout全体（返答方法の指示・区切りを含む）をoutput.mdへそのまま保存。ZIPにはランタイムが保存したreport.mdの本文も収録。",
-    "実行前後のsourceManifestが一致し、正本82ファイルは変更なし。PYTHONDONTWRITEBYTECODE=1で実行。",
-    "外部調査・収束テスト・インストール・hooks登録・最終検査・finishは実施していません。"
-  ],
-  "downloads": [
-    {
-      "file": "output.md",
-      "label": "中断時の実出力（Markdown）"
-    },
-    {
-      "file": "write-commit-message-skeleton-incomplete.zip",
-      "label": "受付・骨組み一式と実行記録（ZIP・未完成）"
-    },
-    {
-      "file": "validation.json",
-      "label": "実コマンドと検証結果（JSON）"
-    }
-  ],
-  "text_output": "output.md",
-  "excerpt_lines": 16,
+  "skill_sha256": "b07adc349ba87bbaa830aec25feb6501d05fc4530d0fd7897523bc754e289ea8",
   "source_files": [
     {
       "file": "SKILL.md",
-      "sha256": "fd9aa81f6989b113d29bd065fcb4697711988a18cb3f0b889e1d67c2bf8ee3a4"
+      "sha256": "b07adc349ba87bbaa830aec25feb6501d05fc4530d0fd7897523bc754e289ea8"
+    },
+    {
+      "file": "assets/agents/skill-foundation-tester.md",
+      "sha256": "7b135a4482251ad735f1447dfe1aafa317cdcb73b47589b56a6f6d0a156e6ab6"
     },
     {
       "file": "assets/contract.json",
-      "sha256": "e731f5ba6bef14e22af6123acc87503ce56d9663aa0be62ec01f1350b2ff553a"
+      "sha256": "abf9047b013ecec3e76cff516b73c40551c5ececee8bcff8ac330ece6e14f853"
     },
     {
       "file": "assets/example/write-commit-message/evals.json",
@@ -74,11 +45,11 @@
     },
     {
       "file": "assets/example/write-commit-message/procedure.md",
-      "sha256": "233e312a81c7ea4117cc9ad1de14e0550921ffd9555d9941bfb948c6a11fe90e"
+      "sha256": "2d0415d8b1100057d6107fd21c8a24700add90cb9d082451fa00c6378c7f925b"
     },
     {
       "file": "assets/example/write-commit-message/research.md",
-      "sha256": "fba1a2d699046a3483e390a85f3d7a5038d579ab0a4529120c48ca0da3cd3dbe"
+      "sha256": "24ef260a9734e5dd923d59d9aedcfe061be4dd500164363e51ba8264b5b11f21"
     },
     {
       "file": "assets/example/write-commit-message/scripts/check_body.py",
@@ -86,15 +57,15 @@
     },
     {
       "file": "assets/example/write-commit-message/scripts/collect_diff.py",
-      "sha256": "2a1ff3b2ace70d52f7e077ce6860aacd4973c0cd656b4f282ddd3b928587a13b"
+      "sha256": "4490fdfac900ddda9e0c04bf8523cea981804e93d0490d3a230a958ac22dde18"
     },
     {
       "file": "assets/example/write-commit-message/spec.json",
-      "sha256": "4068f375116357ac96ea907afd627f04b93075e26432f0e516e5260007cd7a6e"
+      "sha256": "2dceca23a412299e1e0249e5225b2678b1a0d044eca9b5008392beebcfd5726b"
     },
     {
       "file": "assets/seal.json",
-      "sha256": "79271609546257c871f9560a73f95b96b7d308bfaa479380b4b064c62f04e304"
+      "sha256": "b23fed2c6be79c495fd558145b68bc85a5a28a182d522091ca8b6b58dcfd408c"
     },
     {
       "file": "assets/skill-profiles.json",
@@ -102,19 +73,19 @@
     },
     {
       "file": "assets/templates/SKILL.en.md.tmpl",
-      "sha256": "e5124d3da47728396dab8f2b942d5bb8065ab877a086092cb48d81c5fc415534"
+      "sha256": "ba104f0135915eda5d8dfc2e823e97cf658c5bb69d7297ad76dded4e322236d4"
     },
     {
       "file": "assets/templates/SKILL.ja.md.tmpl",
-      "sha256": "9e979aea5678d8117a4b36c9bc7810f2ebd0fc2491ce0ac7e255181e7fb8eeba"
+      "sha256": "c67db5a1b2062dde7e2657cb559f825e9472a846c2696cca669aac242eec1c7b"
     },
     {
       "file": "assets/templates/convergence-report.md.tmpl",
-      "sha256": "3fd9bd75f7659d23f174d18b7354e4083c2dd3b4414003e357b5b1e2bd263a47"
+      "sha256": "fe450ff3e2bef5ed22c6b335c17128696b7f75a4219a073e1f0f65216af3a69e"
     },
     {
       "file": "assets/templates/evals.example.json",
-      "sha256": "21ec12319a1f780a0314cdb0cd28d9c3e0c980224c4e484310211372126fa74f"
+      "sha256": "57ed5dc455dc6d3c16f4e50d9e70652e17a19a4e70bd054ba7a7439d5c44df18"
     },
     {
       "file": "assets/templates/probes.example.json",
@@ -122,23 +93,23 @@
     },
     {
       "file": "assets/templates/research.md.tmpl",
-      "sha256": "597b330b2e56f4f4772a2846622567afca1ebf2bf1760405104cf815f8715236"
+      "sha256": "11c54095bc503fcad9f1f35abb7ae15f7df9ffd65be3146c8ed878da5fca33d6"
     },
     {
       "file": "assets/templates/spec.example.json",
-      "sha256": "4ee24e0b25a6d3debe36f2e8c1c7ab2bdf048f2e07b3200c15996b59c3e5a590"
+      "sha256": "a64c14b5cd6d233e7e47e4c98b2370b208dac7e048d4361eb560ffcb8698794e"
     },
     {
       "file": "assets/templates/standard-decisions.en.json",
-      "sha256": "f22b9ad02df9efe7ea807340bee0a945649a2479857117443e4a53501016287e"
+      "sha256": "99cc79fbe8923d15fca35ec7a7cefe78a1d1bb7cd1f35217b1395db936321892"
     },
     {
       "file": "assets/templates/standard-decisions.ja.json",
-      "sha256": "4de501be78f208c011fa67629cba04959fcc52db3086bf1ba5053be6e52c28fc"
+      "sha256": "f5bc8228fe8935df17970370b36fcb2495bfc3f8ca7325a01bc0143f43df7c02"
     },
     {
       "file": "dev/convergence-report.md",
-      "sha256": "dfcfedaf1c3a6659c60059776fd7859b4fd39ab6440f58e7b93781bd6994fb7d"
+      "sha256": "65d6d4bd3b01f2f8e203a7a975d92be6a2b908605e126fa9d2cd51d7802e1474"
     },
     {
       "file": "dev/evals.json",
@@ -150,11 +121,11 @@
     },
     {
       "file": "dev/probes.json",
-      "sha256": "c7fc63d09c019677dc3eefada7ed2c635891ff663e34f6469dccf8c5508e10a5"
+      "sha256": "b18257b6597ac68fe73390e3241a279c533f4b4ef3246fc13af100e5f336c18d"
     },
     {
       "file": "dev/research.md",
-      "sha256": "e778479ff3db137b135ffa7a7bc5660015702c5099c3b6692da38c5a3ff3e9f8"
+      "sha256": "3d9d40e4673b19c8b1781062ea3026d71d2daa12144bdc97fe50fcd0953fb19c"
     },
     {
       "file": "dev/results/convergence/round-1/T1-typical/subagent-1.patch",
@@ -162,7 +133,7 @@
     },
     {
       "file": "dev/results/convergence/round-1/T1-typical/subagent-2.patch",
-      "sha256": "633785df91680d5612ca51a28989587437d84b757db39704d51530d26ce9490c"
+      "sha256": "14364f07aa1b83d73c91260eba43ef60842cd544d1f350c9bffc74b2d581b486"
     },
     {
       "file": "dev/results/convergence/round-1/T2-default/subagent-1.patch",
@@ -181,12 +152,28 @@
       "sha256": "8b5d97799a88c747db7d351303a3b2ddfb1a1138ead1f19199f0b0cc2c6acacf"
     },
     {
+      "file": "dev/results/convergence/round-1/analysis.json",
+      "sha256": "bb7095924cb4c0a5ee3bbb1fee23a3baeb7234d953cb4cf66f54845e58228be8"
+    },
+    {
+      "file": "dev/results/convergence/round-1/analysis.md",
+      "sha256": "3263516c445e2c19206bb24e948614aa5832a0ae85dba0b9f90d1e83a0844a2d"
+    },
+    {
       "file": "dev/results/convergence/round-1/report.json",
-      "sha256": "f867667acc1ce40142c4d70fb3fe34eb85d9596eee87b4c6c2b21bf143b269f9"
+      "sha256": "c5f6a22aa9addd84d61ab610b32068d5579e1c20c45591433ed42a74dd7f90c1"
     },
     {
       "file": "dev/results/convergence/round-1/report.md",
       "sha256": "d40af3c8f831bef08a5a121dc5289111536b649a0a5b9bdcccf8319f8e5df463"
+    },
+    {
+      "file": "dev/results/convergence/round-1/traces.json",
+      "sha256": "4497bb65205c4a72731e7a8adceb9f56cb46730d2efef90120491cb80272aa57"
+    },
+    {
+      "file": "dev/results/convergence/round-1/used-SKILL.md",
+      "sha256": "fd9aa81f6989b113d29bd065fcb4697711988a18cb3f0b889e1d67c2bf8ee3a4"
     },
     {
       "file": "dev/results/convergence/round-2/T1-typical/subagent-1.patch",
@@ -213,12 +200,28 @@
       "sha256": "6463e79dd416b1da3d4afff272a92f38122a477eeeecb864a18cfab8fffb6c46"
     },
     {
+      "file": "dev/results/convergence/round-2/analysis.json",
+      "sha256": "c5083c8d93ddcb4bfabc788c65e7d7a44a58361bb528a6eea8609e9c09b49976"
+    },
+    {
+      "file": "dev/results/convergence/round-2/analysis.md",
+      "sha256": "dac33a96c47ac385ff823ceacdc2e480c85af6043e4af8e58e297002ac4a6e60"
+    },
+    {
       "file": "dev/results/convergence/round-2/report.json",
       "sha256": "d946916b0bd4cfe735af4e21bb9003cfe759e05954580d599063a32ee753ad8b"
     },
     {
       "file": "dev/results/convergence/round-2/report.md",
       "sha256": "2458e6a948d0d7d4e649d68984cd762596d341d8804f143d05648738b7282778"
+    },
+    {
+      "file": "dev/results/convergence/round-2/traces.json",
+      "sha256": "42bc401e2e6def4ca49e4772371fe68b7e4c51a8a8c2c50e0cdfb18300895824"
+    },
+    {
+      "file": "dev/results/convergence/round-2/used-SKILL.md",
+      "sha256": "fd9aa81f6989b113d29bd065fcb4697711988a18cb3f0b889e1d67c2bf8ee3a4"
     },
     {
       "file": "dev/results/convergence/round-3/H1-holdout/subagent-1.patch",
@@ -242,7 +245,7 @@
     },
     {
       "file": "dev/results/convergence/round-3/T2-default/subagent-2.patch",
-      "sha256": "0f2e32bbdcc811a8b0672780836d0587880228370004c1ca50a1afbcd7ddabfc"
+      "sha256": "0eb5bf3ebcce0a46348be4507b0626a1bc24933cd178b004e29c19c220f40fd2"
     },
     {
       "file": "dev/results/convergence/round-3/T3-edge/subagent-1.patch",
@@ -253,8 +256,16 @@
       "sha256": "c52f381416c328cdd2e44a9f503a8f7ea0866e2270c616c48d65bec9352a946f"
     },
     {
+      "file": "dev/results/convergence/round-3/analysis.json",
+      "sha256": "fcf343b1b9cf0e6d71efce57a424904c573e7cf4038b497718020e0b86499507"
+    },
+    {
+      "file": "dev/results/convergence/round-3/analysis.md",
+      "sha256": "4d1dfe522d5af09b9882f1310fb981ed975b9fb3a9e273d2b77c6cb966e3cb2f"
+    },
+    {
       "file": "dev/results/convergence/round-3/report.json",
-      "sha256": "b877f88321d8e17de3fd4f93a8d8b708f792020f94cfb643c366085c339eb7bb"
+      "sha256": "38eaafd15f8bb704fd2692ac00a6aeb76ffc4a57c70dad48742b24ab13a76bb8"
     },
     {
       "file": "dev/results/convergence/round-3/report.md",
@@ -269,123 +280,210 @@
       "sha256": "479641c4c27a6bad33381ed82644094d37a6526b271637cafa7e18b88d6f2cbe"
     },
     {
+      "file": "dev/results/convergence/round-3/traces.json",
+      "sha256": "090e3dc6ef8daad310a380106d12d1d70683a9a726f96adc201a2f9e8e4f55a4"
+    },
+    {
+      "file": "dev/results/convergence/round-3/used-SKILL.md",
+      "sha256": "fd9aa81f6989b113d29bd065fcb4697711988a18cb3f0b889e1d67c2bf8ee3a4"
+    },
+    {
       "file": "dev/results/probe-results.json",
-      "sha256": "812401183851e5dbaccdc1722ece49f3b94e35686427c12f3106f7140a2c19f5"
+      "sha256": "2e6b85e618036f8b62ed1cfd9a33112639dc317eafc183fc52f1ad27ff0212ad"
     },
     {
       "file": "dev/spec.json",
-      "sha256": "46ad1b899707650c3a7b9d4e184b2708164080fc71ff502a55e86da7416d4ab7"
+      "sha256": "1d7492db36c0526b3a8856ef9d043b3854916a46cb31ad34206ac24ad7e0718b"
     },
     {
       "file": "references/control-ladder.md",
-      "sha256": "1999fe2deee79c8e2b112b63ce8deabddc16681ebebd9df4f80473e245df9283"
+      "sha256": "6544197b9e64c500abc428be8a17e4ffe654c58eb957213574763f12e3176495"
     },
     {
       "file": "references/convergence-test.md",
-      "sha256": "6b38031f0025a19932abd5a60603e0f229d31d0cacd013dc9538bd74cc630e79"
+      "sha256": "3adb7777a33ca1ae03e28bca66cc6bb5c74b5352f04230d9432eebe4cf9376dd"
     },
     {
       "file": "references/decisions.md",
-      "sha256": "caddfc0b65e05df46c3205b0da613d4f03cbafef81fc9c821b4ca8a6dc04154b"
+      "sha256": "d14c8342716ba70fc25d286bbd0b7277c689df4768d1e91a2e282713f96de33a"
     },
     {
       "file": "references/intake.md",
-      "sha256": "179581a8c37d50661ab25e45a1388844374f91da41281fb3227ba403e18c4e09"
+      "sha256": "651397f3c4d784395de2aa67f8aa13625148ee1dc5766f1662e80c896607785b"
     },
     {
       "file": "references/platforms.md",
-      "sha256": "607ba6e8947fe4c0c419a89254f7f6fe1b2d43c657a27aafc6770cbbbdcc1071"
+      "sha256": "7e02d6788d3c6c5f18741e9e13af7e31fde0c036fa720e2835f991443362a7a3"
     },
     {
       "file": "references/research.md",
-      "sha256": "126e434b20b9daf3592999b1b382a74a1617b063ff0f8e276deec2cfc7a969f4"
+      "sha256": "3aa7cf7b221c88cdcc8133835f2b1577924c0a985cbcea0ff5c2ae64a9119bab"
     },
     {
       "file": "references/runtime.md",
-      "sha256": "ff349587dcbca0c9f0a0108ee007eda085cc85e13dc069537f7daa5616dcc545"
+      "sha256": "fa0ddaccfd8c96820b47935e4563c9295a83f33f061e89585aaeb1c28efeae85"
     },
     {
       "file": "references/skill-profiles.md",
-      "sha256": "0c57e25605f6906ea644d1e4e52995b35c8b030ac46fb2f330f11d4fff908f96"
+      "sha256": "c10e737e92d8229ff7099f9a2967ae9169242637ff31fd8110da798869dc020f"
     },
     {
       "file": "references/variance-axes.md",
-      "sha256": "48331fce687b63e4289b19da94f6796a5565b9210367e5442454802ff7fc4464"
+      "sha256": "7ccc80cd5bbb9df2c76554664569d1c10cba2ec87ccebb73c604a8955deea33c"
     },
     {
       "file": "references/writing.md",
-      "sha256": "f908fe254901b8084651128590e493cb15707cfc77a1f16c16669243bf0ed6f1"
+      "sha256": "11762500aca1d140d8216d8d8e487a52ccad5c6715d196fadd20c5f6f8837d86"
     },
     {
       "file": "scripts/_lib.py",
-      "sha256": "b38f7279aafa211e209fa464a20aba9486a7bc91e947964042fd2f4edae857b9"
+      "sha256": "90d3838b850fb54e0ebb73c3517c8470e9aade398b64c45b6667eeabd6c33bd8"
     },
     {
       "file": "scripts/_skillrt.py",
-      "sha256": "b76eceeda4fdcad10a4246a66a7d137d2400cec49cc62d95ec89fd463b784304"
+      "sha256": "de72a371b53cd8f8503b6184c7513bcc7895029e8e7bbb25a02cde449c410ea5"
+    },
+    {
+      "file": "scripts/catalog.py",
+      "sha256": "68007cc61ab8518a2414c227c2ef90126c0f0757ee81cf20bb216e054983fabb"
     },
     {
       "file": "scripts/convergence.py",
-      "sha256": "308261df2b509ecebecd9b90d844778a89702dbe71a60d21dd349ed6e1b879c5"
+      "sha256": "c78466c40e42b6b8ffed38baa8f1e2926487bc4755fed9caf11ce875bb960bf2"
+    },
+    {
+      "file": "scripts/fence.py",
+      "sha256": "dd5f973aa0aae0a7dfe207364353c6a974d80c86616706b8cf12bbcc327c4a81"
     },
     {
       "file": "scripts/hook.py",
-      "sha256": "b0ccd614d242fcbbd2499da75d759b33b4cb8f7c7357563954570f15c3a7ef55"
+      "sha256": "8a3b162901ff1e5fc0ff8590efb2dd9c8a8aaac7a694b710b6f3d479a92478aa"
     },
     {
       "file": "scripts/init_skill.py",
-      "sha256": "c3c2c42fa8443a0d46278f7f4eac401b551640d143b7fada985699e01a01b433"
+      "sha256": "1c4c32fe1829aba6ace7b539cc3bd3f9df4d8d584055661306f8544e5b21dc70"
     },
     {
       "file": "scripts/install.py",
-      "sha256": "286effaa9680fd4f8a03816b37252e36b62172301ef9d64c8debd4646d91ea19"
+      "sha256": "df0448f4c41df1f6ccdbb136156869a6e8378469e83dc9175084545bea967589"
     },
     {
       "file": "scripts/probe.py",
-      "sha256": "2c2a3bc624cec64d16ef492112d7f0726a5e3eb44b67f5e3726c4518689a2588"
+      "sha256": "4e3c2c5e80a8fbe5534327eaeb2d3c18a3e6b043d1f44babf37719cdc222b751"
     },
     {
       "file": "scripts/render_skill.py",
-      "sha256": "596ed85746a6d16d908820df21379eafdb7de3bbdb0175ad3c953327d449ebad"
+      "sha256": "3403c03421f5f2f312e489ffcfd973a39885cf973aa7d8c2af60f1a4199418a1"
     },
     {
       "file": "scripts/report_skill.py",
-      "sha256": "3f8e9c50cae82b7e7dfc26ebb8f3726bae3ff7e6eb654917dc90c87bdfbc5a2c"
+      "sha256": "938fc05ddd5260dfb3c7b082b137dd7b4ff6efd75f97b8d9692a365f7306a0e6"
     },
     {
       "file": "scripts/run.py",
-      "sha256": "fcced04ce88880bbe860dadc1d25481c464f13d733de4d4c7d9c5ccbde096b76"
+      "sha256": "b34ddc9d291145f3db9e8fa8dba2041a9498778d19768e01ee17821c65fda0d0"
     },
     {
       "file": "scripts/selftest.py",
-      "sha256": "9a4bee0f90f3d37849a8f8999df9778d5faa50925e7362a9933e1a080d0b815d"
+      "sha256": "bf76f5ba6eaf9f0a7901ad859c2f5c7d2df1ad5dcb2913b7ba39746c99ed0230"
     },
     {
       "file": "scripts/skill_lint.py",
-      "sha256": "b709ab6a4e76c86d369a85342af5cfbe19a13171d7a8489dc6f30555e6fe3922"
+      "sha256": "b58dee5288664ecb0fbace180752dc3472d2f464699a8ce291f5a0150d31f898"
     }
   ],
-  "source_sha256": "dbd3dded1e394f43b273134ad83bc89e7e9fd4a019a918ddd0a4e673b3b53a38",
-  "artifacts": [
-    {
-      "file": "input.md",
-      "sha256": "55627ce5388bd9b47c852c6c830d4cfa5df30c457529cb4fd01aeedf319ff6b7",
-      "bytes": 535
-    },
+  "source_sha256": "429b1b095e69759eb64503b56984326bee6d962bc76f00ba44c148b97a5ea65e",
+  "recorded_at": "2026-10-28T11:08:30.936Z",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "/root/refresh_foundation_example",
+    "task": "更新後の skill-foundation の SKILL.md を一時gitプロジェクトで実際に適用し、日本語1行のコミットメッセージを書くスキルを作成する。収束テストは省き、run.py finish までの実出力と検証を保存する。"
+  },
+  "subject": "ステージ済みの git diff から日本語1行のコミットメッセージを書くスキルの作成",
+  "stage": "生成スキルの作成・検証と run.py finish が完了。収束テストは依頼で指定して省略",
+  "summary": "更新後の skill-foundation を新しいサブエージェントが一時gitプロジェクトに適用し、write-commit-message を新規作成しました。実出力、生成スキルとカタログ、検証ログを保存しています。",
+  "input": "input.md",
+  "text_output": "output.md",
+  "html_output": "catalog.html",
+  "excerpt_lines": 17,
+  "downloads": [
     {
       "file": "output.md",
-      "sha256": "b3ca21a713833bb0495614fdff369c441ca6eef1b88d3d8791b88c94b398216c",
-      "bytes": 766
+      "label": "最終報告の原本（Markdown）"
+    },
+    {
+      "file": "write-commit-message.zip",
+      "label": "生成スキル・設定・カタログ（ZIP）"
     },
     {
       "file": "validation.json",
-      "sha256": "01ad3fee5e6687e00d1190d8937f8794f49f889ce27b44c5c3abdd7a4cfe05d2",
-      "bytes": 30764
+      "label": "検証の要約（JSON）"
     },
     {
-      "file": "write-commit-message-skeleton-incomplete.zip",
-      "sha256": "304733e4ea858f13563d65f2e0c3b4f0526fc38b0ba4a6fc7d638c7780913284",
-      "bytes": 45052
+      "file": "execution.log",
+      "label": "サブエージェントの生成・検査ログ"
+    },
+    {
+      "file": "final-lint.log",
+      "label": "生成スキルの最終検査ログ"
+    },
+    {
+      "file": "parent-selftest.log",
+      "label": "親エージェントの自己テストログ"
+    },
+    {
+      "file": "parent-foundation-probe.log",
+      "label": "親エージェントの指定版probeログ"
+    }
+  ],
+  "checks": [
+    "SKILL.md の手順に沿って受付、骨組み、調査、ルール、契約、違反例、収束テスト省略、仕上げを実施し、run.py finish が指摘0件で完了した。",
+    "生成スキルの最終検査はエラー0件、警告1件。警告は指定した収束テストの省略による。",
+    "生成スキルのprobeは19件、Claude Code・Codex形式のhooks確認は20件で、失敗はすべて0件。",
+    "生成したカタログのSVG12個をXMLとして読み取れることを確認した。",
+    "親エージェントの確認として指定版の自己テスト11段階成功と、別コピーでのprobe26件・hooks20件成功のログを添付した。",
+    "独立したAIによる出力の一致・レビュー検出率と、実際の製品セッションからの自動hooks呼出しは未確認。公開ログの環境パスは置換し、置換内容をvalidation.jsonに記録した。"
+  ],
+  "artifacts": [
+    {
+      "file": "catalog.html",
+      "sha256": "12781e7f58498fdaf5bef24dd7f57e106553256583a6ee3573aead5b2e4f5898"
+    },
+    {
+      "file": "catalog/write-commit-message.html",
+      "sha256": "8ea6c2873c43168975f4d13c0a14e8b824c12059a70a329d119eaba9ad53db1e"
+    },
+    {
+      "file": "execution.log",
+      "sha256": "0ecd56d65f95a373ec61369b468b56abc5eb7f2cfee5c016a3bad4f8ea7ec11e"
+    },
+    {
+      "file": "final-lint.log",
+      "sha256": "389d009f9922f7d755ef518c3e892df457696c5a326eead384a4a2e65de64512"
+    },
+    {
+      "file": "input.md",
+      "sha256": "e50fda9aa54e000bd04883ada52e7b12e30e8eb07fb0a2d36a6ad728ce442c70"
+    },
+    {
+      "file": "output.md",
+      "sha256": "113b8dccc91564809650e649d94473d0c22753192cc6893c8b4cd551bdaf1cf9"
+    },
+    {
+      "file": "parent-foundation-probe.log",
+      "sha256": "1df82aa52fa0a10651b82013323f501b26c48fbf6489b720e90231c0b99f8d58"
+    },
+    {
+      "file": "parent-selftest.log",
+      "sha256": "1fdcad51366586f10a7a7e4aee5275e96061dad254d3026e78b9db725cb2feaf"
+    },
+    {
+      "file": "validation.json",
+      "sha256": "f39c75d724eb477abc9dcf79b40276f560a9a844a94a649d053927bc25aeae93"
+    },
+    {
+      "file": "write-commit-message.zip",
+      "sha256": "3b7dadd4c026388628c7e34f7b53e9da6dda09508c6c231ccd82525685d13623"
     }
   ]
 }

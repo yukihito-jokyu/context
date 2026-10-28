@@ -61,7 +61,7 @@
 | Skill | 概要 |
 |---|---|
 | [skill-authoring](authoring/skill-authoring/SKILL.md) | Skill の追加、更新、配置・配布単位の判定とカタログ整備を行う。 |
-| [skill-foundation](authoring/skill-foundation/SKILL.md) | 決定表・出力の契約・検査・収束テストを備え、実行者による結果の違いを減らすSkillを作る。 |
+| [skill-foundation](authoring/skill-foundation/SKILL.md) | ルール・出力の契約・hooks・違反例・収束テストを備えたSkillを作る。[plugin配布](../plugins/skill-foundation/README.md)を使う。 |
 | [my-skill-creator](authoring/my-skill-creator/SKILL.md) | Skill の作成、改善、評価、最適化を行う。 |
 | [skill-refiner](authoring/skill-refiner/SKILL.md) | 1つのSkillを題材別の新規担当で検証し、人間の指摘から独立評価・改善をHTMLで進める。 |
 
