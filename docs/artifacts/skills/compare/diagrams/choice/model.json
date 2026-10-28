@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "探したい情報を入力へ含める",
+    "subtitle": "利用者が探す語の位置で入力を選ぶ",
+    "locale": "ja",
+    "visual_preset": "editorial",
+    "animation": "none",
+    "viewBox": [
+      1100,
+      520
+    ]
+  },
+  "lanes": [
+    {
+      "id": "A",
+      "label": "A 向く条件"
+    },
+    {
+      "id": "B",
+      "label": "B 向く条件"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "A1",
+      "lane": "A",
+      "col": 0,
+      "type": "external",
+      "label": "① 見出しの語を探す",
+      "width": 210
+    },
+    {
+      "id": "A2",
+      "lane": "A",
+      "col": 1,
+      "type": "backend",
+      "label": "② 空本文で呼ぶ",
+      "width": 210
+    },
+    {
+      "id": "A3",
+      "lane": "A",
+      "col": 2,
+      "type": "database",
+      "label": "③ 対象は見出しのみ",
+      "width": 210
+    },
+    {
+      "id": "B1",
+      "lane": "B",
+      "col": 0,
+      "type": "external",
+      "label": "① 説明の中も探す",
+      "width": 210
+    },
+    {
+      "id": "B2",
+      "lane": "B",
+      "col": 1,
+      "type": "backend",
+      "label": "② 実本文で呼ぶ",
+      "width": 210
+    },
+    {
+      "id": "B3",
+      "lane": "B",
+      "col": 2,
+      "type": "database",
+      "label": "③ 本文も対象になる",
+      "width": 210
+    }
+  ],
+  "edges": [
+    {
+      "id": "Aedge1",
+      "from": "A1",
+      "to": "A2"
+    },
+    {
+      "id": "Aedge2",
+      "from": "A2",
+      "to": "A3"
+    },
+    {
+      "id": "Bedge1",
+      "from": "B1",
+      "to": "B2"
+    },
+    {
+      "id": "Bedge2",
+      "from": "B2",
+      "to": "B3"
+    }
+  ]
+}

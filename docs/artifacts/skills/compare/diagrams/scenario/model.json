@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "検索語「再作成」を同じ順で処理する",
+    "subtitle": "Aは0件、Bは本文中の一致から1件",
+    "locale": "ja",
+    "visual_preset": "editorial",
+    "animation": "none",
+    "viewBox": [
+      1100,
+      520
+    ]
+  },
+  "lanes": [
+    {
+      "id": "A",
+      "label": "A タイトルのみ"
+    },
+    {
+      "id": "B",
+      "label": "B 本文あり"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "A1",
+      "lane": "A",
+      "col": 0,
+      "type": "external",
+      "label": "① contentは空文字",
+      "width": 210
+    },
+    {
+      "id": "A2",
+      "lane": "A",
+      "col": 1,
+      "type": "backend",
+      "label": "② 再作成がない",
+      "width": 210
+    },
+    {
+      "id": "A3",
+      "lane": "A",
+      "col": 2,
+      "type": "database",
+      "label": "③ 結果は0件",
+      "width": 210
+    },
+    {
+      "id": "B1",
+      "lane": "B",
+      "col": 0,
+      "type": "external",
+      "label": "① contentに再作成",
+      "width": 210
+    },
+    {
+      "id": "B2",
+      "lane": "B",
+      "col": 1,
+      "type": "backend",
+      "label": "② 本文で一致",
+      "width": 210
+    },
+    {
+      "id": "B3",
+      "lane": "B",
+      "col": 2,
+      "type": "database",
+      "label": "③ scoreは1",
+      "width": 210
+    }
+  ],
+  "edges": [
+    {
+      "id": "Aedge1",
+      "from": "A1",
+      "to": "A2"
+    },
+    {
+      "id": "Aedge2",
+      "from": "A2",
+      "to": "A3"
+    },
+    {
+      "id": "Bedge1",
+      "from": "B1",
+      "to": "B2"
+    },
+    {
+      "id": "Bedge2",
+      "from": "B2",
+      "to": "B3"
+    }
+  ]
+}

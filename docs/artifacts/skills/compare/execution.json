@@ -3,76 +3,46 @@
   "skill": "compare",
   "skill_source": "utils/skills/discovery/compare/SKILL.md",
   "skill_sha256": "35d71964b8b1f2aea15d16b3dda94164f7debdba242bd7e1188489216ca23aea",
-  "recorded_at": "2026-10-11T11:09:02.385093+09:00",
-  "executor": "Codex（この会話のエージェント）",
+  "recorded_at": "2026-10-28T12:51:41.700Z",
+  "executor": "Codex サブエージェント",
   "input": "input.md",
-  "summary": "既存の検索関数を実行し、実入出力とコードから比較HTMLを作成しました。図は同梱Archifyで生成し標準SVGエクスポートを埋め込みました。",
-  "stage": "比較HTML生成・構造確認・実表示確認済み",
+  "summary": "実際のsearchDocumentsへ空本文と実本文を渡し、同じ6検索語の全返却値から比較HTMLを新規制作しました。",
+  "stage": "実関数の実行・5図の標準SVG出力・単体HTML生成・表示と操作確認済み",
   "checks": [
-    "6種類の検索語を同じ実関数で実行し、A/Bの全返却値をJSONへ保存。",
-    "5図のshowcase検証9項目とdeliver成功。標準serializeSvgの補助処理でSVGを出力。ブラウザのPNGエクスポートとの一致は未検証。",
-    "check_overviewsは5ページ・5図、check_coverageは12項目で成功。本文とソースの意味を読み合わせ。",
-    "Chromeで全体像、コードページへの切り替え、直接再読込を確認。性能比較は未実施。"
+    "4文書×同じ6検索語をA/B各条件で実関数へ入力。全返却値とlimit検証を保存。",
+    "更新後の依存記録を読んだ後、別の新規作業場所から入力構築、関数実行、5モデルdeliver、Chrome標準SVG出力、HTML組立てを再実行。",
+    "sync_vendor.py --check、check_overviews.py（5ページ）、check_coverage.py（11項目）が成功。",
+    "Chromeで1440px/390px×5ページ、ページ移動・深いリンク・details・戻る/進む・連続移動・段階再生・有限終了・reduced-motion・JavaScript無効を検査。",
+    "PC全体像・PC実装・390pxシナリオ・390px使い分けの4静止画像を目視。狭幅の図は内部横スクロールと原図リンク。再生の時間方向の目視・タブ非表示・印刷は未実施。",
+    "正本や実行ログの個人ホームパス、詳細環境版をマスクし、作業パスは<workdir>へ置換。ZIPもマスク後のファイルから新規生成。成果物SHAはマスク後。",
+    "利用者承認は要求も実施もしていない。外部投稿なし。"
   ],
   "downloads": [
     {
       "file": "output.html",
-      "label": "生成した原本（HTML）"
+      "label": "図とコードの比較原本（HTML）"
     },
     {
       "file": "bundle.zip",
-      "label": "成果物・入力の一式（ZIP）"
+      "label": "入力・全返却値・図・再現コード一式（ZIP）"
     },
     {
       "file": "search-results.json",
-      "label": "実際の検索結果（JSON）"
-    }
-  ],
-  "preview": "preview.jpg",
-  "preview_alt": "生成した比較HTMLの全体像ページ",
-  "html_output": "output.html",
-  "artifacts": [
-    {
-      "file": "bundle.zip",
-      "sha256": "8965a7c55c56e40fca0fab3d98ded2640ca6a72f6adc71f0bdd454375583a609",
-      "bytes": 781969
-    },
-    {
-      "file": "coverage.json",
-      "sha256": "93f617ea03371f105d360ae935eeb34dab81c32401495d72a29610e008758c40",
-      "bytes": 2723
-    },
-    {
-      "file": "input.md",
-      "sha256": "8cdc76097564176a5858f7697dcec2e178200bf3740f01472e3a9dea91a429d6",
-      "bytes": 300
-    },
-    {
-      "file": "output.html",
-      "sha256": "43b0bd2ca4d4cea2edfaf973fb96a9494dfa5a89b4404d1d987bb8ff52259742",
-      "bytes": 365869
-    },
-    {
-      "file": "preview.jpg",
-      "sha256": "809301dd40f725f0291a9384774eb3581fd1ba6aa7fbc0c355107f4f7af6f918",
-      "bytes": 60166
-    },
-    {
-      "file": "search-core.js",
-      "sha256": "29e22b1c5f081dea305c3fd58d488220d1f5c66c3dbdcee294dc8218b03bb5b4",
-      "bytes": 1057
+      "label": "全検索結果（JSON）"
     },
     {
       "file": "search-input.json",
-      "sha256": "2b0338973485a53f29abfd36d85c6922eba745318fcd95e6ac36b6f67c3af48f",
-      "bytes": 4764
-    },
-    {
-      "file": "search-results.json",
-      "sha256": "21f32004dfd85f73140a8f491ec901d88a60e7211e853fd7c72f6271d9e47b58",
-      "bytes": 14017
+      "label": "実入力（JSON）"
     }
   ],
+  "preview": "preview.png",
+  "preview_alt": "新しく制作した比較HTMLのPC実画面",
+  "html_output": "output.html",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "/root/refresh_diagram_examples",
+    "task": "AGENTS.md / skill-authoring の公開成果物再作成要件に従う独立実行担当です。作業リポジトリは /private/tmp/context-privacy-rewrite です（元のユーザーワークスペースには変更しない）。正本は親が個人情報を除去して封印済みで、このタスクでは一切変更しない。担当は archify-jp、compare、explain-html の3スキルの docs/artifacts/skills/<name>/ の完全削除→更新後のSKILL.mdを実際に適用した公開サンプル再作成です。utils/skills/authoring/skill-authoring/SKILL.md と references/docs-examples.md を読み、既存input.mdとexecution.jsonの題材を先に確認し、各作例は同じ題材で新しく実行してください。必要な実コマンド、画像/HTML/操作検証を行い、未実施の利用者承認は未実施と記録。旧成果物のコピーやハッシュ付け替えで再作成扱いしない。新規実行用作業場所は公開ディレクトリ外の /private/tmp のみ。node_modules は既存依存へのリンクを親が用意済み。Chrome等がsandboxで失敗する場合は必要なその実行だけrequire_escalatedで再実行可能。ブラウザ目視は実際に行った範囲だけ報告。公開前に /private/tmp/context-privacy-transform.py のsanitize(bytes, relativePath)をimportlibで読み、出力中の実ユーザー名入りホームパスとChrome等の実環境の詳細版を伏せてください。生成環境の正本パスは相対パスか<repository>、自分のタスクも個人ホームの絶対パスを記載しないこと。環境情報のマスクを明記したうえで execution.json を作成（runner.kind=subagent、agent_idはあなたの実ID、taskはこの依頼の実文、sourceManifestを現在の凍結ソースから作成、artifactsはマスク後の各ファイルSHA）。sourceManifest/verifyArtifactsを scripts/example-skill-source.cjs から使用。ガイド更新・全体sync・コミット・pushは親が担当するため行わない。担当ディレクトリ以外は変更しない。他エージェントが別スキルを同時に作業中なので全体git restore/reset等は禁止。各作例の完了時に親へ進捗とsource hash、実行・確認した範囲を報告し、3つ終えたら最終報告してください。"
+  },
   "source_files": [
     {
       "file": "README.md",
@@ -92,7 +62,7 @@
     },
     {
       "file": "dependencies.lock.json",
-      "sha256": "a2b0e3c7e2d57e49d08b1132871668e500424ce84e4c9d591313d6ccda825f3e"
+      "sha256": "92c1c6e6873b366c789079686d275f6dbc8f8d77985b965e4cd5c71891e4cf61"
     },
     {
       "file": "evals/evals.json",
@@ -356,7 +326,7 @@
     },
     {
       "file": "vendor/archify-jp/examples/workflow-agent-tool-call-rendered.visual-check.json",
-      "sha256": "b732f62c82b48d8776fb57cd48b76cd6a4ac68a4283b3200104f94a779134f2b"
+      "sha256": "4006ebc9c4a14b9fcdb6c7ce466f943d3c35d943f0cd39442459a0115e07a357"
     },
     {
       "file": "vendor/archify-jp/migrations/workflow-v2.mjs",
@@ -1167,9 +1137,247 @@
       "sha256": "2d7e4f66d4e22ab3ca7ac6bf0183302b139dfee1b00b75b514c5c9953d894374"
     }
   ],
-  "source_sha256": "ef0fd7065f4c5135ab303708e9554aaee4fca1a67f1fbab6dadb377a5126c93a",
-  "source_baseline": {
-    "reason": "既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。",
-    "recorded_at": "2026-10-15T14:50:34.015Z"
-  }
+  "source_sha256": "219925188b677fb11136107ab84aba92cb8648ad72681d3b48d6d41bd2b71f6b",
+  "artifacts": [
+    {
+      "file": "browser-check.json",
+      "sha256": "47e5246683e4fed3174e1e6d18baee34eac018e7234d7b9577e9354a65285b66",
+      "bytes": 7461
+    },
+    {
+      "file": "bundle.zip",
+      "sha256": "75501940db19b4f6a25469b04f48b2ef9933073491a5131cc9095620a2a1e8a4",
+      "bytes": 2246605
+    },
+    {
+      "file": "capture-choice-1440.png",
+      "sha256": "aeabb271c7055000fc47da7ae4a06a570103f1b92cebd644d2596aaf91325feb",
+      "bytes": 137606
+    },
+    {
+      "file": "capture-choice-390.png",
+      "sha256": "37741e92dbe4665cc58be44ff7c15777e6a0b7e5d594aa7212e32e0f7b67a4bf",
+      "bytes": 87503
+    },
+    {
+      "file": "capture-implementation-1440.png",
+      "sha256": "4f28ab455c235588f5acab50b119bde9b4f6e26ed38cacd86d5ff1b005d8d960",
+      "bytes": 169311
+    },
+    {
+      "file": "capture-implementation-390.png",
+      "sha256": "846b1edda3eecf658bb54a41963c38c91985b94d4bff7b3265dbf652cd08eb36",
+      "bytes": 109166
+    },
+    {
+      "file": "capture-overview-1440.png",
+      "sha256": "8addf5bb10856187104657f09a29a760cdc809675cdcece56fdbac1268768ed5",
+      "bytes": 134814
+    },
+    {
+      "file": "capture-overview-390.png",
+      "sha256": "2f0f9328abc7afb6d4608ce5084b803202cb08cbd7af2569d2a15f6db515dc99",
+      "bytes": 91529
+    },
+    {
+      "file": "capture-scenario-1440.png",
+      "sha256": "6e5bbfcfffa40b27ea5f2003095a4fbbab6a1b05d246db52a406355550565557",
+      "bytes": 139947
+    },
+    {
+      "file": "capture-scenario-390.png",
+      "sha256": "803d298416f7a69b82045762ad373a2057d2eb13b15fa5c216d46343fbbf01c3",
+      "bytes": 85042
+    },
+    {
+      "file": "capture-sources-1440.png",
+      "sha256": "e32bb42793d6dcd2781cfef325bd434eff0e5f259406a3b6acdb3ec4b5f92c53",
+      "bytes": 176268
+    },
+    {
+      "file": "capture-sources-390.png",
+      "sha256": "c45b7d95483b2fb5fcc127cf6df3b99108caf250819083623bcc3e902cd00d30",
+      "bytes": 108292
+    },
+    {
+      "file": "coverage-check.json",
+      "sha256": "3c35a06bf7fd442b85f4ba8c4581dc66fd522ad9fb9c1b7ddf231a8dabd4a06a",
+      "bytes": 505
+    },
+    {
+      "file": "coverage.json",
+      "sha256": "c78bbc38962afc30ac8da28e17406103d7081758920d0e3712af30cb7a23b399",
+      "bytes": 1984
+    },
+    {
+      "file": "diagrams/choice/delivery.json",
+      "sha256": "327cd1289a83ca23004b78835483b7794e3932ef2d8cc09ccaeee4bbfe95d835",
+      "bytes": 611
+    },
+    {
+      "file": "diagrams/choice/diagram.svg",
+      "sha256": "e7584ff5d21d1d01af28a7fd052641be507012986e3de85b4e1ccc780a97f917",
+      "bytes": 47084
+    },
+    {
+      "file": "diagrams/choice/export.json",
+      "sha256": "192a0559918003afc02078c07ce75fca96263d6a61ffe4da0399905935604f61",
+      "bytes": 300
+    },
+    {
+      "file": "diagrams/choice/model.json",
+      "sha256": "93c2aca855f2ede2e6f116095a3140d252c1a8a76cdc218277c764f9e4036944",
+      "bytes": 1715
+    },
+    {
+      "file": "diagrams/choice/viewer.html",
+      "sha256": "414976ef86fca19bac02e3622fb43e22dff808bf0b2078c7ac9bcff89236fef7",
+      "bytes": 843314
+    },
+    {
+      "file": "diagrams/implementation/delivery.json",
+      "sha256": "ea10be7206e322043a2cfb52b934fd779596a6694d4bbe831c9c8734137f0ab7",
+      "bytes": 627
+    },
+    {
+      "file": "diagrams/implementation/diagram.svg",
+      "sha256": "5d322c1a5163970765122377db4c648c5b797fba5ba3d54b1c8ebbde8b74780c",
+      "bytes": 43451
+    },
+    {
+      "file": "diagrams/implementation/export.json",
+      "sha256": "075f0d2cd12578536f233fba7fec8a10489bbc93c8735b4b29be4e29fa5e2365",
+      "bytes": 300
+    },
+    {
+      "file": "diagrams/implementation/model.json",
+      "sha256": "497fdf6e4f95a1e9fcf403e34f402b8d216200a2deaa1915a9cb1945aa5325f4",
+      "bytes": 1035
+    },
+    {
+      "file": "diagrams/implementation/viewer.html",
+      "sha256": "4d807be962995b33d92514f68bd8c69a9b226890f0cb9322f40564af67d2d7bd",
+      "bytes": 839665
+    },
+    {
+      "file": "diagrams/overview/delivery.json",
+      "sha256": "68f303eb38608880ad9fd6ff2418f9b37ef4d0b3aace5a5538fc2603a8ee8d42",
+      "bytes": 615
+    },
+    {
+      "file": "diagrams/overview/diagram.svg",
+      "sha256": "06d2994d94c2416575f3c764a70c39912b3bf7733c594768386db8fc81a5d115",
+      "bytes": 47133
+    },
+    {
+      "file": "diagrams/overview/export.json",
+      "sha256": "df624fb40d87c79ad4ae243134c44711c47fd3e9a64506acc0ca0410f55259be",
+      "bytes": 300
+    },
+    {
+      "file": "diagrams/overview/model.json",
+      "sha256": "aa86cfc09614b16a7d16a0592f79d8802c27a5c82f0018497321c2e0143ba805",
+      "bytes": 1719
+    },
+    {
+      "file": "diagrams/overview/viewer.html",
+      "sha256": "4bd4f24ad0c5cc94a621397ded3644f1f3a6a827d71db35d61c4ceaf2cbe4fb1",
+      "bytes": 843367
+    },
+    {
+      "file": "diagrams/scenario/delivery.json",
+      "sha256": "211992a433c34be2fcb25bb937ef2c310316dce551bb41898d2663bc54a2c80f",
+      "bytes": 615
+    },
+    {
+      "file": "diagrams/scenario/diagram.svg",
+      "sha256": "80139f1d7efa84b00fa8a8f79a50ea80510be3fba564a4d8cdd1a59734f432fb",
+      "bytes": 47007
+    },
+    {
+      "file": "diagrams/scenario/export.json",
+      "sha256": "21c8d7bc857ae0e3d21b1361fff7cd358dd31d8a7d75ecc96ff75dce8ffed072",
+      "bytes": 300
+    },
+    {
+      "file": "diagrams/scenario/model.json",
+      "sha256": "806250bc4391d35de858ad4244dbb966cbab5fa72605bbe95cada76b3e73decb",
+      "bytes": 1692
+    },
+    {
+      "file": "diagrams/scenario/viewer.html",
+      "sha256": "41ff1df108ba52fd9858b81b9586953fc3a4ad4426946b1b2095a5db0b119e23",
+      "bytes": 843256
+    },
+    {
+      "file": "diagrams/sources/delivery.json",
+      "sha256": "8a0fc8df6fdb5530d9f6165cd6048e4c6eef753d159df9bb5a8a9ac40c792d9e",
+      "bytes": 613
+    },
+    {
+      "file": "diagrams/sources/diagram.svg",
+      "sha256": "8979766ccb8899907d4eb25cfec03ce0bf56cd56064ff8fb0ca4572a0eadabd4",
+      "bytes": 43431
+    },
+    {
+      "file": "diagrams/sources/export.json",
+      "sha256": "dd2aa6e9dcf98dd08c100722ab8dd5246fe665a1eb90c4af6020c1744bcc8216",
+      "bytes": 300
+    },
+    {
+      "file": "diagrams/sources/model.json",
+      "sha256": "73c028221d02d5deff6eb549a3227a40da2581aa480980320acd68ccd9f611e8",
+      "bytes": 1045
+    },
+    {
+      "file": "diagrams/sources/viewer.html",
+      "sha256": "c9d4a0fffbaecac8ec29f744a66a2939582e1fc801957f2d925769d60f40fbcc",
+      "bytes": 839691
+    },
+    {
+      "file": "input.md",
+      "sha256": "8cdc76097564176a5858f7697dcec2e178200bf3740f01472e3a9dea91a429d6",
+      "bytes": 300
+    },
+    {
+      "file": "output.html",
+      "sha256": "98031fae62e2cf65ceaab0cbc50b7ed50bcb4c7c6d8fdee58667f258e2dcdc07",
+      "bytes": 359595
+    },
+    {
+      "file": "overview-check.json",
+      "sha256": "6b7eb1551b00f71a54e1b7a06d155094689c7a3084d91e6f7ef4a810e1a7038c",
+      "bytes": 215
+    },
+    {
+      "file": "preview.png",
+      "sha256": "8addf5bb10856187104657f09a29a760cdc809675cdcece56fdbac1268768ed5",
+      "bytes": 134814
+    },
+    {
+      "file": "prose-review.json",
+      "sha256": "c4be1f41f557b519f621fca21d35cb1f1b5a6911a620796d89ba04e6c3de3be6",
+      "bytes": 1039
+    },
+    {
+      "file": "replay.cjs",
+      "sha256": "f671fd0afe9cce25be4402004bbfe187dca6d52eec97f2d4bfcba4d295c0f967",
+      "bytes": 374
+    },
+    {
+      "file": "search-core.js",
+      "sha256": "29e22b1c5f081dea305c3fd58d488220d1f5c66c3dbdcee294dc8218b03bb5b4",
+      "bytes": 1057
+    },
+    {
+      "file": "search-input.json",
+      "sha256": "d2cf73ff0e0f52a3b85de879963b1915cfa09218883c469df7330b3068cd9b99",
+      "bytes": 1279
+    },
+    {
+      "file": "search-results.json",
+      "sha256": "874369a496d1ffe177cfeb43c10daf9137502cf2ea2925b4767bd6c7eaf564b5",
+      "bytes": 4371
+    }
+  ]
 }

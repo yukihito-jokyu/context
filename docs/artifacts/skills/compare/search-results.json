@@ -1,87 +1,144 @@
-[
-  {
-    "query": "原本",
-    "titleOnly": [],
-    "withBody": [
+{
+  "results": [
+    {
+      "query": "再作成",
+      "A": [],
+      "B": [
+        {
+          "id": "authoring",
+          "title": "Skill authoring",
+          "url": "docs/skills/skill-authoring.html",
+          "content": "共通Skillを更新した担当者は公開成果物を全削除し、更新後のSkillをサブエージェントで実行して再作成します。",
+          "score": 1,
+          "excerpt": "…成果物を全削除し、更新後のSkillをサブエージェントで実行して再作成します。"
+        }
+      ]
+    },
+    {
+      "query": "Skill",
+      "A": [
+        {
+          "id": "authoring",
+          "title": "Skill authoring",
+          "url": "docs/skills/skill-authoring.html",
+          "content": "",
+          "score": 10,
+          "excerpt": ""
+        }
+      ],
+      "B": [
+        {
+          "id": "authoring",
+          "title": "Skill authoring",
+          "url": "docs/skills/skill-authoring.html",
+          "content": "共通Skillを更新した担当者は公開成果物を全削除し、更新後のSkillをサブエージェントで実行して再作成します。",
+          "score": 10,
+          "excerpt": "共通Skillを更新した担当者は公開成果物を全削除し、更新後のSkillをサブエージェントで実行して再作成します。"
+        }
+      ]
+    },
+    {
+      "query": "検索 本文",
+      "A": [],
+      "B": [
+        {
+          "id": "search",
+          "title": "サイト検索",
+          "url": "docs/search.html",
+          "content": "検索関数はタイトルと本文の両方を正規化し、全検索語に一致する文書を返します。",
+          "score": 11,
+          "excerpt": "検索関数はタイトルと本文の両方を正規化し、全検索語に一致する文書を返します。"
+        }
+      ]
+    },
+    {
+      "query": "ＡＰＩ api",
+      "A": [
+        {
+          "id": "api",
+          "title": "API ガイド",
+          "url": "docs/api-guide.html",
+          "content": "",
+          "score": 10,
+          "excerpt": ""
+        },
+        {
+          "id": "limit",
+          "title": "API 入門",
+          "url": "docs/api.html",
+          "content": "",
+          "score": 10,
+          "excerpt": ""
+        }
+      ],
+      "B": [
+        {
+          "id": "api",
+          "title": "API ガイド",
+          "url": "docs/api-guide.html",
+          "content": "利用者は検索とAPIの接続点を確認できます。",
+          "score": 10,
+          "excerpt": "利用者は検索とAPIの接続点を確認できます。"
+        },
+        {
+          "id": "limit",
+          "title": "API 入門",
+          "url": "docs/api.html",
+          "content": "API の呼び出し例です。上限は既定で8件です。",
+          "score": 10,
+          "excerpt": "API の呼び出し例です。上限は既定で8件です。"
+        }
+      ]
+    },
+    {
+      "query": "",
+      "A": [],
+      "B": []
+    },
+    {
+      "query": "不存在",
+      "A": [],
+      "B": []
+    }
+  ],
+  "extra": {
+    "limit1": [
       {
-        "title": "plan",
-        "permalink": "/context/plan/",
-        "content": "# Implementation Plan\n\n## 1. 重要判断\n\n### 1.1 データモデル・構造\n\n- スキルごとに入力、実出力、検証記録、必要な画面画像を保存する。\n- 保存先はdocs/artifacts/examples/<skill-name>。Markdown原本を文書探索から除外する。\n\n### 1.2 型・インターフェース\n\n- 実行記録にはskill、skill_sha256、input、stage、artifacts、checksを持たせる。\n- artifactsはファイル名、形式、SHA-256を記録する。実行していない検証をpassにしない。\n\n### 1.3 UX・処理フロー\n\n- 実行した依頼を読み、成果物を確認し、原本を取得する順に置く。\n- 文章は実出力の抜粋と全文Markdown、画面は実ブラウザ画像とHTML、複数ファイルはZIPを用意する。\n- ダウンロードリンクはnative anchorを使い、クライアント側の文書遷移を避ける。\n\n### 1.4 既存仕様への影響\n\n- 23スキルページの架空例を差し替える。スキルの正本と手順は変更しない。\n- 既存の分類、検索、Pages CIを維持し、静的成果物と文書を区別する。\n\n## 2. 実装ステップ\n\n1. 正本を読み、各スキルの実行条件と承認境界を確認する。\n2. 公開可能な実題材で文章、図、画面、レビューの成果物を生成する。\n3. 同梱の検証と実ブラウザの撮影を行う。\n4. Markdownページに実入力・実出力・画像・ダウンロードを反映する。\n5. 型、ビルド、リンク、原本同一性、索引を確認する。\n\n## 3. 機械的な変更\n\n- 各ページへ共通の入力・到達点・原本リンクを追加する。\n- ファイル一覧とハッシュから検証記録を作る。\n\n## 4. 未決定事項\n\n- サンプルPR・Issueの外部作成範囲。\n- 人間による初回画面案・説明量の確認。\n\n## 5. 仮定\n\n- 掲載用の題材には実際の成果物展示と検索実装を使う。\n- 人間の回答が必要な実例では、未回答・未承認を明示する。\n\n## 6. レビューしてほしい点\n\n- 実際の出力を見て、スキル利用後に何が得られるか判断できるか。\n- ダウンロードした原本を手元で使えるか。\n",
-        "score": 1,
-        "excerpt": "…s/examples/<skill-name>。Markdown原本を文書探索から除外する。\n\n### 1.2 型・インターフェース\n\n- 実行記録にはskill、skill_sha256、input、stage、artifacts、checksを持たせる。\n- artifactsはファイル名、形式…"
+        "id": "api",
+        "title": "API ガイド",
+        "url": "docs/api-guide.html",
+        "content": "利用者は検索とAPIの接続点を確認できます。",
+        "score": 10,
+        "excerpt": "利用者は検索とAPIの接続点を確認できます。"
+      }
+    ],
+    "limitDefault": [
+      {
+        "id": "api",
+        "title": "API ガイド",
+        "url": "docs/api-guide.html",
+        "content": "利用者は検索とAPIの接続点を確認できます。",
+        "score": 10,
+        "excerpt": "利用者は検索とAPIの接続点を確認できます。"
       },
       {
-        "title": "unknowns",
-        "permalink": "/context/unknowns/",
-        "content": "# Unknowns Management\n\n対象はIssue #57の実成果物展示への修正。ユーザーの「docsのすべてのスキルの説明に対する成果物の例」を入力として、現在のdocsとサイト設定を確認した。\n\n## 1. 未知の分類\n\n- 既知の既知: Docusaurusを採用し、23スキルの例を実行結果へ置き換える。Markdownの説明と原本ダウンロードが必要。\n- 既知の未知: サンプルPR・IssueをGitHubへ実際に作成する範囲は回答待ち。外部投稿まで完了した実例にはできない。\n- 無自覚の既知: 読者が画面を見て判断する画像の大きさや入力・成果物の順序。実ページを提示して確認する。\n- 無自覚の未知: Markdown原本をdocsに置くと文書として索引化される可能性。ダウンロードリンクがSPAのページ移動として処理される可能性。\n\n## 2. 作業リスク\n\n- 分類: 中。\n- 理由: 公開ファイルとドキュメントの扱いを変え、全スキルの例に影響する。GitHubの作成操作には別の許可範囲がある。\n\n## 3. 使用する子スキル\n\n1. referenceで設定、Markdownリンク、utilsの分類を確認する。\n2. interviewで外部投稿を伴う実行範囲を確認する。\n3. prototypeで画面と原本への導線を具体化する。\n4. planで実行例の保存・表示・検証を依存順に並べる。\n5. notesで修正中に見つかった制約を残す。\n\n## 4. 最低限の成果物\n\n- 23スキルそれぞれの実入力と実出力。\n- 画面のある成果物の実ブラウザ画像。\n- 原本および複数ファイルのZIP。\n- 到達点と実施済み検証の記録。\n\n## 5. 人間が判断すべき論点\n\n- 外部投稿を伴う実例の作成先と実行範囲。\n- 提示後の画像・説明量・成果物の使いやすさ。\n\n## 6. AIが探索してよい論点\n\n- /context/配下のファイル配信、原本の同一性、検索索引からの除外。\n- 同梱スクリプトで生成できる形式と検証方法。\n",
-        "score": 1,
-        "excerpt": "…、23スキルの例を実行結果へ置き換える。Markdownの説明と原本ダウンロードが必要。\n- 既知の未知: サンプルPR・IssueをGitHubへ実際に作成する範囲は回答待ち。外部投稿まで完了した実例にはできない。\n- 無自覚の既知: 読者が画面を見て判断する画像の大きさや入力・成果物の順序。実ペ…"
-      }
-    ]
-  },
-  {
-    "query": "unknowns",
-    "titleOnly": [
-      {
-        "title": "unknowns",
-        "permalink": "/context/unknowns/",
-        "content": "",
+        "id": "limit",
+        "title": "API 入門",
+        "url": "docs/api.html",
+        "content": "API の呼び出し例です。上限は既定で8件です。",
         "score": 10,
-        "excerpt": ""
+        "excerpt": "API の呼び出し例です。上限は既定で8件です。"
       }
     ],
-    "withBody": [
+    "negativeLimit": [
       {
-        "title": "unknowns",
-        "permalink": "/context/unknowns/",
-        "content": "# Unknowns Management\n\n対象はIssue #57の実成果物展示への修正。ユーザーの「docsのすべてのスキルの説明に対する成果物の例」を入力として、現在のdocsとサイト設定を確認した。\n\n## 1. 未知の分類\n\n- 既知の既知: Docusaurusを採用し、23スキルの例を実行結果へ置き換える。Markdownの説明と原本ダウンロードが必要。\n- 既知の未知: サンプルPR・IssueをGitHubへ実際に作成する範囲は回答待ち。外部投稿まで完了した実例にはできない。\n- 無自覚の既知: 読者が画面を見て判断する画像の大きさや入力・成果物の順序。実ページを提示して確認する。\n- 無自覚の未知: Markdown原本をdocsに置くと文書として索引化される可能性。ダウンロードリンクがSPAのページ移動として処理される可能性。\n\n## 2. 作業リスク\n\n- 分類: 中。\n- 理由: 公開ファイルとドキュメントの扱いを変え、全スキルの例に影響する。GitHubの作成操作には別の許可範囲がある。\n\n## 3. 使用する子スキル\n\n1. referenceで設定、Markdownリンク、utilsの分類を確認する。\n2. interviewで外部投稿を伴う実行範囲を確認する。\n3. prototypeで画面と原本への導線を具体化する。\n4. planで実行例の保存・表示・検証を依存順に並べる。\n5. notesで修正中に見つかった制約を残す。\n\n## 4. 最低限の成果物\n\n- 23スキルそれぞれの実入力と実出力。\n- 画面のある成果物の実ブラウザ画像。\n- 原本および複数ファイルのZIP。\n- 到達点と実施済み検証の記録。\n\n## 5. 人間が判断すべき論点\n\n- 外部投稿を伴う実例の作成先と実行範囲。\n- 提示後の画像・説明量・成果物の使いやすさ。\n\n## 6. AIが探索してよい論点\n\n- /context/配下のファイル配信、原本の同一性、検索索引からの除外。\n- 同梱スクリプトで生成できる形式と検証方法。\n",
+        "id": "api",
+        "title": "API ガイド",
+        "url": "docs/api-guide.html",
+        "content": "利用者は検索とAPIの接続点を確認できます。",
         "score": 10,
-        "excerpt": "# Unknowns Management\n\n対象はIssue #57の実成果物展示への修正。ユーザーの「docsのすべてのスキルの説明に対する成果物の例」を入力として、現在のdocsとサイト設定を確認した。\n\n## 1. 未知の分類\n\n- 既知の既知: Docusaurusを採用し、23スキルの例…"
+        "excerpt": "利用者は検索とAPIの接続点を確認できます。"
       }
     ]
-  },
-  {
-    "query": "ＵＮＫＮＯＷＮＳ",
-    "titleOnly": [
-      {
-        "title": "unknowns",
-        "permalink": "/context/unknowns/",
-        "content": "",
-        "score": 10,
-        "excerpt": ""
-      }
-    ],
-    "withBody": [
-      {
-        "title": "unknowns",
-        "permalink": "/context/unknowns/",
-        "content": "# Unknowns Management\n\n対象はIssue #57の実成果物展示への修正。ユーザーの「docsのすべてのスキルの説明に対する成果物の例」を入力として、現在のdocsとサイト設定を確認した。\n\n## 1. 未知の分類\n\n- 既知の既知: Docusaurusを採用し、23スキルの例を実行結果へ置き換える。Markdownの説明と原本ダウンロードが必要。\n- 既知の未知: サンプルPR・IssueをGitHubへ実際に作成する範囲は回答待ち。外部投稿まで完了した実例にはできない。\n- 無自覚の既知: 読者が画面を見て判断する画像の大きさや入力・成果物の順序。実ページを提示して確認する。\n- 無自覚の未知: Markdown原本をdocsに置くと文書として索引化される可能性。ダウンロードリンクがSPAのページ移動として処理される可能性。\n\n## 2. 作業リスク\n\n- 分類: 中。\n- 理由: 公開ファイルとドキュメントの扱いを変え、全スキルの例に影響する。GitHubの作成操作には別の許可範囲がある。\n\n## 3. 使用する子スキル\n\n1. referenceで設定、Markdownリンク、utilsの分類を確認する。\n2. interviewで外部投稿を伴う実行範囲を確認する。\n3. prototypeで画面と原本への導線を具体化する。\n4. planで実行例の保存・表示・検証を依存順に並べる。\n5. notesで修正中に見つかった制約を残す。\n\n## 4. 最低限の成果物\n\n- 23スキルそれぞれの実入力と実出力。\n- 画面のある成果物の実ブラウザ画像。\n- 原本および複数ファイルのZIP。\n- 到達点と実施済み検証の記録。\n\n## 5. 人間が判断すべき論点\n\n- 外部投稿を伴う実例の作成先と実行範囲。\n- 提示後の画像・説明量・成果物の使いやすさ。\n\n## 6. AIが探索してよい論点\n\n- /context/配下のファイル配信、原本の同一性、検索索引からの除外。\n- 同梱スクリプトで生成できる形式と検証方法。\n",
-        "score": 10,
-        "excerpt": "# Unknowns Management\n\n対象はIssue #57の実成果物展示への修正。ユーザーの「docsのすべてのスキルの説明に対する成果物の例」を入力として、現在のdocsとサイト設定を確認した。\n\n## 1. 未知の分類\n\n- 既知の既知: Docusaurusを採用し、23スキルの例…"
-      }
-    ]
-  },
-  {
-    "query": "原本 unknowns",
-    "titleOnly": [],
-    "withBody": [
-      {
-        "title": "unknowns",
-        "permalink": "/context/unknowns/",
-        "content": "# Unknowns Management\n\n対象はIssue #57の実成果物展示への修正。ユーザーの「docsのすべてのスキルの説明に対する成果物の例」を入力として、現在のdocsとサイト設定を確認した。\n\n## 1. 未知の分類\n\n- 既知の既知: Docusaurusを採用し、23スキルの例を実行結果へ置き換える。Markdownの説明と原本ダウンロードが必要。\n- 既知の未知: サンプルPR・IssueをGitHubへ実際に作成する範囲は回答待ち。外部投稿まで完了した実例にはできない。\n- 無自覚の既知: 読者が画面を見て判断する画像の大きさや入力・成果物の順序。実ページを提示して確認する。\n- 無自覚の未知: Markdown原本をdocsに置くと文書として索引化される可能性。ダウンロードリンクがSPAのページ移動として処理される可能性。\n\n## 2. 作業リスク\n\n- 分類: 中。\n- 理由: 公開ファイルとドキュメントの扱いを変え、全スキルの例に影響する。GitHubの作成操作には別の許可範囲がある。\n\n## 3. 使用する子スキル\n\n1. referenceで設定、Markdownリンク、utilsの分類を確認する。\n2. interviewで外部投稿を伴う実行範囲を確認する。\n3. prototypeで画面と原本への導線を具体化する。\n4. planで実行例の保存・表示・検証を依存順に並べる。\n5. notesで修正中に見つかった制約を残す。\n\n## 4. 最低限の成果物\n\n- 23スキルそれぞれの実入力と実出力。\n- 画面のある成果物の実ブラウザ画像。\n- 原本および複数ファイルのZIP。\n- 到達点と実施済み検証の記録。\n\n## 5. 人間が判断すべき論点\n\n- 外部投稿を伴う実例の作成先と実行範囲。\n- 提示後の画像・説明量・成果物の使いやすさ。\n\n## 6. AIが探索してよい論点\n\n- /context/配下のファイル配信、原本の同一性、検索索引からの除外。\n- 同梱スクリプトで生成できる形式と検証方法。\n",
-        "score": 11,
-        "excerpt": "…、23スキルの例を実行結果へ置き換える。Markdownの説明と原本ダウンロードが必要。\n- 既知の未知: サンプルPR・IssueをGitHubへ実際に作成する範囲は回答待ち。外部投稿まで完了した実例にはできない。\n- 無自覚の既知: 読者が画面を見て判断する画像の大きさや入力・成果物の順序。実ペ…"
-      }
-    ]
-  },
-  {
-    "query": "",
-    "titleOnly": [],
-    "withBody": []
-  },
-  {
-    "query": "該当しない文字列",
-    "titleOnly": [],
-    "withBody": []
   }
-]
+}

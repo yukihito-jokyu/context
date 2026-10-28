@@ -25,13 +25,9 @@ compareを使って、WebSocketとServer-Sent Eventsを比較するHTMLを作っ
 
 ## 成果物の例
 
-既存の検索関数を実行し、実入出力とコードから比較HTMLを作成しました。図は同梱Archifyで生成し標準SVGエクスポートを埋め込みました。
+実際のsearchDocumentsへ空本文と実本文を渡し、同じ6検索語の全返却値から比較HTMLを新規制作しました。
 
-**到達点：比較HTML生成・構造確認・実表示確認済み。**
-
-**移行時の確認：既存の実行記録を移行しました。本文の一致は確認しましたが、過去の実行時の同梱資料全体は特定できていません。**
-
-このハッシュは移行時の変更検出用の基準です。同梱資料全体をこの版で再実行した証拠ではありません。
+**到達点：実関数の実行・5図の標準SVG出力・単体HTML生成・表示と操作確認済み。**
 
 ### 実行した依頼
 
@@ -41,25 +37,29 @@ contextのsearchDocumentsへタイトルだけを渡す場合と実本文も渡�
 
 ### 実際の画面
 
-![生成した比較HTMLの全体像ページ](/skills/compare/preview.jpg)
+![新しく制作した比較HTMLのPC実画面](/skills/compare/preview.png)
 
-[画像を原寸で開く](pathname:///skills/compare/preview.jpg)
+[画像を原寸で開く](pathname:///skills/compare/preview.png)
 
 ### 成果物を取得する
 
-- [生成した原本（HTML）](pathname:///skills/compare/output.html#download)
-- [成果物・入力の一式（ZIP）](pathname:///skills/compare/bundle.zip#download)
-- [実際の検索結果（JSON）](pathname:///skills/compare/search-results.json#download)
+- [図とコードの比較原本（HTML）](pathname:///skills/compare/output.html#download)
+- [入力・全返却値・図・再現コード一式（ZIP）](pathname:///skills/compare/bundle.zip#download)
+- [全検索結果（JSON）](pathname:///skills/compare/search-results.json#download)
+- [実入力（JSON）](pathname:///skills/compare/search-input.json#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/compare/output.html)
 - [実行入力の原本](pathname:///skills/compare/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/compare/execution.json#download)
 
 ### 確認した結果
 
-- 6種類の検索語を同じ実関数で実行し、A/Bの全返却値をJSONへ保存。
-- 5図のshowcase検証9項目とdeliver成功。標準serializeSvgの補助処理でSVGを出力。ブラウザのPNGエクスポートとの一致は未検証。
-- check_overviewsは5ページ・5図、check_coverageは12項目で成功。本文とソースの意味を読み合わせ。
-- Chromeで全体像、コードページへの切り替え、直接再読込を確認。性能比較は未実施。
+- 4文書×同じ6検索語をA/B各条件で実関数へ入力。全返却値とlimit検証を保存。
+- 更新後の依存記録を読んだ後、別の新規作業場所から入力構築、関数実行、5モデルdeliver、Chrome標準SVG出力、HTML組立てを再実行。
+- sync_vendor.py --check、check_overviews.py（5ページ）、check_coverage.py（11項目）が成功。
+- Chromeで1440px/390px×5ページ、ページ移動・深いリンク・details・戻る/進む・連続移動・段階再生・有限終了・reduced-motion・JavaScript無効を検査。
+- PC全体像・PC実装・390pxシナリオ・390px使い分けの4静止画像を目視。狭幅の図は内部横スクロールと原図リンク。再生の時間方向の目視・タブ非表示・印刷は未実施。
+- 正本や実行ログの個人ホームパス、詳細環境版をマスクし、作業パスは<workdir>へ置換。ZIPもマスク後のファイルから新規生成。成果物SHAはマスク後。
+- 利用者承認は要求も実施もしていない。外部投稿なし。
 
 ## 確認するポイント
 

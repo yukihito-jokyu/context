@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "入力の違いが検索範囲を変える",
+    "subtitle": "同じ関数へ渡すcontentだけを変える",
+    "locale": "ja",
+    "visual_preset": "editorial",
+    "animation": "none",
+    "viewBox": [
+      1100,
+      520
+    ]
+  },
+  "lanes": [
+    {
+      "id": "A",
+      "label": "A タイトルのみ"
+    },
+    {
+      "id": "B",
+      "label": "B 本文あり"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "A1",
+      "lane": "A",
+      "col": 0,
+      "type": "external",
+      "label": "① タイトル＋空本文",
+      "width": 210
+    },
+    {
+      "id": "A2",
+      "lane": "A",
+      "col": 1,
+      "type": "backend",
+      "label": "② 同じ検索関数",
+      "width": 210
+    },
+    {
+      "id": "A3",
+      "lane": "A",
+      "col": 2,
+      "type": "database",
+      "label": "③ タイトルの一致",
+      "width": 210
+    },
+    {
+      "id": "B1",
+      "lane": "B",
+      "col": 0,
+      "type": "external",
+      "label": "① タイトル＋実本文",
+      "width": 210
+    },
+    {
+      "id": "B2",
+      "lane": "B",
+      "col": 1,
+      "type": "backend",
+      "label": "② 同じ検索関数",
+      "width": 210
+    },
+    {
+      "id": "B3",
+      "lane": "B",
+      "col": 2,
+      "type": "database",
+      "label": "③ タイトルか本文",
+      "width": 210
+    }
+  ],
+  "edges": [
+    {
+      "id": "Aedge1",
+      "from": "A1",
+      "to": "A2"
+    },
+    {
+      "id": "Aedge2",
+      "from": "A2",
+      "to": "A3"
+    },
+    {
+      "id": "Bedge1",
+      "from": "B1",
+      "to": "B2"
+    },
+    {
+      "id": "Bedge2",
+      "from": "B2",
+      "to": "B3"
+    }
+  ]
+}
