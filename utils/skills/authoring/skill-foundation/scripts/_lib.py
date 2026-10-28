@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -28,8 +29,12 @@ NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 ID_RE = re.compile(r"^[A-Z]{2,5}-\d{2}$")
 ID_IN_TEXT = re.compile(r"(?<![A-Z0-9-])[A-Z]{2,5}-\d{2}(?![\d-])")
 PROBE_ID_RE = re.compile(r"^[A-Z]{2,5}-\d{2}-[a-z0-9]+$")
+ANALYSIS_FITS = ["ok", "detour", "waste", "wrong"]  # AI の分析の、操作ごとの当てはまり（convergence.py が確かめ、catalog.py が出す）
+ANALYSIS_VERDICTS = ["good", "fair", "poor"]  # AI の分析の、流れ全体の評価
+FINDINGS_TITLES = ["動きの指摘", "Behavior findings"]  # convergence-report.md の、AI の分析の指摘を締め込みで分類した表の節
+FINDING_CLASSES = [f"V{i}" for i in range(1, 9)] + ["推定違い", "misread"]  # 動きの指摘の分類（ばらつきの分類か、記録と合わない推定）
 
-# 揺れの軸。記号 → (グループの接頭辞, 名前, 覆い方)。覆い方が "spec:<節>" の軸は spec のその節で答える
+# ばらつきの軸。記号 → (グループの接頭辞, 名前, 覆い方)。覆い方が "spec:<節>" の軸は spec のその節で答える
 AXES = {
     "T1": ("TRG", "起動する依頼", "spec:triggers.use_when"),
     "T2": ("TRG", "起動しない依頼と代わり", "spec:triggers.not_for"),
@@ -70,7 +75,7 @@ WHY_NOT = {
     "cost": ("費用が見合わない", "not worth the cost"),
 }
 STANDARD_IDS = ["CTL-01", "CTL-02", "CTL-03", "CTL-04", "CTL-05", "RPT-01"]
-# 答えの決め方（variance-axes.md の2章）。上から順に当てはめ、最初に当たったものを決定の basis に書く
+# 決めた根拠（variance-axes.md の2章）。上から順に当てはめ、最初に当たったものをルールの basis に書く
 BASES = {
     "user": ("依頼の指定", "the user's request"),
     "existing": ("後付けする既存のスキルの書き方", "the existing skill being retrofitted"),
@@ -92,7 +97,9 @@ IMPACTS = {
 MODES = ["new", "retrofit"]
 PROFILES_PATH = FOUNDATION_DIR / "assets" / "skill-profiles.json"
 EXAMPLES_DIR = "assets/examples"
-SEAL_REL = "assets/seal.json"  # 封印。_skillrt.SEAL_REL と同じ
+SEAL_REL = "assets/seal.json"  # 合格時の指紋。_skillrt.SEAL_REL と同じ
+CATALOG_REL = ".skill-runs/catalog.html"  # catalog.py が書くカタログの一覧。収束テストは、ほかの出力から作る図なので数えない
+CATALOG_PAGES_REL = ".skill-runs/catalog"  # 一覧の隣の、スキルごとのページ（<名前>.html）。数えないのは一覧と同じ
 
 VAGUE_JA = ["なるべく", "できるだけ", "できる限り", "可能な限り", "可能であれば", "極力", "適切", "適宜", "必要に応じ",
             "基本的に", "原則として", "推奨", "望ましい", "場合による", "場合によって", "ケースバイケース",
@@ -104,11 +111,12 @@ VAGUE_EN = [r"\bshould\b", r"\bprefer(?:ably|red)?\b", r"\brecommended\b", r"\ba
 OPEN_WORDS = [("を含む", r"を含む"), ("ほか", r"ほか(?!の)"), ("including", r"\bincluding\b"), ("such as", r"\bsuch as\b")]
 
 SECTIONS = {
-    "ja": ["1. 使う場面", "2. 手順", "3. 入力", "4. 決定表", "5. 出力の契約", "6. 完了前チェックリスト",
+    "ja": ["1. 使う場面", "2. 手順", "3. 入力", "4. ルール", "5. 出力の契約", "6. 完了前チェックリスト",
            "7. 報告", "8. 制御の仕組み"],
-    "en": ["1. When to use", "2. Procedure", "3. Inputs", "4. Decisions", "5. Output contract",
+    "en": ["1. When to use", "2. Procedure", "3. Inputs", "4. Rules", "5. Output contract",
            "6. Pre-completion checklist", "7. Report", "8. Control"],
 }
+OLD_SECTIONS = {"4. 決定表": "4. ルール", "4. Decisions": "4. Rules"}  # 改めた見出し。古いスキルに直し方を示す
 BLOCKS = ["purpose", "triggers", "inputs", "decisions", "contract", "checklist", "report", "control"]
 BLOCK_RE = re.compile(r"<!-- BEGIN GENERATED:([a-z]+) -->\n(.*?)<!-- END GENERATED:\1 -->", re.S)
 
@@ -131,6 +139,49 @@ def load_json(path: Path) -> dict:
 def write_json(path: Path, data: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def actions_hash(actions: list) -> str:
+    """traces.json の1人分の操作（道具・入力・成否）のハッシュ。AI の分析が、今の記録を読んだものかを確かめる。"""
+    keep = [[a.get("tool"), a.get("input"), a.get("ok")] for a in actions if isinstance(a, dict)]
+    return hashlib.sha256(json.dumps(keep, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
+
+
+def stale_analyses(skill_dir: Path, rnd: int) -> list[str]:
+    """ラウンド rnd の、操作の記録があるのに AI の分析が無いか、記録（traces.json）を取り直す前の分析のエージェント。"""
+    rdir = skill_dir / f"dev/results/convergence/round-{rnd}"
+    if not (rdir / "traces.json").is_file():
+        return []
+    runs = {rid: run for rid, run in load_json(rdir / "traces.json").get("runs", {}).items() if run.get("actions")}
+    done = load_json(rdir / "analysis.json").get("runs", {}) if (rdir / "analysis.json").is_file() else {}
+    return sorted(rid for rid, run in runs.items() if done.get(rid, {}).get("based_on") != actions_hash(run["actions"]))
+
+
+def finding_rows(report: str, rnd: int) -> list[list[str]]:
+    """convergence-report.md の「動きの指摘」の表のうち、ラウンドの列が rnd の行（セルの列）。"""
+    body = "".join(section(report, title) for title in FINDINGS_TITLES)
+    rows = [[c.strip() for c in line.strip().strip("|").split("|")] for line in body.splitlines() if line.strip().startswith("|")]
+    return [row for row in rows if row[0] == str(rnd)]
+
+
+def uncited_findings(skill_dir: Path, rnd: int, report: str) -> list[str]:
+    """ラウンド rnd の AI の分析を、締め込みで分類した記録（convergence-report.md の「動きの指摘」の表）が足りないところ。
+    指摘があるのに表のどの行にも出ないエージェントと、分類か対処の列が埋まっていない行。"""
+    path = skill_dir / f"dev/results/convergence/round-{rnd}/analysis.json"
+    if not path.is_file():
+        return []
+    rows, problems = finding_rows(report, rnd), []
+    for row in rows:
+        classes = [c for c in re.split(r"[・、,/\s]+", row[3]) if c] if len(row) >= 5 else []
+        if not classes or any(c not in FINDING_CLASSES for c in classes) or not row[4]:
+            problems.append(f"ラウンド {rnd} の行「{row[1][:40] if len(row) > 1 else ''}」の分類（V1〜V8 か推定違い）か対処が埋まっていません")
+    cited = " ".join(row[1] for row in rows if len(row) > 1)
+    missing = sorted(rid for rid, a in load_json(path).get("runs", {}).items()
+                     if a.get("flow", {}).get("issues") and not re.search(re.escape(rid) + r"(?![\w-])", cited))
+    if missing:
+        problems.append(f"ラウンド {rnd} の AI の分析に指摘があるのに、「動きの指摘」の表のどの行にも無いエージェントがいます（"
+                        + ", ".join(missing[:4]) + (f" ほか {len(missing) - 4} 件" if len(missing) > 4 else "") + "）")
+    return problems
 
 
 def load_spec(skill_dir: Path) -> dict:
@@ -189,12 +240,12 @@ def research_items(skill_dir: Path) -> list[str]:
 
 
 def research_ids(skill_dir: Path, existing: bool = False) -> set[str]:
-    """dev/research.md の「使った決定」の行に書かれた決定の ID。existing なら「既存のスキル」の節だけを見る。"""
+    """dev/research.md の「使ったルール」の行に書かれたルールID。existing なら「既存のスキル」の節だけを見る。"""
     path = skill_dir / "dev/research.md"
     text = path.read_text(encoding="utf-8") if path.is_file() else ""
     if existing:
         text = "\n".join(section(text, title) for title in EXISTING_SECTIONS)
-    lines = [l for l in text.splitlines() if re.search(r"(使った決定|Used by)\s*[:：]", l)]
+    lines = [l for l in text.splitlines() if re.search(r"(使ったルール|使った決定|Used by)\s*[:：]", l)]
     return {rid for l in lines for rid in ID_IN_TEXT.findall(l)}
 
 

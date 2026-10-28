@@ -7,19 +7,19 @@
              baseline.setup は start の前に1回（{skill} は元のスキル、{lab} は一時ディレクトリ）、
              baseline.files と baseline.commands は start の後に毎回（{skill} は写したスキル、{root} はプロジェクト）
   probe    : baseline を probe の内容で壊すと、check が落ち、出力が expect に一致する。出力に別のルールIDの指摘が
-             出たら others に記録し、注意を出す（1つの違反例は1つの決定だけを破る。skill_lint.py --final が警告にする）
+             出たら others に記録し、注意を出す（1つの違反例は1つのルールだけを破る。skill_lint.py --final が警告にする）
              （files の mode: create・append・delete・sub。sub は pattern を replacement に置き換える。
              create の中身は content か、from に書いたスキルの見本 assets/examples/<ファイル>）。
              fixed を持つ probe（段 format）は、check が通り、出力が expect に一致し、files の1つ目に fixed が残らない
   review   : dev/probes.json の reviews の見本は、機械の検査（check）を通る（通らないなら review でなく validate にする）
   標準     : 出力が無いと finish が落ちる（CTL-01）、保護ファイルを変えると check が落ちる・変えた後に
              start --restart しても落ちる・hooks の登録を外すと check が落ちる・abort の後に変えて start し直すと
-             報告の「検証」に出る・封印の後に変えると start が始めない（CTL-02）、
+             報告の「検証」に出る・合格した後に変えると start が始めない（CTL-02）、
              wait 中は stop が止めない（CTL-03）、実行していないと hooks は何もしない・発言は止めない（CTL-04）、
              契約の外にファイルを作ると check が落ちる（CTL-05）、finish が報告の本文を出し、
              notes.md が箇条書きでないと check が落ちる、abort が中断の本文を出し、次の start が前の中断を残す（RPT-01）
-  配線     : targets ごとに、登録した hooks のコマンドを製品の形の入力で実行し、編集の後・終える前・
-             保護ファイルの編集の前に、それぞれ AI を止める出力が出る。実行していないときは、封印したスキルの
+  hooks の動作: targets ごとに、登録した hooks のコマンドを製品の形の入力で実行し、編集の後・終える前・
+             保護ファイルの編集の前に、それぞれ AI を止める出力が出る。実行していないときは、合格時の指紋があるスキルの
              保護ファイルの編集に Claude Code では確認を求め、Codex では何もしない（CTL-04）
 結果は dev/results/probe-results.json に書く（skill_lint.py --final が読む）。--only のときは書かない。
 
@@ -78,7 +78,7 @@ class Lab:
         self.skill = self.root / PLACES[spec["targets"][0]] / self.name
         self.skill.parent.mkdir(parents=True, exist_ok=True)
         _lib.copy_tree(skill_dir, self.skill, exclude=("__pycache__", ".skill-runs", ".DS_Store", "dev"))
-        (self.skill / rt.SEAL_REL).unlink(missing_ok=True)  # 標準の確認は保護ファイルを変えるので、封印は確かめるときだけ置く
+        (self.skill / rt.SEAL_REL).unlink(missing_ok=True)  # 標準の確認は保護ファイルを変えるので、合格時の指紋は確かめるときだけ置く
         args = [sys.executable, str(self.skill / "scripts/install.py"), "--project", str(self.root),
                 "--targets", ",".join(spec["targets"])]
         code, out = _lib.run(args, self.root)
@@ -230,7 +230,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dir")
     parser.add_argument("--only", help="カンマ区切りの probe ID（結果ファイルは書かない）")
-    parser.add_argument("--keep-temp", action="store_true")
+    parser.add_argument("--keep-temp", action="store_true", help="一時プロジェクトを消さずに残す（見終えたら消す）")
     args = parser.parse_args()
 
     skill_dir = Path(args.dir).resolve()
@@ -250,7 +250,7 @@ def main() -> int:
                         "output_tail": "" if passed else _lib.tail(output, 12), "others": others or []})
         print(f"{'成功' if passed else '失敗'}  {pid}  {detail}")
         if others:
-            print(f"    注意: 別のルール {', '.join(others)} の指摘も出ました。1つの違反例は1つの決定だけを破るようにする")
+            print(f"    注意: 別のルール {', '.join(others)} の指摘も出ました。1つの違反例は1つのルールだけを破るようにする")
         if not passed and output:
             print("    " + _lib.tail(output, 12).replace("\n", "\n    "))
 
@@ -332,7 +332,7 @@ def main() -> int:
             skill_md.write_bytes(original)
             (lab.skill / rt.SEAL_REL).unlink()
             record("CTL-02-builtin-seal", "CTL-02", sealed_code == 0 and code == 1 and "CTL-02" in out,
-                   f"封印の後に保護ファイルを変えると start が始めない（封印どおりの start {sealed_code}、変えた後の start {code}）",
+                   f"合格した後に保護ファイルを変えると start が始めない（指紋どおりの start {sealed_code}、変えた後の start {code}）",
                    sealed_out + "\n" + out)
 
             lab.start()
@@ -351,7 +351,7 @@ def main() -> int:
             for platform in spec.get("targets", []) if hooks_on else []:
                 config = lab.root / CONFIGS[platform]
                 if not lab.hook_commands(platform):
-                    continue  # 登録が無いことは配線の検査が落とす
+                    continue  # 登録が無いことは hooks の動作の検査が落とす
                 lab.start()
                 undo = lab.baseline()
                 saved = config.read_bytes()
@@ -404,7 +404,7 @@ def main() -> int:
 
                 def wire(check: str, passed: bool, detail: str, output: str = "") -> None:
                     wiring.append({"platform": platform, "check": check, "passed": passed, "detail": detail})
-                    print(f"{'成功' if passed else '失敗'}  配線 {platform} {check}  {detail}")
+                    print(f"{'成功' if passed else '失敗'}  hooks の動作 {platform} {check}  {detail}")
                     if not passed and output:
                         print("    " + _lib.tail(output, 8).replace("\n", "\n    "))
 
@@ -463,7 +463,7 @@ def main() -> int:
                           "tool_input": {"command": f"*** Begin Patch\n*** Update File: {rel_place}\n@@\n*** End Patch\n"}})
                 code, out = lab.hook(platform, commands["PreToolUse"][0], event)
                 got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
-                wire("pre-tool", got == DENY[platform], f"保護ファイルの編集の前に止める（期待 {DENY[platform]}、結果 {got}）", out)
+                wire("pre-tool", got == DENY[platform], f"保護ファイルの編集の前に止める（期待 {DENY[platform]}、結果 {got or '何もしない'}）", out)
                 lab.revert(undo)
                 lab.run_py("abort", "--reason", "probe-sealed")
                 rt.write_seal(lab.skill, contract)
@@ -472,7 +472,7 @@ def main() -> int:
                 got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
                 wanted = "ask" if platform == "claude" else None
                 wire("pre-tool-sealed", code == 0 and got == wanted,
-                     f"実行していないとき、封印した保護ファイルの編集の前に {wanted or '何もしない'}（結果 {got}。CTL-04）", out)
+                     f"実行していないとき、指紋を記録した保護ファイルの編集の前に {wanted or '何もしない'}（結果 {got or '何もしない'}。CTL-04）", out)
     finally:
         lab.close()
 
@@ -481,7 +481,7 @@ def main() -> int:
     if not args.only:
         _lib.write_json(skill_dir / "dev/results/probe-results.json",
                         {"hash": skill_lint.probes_hash(skill_dir), "results": results, "wiring": wiring})
-    print(f"\nprobe {len(results)} 件中 失敗 {len(failed)} 件／配線 {len(wiring)} 件中 失敗 {len(failed_wiring)} 件")
+    print(f"\nprobe {len(results)} 件中 失敗 {len(failed)} 件／hooks の動作 {len(wiring)} 件中 失敗 {len(failed_wiring)} 件")
     return 1 if failed or failed_wiring else 0
 
 

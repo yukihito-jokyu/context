@@ -5,16 +5,16 @@ run.py finish が契約の report.sections から呼び、出力をそのまま�
 残さないため、内容はすべて作ったスキルのファイルとプロジェクトの状態から集計する。
 
   ## 作ったスキル          dev/spec.json（名前、目的、置き場、起動、入力、出力）
-  ## 決定と守らせ方        dev/spec.json の decisions と excluded_axes
+  ## ルールと守らせ方        dev/spec.json の decisions と excluded_axes
   ## 作ったスキルの検証    skill_lint.py --final の結果、dev/results/probe-results.json
   ## 収束テスト            dev/results/convergence/round-*/report.json と dev/convergence-report.md の「結論」
   ## 確かめていないこと    上の結果と設定から決まる注意
   ## プロジェクトに置いたもの  スキルの本体、リンク、hooks の登録（ファイルを読んで確かめる）
 
---seal を付けると、上の節の代わりに、作ったスキルを封印して（assets/seal.json）「## 封印」の節だけを出す。
+--seal を付けると、上の節の代わりに、作ったスキルの合格時の指紋を記録して（assets/seal.json）「## 改変チェックの記録」の節だけを出す。
 契約の report.sections に stage: finish で置き、finish が検査に通った後にだけ実行する（STEP-05）。
 
-終了コード: 0 出力した、1 skill_lint.py --final にエラーがあり封印しなかった、2 スキルのディレクトリか dev/spec.json が無い
+終了コード: 0 出力した、1 skill_lint.py --final にエラーがあり指紋を記録しなかった、2 スキルのディレクトリか dev/spec.json が無い
 
 使い方:
   python3 report_skill.py <作ったスキルのディレクトリ> --project <プロジェクトのルート> [--seal]
@@ -90,22 +90,22 @@ def section_decisions(spec: dict) -> list[str]:
         else:
             other.append(rid)
     excluded = [f"{e.get('axis')}（{e.get('reason', '')}）" for e in spec.get("excluded_axes", [])]
-    lines = ["## 決定と守らせ方", "",
-             "| 区分 | 決定の数 | ID |", "|---|---|---|",
+    lines = ["## ルールと守らせ方", "",
+             "| 区分 | ルールの数 | ID |", "|---|---|---|",
              f"| スキル固有・機械が守ったかを確かめる（runtime・format・validate のどれかを含む） | {len(machine)} | {ids_text(machine)} |",
              f"| スキル固有・機械で確かめない（review か doc で確かめる） | {len(other)} | {ids_text(other)} |",
              f"| 標準（全スキル共通） | {len(standard)} | {ids_text(standard)} |",
              f"| 対象外にした軸 | {len(excluded)} | {ids_text(excluded)} |"]
     if retired:
-        lines.append(f"| 廃止した決定（ID は再利用しない） | {len(retired)} | {ids_text(retired)} |")
-    # 段と答えの決め方の内訳。1つの決定が複数の段を持つので、段の合計は決定の数と一致しない
+        lines.append(f"| 廃止したルール（ID は再利用しない） | {len(retired)} | {ids_text(retired)} |")
+    # 段と決めた根拠の内訳。1つのルールが複数の段を持つので、段の合計はルールの数と一致しない
     levels = ["段（control）: " + "、".join(f"{lv} {sum(lv in d.get('control', []) for d in live)}" for lv in _lib.LEVELS)]
     custom = [d for d in live if d.get("id") not in _lib.STANDARD_IDS]
     bases = Counter(d.get("basis") for d in custom)
-    levels.append("答えの決め方（スキル固有）: " + ("、".join(f"{_lib.BASES[b][0]} {bases[b]}" for b in _lib.BASES if bases[b]) or "—"))
+    levels.append("決めた根拠（スキル固有）: " + ("、".join(f"{_lib.BASES[b][0]} {bases[b]}" for b in _lib.BASES if bases[b]) or "—"))
     lines += [""] + [f"- {text}" for text in levels]
     if other:
-        lines += ["", "機械で守らせない決定と理由（spec の why_not_machine）:"]
+        lines += ["", "機械で守らせないルールと理由（spec の why_not_machine）:"]
         lines += [f"- {d['id']}: {d.get('why_not_machine') or '理由が書かれていない'}" for d in custom if d["id"] in other]
     return lines
 
@@ -120,15 +120,15 @@ def run_lint(skill_dir: Path, project: Path) -> tuple[str, list[str], int]:
 
 
 def section_seal(spec: dict, skill_dir: Path, project: Path) -> tuple[list[str], int]:
-    """作ったスキルを封印する。検査に通った状態だけを封印するので、skill_lint.py --final をもう一度通す。"""
+    """作ったスキルの合格時の指紋を記録する。検査に通った状態だけを記録するので、skill_lint.py --final をもう一度通す。"""
     lint_text, _, code = run_lint(skill_dir, project)
     if code != 0:
-        return ["## 封印", "", f"- 封印しなかった（`skill_lint.py --final`: {lint_text}）"], 1
+        return ["## 改変チェックの記録", "", f"- 指紋を記録しなかった（`skill_lint.py --final`: {lint_text}）"], 1
     count = rt.write_seal(skill_dir, rt.load_contract(skill_dir))
     rel = (skill_dir / rt.SEAL_REL).relative_to(project).as_posix()
-    return ["## 封印", "",
+    return ["## 改変チェックの記録", "",
             f"- `{rel}` に保護ファイル {count} 件のハッシュを書いた",
-            f"- これより後に保護ファイルを変えると、封印し直すまで `{spec['name']}` の `run.py start` が止まる。"
+            f"- これより後に保護ファイルを変えると、指紋を記録し直すまで `{spec['name']}` の `run.py start` が止まる。"
             "変え方は、作ったスキルの SKILL.md の「8. 制御の仕組み」にある"], 0
 
 
@@ -140,7 +140,7 @@ def section_checks(skill_dir: Path, lint_text: str) -> list[str]:
         results, wiring = data.get("results", []), data.get("wiring", [])
         platforms = "、".join(PRODUCTS.get(p, p) for p in sorted({w.get("platform") for w in wiring}))
         lines.append(f"| `probe.py` | 違反例 {len(results)} 件中 失敗 {sum(not r.get('passed') for r in results)} 件／"
-                     f"配線 {len(wiring)} 件中 失敗 {sum(not w.get('passed') for w in wiring)} 件"
+                     f"hooks の動作 {len(wiring)} 件中 失敗 {sum(not w.get('passed') for w in wiring)} 件"
                      + (f"（{platforms}）" if platforms else "") + " |")
     else:
         lines.append("| `probe.py` | 結果が無い |")
@@ -203,12 +203,12 @@ def section_convergence(spec: dict, skill_dir: Path) -> tuple[list[str], list[st
         unchecked.append("収束テストの runner subagent（Agent ツール）では、一時プロジェクトの hooks が働かず、自動の起動は説明文を渡した近似で、"
                          "Claude Code と Codex の違いは測っていない（convergence-test.md の3章）")
     if not left:
-        lines.append("残った揺れ: なし")
+        lines.append("残ったばらつき: なし")
         return lines, unchecked
     report_md = skill_dir / "dev/convergence-report.md"
     text = report_md.read_text(encoding="utf-8") if report_md.is_file() else ""
     conclusion = _lib.section(text, "結論") + _lib.section(text, "Conclusion")
-    lines.append("残った揺れ（dev/convergence-report.md の「結論」から）:")
+    lines.append("残ったばらつき（dev/convergence-report.md の「結論」から）:")
     for tid in left:
         mentions = [l.strip().lstrip("-* ").strip() for l in conclusion.splitlines() if tid in l]
         if not mentions:
@@ -277,7 +277,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dir", help="作ったスキルのディレクトリ")
     parser.add_argument("--project", required=True, help="プロジェクトのルート")
-    parser.add_argument("--seal", action="store_true", help="作ったスキルを封印し、「## 封印」の節だけを出す")
+    parser.add_argument("--seal", action="store_true", help="作ったスキルの合格時の指紋を記録し、「## 改変チェックの記録」の節だけを出す")
     args = parser.parse_args()
     skill_dir, project = Path(args.dir).resolve(), Path(args.project).resolve()
     if not (skill_dir / _lib.SPEC_REL).is_file():

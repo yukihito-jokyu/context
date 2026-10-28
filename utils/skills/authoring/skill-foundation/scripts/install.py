@@ -16,7 +16,7 @@ hooks（スキルの contract.json の control.hooks が true のとき）:
 
 使い方:
   python3 <skill>/scripts/install.py --project <ルート> [--targets claude,codex] [--mode link|copy] [--no-hooks]
-  python3 <skill>/scripts/install.py --project <ルート> --check       # 置き場所と hooks が揃っているか
+  python3 <skill>/scripts/install.py --project <ルート> --check       # 置き場所と hooks が揃っているか（もう一方の置き場が本体へのリンクかも。--mode copy なら複製でよい）
   python3 <skill>/scripts/install.py --project <ルート> --uninstall   # このスキルの置き場所と hooks を外す
 """
 
@@ -155,12 +155,17 @@ def place(root: Path, platform: str, name: str, mode: str, remove: bool, dry: bo
     return changes
 
 
-def check(root: Path, platforms: list[str], name: str, hooks_on: bool) -> list[str]:
-    problems = []
+def check(root: Path, platforms: list[str], name: str, hooks_on: bool, mode: str) -> list[str]:
+    problems, body = [], rt.SKILL_DIR
     for platform in platforms:
         target = root / PLACES[platform] / name
         if not (target / "SKILL.md").is_file():
             problems.append(f"{target.relative_to(root)}/SKILL.md がありません（{platform} がスキルを見つけられない）")
+        elif target.resolve() != body and (target.is_symlink() or mode == "link"):
+            what = "本体ではない場所へのリンク" if target.is_symlink() else "本体へのリンクではなく、別のディレクトリ（複製）"
+            where = body.relative_to(root).as_posix() if body.is_relative_to(root) else body.as_posix()
+            problems.append(f"{target.relative_to(root)} が{what}です（本体は {where}）。中身を確かめて外し、本体の install.py を実行し直す"
+                            + ("" if target.is_symlink() else "。複製で置いたなら --mode copy を付けて確かめる"))
         if hooks_on:
             data = load_config(root / CONFIGS[platform])
             for event, group in wanted_entries(platform, name):
@@ -191,7 +196,7 @@ def main() -> int:
         return 2
     hooks_on = contract.get("control", {}).get("hooks", True) and not args.no_hooks
     if args.check:
-        problems = check(root, platforms, name, hooks_on)
+        problems = check(root, platforms, name, hooks_on, args.mode)
         for problem in problems:
             rt.emit(f"ERROR {problem}")
         rt.emit(f"install --check: 問題 {len(problems)} 件")

@@ -67,6 +67,35 @@
       "expect": "STEP-04 .*T1-typical が基準を満たしていません"
     },
     {
+      "id": "STEP-04-b",
+      "rule": "STEP-04",
+      "description": "AI の分析に指摘のあるエージェントを、動きの指摘の表に書かない",
+      "files": [
+        {
+          "path": ".claude/skills/write-commit-message/dev/results/convergence/round-1/report.json",
+          "mode": "create",
+          "content": "{\"round\": 1, \"tasks\": [{\"id\": \"T1-typical\", \"converged\": true}, {\"id\": \"T2-default\", \"converged\": true}, {\"id\": \"T3-edge\", \"converged\": true}, {\"id\": \"H1-holdout\", \"converged\": true}]}\n"
+        },
+        {
+          "path": ".claude/skills/write-commit-message/dev/results/convergence/round-1/traces.json",
+          "mode": "create",
+          "content": "{\"round\": 1, \"runs\": {\"T1-typical/subagent-1\": {\"actions\": [{\"tool\": \"Read\", \"input\": \"SKILL.md\", \"ok\": true}]}}}\n"
+        },
+        {
+          "path": ".claude/skills/write-commit-message/dev/results/convergence/round-1/analysis.json",
+          "mode": "create",
+          "content": "{\"round\": 1, \"runs\": {\"T1-typical/subagent-1\": {\"based_on\": \"2a0e75012b4ab352\", \"flow\": {\"verdict\": \"poor\", \"issues\": [\"#1 で手順を読み違えた\"]}}}}\n"
+        },
+        {
+          "path": ".claude/skills/write-commit-message/dev/spec.json",
+          "mode": "sub",
+          "pattern": "\"skip_reason\": \"[^\"]*\"",
+          "replacement": "\"skip_reason\": \"\""
+        }
+      ],
+      "expect": "STEP-04 .*「動きの指摘」の表のどの行にも無いエージェントがいます"
+    },
+    {
       "id": "OUT-01-a",
       "rule": "OUT-01",
       "description": "SKILL.md を作らない",
@@ -147,7 +176,7 @@
     {
       "id": "OUT-04-a",
       "rule": "OUT-04",
-      "description": "決定の ID を振り直して番号を欠けさせる（参照と生成物は合わせて直す）",
+      "description": "ルールID を振り直して番号を欠けさせる（参照と生成物は合わせて直す）",
       "files": [
         {
           "path": ".claude/skills/write-commit-message/dev/spec.json",
