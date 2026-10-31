@@ -14,6 +14,7 @@ pluginは、作業手順であるSkillと、その工程を検査するhooksを�
 | [explain-html](explain-html.md) | 解説HTMLのArchify完了検査をStop hookから呼ぶ | Claude Code |
 | [generate-domain-model](generate-domain-model.md) | 業務の概念をMermaid・PNG・HTMLカタログにし、出力をhooksで検査する | Codex、Claude Code |
 | [generate-domain-model-from-code](generate-domain-model-from-code.md) | コードの行・抜粋・ハッシュを辿れる業務モデル図を生成し、hooksで検査する | Codex、Claude Code |
+| [write-requirement-document](write-requirement-document.md) | 会話・議事録から図付きHTMLの要件定義書を作り、出力をhooksで検査する | Codex、Claude Code |
 
 まず[導入を始める](getting-started.md)で、生成と導入の違いを確認してください。現在、このリポジトリにはpluginごとのローカル生成処理があります。公開marketplaceはまだありません。
 
