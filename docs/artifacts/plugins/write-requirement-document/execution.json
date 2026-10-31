@@ -1,0 +1,317 @@
+{
+  "name": "write-requirement-document",
+  "kind": "plugin",
+  "executed_at": "2026-10-31T05:04:15.939956+00:00",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "/root/refresh_requirements_precommit",
+    "task": "AGENTS.mdとskill-authoringの公開成果物再作成手順に従い、資料末尾の空行除去後の要件定義Skill/pluginを新規実行して公開成果物を全再生成する。正本とpluginソースは変更しない。両製品向けbuild・移動・ZIP展開・正本byte照合・4hooks直接接続・coreと収集機能の分離・合成指摘収集・専用7tests・Claude manifest検査を実行し、実際のコマンド・結果・未実施事項と実subagent識別子を記録する。実ユーザー承認・導入・外部投稿・実モデル収束を行わない。"
+  },
+  "stage": "0.1.1の両製品向け配布物を生成・移動・展開。hooks無効時のcore完了と、hooks由来の案内・提示版・合成指摘・修正版保存を検証。実承認・実製品への導入・モデル収束は未実施",
+  "input": "input.md",
+  "text_output": "verification.txt",
+  "checks": [
+    "codex: relocated ZIP, manifest and complete runtime",
+    "codex: configured hooks and fixture check/finish without standalone placement",
+    "codex: core check/finish without hooks or collector scripts",
+    "codex: hook-only capture, first delivery and synthetic revision",
+    "claude-code: relocated ZIP, manifest and complete runtime",
+    "claude-code: configured hooks and fixture check/finish without standalone placement",
+    "claude-code: core check/finish without hooks or collector scripts",
+    "claude-code: hook-only capture, first delivery and synthetic revision",
+    "plugin-owned unit tests",
+    "Claude CLI manifest validation",
+    "canonical sources unchanged"
+  ],
+  "downloads": [
+    {
+      "label": "Codex用plugin ZIP",
+      "file": "write-requirement-document-codex.zip"
+    },
+    {
+      "label": "Claude Code用plugin ZIP",
+      "file": "write-requirement-document-claude-code.zip"
+    },
+    {
+      "label": "検証結果",
+      "file": "verification.txt"
+    },
+    {
+      "label": "実コマンドと結果",
+      "file": "validation.json"
+    },
+    {
+      "label": "専用テスト結果",
+      "file": "unit-tests.log"
+    },
+    {
+      "label": "再現用スクリプト",
+      "file": "verify_plugin.py"
+    },
+    {
+      "label": "manifest検査",
+      "file": "manifest-validation.log"
+    }
+  ],
+  "source_files": [
+    {
+      "file": "README.md",
+      "sha256": "64d8ae7e4f94a0489c90462edf6e8c97f6124fd9bde0270cb787b014f3217de2"
+    },
+    {
+      "file": "build.py",
+      "sha256": "b3b3813665aa5136e5ee8f83459eedc81203bbc01d4dcf6ed44f4b4ad7b54e6a"
+    },
+    {
+      "file": "bundle.json",
+      "sha256": "f4c14c629557ad823ccbf75481cf44894df124519e5096adfd23c4db842bd946"
+    },
+    {
+      "file": "claude-code/hooks.json",
+      "sha256": "3757e6a915ebc2da25d380bd82f013732abc034a68ff67fd1d0e37b8290c98f6"
+    },
+    {
+      "file": "claude-code/plugin.json",
+      "sha256": "d5d7cb531fc7f14e5da48eff5760833d54914fb9c77811fb9ed26c4c71f2c418"
+    },
+    {
+      "file": "codex/hooks.json",
+      "sha256": "ce4c00cc44b484ed52419c5a50d1566267a707ab4d416c50c5d5be680e30e63a"
+    },
+    {
+      "file": "codex/plugin.json",
+      "sha256": "b55fc3021c3c3235623d4d239e7aaf0a7376b0c6eb0d8dadbe049c14e69fa077"
+    },
+    {
+      "file": "entry.md",
+      "sha256": "4cc6e52d2b5d77d89c298d7a26b090859f0125cbf0dded2a29b36cdbcbf3810b"
+    },
+    {
+      "file": "scripts/hook.py",
+      "sha256": "0c8d5e700cf5baa3eef1a6bda93d2282e0f1999f20b279408f30e2dc1563e2a1"
+    },
+    {
+      "file": "tests/test_plugin.py",
+      "sha256": "89ccde7fe3112c27ef33180e7cebb8768ed28d1ca7a59b3d1970f18ed973b53d"
+    }
+  ],
+  "source_sha256": "93f032ada64841ed8a5b83bfe86271e457a681a9ebcbf733809ec8ed18a0dba8",
+  "skill_sources": [
+    {
+      "file": "utils/skills/documentation/write-requirement-document",
+      "source_files": [
+        {
+          "file": "SKILL.md",
+          "sha256": "bb34d1c960b664b6aacca7662c40a9e915ff2188ac2e60970a0068d9c5bad913"
+        },
+        {
+          "file": "assets/contract.json",
+          "sha256": "b2bf38eeeb37afd76cd7a6ca9f82571b642919f8a921f6ec3ff925ddf412daa4"
+        },
+        {
+          "file": "assets/examples/diagrams/d-01-context.mmd",
+          "sha256": "fb013384397aba16a84e7d05a9d6629698d217b55b3c18f8b377d74167988b6f"
+        },
+        {
+          "file": "assets/examples/diagrams/d-01-context.png",
+          "sha256": "18a91a2362738d348757d92155c8681c14b56167ea7b0995f33753f0f1a9c226"
+        },
+        {
+          "file": "assets/examples/diagrams/d-02-usecase.mmd",
+          "sha256": "93681c864d922f31558323e3be83a8f390366076499f2c18e7496072ba0912d1"
+        },
+        {
+          "file": "assets/examples/diagrams/d-02-usecase.png",
+          "sha256": "f837feb967b15e01e3598e3e88a1d33d3e4e24f3b0273f12e862d533ed05cf2e"
+        },
+        {
+          "file": "assets/examples/diagrams/d-03-workflow.mmd",
+          "sha256": "c9d7101c7f8f12e6e3c0bb8ed432e9969949f284998d3d0c6ceb7f8dd04b7650"
+        },
+        {
+          "file": "assets/examples/diagrams/d-03-workflow.png",
+          "sha256": "564c015065af2dc6e0c0d24a77d688ce8e8c2e1e66de35e3ed31cc4324268acb"
+        },
+        {
+          "file": "assets/examples/diagrams/d-04-state.mmd",
+          "sha256": "66e5ad14e8f133206e4a041e8fc0531df953fb6e5fc5a1c970b2f3e86606beb9"
+        },
+        {
+          "file": "assets/examples/diagrams/d-04-state.png",
+          "sha256": "1aa45f50ac23211c91b3a0d75f4645007f62b88af9dc36b8c0e30216435a6b1b"
+        },
+        {
+          "file": "assets/examples/manifest.json",
+          "sha256": "09129e4f46a9d328e4853cd3377e3eba9c6563fc3a3b0900c01e29c2fa5e01f8"
+        },
+        {
+          "file": "assets/examples/requirement-document.html",
+          "sha256": "f85eeb9f7f5256cebd3261c71bc796e8dcd2beacc30098134db871abe1261dc2"
+        },
+        {
+          "file": "assets/examples/requirement-document.json",
+          "sha256": "dfee627433e442e4a165fcdaa5887462a3b0d7942d189d2ff066ff15500c66fc"
+        },
+        {
+          "file": "assets/feedback.schema.json",
+          "sha256": "ddbfcc9168b2ac491f84d438f4def7b6b8f107ae37e4a7ac449c31e53f4efd44"
+        },
+        {
+          "file": "dev/eval/cases/context-fail.html",
+          "sha256": "82b2bf44bbc33e64fe66d4d4c76af0e3387534ccd9dcfdcd2c615c4ce6194f1d"
+        },
+        {
+          "file": "dev/eval/cases/context-pass.html",
+          "sha256": "fab852b8e3b3185c2b9d0a3c8f2d9c657209297feb2d51ebf109dd3474637b4c"
+        },
+        {
+          "file": "dev/eval/cases/diagram-mismatch.html",
+          "sha256": "8d8b5e065e079b26ce28e3a434e268004d19146ece53a90ff3ca6c590d7bd3c5"
+        },
+        {
+          "file": "dev/eval/cases/diagram-missing.html",
+          "sha256": "44bd07d3c7f2604da9310f48ce887e6d5643606645233ee6edec9f64fdc055b2"
+        },
+        {
+          "file": "dev/eval/cases/diagram-pass.html",
+          "sha256": "3270940cf2c7fbdfee474a925f4a1ab7da1dfbaa508c987e138784c90cc1465a"
+        },
+        {
+          "file": "dev/eval/cases/names-fail.html",
+          "sha256": "adbd1837f05934ce548dddc6f6cc00ccfef3e59b8846354ec788040b744421cf"
+        },
+        {
+          "file": "dev/eval/cases/names-pass.html",
+          "sha256": "8d572c3b306ed17c79699c4c2dc57a4e1d0385f2f9104722d5647013a407c2b8"
+        },
+        {
+          "file": "dev/eval/cases/open-question-fail.html",
+          "sha256": "368c81b99e7518d106d6ab2fd396ecc11d4684ce4f532debdeb3f57e55f1137b"
+        },
+        {
+          "file": "dev/eval/cases/open-question-pass.html",
+          "sha256": "c0bca650907570983319978f0a7c6b2cd0e65555a43162861fbfbe7dcbba69a9"
+        },
+        {
+          "file": "dev/eval/cases/prose-disconnected.html",
+          "sha256": "aed58951016af3bb41ee4d901fe7332a6850458210e41fdd88fdc2743ab4cc63"
+        },
+        {
+          "file": "dev/eval/cases/prose-pass.html",
+          "sha256": "6a47554979bdf2706eb8d3773489bf067ddc2ff17cc5a22ce0881ff66fb88698"
+        },
+        {
+          "file": "dev/eval/cases/prose-slop.html",
+          "sha256": "5b09f31d659dc4662fcefe2c1f9cef4a0c2048ac51fda7ce4111e755f1a1cc17"
+        },
+        {
+          "file": "dev/eval/eval.json",
+          "sha256": "59cda344277a91602abea5d2999e64c7c5e663b88d0ccc271f089488ed58fdec"
+        },
+        {
+          "file": "dev/evals.json",
+          "sha256": "0833ebc6be4bc389e700f93e89b3bfa8e7e74fc767708a0abd7ac6e870607e19"
+        },
+        {
+          "file": "dev/fixtures/basic/README.md",
+          "sha256": "20c5afa2b60e999a3d1e99cf9ad88717fe8118b6ec06a91091c6e96412c085c6"
+        },
+        {
+          "file": "dev/probes.json",
+          "sha256": "0f4ae11d7621514e3d06f0bf63719be2f9ea470a8255572d35ba92d9aca28b22"
+        },
+        {
+          "file": "dev/research.md",
+          "sha256": "d22c53b6d5791062600ef9843f5791cc448ba88e56809ffdbc2d19b0412d479a"
+        },
+        {
+          "file": "dev/spec.json",
+          "sha256": "001e0114f993eaa32fab673d6d69d9d2dcef52236deaa090527532d9ac5ac52a"
+        },
+        {
+          "file": "references/authoring.md",
+          "sha256": "aba6b4b163126752afa01b6896987aa1578bff5f13b5cdac7ba69b02784ea302"
+        },
+        {
+          "file": "references/decisions.md",
+          "sha256": "b14adae0559ef9638a3fe9a4e08638a6c4a756eca6edfd85d3b126e03a1a0ac1"
+        },
+        {
+          "file": "references/diagrams.md",
+          "sha256": "a7937965e15f15397177b1aabbaeec92a588ce0b0404000e8f6f1582994a07f0"
+        },
+        {
+          "file": "references/feedback.md",
+          "sha256": "45ca2e70dc2bfccc35b6f571c2868dac163fdda63539b029a26605f22add0a80"
+        },
+        {
+          "file": "references/html-principles.md",
+          "sha256": "45e1dd4ed6d0c246b1a1d23b70252dd6ea137a352e585cdacbb81f63524d4bf5"
+        },
+        {
+          "file": "scripts/_skillrt.py",
+          "sha256": "5ff2580d36726675268ce9f205abe4c1e323bbba837c60a5b7580ad22b218cda"
+        },
+        {
+          "file": "scripts/document.py",
+          "sha256": "f1bcb5d8e8c2e179138bf7b4d54ff6a34d4e3b252efde73ba6db972ac46ec0e5"
+        },
+        {
+          "file": "scripts/feedback.py",
+          "sha256": "2750618bb0a62af5a2c871892d7c53ea495b534312677637578a439875a610c0"
+        },
+        {
+          "file": "scripts/feedback_review.py",
+          "sha256": "46a96d56525d75b8f47598a644098d66bddc347727bc370e769ce154236e3086"
+        },
+        {
+          "file": "scripts/hook.py",
+          "sha256": "dfdd0575e8f1652b5716d5d22fe5a846b1f1d1bc39e21a47bcea60f4b4b81749"
+        },
+        {
+          "file": "scripts/install.py",
+          "sha256": "979456e2b80fd8c6df58929d7e0952d172017911eb343bd100a6c0ab7b0de04b"
+        },
+        {
+          "file": "scripts/run.py",
+          "sha256": "8f3dce4ffedb74a5f827134ddf1b39629f75e84fe47a3ad5bf4bb31c2dd924e1"
+        }
+      ],
+      "source_sha256": "909e0b50c8ab220ce3a0ac6a378529601abffd80b6ec0916cf4a8cdf5de39a52"
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "input.md",
+      "sha256": "3789dc8de37177531c3cdcfdbac48f3da986ee98849a6fd316f877fcf954e6ef"
+    },
+    {
+      "file": "manifest-validation.log",
+      "sha256": "695916c1e181e4afc83ab8a17b1211bc72f58e48255910b263f312b2010e0517"
+    },
+    {
+      "file": "unit-tests.log",
+      "sha256": "62a24556431f4064af6f05a82ba6bec1c4802c6265b95c42243969e800a95f7c"
+    },
+    {
+      "file": "validation.json",
+      "sha256": "491276d63ba236682f62e721cdb9db6a62bd8fdaea266f7b48cbef3d2fd23dc8"
+    },
+    {
+      "file": "verification.txt",
+      "sha256": "994b9dcbab266cb536361e1937fa046074afdde18336b3e7630b1ed37ae224f9"
+    },
+    {
+      "file": "verify_plugin.py",
+      "sha256": "af4397a6506ca94dabf540ae095c062ba151df03e8acff777d5edec5ace27d9b"
+    },
+    {
+      "file": "write-requirement-document-claude-code.zip",
+      "sha256": "20ad574bd5053a7325396f51d28ce17b1613573fe012067cb7072115615c0ed1"
+    },
+    {
+      "file": "write-requirement-document-codex.zip",
+      "sha256": "2f5ca6e4220a5507e93dcc59a6501f99bb2170298cb824b88333cab730aa8c86"
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "status": "passed",
+  "checks": [
+    "新しいOS一時場所へ正本全44ファイルをコピーし、最新SKILLと資料を読んで会議室予約の会話メモから新たに原本を執筆した。古い成果物は使用していない。",
+    "hooksを呼ばずにstart/build/check/finishを完了した。collectorの呼出しと収集ディレクトリの作成は0件。",
+    "document.py buildとrun.py check/finishは終了コード0、指摘0件。既存の描画経路のみ利用した。",
+    "機能要件6件、未決事項6件とその影響、9種類の採否を整理し、5枚のMermaid・PNGを生成した。",
+    "全5枚のPNGを開き、ラベルの欠け・つぶれと本文・原資料の条件の一致を確認した。",
+    "対象外の業務、時刻境界、同時申込みの採否、入力条件、取消の条件、品質目標を未決事項へ結び付けた。取消から確定へ戻せない条件は確定事項として維持した。",
+    "ZIPのCRCと全出力13ファイルのパス・内容が実出力と一致することを確認した。",
+    "sourceManifestで実行前後と実行用コピーの正本全44ファイルの一致を確認した。公開ログの個人パスはマスクした。",
+    "公開再描画スクリプトを別の新規一時場所で--finish付きで実行し、終了コード0と正本不変、収集ディレクトリ未作成を確認した。再描画の目視未実施はその実行の補足へ明記した。"
+  ],
+  "commands": [
+    {
+      "label": "source inventory",
+      "command": [
+        "node",
+        "-e",
+        "const {sourceManifest}=require(\"./scripts/example-skill-source.cjs\");process.stdout.write(JSON.stringify(sourceManifest(process.argv[1])))",
+        "<repository>/utils/skills/documentation/write-requirement-document"
+      ],
+      "cwd": "<repository>",
+      "exit_code": 0,
+      "stdout": "{\"source_files\":[{\"file\":\"SKILL.md\",\"sha256\":\"bb34d1c960b664b6aacca7662c40a9e915ff2188ac2e60970a0068d9c5bad913\"},{\"file\":\"assets/contract.json\",\"sha256\":\"b2bf38eeeb37afd76cd7a6ca9f82571b642919f8a921f6ec3ff925ddf412daa4\"},{\"file\":\"assets/examples/diagrams/d-01-context.mmd\",\"sha256\":\"fb013384397aba16a84e7d05a9d6629698d217b55b3c18f8b377d74167988b6f\"},{\"file\":\"assets/examples/diagrams/d-01-context.png\",\"sha256\":\"18a91a2362738d348757d92155c8681c14b56167ea7b0995f33753f0f1a9c226\"},{\"file\":\"assets/examples/diagrams/d-02-usecase.mmd\",\"sha256\":\"93681c864d922f31558323e3be83a8f390366076499f2c18e7496072ba0912d1\"},{\"file\":\"assets/examples/diagrams/d-02-usecase.png\",\"sha256\":\"f837feb967b15e01e3598e3e88a1d33d3e4e24f3b0273f12e862d533ed05cf2e\"},{\"file\":\"assets/examples/diagrams/d-03-workflow.mmd\",\"sha256\":\"c9d7101c7f8f12e6e3c0bb8ed432e9969949f284998d3d0c6ceb7f8dd04b7650\"},{\"file\":\"assets/examples/diagrams/d-03-workflow.png\",\"sha256\":\"564c015065af2dc6e0c0d24a77d688ce8e8c2e1e66de35e3ed31cc4324268acb\"},{\"file\":\"assets/examples/diagrams/d-04-state.mmd\",\"sha256\":\"66e5ad14e8f133206e4a041e8fc0531df953fb6e5fc5a1c970b2f3e86606beb9\"},{\"file\":\"assets/examples/diagrams/d-04-state.png\",\"sha256\":\"1aa45f50ac23211c91b3a0d75f4645007f62b88af9dc36b8c0e30216435a6b1b\"},{\"file\":\"assets/examples/manifest.json\",\"sha256\":\"09129e4f46a9d328e4853cd3377e3eba9c6563fc3a3b0900c01e29c2fa5e01f8\"},{\"file\":\"assets/examples/requirement-document.html\",\"sha256\":\"f85eeb9f7f5256cebd3261c71bc796e8dcd2beacc30098134db871abe1261dc2\"},{\"file\":\"assets/examples/requirement-document.json\",\"sha256\":\"dfee627433e442e4a165fcdaa5887462a3b0d7942d189d2ff066ff15500c66fc\"},{\"file\":\"assets/feedback.schema.json\",\"sha256\":\"ddbfcc9168b2ac491f84d438f4def7b6b8f107ae37e4a7ac449c31e53f4efd44\"},{\"file\":\"dev/eval/cases/context-fail.html\",\"sha256\":\"82b2bf44bbc33e64fe66d4d4c76af0e3387534ccd9dcfdcd2c615c4ce6194f1d\"},{\"file\":\"dev/eval/cases/context-pass.html\",\"sha256\":\"fab852b8e3b3185c2b9d0a3c8f2d9c657209297feb2d51ebf109dd3474637b4c\"},{\"file\":\"dev/eval/cases/diagram-mismatch.html\",\"sha256\":\"8d8b5e065e079b26ce28e3a434e268004d19146ece53a90ff3ca6c590d7bd3c5\"},{\"file\":\"dev/eval/cases/diagram-missing.html\",\"sha256\":\"44bd07d3c7f2604da9310f48ce887e6d5643606645233ee6edec9f64fdc055b2\"},{\"file\":\"dev/eval/cases/diagram-pass.html\",\"sha256\":\"3270940cf2c7fbdfee474a925f4a1ab7da1dfbaa508c987e138784c90cc1465a\"},{\"file\":\"dev/eval/cases/names-fail.html\",\"sha256\":\"adbd1837f05934ce548dddc6f6cc00ccfef3e59b8846354ec788040b744421cf\"},{\"file\":\"dev/eval/cases/names-pass.html\",\"sha256\":\"8d572c3b306ed17c79699c4c2dc57a4e1d0385f2f9104722d5647013a407c2b8\"},{\"file\":\"dev/eval/cases/open-question-fail.html\",\"sha256\":\"368c81b99e7518d106d6ab2fd396ecc11d4684ce4f532debdeb3f57e55f1137b\"},{\"file\":\"dev/eval/cases/open-question-pass.html\",\"sha256\":\"c0bca650907570983319978f0a7c6b2cd0e65555a43162861fbfbe7dcbba69a9\"},{\"file\":\"dev/eval/cases/prose-disconnected.html\",\"sha256\":\"aed58951016af3bb41ee4d901fe7332a6850458210e41fdd88fdc2743ab4cc63\"},{\"file\":\"dev/eval/cases/prose-pass.html\",\"sha256\":\"6a47554979bdf2706eb8d3773489bf067ddc2ff17cc5a22ce0881ff66fb88698\"},{\"file\":\"dev/eval/cases/prose-slop.html\",\"sha256\":\"5b09f31d659dc4662fcefe2c1f9cef4a0c2048ac51fda7ce4111e755f1a1cc17\"},{\"file\":\"dev/eval/eval.json\",\"sha256\":\"59cda344277a91602abea5d2999e64c7c5e663b88d0ccc271f089488ed58fdec\"},{\"file\":\"dev/evals.json\",\"sha256\":\"0833ebc6be4bc389e700f93e89b3bfa8e7e74fc767708a0abd7ac6e870607e19\"},{\"file\":\"dev/fixtures/basic/README.md\",\"sha256\":\"20c5afa2b60e999a3d1e99cf9ad88717fe8118b6ec06a91091c6e96412c085c6\"},{\"file\":\"dev/probes.json\",\"sha256\":\"0f4ae11d7621514e3d06f0bf63719be2f9ea470a8255572d35ba92d9aca28b22\"},{\"file\":\"dev/research.md\",\"sha256\":\"d22c53b6d5791062600ef9843f5791cc448ba88e56809ffdbc2d19b0412d479a\"},{\"file\":\"dev/spec.json\",\"sha256\":\"001e0114f993eaa32fab673d6d69d9d2dcef52236deaa090527532d9ac5ac52a\"},{\"file\":\"references/authoring.md\",\"sha256\":\"aba6b4b163126752afa01b6896987aa1578bff5f13b5cdac7ba69b02784ea302\"},{\"file\":\"references/decisions.md\",\"sha256\":\"b14adae0559ef9638a3fe9a4e08638a6c4a756eca6edfd85d3b126e03a1a0ac1\"},{\"file\":\"references/diagrams.md\",\"sha256\":\"a7937965e15f15397177b1aabbaeec92a588ce0b0404000e8f6f1582994a07f0\"},{\"file\":\"references/feedback.md\",\"sha256\":\"45ca2e70dc2bfccc35b6f571c2868dac163fdda63539b029a26605f22add0a80\"},{\"file\":\"references/html-principles.md\",\"sha256\":\"45e1dd4ed6d0c246b1a1d23b70252dd6ea137a352e585cdacbb81f63524d4bf5\"},{\"file\":\"scripts/_skillrt.py\",\"sha256\":\"5ff2580d36726675268ce9f205abe4c1e323bbba837c60a5b7580ad22b218cda\"},{\"file\":\"scripts/document.py\",\"sha256\":\"f1bcb5d8e8c2e179138bf7b4d54ff6a34d4e3b252efde73ba6db972ac46ec0e5\"},{\"file\":\"scripts/feedback.py\",\"sha256\":\"2750618bb0a62af5a2c871892d7c53ea495b534312677637578a439875a610c0\"},{\"file\":\"scripts/feedback_review.py\",\"sha256\":\"46a96d56525d75b8f47598a644098d66bddc347727bc370e769ce154236e3086\"},{\"file\":\"scripts/hook.py\",\"sha256\":\"dfdd0575e8f1652b5716d5d22fe5a846b1f1d1bc39e21a47bcea60f4b4b81749\"},{\"file\":\"scripts/install.py\",\"sha256\":\"979456e2b80fd8c6df58929d7e0952d172017911eb343bd100a6c0ab7b0de04b\"},{\"file\":\"scripts/run.py\",\"sha256\":\"8f3dce4ffedb74a5f827134ddf1b39629f75e84fe47a3ad5bf4bb31c2dd924e1\"}],\"source_sha256\":\"909e0b50c8ab220ce3a0ac6a378529601abffd80b6ec0916cf4a8cdf5de39a52\"}",
+      "stderr": ""
+    },
+    {
+      "label": "source inventory",
+      "command": [
+        "node",
+        "-e",
+        "const {sourceManifest}=require(\"./scripts/example-skill-source.cjs\");process.stdout.write(JSON.stringify(sourceManifest(process.argv[1])))",
+        "<workdir>/skill/write-requirement-document"
+      ],
+      "cwd": "<repository>",
+      "exit_code": 0,
+      "stdout": "{\"source_files\":[{\"file\":\"SKILL.md\",\"sha256\":\"bb34d1c960b664b6aacca7662c40a9e915ff2188ac2e60970a0068d9c5bad913\"},{\"file\":\"assets/contract.json\",\"sha256\":\"b2bf38eeeb37afd76cd7a6ca9f82571b642919f8a921f6ec3ff925ddf412daa4\"},{\"file\":\"assets/examples/diagrams/d-01-context.mmd\",\"sha256\":\"fb013384397aba16a84e7d05a9d6629698d217b55b3c18f8b377d74167988b6f\"},{\"file\":\"assets/examples/diagrams/d-01-context.png\",\"sha256\":\"18a91a2362738d348757d92155c8681c14b56167ea7b0995f33753f0f1a9c226\"},{\"file\":\"assets/examples/diagrams/d-02-usecase.mmd\",\"sha256\":\"93681c864d922f31558323e3be83a8f390366076499f2c18e7496072ba0912d1\"},{\"file\":\"assets/examples/diagrams/d-02-usecase.png\",\"sha256\":\"f837feb967b15e01e3598e3e88a1d33d3e4e24f3b0273f12e862d533ed05cf2e\"},{\"file\":\"assets/examples/diagrams/d-03-workflow.mmd\",\"sha256\":\"c9d7101c7f8f12e6e3c0bb8ed432e9969949f284998d3d0c6ceb7f8dd04b7650\"},{\"file\":\"assets/examples/diagrams/d-03-workflow.png\",\"sha256\":\"564c015065af2dc6e0c0d24a77d688ce8e8c2e1e66de35e3ed31cc4324268acb\"},{\"file\":\"assets/examples/diagrams/d-04-state.mmd\",\"sha256\":\"66e5ad14e8f133206e4a041e8fc0531df953fb6e5fc5a1c970b2f3e86606beb9\"},{\"file\":\"assets/examples/diagrams/d-04-state.png\",\"sha256\":\"1aa45f50ac23211c91b3a0d75f4645007f62b88af9dc36b8c0e30216435a6b1b\"},{\"file\":\"assets/examples/manifest.json\",\"sha256\":\"09129e4f46a9d328e4853cd3377e3eba9c6563fc3a3b0900c01e29c2fa5e01f8\"},{\"file\":\"assets/examples/requirement-document.html\",\"sha256\":\"f85eeb9f7f5256cebd3261c71bc796e8dcd2beacc30098134db871abe1261dc2\"},{\"file\":\"assets/examples/requirement-document.json\",\"sha256\":\"dfee627433e442e4a165fcdaa5887462a3b0d7942d189d2ff066ff15500c66fc\"},{\"file\":\"assets/feedback.schema.json\",\"sha256\":\"ddbfcc9168b2ac491f84d438f4def7b6b8f107ae37e4a7ac449c31e53f4efd44\"},{\"file\":\"dev/eval/cases/context-fail.html\",\"sha256\":\"82b2bf44bbc33e64fe66d4d4c76af0e3387534ccd9dcfdcd2c615c4ce6194f1d\"},{\"file\":\"dev/eval/cases/context-pass.html\",\"sha256\":\"fab852b8e3b3185c2b9d0a3c8f2d9c657209297feb2d51ebf109dd3474637b4c\"},{\"file\":\"dev/eval/cases/diagram-mismatch.html\",\"sha256\":\"8d8b5e065e079b26ce28e3a434e268004d19146ece53a90ff3ca6c590d7bd3c5\"},{\"file\":\"dev/eval/cases/diagram-missing.html\",\"sha256\":\"44bd07d3c7f2604da9310f48ce887e6d5643606645233ee6edec9f64fdc055b2\"},{\"file\":\"dev/eval/cases/diagram-pass.html\",\"sha256\":\"3270940cf2c7fbdfee474a925f4a1ab7da1dfbaa508c987e138784c90cc1465a\"},{\"file\":\"dev/eval/cases/names-fail.html\",\"sha256\":\"adbd1837f05934ce548dddc6f6cc00ccfef3e59b8846354ec788040b744421cf\"},{\"file\":\"dev/eval/cases/names-pass.html\",\"sha256\":\"8d572c3b306ed17c79699c4c2dc57a4e1d0385f2f9104722d5647013a407c2b8\"},{\"file\":\"dev/eval/cases/open-question-fail.html\",\"sha256\":\"368c81b99e7518d106d6ab2fd396ecc11d4684ce4f532debdeb3f57e55f1137b\"},{\"file\":\"dev/eval/cases/open-question-pass.html\",\"sha256\":\"c0bca650907570983319978f0a7c6b2cd0e65555a43162861fbfbe7dcbba69a9\"},{\"file\":\"dev/eval/cases/prose-disconnected.html\",\"sha256\":\"aed58951016af3bb41ee4d901fe7332a6850458210e41fdd88fdc2743ab4cc63\"},{\"file\":\"dev/eval/cases/prose-pass.html\",\"sha256\":\"6a47554979bdf2706eb8d3773489bf067ddc2ff17cc5a22ce0881ff66fb88698\"},{\"file\":\"dev/eval/cases/prose-slop.html\",\"sha256\":\"5b09f31d659dc4662fcefe2c1f9cef4a0c2048ac51fda7ce4111e755f1a1cc17\"},{\"file\":\"dev/eval/eval.json\",\"sha256\":\"59cda344277a91602abea5d2999e64c7c5e663b88d0ccc271f089488ed58fdec\"},{\"file\":\"dev/evals.json\",\"sha256\":\"0833ebc6be4bc389e700f93e89b3bfa8e7e74fc767708a0abd7ac6e870607e19\"},{\"file\":\"dev/fixtures/basic/README.md\",\"sha256\":\"20c5afa2b60e999a3d1e99cf9ad88717fe8118b6ec06a91091c6e96412c085c6\"},{\"file\":\"dev/probes.json\",\"sha256\":\"0f4ae11d7621514e3d06f0bf63719be2f9ea470a8255572d35ba92d9aca28b22\"},{\"file\":\"dev/research.md\",\"sha256\":\"d22c53b6d5791062600ef9843f5791cc448ba88e56809ffdbc2d19b0412d479a\"},{\"file\":\"dev/spec.json\",\"sha256\":\"001e0114f993eaa32fab673d6d69d9d2dcef52236deaa090527532d9ac5ac52a\"},{\"file\":\"references/authoring.md\",\"sha256\":\"aba6b4b163126752afa01b6896987aa1578bff5f13b5cdac7ba69b02784ea302\"},{\"file\":\"references/decisions.md\",\"sha256\":\"b14adae0559ef9638a3fe9a4e08638a6c4a756eca6edfd85d3b126e03a1a0ac1\"},{\"file\":\"references/diagrams.md\",\"sha256\":\"a7937965e15f15397177b1aabbaeec92a588ce0b0404000e8f6f1582994a07f0\"},{\"file\":\"references/feedback.md\",\"sha256\":\"45ca2e70dc2bfccc35b6f571c2868dac163fdda63539b029a26605f22add0a80\"},{\"file\":\"references/html-principles.md\",\"sha256\":\"45e1dd4ed6d0c246b1a1d23b70252dd6ea137a352e585cdacbb81f63524d4bf5\"},{\"file\":\"scripts/_skillrt.py\",\"sha256\":\"5ff2580d36726675268ce9f205abe4c1e323bbba837c60a5b7580ad22b218cda\"},{\"file\":\"scripts/document.py\",\"sha256\":\"f1bcb5d8e8c2e179138bf7b4d54ff6a34d4e3b252efde73ba6db972ac46ec0e5\"},{\"file\":\"scripts/feedback.py\",\"sha256\":\"2750618bb0a62af5a2c871892d7c53ea495b534312677637578a439875a610c0\"},{\"file\":\"scripts/feedback_review.py\",\"sha256\":\"46a96d56525d75b8f47598a644098d66bddc347727bc370e769ce154236e3086\"},{\"file\":\"scripts/hook.py\",\"sha256\":\"dfdd0575e8f1652b5716d5d22fe5a846b1f1d1bc39e21a47bcea60f4b4b81749\"},{\"file\":\"scripts/install.py\",\"sha256\":\"979456e2b80fd8c6df58929d7e0952d172017911eb343bd100a6c0ab7b0de04b\"},{\"file\":\"scripts/run.py\",\"sha256\":\"8f3dce4ffedb74a5f827134ddf1b39629f75e84fe47a3ad5bf4bb31c2dd924e1\"}],\"source_sha256\":\"909e0b50c8ab220ce3a0ac6a378529601abffd80b6ec0916cf4a8cdf5de39a52\"}",
+      "stderr": ""
+    },
+    {
+      "label": "run.py start",
+      "command": [
+        "python3",
+        "<workdir>/skill/write-requirement-document/scripts/run.py",
+        "start",
+        "--guess",
+        "language=ja",
+        "次の会議室予約の会話メモから、業務担当者と開発者が確認する要件定義書をHTMLで作ってください。現在は口頭で予約していて、同じ会議室の利用時間が重なります。社員は会議室の空き時間を確認し、会議室と開始・終了時刻を指定して予約できます。同じ会議室の重複する時間帯の予約は受け付けません。施設管理担当者は予約できる会議室を登録します。社員は自分の確定した予約を取り消せます。予約の状態は確定・取消で、取消から確定には戻せません。未指定の条件や業務範囲は未決事項として残してください。\n"
+      ],
+      "cwd": "<workdir>/project",
+      "exit_code": 0,
+      "stdout": "write-requirement-document を始めました。実行記録: .skill-runs/write-requirement-document/state.json\nスキルのディレクトリ: <workdir>/skill/write-requirement-document\n入力（正規化の後）:\n  出力の言語（language）= \"ja\"（依頼文からの推定）\n作る出力:\n  source 要件定義の構造化原本: .skill-runs/write-requirement-document/out/requirement-document.json（1〜1 件）\n  html 要件定義書のHTML: .skill-runs/write-requirement-document/out/requirement-document.html（1〜1 件）\n  manifest Mermaid・PNGの一覧とハッシュ: .skill-runs/write-requirement-document/out/manifest.json（1〜1 件）\n  mermaid Mermaid原本: .skill-runs/write-requirement-document/out/diagrams/*.mmd（3〜 件）\n次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する\n",
+      "stderr": ""
+    },
+    {
+      "label": "document.py doctor",
+      "command": [
+        "python3",
+        "<workdir>/skill/write-requirement-document/scripts/document.py",
+        "doctor"
+      ],
+      "cwd": "<workdir>/project",
+      "exit_code": 0,
+      "stdout": "描画: mermaid-cli 11.16.0\n実行経路: /opt/homebrew/bin/node <user-home>/.npm/_npx/668c188756b835f3/node_modules/@mermaid-js/mermaid-cli/src/cli.js\n実描画とブラウザー起動: buildで確認する\n図の構文: flowchart / stateDiagram-v2 / sequenceDiagram / classDiagram / erDiagram\n追加取得: しない\n",
+      "stderr": ""
+    },
+    {
+      "label": "document.py build",
+      "command": [
+        "python3",
+        "<workdir>/skill/write-requirement-document/scripts/document.py",
+        "build",
+        "--source",
+        "<workdir>/project/.skill-runs/write-requirement-document/out/requirement-document.json",
+        "--out",
+        "<workdir>/project/.skill-runs/write-requirement-document/out"
+      ],
+      "cwd": "<workdir>/project",
+      "exit_code": 0,
+      "stdout": "原本・Mermaid・PNG・HTML・参照・同期: 指摘0件\n",
+      "stderr": ""
+    },
+    {
+      "label": "run.py check",
+      "command": [
+        "python3",
+        "<workdir>/skill/write-requirement-document/scripts/run.py",
+        "check"
+      ],
+      "cwd": "<workdir>/project",
+      "exit_code": 0,
+      "stdout": "出力 source: .skill-runs/write-requirement-document/out/requirement-document.json\n出力 html: .skill-runs/write-requirement-document/out/requirement-document.html\n出力 manifest: .skill-runs/write-requirement-document/out/manifest.json\n出力 mermaid: .skill-runs/write-requirement-document/out/diagrams/d-01-context.mmd, .skill-runs/write-requirement-document/out/diagrams/d-02-usecase.mmd, .skill-runs/write-requirement-document/out/diagrams/d-03-workflow.mmd, .skill-runs/write-requirement-document/out/diagrams/d-04-workflow.mmd, .skill-runs/write-requirement-document/out/diagrams/d-05-state.mmd\ncheck: 指摘 0 件\n",
+      "stderr": ""
+    },
+    {
+      "label": "run.py check",
+      "command": [
+        "python3",
+        "<workdir>/skill/write-requirement-document/scripts/run.py",
+        "check"
+      ],
+      "cwd": "<workdir>/project",
+      "exit_code": 0,
+      "stdout": "出力 source: .skill-runs/write-requirement-document/out/requirement-document.json\n出力 html: .skill-runs/write-requirement-document/out/requirement-document.html\n出力 manifest: .skill-runs/write-requirement-document/out/manifest.json\n出力 mermaid: .skill-runs/write-requirement-document/out/diagrams/d-01-context.mmd, .skill-runs/write-requirement-document/out/diagrams/d-02-usecase.mmd, .skill-runs/write-requirement-document/out/diagrams/d-03-workflow.mmd, .skill-runs/write-requirement-document/out/diagrams/d-04-workflow.mmd, .skill-runs/write-requirement-document/out/diagrams/d-05-state.mmd\ncheck: 指摘 0 件\n",
+      "stderr": ""
+    },
+    {
+      "label": "run.py finish",
+      "command": [
+        "python3",
+        "<workdir>/skill/write-requirement-document/scripts/run.py",
+        "finish"
+      ],
+      "cwd": "<workdir>/project",
+      "exit_code": 0,
+      "stdout": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。\n========================================\n## 結果\n\nwrite-requirement-document: 完了（検証に合格）\n\n## 出力\n\n- `.skill-runs/write-requirement-document/out/requirement-document.json`（source 要件定義の構造化原本）\n- `.skill-runs/write-requirement-document/out/requirement-document.html`（html 要件定義書のHTML）\n- `.skill-runs/write-requirement-document/out/manifest.json`（manifest Mermaid・PNGの一覧とハッシュ）\n- `.skill-runs/write-requirement-document/out/diagrams/d-01-context.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-02-usecase.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-03-workflow.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-04-workflow.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-05-state.mmd`（mermaid Mermaid原本）\n\n## 既定値で決めた値\n\n- 出力の言語（language）: \"ja\"（依頼文からの推定）\n\n## 入力で読めなかった値\n\n- なし\n\n## 検証\n\n- `run.py finish`: 指摘 0 件\n\n## 補足\n\n- 対象外、時刻境界、同時申込みの採否、入力条件、取消の条件、品質目標は未決事項に残した。\n- 全5枚のPNGを開き、文字の欠け・つぶれと原資料・本文の条件を確認した。HTML全体のブラウザ目視は未実施。\n- hooksを呼ばずに完成した。実ユーザー承認・導入・自動hooks・モデルEvalと収束テストは未実施。\n",
+      "stderr": ""
+    },
+    {
+      "label": "source inventory",
+      "command": [
+        "node",
+        "-e",
+        "const {sourceManifest}=require(\"./scripts/example-skill-source.cjs\");process.stdout.write(JSON.stringify(sourceManifest(process.argv[1])))",
+        "<repository>/utils/skills/documentation/write-requirement-document"
+      ],
+      "cwd": "<repository>",
+      "exit_code": 0,
+      "stdout": "{\"source_files\":[{\"file\":\"SKILL.md\",\"sha256\":\"bb34d1c960b664b6aacca7662c40a9e915ff2188ac2e60970a0068d9c5bad913\"},{\"file\":\"assets/contract.json\",\"sha256\":\"b2bf38eeeb37afd76cd7a6ca9f82571b642919f8a921f6ec3ff925ddf412daa4\"},{\"file\":\"assets/examples/diagrams/d-01-context.mmd\",\"sha256\":\"fb013384397aba16a84e7d05a9d6629698d217b55b3c18f8b377d74167988b6f\"},{\"file\":\"assets/examples/diagrams/d-01-context.png\",\"sha256\":\"18a91a2362738d348757d92155c8681c14b56167ea7b0995f33753f0f1a9c226\"},{\"file\":\"assets/examples/diagrams/d-02-usecase.mmd\",\"sha256\":\"93681c864d922f31558323e3be83a8f390366076499f2c18e7496072ba0912d1\"},{\"file\":\"assets/examples/diagrams/d-02-usecase.png\",\"sha256\":\"f837feb967b15e01e3598e3e88a1d33d3e4e24f3b0273f12e862d533ed05cf2e\"},{\"file\":\"assets/examples/diagrams/d-03-workflow.mmd\",\"sha256\":\"c9d7101c7f8f12e6e3c0bb8ed432e9969949f284998d3d0c6ceb7f8dd04b7650\"},{\"file\":\"assets/examples/diagrams/d-03-workflow.png\",\"sha256\":\"564c015065af2dc6e0c0d24a77d688ce8e8c2e1e66de35e3ed31cc4324268acb\"},{\"file\":\"assets/examples/diagrams/d-04-state.mmd\",\"sha256\":\"66e5ad14e8f133206e4a041e8fc0531df953fb6e5fc5a1c970b2f3e86606beb9\"},{\"file\":\"assets/examples/diagrams/d-04-state.png\",\"sha256\":\"1aa45f50ac23211c91b3a0d75f4645007f62b88af9dc36b8c0e30216435a6b1b\"},{\"file\":\"assets/examples/manifest.json\",\"sha256\":\"09129e4f46a9d328e4853cd3377e3eba9c6563fc3a3b0900c01e29c2fa5e01f8\"},{\"file\":\"assets/examples/requirement-document.html\",\"sha256\":\"f85eeb9f7f5256cebd3261c71bc796e8dcd2beacc30098134db871abe1261dc2\"},{\"file\":\"assets/examples/requirement-document.json\",\"sha256\":\"dfee627433e442e4a165fcdaa5887462a3b0d7942d189d2ff066ff15500c66fc\"},{\"file\":\"assets/feedback.schema.json\",\"sha256\":\"ddbfcc9168b2ac491f84d438f4def7b6b8f107ae37e4a7ac449c31e53f4efd44\"},{\"file\":\"dev/eval/cases/context-fail.html\",\"sha256\":\"82b2bf44bbc33e64fe66d4d4c76af0e3387534ccd9dcfdcd2c615c4ce6194f1d\"},{\"file\":\"dev/eval/cases/context-pass.html\",\"sha256\":\"fab852b8e3b3185c2b9d0a3c8f2d9c657209297feb2d51ebf109dd3474637b4c\"},{\"file\":\"dev/eval/cases/diagram-mismatch.html\",\"sha256\":\"8d8b5e065e079b26ce28e3a434e268004d19146ece53a90ff3ca6c590d7bd3c5\"},{\"file\":\"dev/eval/cases/diagram-missing.html\",\"sha256\":\"44bd07d3c7f2604da9310f48ce887e6d5643606645233ee6edec9f64fdc055b2\"},{\"file\":\"dev/eval/cases/diagram-pass.html\",\"sha256\":\"3270940cf2c7fbdfee474a925f4a1ab7da1dfbaa508c987e138784c90cc1465a\"},{\"file\":\"dev/eval/cases/names-fail.html\",\"sha256\":\"adbd1837f05934ce548dddc6f6cc00ccfef3e59b8846354ec788040b744421cf\"},{\"file\":\"dev/eval/cases/names-pass.html\",\"sha256\":\"8d572c3b306ed17c79699c4c2dc57a4e1d0385f2f9104722d5647013a407c2b8\"},{\"file\":\"dev/eval/cases/open-question-fail.html\",\"sha256\":\"368c81b99e7518d106d6ab2fd396ecc11d4684ce4f532debdeb3f57e55f1137b\"},{\"file\":\"dev/eval/cases/open-question-pass.html\",\"sha256\":\"c0bca650907570983319978f0a7c6b2cd0e65555a43162861fbfbe7dcbba69a9\"},{\"file\":\"dev/eval/cases/prose-disconnected.html\",\"sha256\":\"aed58951016af3bb41ee4d901fe7332a6850458210e41fdd88fdc2743ab4cc63\"},{\"file\":\"dev/eval/cases/prose-pass.html\",\"sha256\":\"6a47554979bdf2706eb8d3773489bf067ddc2ff17cc5a22ce0881ff66fb88698\"},{\"file\":\"dev/eval/cases/prose-slop.html\",\"sha256\":\"5b09f31d659dc4662fcefe2c1f9cef4a0c2048ac51fda7ce4111e755f1a1cc17\"},{\"file\":\"dev/eval/eval.json\",\"sha256\":\"59cda344277a91602abea5d2999e64c7c5e663b88d0ccc271f089488ed58fdec\"},{\"file\":\"dev/evals.json\",\"sha256\":\"0833ebc6be4bc389e700f93e89b3bfa8e7e74fc767708a0abd7ac6e870607e19\"},{\"file\":\"dev/fixtures/basic/README.md\",\"sha256\":\"20c5afa2b60e999a3d1e99cf9ad88717fe8118b6ec06a91091c6e96412c085c6\"},{\"file\":\"dev/probes.json\",\"sha256\":\"0f4ae11d7621514e3d06f0bf63719be2f9ea470a8255572d35ba92d9aca28b22\"},{\"file\":\"dev/research.md\",\"sha256\":\"d22c53b6d5791062600ef9843f5791cc448ba88e56809ffdbc2d19b0412d479a\"},{\"file\":\"dev/spec.json\",\"sha256\":\"001e0114f993eaa32fab673d6d69d9d2dcef52236deaa090527532d9ac5ac52a\"},{\"file\":\"references/authoring.md\",\"sha256\":\"aba6b4b163126752afa01b6896987aa1578bff5f13b5cdac7ba69b02784ea302\"},{\"file\":\"references/decisions.md\",\"sha256\":\"b14adae0559ef9638a3fe9a4e08638a6c4a756eca6edfd85d3b126e03a1a0ac1\"},{\"file\":\"references/diagrams.md\",\"sha256\":\"a7937965e15f15397177b1aabbaeec92a588ce0b0404000e8f6f1582994a07f0\"},{\"file\":\"references/feedback.md\",\"sha256\":\"45ca2e70dc2bfccc35b6f571c2868dac163fdda63539b029a26605f22add0a80\"},{\"file\":\"references/html-principles.md\",\"sha256\":\"45e1dd4ed6d0c246b1a1d23b70252dd6ea137a352e585cdacbb81f63524d4bf5\"},{\"file\":\"scripts/_skillrt.py\",\"sha256\":\"5ff2580d36726675268ce9f205abe4c1e323bbba837c60a5b7580ad22b218cda\"},{\"file\":\"scripts/document.py\",\"sha256\":\"f1bcb5d8e8c2e179138bf7b4d54ff6a34d4e3b252efde73ba6db972ac46ec0e5\"},{\"file\":\"scripts/feedback.py\",\"sha256\":\"2750618bb0a62af5a2c871892d7c53ea495b534312677637578a439875a610c0\"},{\"file\":\"scripts/feedback_review.py\",\"sha256\":\"46a96d56525d75b8f47598a644098d66bddc347727bc370e769ce154236e3086\"},{\"file\":\"scripts/hook.py\",\"sha256\":\"dfdd0575e8f1652b5716d5d22fe5a846b1f1d1bc39e21a47bcea60f4b4b81749\"},{\"file\":\"scripts/install.py\",\"sha256\":\"979456e2b80fd8c6df58929d7e0952d172017911eb343bd100a6c0ab7b0de04b\"},{\"file\":\"scripts/run.py\",\"sha256\":\"8f3dce4ffedb74a5f827134ddf1b39629f75e84fe47a3ad5bf4bb31c2dd924e1\"}],\"source_sha256\":\"909e0b50c8ab220ce3a0ac6a378529601abffd80b6ec0916cf4a8cdf5de39a52\"}",
+      "stderr": ""
+    },
+    {
+      "label": "published reproduction script in a second new workdir",
+      "command": [
+        "python3",
+        "<repository>/docs/artifacts/skills/write-requirement-document/reproduce_skill.py",
+        "--repo-root",
+        "<repository>",
+        "--workdir",
+        "<workdir>/replay",
+        "--finish"
+      ],
+      "cwd": "<repository>",
+      "exit_code": 0,
+      "stdout": "write-requirement-document を始めました。実行記録: .skill-runs/write-requirement-document/state.json\nスキルのディレクトリ: <workdir>/replay/skill/write-requirement-document\n入力（正規化の後）:\n  出力の言語（language）= \"ja\"（依頼文からの推定）\n作る出力:\n  source 要件定義の構造化原本: .skill-runs/write-requirement-document/out/requirement-document.json（1〜1 件）\n  html 要件定義書のHTML: .skill-runs/write-requirement-document/out/requirement-document.html（1〜1 件）\n  manifest Mermaid・PNGの一覧とハッシュ: .skill-runs/write-requirement-document/out/manifest.json（1〜1 件）\n  mermaid Mermaid原本: .skill-runs/write-requirement-document/out/diagrams/*.mmd（3〜 件）\n次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する\n描画: mermaid-cli 11.16.0\n実行経路: /opt/homebrew/bin/node <user-home>/.npm/_npx/668c188756b835f3/node_modules/@mermaid-js/mermaid-cli/src/cli.js\n実描画とブラウザー起動: buildで確認する\n図の構文: flowchart / stateDiagram-v2 / sequenceDiagram / classDiagram / erDiagram\n追加取得: しない\n原本・Mermaid・PNG・HTML・参照・同期: 指摘0件\n出力 source: .skill-runs/write-requirement-document/out/requirement-document.json\n出力 html: .skill-runs/write-requirement-document/out/requirement-document.html\n出力 manifest: .skill-runs/write-requirement-document/out/manifest.json\n出力 mermaid: .skill-runs/write-requirement-document/out/diagrams/d-01-context.mmd, .skill-runs/write-requirement-document/out/diagrams/d-02-usecase.mmd, .skill-runs/write-requirement-document/out/diagrams/d-03-workflow.mmd, .skill-runs/write-requirement-document/out/diagrams/d-04-workflow.mmd, .skill-runs/write-requirement-document/out/diagrams/d-05-state.mmd\ncheck: 指摘 0 件\n最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。\n========================================\n## 結果\n\nwrite-requirement-document: 完了（検証に合格）\n\n## 出力\n\n- `.skill-runs/write-requirement-document/out/requirement-document.json`（source 要件定義の構造化原本）\n- `.skill-runs/write-requirement-document/out/requirement-document.html`（html 要件定義書のHTML）\n- `.skill-runs/write-requirement-document/out/manifest.json`（manifest Mermaid・PNGの一覧とハッシュ）\n- `.skill-runs/write-requirement-document/out/diagrams/d-01-context.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-02-usecase.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-03-workflow.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-04-workflow.mmd`（mermaid Mermaid原本）\n- `.skill-runs/write-requirement-document/out/diagrams/d-05-state.mmd`（mermaid Mermaid原本）\n\n## 既定値で決めた値\n\n- 出力の言語（language）: \"ja\"（依頼文からの推定）\n\n## 入力で読めなかった値\n\n- なし\n\n## 検証\n\n- `run.py finish`: 指摘 0 件\n\n## 補足\n\n- 再現用スクリプトは公開済みの構造化原本を再描画した。新規のAI執筆実行ではない。\n- この再現実行のPNG・ブラウザ目視は未実施であり、公開サンプルの初回実行の確認を引き継がない。\nOpen each PNG and compare its labels and conditions with the source:\n<workdir>/replay/project/.skill-runs/write-requirement-document/out/diagrams/d-01-context.png\n<workdir>/replay/project/.skill-runs/write-requirement-document/out/diagrams/d-02-usecase.png\n<workdir>/replay/project/.skill-runs/write-requirement-document/out/diagrams/d-03-workflow.png\n<workdir>/replay/project/.skill-runs/write-requirement-document/out/diagrams/d-04-workflow.png\n<workdir>/replay/project/.skill-runs/write-requirement-document/out/diagrams/d-05-state.png\nSource unchanged; collection directory was not created.\n",
+      "stderr": ""
+    }
+  ],
+  "not_verified": [
+    "HTML全体のブラウザ目視",
+    "実利用者による承認",
+    "実製品の自動hooksと信頼設定",
+    "利用者環境への導入と有効化",
+    "独立モデルによるEval・収束テスト"
+  ],
+  "visual_review": {
+    "reviewer": "/root/refresh_requirements_precommit",
+    "png_count": 5,
+    "result": "文字の欠け・つぶれは見られず、主体、重複条件、取消と逆遷移禁止は本文と一致。",
+    "browser_html": "not verified"
+  }
+}

@@ -1,0 +1,449 @@
+{
+  "title": "会議室の重複予約を防ぐための要件定義書",
+  "language": "ja",
+  "summary": "口頭での予約では同じ会議室の利用時間が重なる。社員が空き時間を確認して予約し、施設管理担当者が予約対象の会議室を登録する。時刻の境界、同時申込みの採否、対象外の業務と品質目標は未決事項として確認する。",
+  "background": [
+    "現在は口頭で会議室の予約を受け付けているため、同じ会議室の利用時間が重なる。"
+  ],
+  "purpose": "会議室と利用時間を指定して予約できるようにし、同じ会議室の重複する時間帯に予約が確定することを防ぐ。",
+  "readers": [
+    "会議室予約の業務担当者",
+    "システムを実装する開発者"
+  ],
+  "terms": [
+    {
+      "term": "確定した予約",
+      "definition": "会議室と開始・終了時刻を指定して受け付けられた予約。重複する時間帯の予約は受け付けない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "term": "取消",
+      "definition": "社員が自分の確定した予約を取り消した状態。取消から確定へ戻すことはできない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "scope": {
+    "in": [
+      "会議室の空き時間の確認",
+      "会議室と時間帯を指定した予約",
+      "同じ会議室の重複予約の拒否",
+      "自分の確定した予約の取消",
+      "予約できる会議室の登録"
+    ],
+    "out": [
+      "対象外の業務は資料に指定がない。「今回扱わない業務」で範囲を確認する。"
+    ]
+  },
+  "actors": [
+    {
+      "id": "ACT-01",
+      "name": "社員",
+      "role": "空き時間を確認し、会議室の予約と自分の確定した予約の取消を行う。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "ACT-02",
+      "name": "施設管理担当者",
+      "role": "社員が予約できる会議室を登録する。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "FR-01",
+      "title": "空き時間を確認する",
+      "statement": "社員は会議室の空き時間を確認できる。",
+      "reason": "予約の前に、利用できる時間を確かめるためである。",
+      "acceptance": [
+        "会議室の予約済み時間帯があるとき、その時間帯を空き時間と区別して確認できる。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02",
+        "D-03"
+      ]
+    },
+    {
+      "id": "FR-02",
+      "title": "会議室と利用時間を指定して予約する",
+      "statement": "社員は会議室と開始・終了時刻を指定して予約できる。",
+      "reason": "口頭の申込みに代えて、予約する会議室と時間帯を明確にするためである。",
+      "acceptance": [
+        "重複のない時間帯に会議室と開始・終了時刻を指定すると、確定した予約として受け付けられる。",
+        "時刻の入力条件は「予約時刻の入力条件」で確認する。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02",
+        "D-03",
+        "D-05"
+      ]
+    },
+    {
+      "id": "FR-03",
+      "title": "重複する時間帯の予約を受け付けない",
+      "statement": "同じ会議室に重複する時間帯の確定予約があるとき、新たな予約を受け付けない。",
+      "reason": "同じ会議室の利用時間が重なる課題を解消するためである。",
+      "acceptance": [
+        "10時から11時の確定予約がある会議室に10時30分から11時30分を申し込んでも、その予約は確定しない。",
+        "同じ会議室の重複する2件をともに確定させない。同時申込みでどちらを受け付けるかは「同時申込みの採否」で確認する。",
+        "終了時刻と次の開始時刻が等しい場合は「予約時刻の境界」で確認する。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-03"
+      ]
+    },
+    {
+      "id": "FR-04",
+      "title": "自分の確定した予約を取り消す",
+      "statement": "社員は自分の確定した予約を取り消せる。",
+      "reason": "利用しなくなった予約を取消へ変更できるようにするためである。",
+      "acceptance": [
+        "社員が自分の確定した予約を取り消すと、状態が取消に変わる。",
+        "取消できる期限や時間帯の扱いは「取消の条件」で確認する。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02",
+        "D-04",
+        "D-05"
+      ]
+    },
+    {
+      "id": "FR-05",
+      "title": "予約できる会議室を登録する",
+      "statement": "施設管理担当者は社員が予約できる会議室を登録する。",
+      "reason": "社員が予約の対象となる会議室を確認できるようにするためである。",
+      "acceptance": [
+        "施設管理担当者が登録した会議室を、社員が予約対象として選べる。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02"
+      ]
+    },
+    {
+      "id": "FR-06",
+      "title": "取消から確定へ戻さない",
+      "statement": "取消になった予約を確定へ戻すことはできない。",
+      "reason": "資料で定めた状態の変化を守るためである。",
+      "acceptance": [
+        "取消になった予約を確定へ戻す操作では、状態が確定へ変わらない。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-04",
+        "D-05"
+      ]
+    }
+  ],
+  "quality": [
+    {
+      "category": "performance",
+      "status": "open",
+      "statement": "資料に目標と利用条件の指定がない。「品質の目標と確認方法」で各領域の条件を確認する。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "availability",
+      "status": "open",
+      "statement": "資料に目標と利用条件の指定がない。「品質の目標と確認方法」で各領域の条件を確認する。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "security",
+      "status": "open",
+      "statement": "資料に目標と利用条件の指定がない。「品質の目標と確認方法」で各領域の条件を確認する。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "privacy",
+      "status": "open",
+      "statement": "資料に目標と利用条件の指定がない。「品質の目標と確認方法」で各領域の条件を確認する。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "operations",
+      "status": "open",
+      "statement": "資料に目標と利用条件の指定がない。「品質の目標と確認方法」で各領域の条件を確認する。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "accessibility",
+      "status": "open",
+      "statement": "資料に目標と利用条件の指定がない。「品質の目標と確認方法」で各領域の条件を確認する。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "constraints": [],
+  "open_questions": [
+    {
+      "id": "Q-01",
+      "question": "今回扱わない業務",
+      "consequence": "会議室予約に関連する業務のうち、今回扱わないものは何か。範囲が決まるまで、周辺業務を対象外と確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-02",
+      "question": "予約時刻の境界",
+      "consequence": "前の予約の終了時刻と次の開始時刻が等しいときに予約を受け付けるか。決まるまで、境界時刻での重複判定と受入条件を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-03",
+      "question": "同時申込みの採否",
+      "consequence": "同じ会議室の重複する時間帯へ同時に申し込まれた場合、どちらを受け付けるか。決まるまで、選択方法と受入条件を確定できない。重複する2件をともに確定させない条件は維持する。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-04",
+      "question": "予約時刻の入力条件",
+      "consequence": "開始と終了の前後関係、過去の時刻、予約できる期間をどう扱うか。決まるまで、これらの入力に対する受付条件を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-05",
+      "question": "取消の条件",
+      "consequence": "取消できる期限や、取消した時間帯を次の予約に利用できる条件をどう定めるか。決まるまで、期限と時間帯再利用の受入条件を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-06",
+      "question": "品質の目標と確認方法",
+      "consequence": "性能、可用性、セキュリティ、個人情報、運用、アクセシビリティの条件をどう定めるか。条件を確認するまで、品質の受入条件を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-01",
+      "label": "会議室予約の会話メモ",
+      "location": "input.md・全文",
+      "quote": "次の会議室予約の会話メモから、業務担当者と開発者が確認する要件定義書をHTMLで作ってください。現在は口頭で予約していて、同じ会議室の利用時間が重なります。社員は会議室の空き時間を確認し、会議室と開始・終了時刻を指定して予約できます。同じ会議室の重複する時間帯の予約は受け付けません。施設管理担当者は予約できる会議室を登録します。社員は自分の確定した予約を取り消せます。予約の状態は確定・取消で、取消から確定には戻せません。未指定の条件や業務範囲は未決事項として残してください。"
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "D-01",
+      "kind": "context",
+      "title": "会議室予約システムの境界",
+      "intro": "社員と施設管理担当者がシステムに対して行うことを確認する。",
+      "takeaway": "社員が確認・予約・取消を行い、施設管理担当者が予約対象の会議室を登録する。",
+      "alt": "社員と施設管理担当者が、境界の内側にある会議室予約システムを利用する関係。",
+      "requirement_ids": [
+        "FR-01",
+        "FR-02",
+        "FR-04",
+        "FR-05"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  employee[\"社員\"]\n  manager[\"施設管理担当者\"]\n  subgraph boundary[\"今回の対象\"]\n    app[\"会議室予約システム\"]\n  end\n  employee -->|\"空き時間確認・予約・取消\"| app\n  manager -->|\"会議室登録\"| app\n"
+    },
+    {
+      "id": "D-02",
+      "kind": "usecase",
+      "title": "利用者が行える操作",
+      "intro": "社員と施設管理担当者の役割を、必要な操作へ対応させる。",
+      "takeaway": "社員は空き時間確認・予約・取消を行い、会議室登録は施設管理担当者が行う。",
+      "alt": "システム境界の外の社員が確認・予約・取消へ、施設管理担当者が会議室登録へ結び付く。",
+      "requirement_ids": [
+        "FR-01",
+        "FR-02",
+        "FR-04",
+        "FR-05"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  employee[\"社員\"]\n  manager[\"施設管理担当者\"]\n  subgraph app[\"会議室予約システム\"]\n    availability([\"空き時間を確認する\"])\n    reserve([\"会議室と利用時間を指定して予約する\"])\n    cancel([\"自分の確定した予約を取り消す\"])\n    register([\"予約できる会議室を登録する\"])\n  end\n  employee --- availability\n  employee --- reserve\n  employee --- cancel\n  manager --- register\n"
+    },
+    {
+      "id": "D-03",
+      "kind": "workflow",
+      "title": "予約の受付と重複の確認",
+      "intro": "会議室と利用時間の指定から、重複の有無で受付結果が分かれることを確認する。",
+      "takeaway": "重複する時間帯は受け付けず、重複しない予約を確定する。境界時刻は「予約時刻の境界」、同時申込みの選択は「同時申込みの採否」で確認する。",
+      "alt": "空き時間確認と会議室・時間帯入力の後、同じ会議室の重複を確認し、重複があれば受付拒否、なければ確定する。",
+      "requirement_ids": [
+        "FR-01",
+        "FR-02",
+        "FR-03"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart TD\n  availability[\"社員が空き時間を確認する\"]\n  input[\"会議室と開始・終了時刻を指定する\"]\n  overlap{\"同じ会議室の時間帯が重複するか\"}\n  reject[\"予約を受け付けない\"]\n  confirm[\"予約を確定する\"]\n  availability --> input --> overlap\n  overlap -->|\"重複あり\"| reject\n  overlap -->|\"重複なし\"| confirm\n"
+    },
+    {
+      "id": "D-04",
+      "kind": "workflow",
+      "title": "自分の予約を取り消す流れ",
+      "intro": "確定した予約を取り消す操作と、その後に戻せないことを確認する。",
+      "takeaway": "自分の確定予約は取消へ変わり、確定へは戻せない。期限などの追加条件は「取消の条件」で確認する。",
+      "alt": "社員が自分の確定した予約を選んで取り消し、取消となった予約を確定へ戻せない流れ。",
+      "requirement_ids": [
+        "FR-04",
+        "FR-06"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart TD\n  selected[\"社員が自分の確定した予約を選ぶ\"]\n  cancel[\"自分の予約を取り消す\"]\n  cancelled[\"予約の状態が取消になる\"]\n  irreversible[\"取消から確定には戻せない\"]\n  selected --> cancel --> cancelled --> irreversible\n"
+    },
+    {
+      "id": "D-05",
+      "kind": "state",
+      "title": "予約の状態と変更できる方向",
+      "intro": "予約には確定と取消があり、取消へ変わった後に戻せないことを確認する。",
+      "takeaway": "確定した予約は本人の取消で取消へ変わる。取消から確定への逆遷移は認めない。",
+      "alt": "予約受付で確定となり、本人の取消で取消となる。取消から確定に戻す矢印はない。",
+      "requirement_ids": [
+        "FR-02",
+        "FR-04",
+        "FR-06"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "stateDiagram-v2\n  state \"確定\" as Confirmed\n  state \"取消\" as Cancelled\n  [*] --> Confirmed: 予約を受付\n  Confirmed --> Cancelled: 本人が取消\n  note right of Cancelled: 確定へは戻せない\n"
+    }
+  ],
+  "diagram_decisions": [
+    {
+      "kind": "context",
+      "selected": true,
+      "reason": "対象システムと利用者の境界を確かめるため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "usecase",
+      "selected": true,
+      "reason": "利用者が行える操作を確かめるため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "workflow",
+      "selected": true,
+      "reason": "重複確認と取消の業務の順序を確かめるため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "state",
+      "selected": true,
+      "reason": "確定・取消と、取消から戻せない条件が資料にあるため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "screen",
+      "selected": false,
+      "reason": "画面名と画面間の経路が資料にないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "domain",
+      "selected": false,
+      "reason": "業務操作と状態で今回の要望を説明でき、別の概念モデルを要する材料がないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "sequence",
+      "selected": false,
+      "reason": "外部システムとの呼出順序が資料にないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "concept",
+      "selected": false,
+      "reason": "属性・関係を別図で整理する要望が資料にないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "component",
+      "selected": false,
+      "reason": "実装構成が資料に指定されていないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "design_notes": []
+}
