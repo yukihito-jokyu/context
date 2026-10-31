@@ -1,33 +1,7 @@
-# 実行入力
+skill-foundation 0.4.1 の最新正本から、Codex・Claude Code向けpluginを生成してください。
 
-個人ホームパスと観測した実行環境の詳細版を匿名化した現在の正本から、公開配布物を再作成する。
+生成後に空白を含む別の場所へ移動し、ZIP化・展開して、同梱した正本全ファイルのバイト一致を確認します。同梱自己テスト17段階と、hooksなしの単体動作・収集故障の分離・日英プロンプト非汚染・確認画面/API・Eval接続を扱う合成16テストを実行します。
 
-`utils/plugins/skill-foundation/` の現在の12ファイルを配布定義とし、`utils/skills/authoring/skill-foundation/` の指定版97ファイルを一切変更せずに使う。旧版は参照しない。公開成果物の削除後、新しい一時作業場所で `build.py` から Codex と Claude Code 向けを実際に生成し、空白のある別の場所へ移動、ZIP 化、展開して再検証する。
+設定の4hooksを直接実行し、出力違反、実行記録の直接編集拒否、待機からの再開、専用エージェントのfence、収束テストの準備、微修正後のcheck/restart/finishを検証します。最後にplugin専用7テストとClaude manifest検査を実行します。
 
-確認する内容は、正本全97ファイルの SHA-256、seal の49ファイル、manifest、hooks の4イベント、正本へ案内する薄い入口、`skill-foundation:skill-foundation-tester` の fence、`convergence.py prepare` と `prompts` がプロジェクトへ専用エージェント定義を書き出さないこと。展開後の hooks 設定に記載された command を直接実行する。
-
-リポジトリのルートで専用テスト7件を実行し、結果を保存する。
-
-```sh
-python3 -m unittest discover -s utils/plugins/skill-foundation/tests -p 'test_*.py' -v
-```
-
-実モデルは起動しない。ユーザーホームの設定や実リポジトリの導入設定は変更しない。実セッションによる自動 hooks 発火、Codex の信頼 UI、独立した AI による収束テストは未確認として区別する。このプロジェクトへの導入は実行しない。
-
-保存先は `docs/artifacts/plugins/skill-foundation/`。両製品の ZIP、実行入力、検証全文、JSON、専用テストと manifest 検査のログ、再実行用スクリプト、`execution.json` を保存する。plugin 全体と同梱スキル全体の正本一覧は `scripts/example-skill-source.cjs` の `sourceManifest` で作り、全成果物の SHA-256 を登録する。
-
-## 再実行
-
-再実行には現在の Context Repository 全体と Python 3、Node.js、git、Claude Code CLI が必要。Claude Code CLI は manifest の静的な検証だけに使い、設定用ディレクトリを一時作業場所へ分離する。
-
-```sh
-python3 docs/artifacts/plugins/skill-foundation/verify_plugin.py \
-  --repo-root . \
-  --workdir /tmp/skill-foundation-plugin-verification-new
-```
-
-`--workdir` には存在しないディレクトリを指定する。結果はその中の `results/` に出力する。専用テストはリポジトリ内の所有者ディレクトリから実行するため、テストファイルだけのコピーでは再実行できない。
-
-## 公開時の置換
-
-公開ログと JSON では、リポジトリの個人絶対パスを `<repository>`、今回の一時作業場所を `<workdir>`、ユーザーホームを `<user-home>`、システムの一時パスを `<system-temp>` に置換する。ZIP 内の正本ファイルのバイト列は変更しない。
+実製品への導入・有効化、モデルセッションや独立AIの起動、外部投稿は行いません。承認操作を試験するのは合成データのみで、実ユーザーの承認を作りません。生成スキルの収集指示は本文・ルール・チェックリストから分離し、有効なhooksからだけ伝える設計を確認します。
