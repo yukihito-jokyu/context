@@ -27,8 +27,6 @@ def main():
             return 0
         command = [sys.executable, str(SCRIPTS / "fence.py"), "--platform", "claude", "--agent"]
     else:
-        if args.event in {"pre-tool", "post-tool"} and event.get("tool_name") not in EDIT_TOOLS[args.platform]:
-            return 0
         command = [sys.executable, str(SCRIPTS / "hook.py"), "--platform", args.platform, args.event]
     result = subprocess.run(command, input=raw, text=True, capture_output=True)
     if args.event == "pre-tool" and result.returncode:

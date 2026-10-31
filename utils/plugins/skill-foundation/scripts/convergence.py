@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Use the packaged tester while delegating convergence operations to the sealed runtime."""
+"""Use the packaged tester while delegating convergence operations to the runtime."""
 import importlib.util
 from pathlib import Path
 import sys

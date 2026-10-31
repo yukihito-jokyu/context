@@ -23,4 +23,12 @@ python3 utils/plugins/skill-foundation/build.py --agent claude-code --output /tm
 python3 -m unittest discover -s utils/plugins/skill-foundation/tests -p 'test_*.py' -v
 ```
 
-配布物の移動後の起動、正本との一致、保護ファイルの編集制御、終了前検査、専用エージェントの制御を検証する。リポジトリ全体の文書テストとは別に実行する。
+配布物の移動後の起動、正本との一致、微修正後の実行、終了前検査、専用エージェントの制御を検証する。リポジトリ全体の文書テストとは別に実行する。
+
+利用用の正本には開発用の `dev/` を含めない。配布した正本のバイト列を照合し、同梱の `selftest.py` で新しいスキルを組み立てて Eval・設定・出力検査を確かめる。収束テストの準備では、先に `eval_check.py` を実行して Eval の検査結果を作る。
+
+スキル自身の編集を制限するルールと seal による開始拒否は使わない。ユーザーの微修正後も通常どおり実行でき、出力の契約検査は継続する。
+
+生成するスキルには、指摘・修正前後の実ファイル・確認画面でのユーザー承認・使ったスキルの版を共通形式で収集する hooks を追加機能として必ず同梱し、既定で登録する。生成した SKILL.md・ルール表・チェックリストには収集の指示を入れず、必要な指示は有効な hooks だけが注入する。hooks 無効時もスキルの本来の処理は機能する。収集側の失敗で本来の完了を止めない。`feedback.py review` の localhost 画面で修正前後を確認して承認する。会話や AI の判断だけで承認済みにしない。`feedback.py export` と `feedback_eval.py` で、承認済みの収集データとスキルから改善用 Eval・収束テストの候補を作れる。
+
+`runtime/skill-foundation/scripts/feedback_selftest.py` は、合成イベントと localhost の確認画面で収集・承認・古い画面の拒否・Eval への接続を検証する。実モデルを起動せず、実ユーザーの承認も作らない。サンドボックスで検証するときは localhost の待ち受けを許可する。
