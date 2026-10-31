@@ -1,0 +1,332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:skill-foundation:feedback:1",
+  "title": "Skill feedback corpus v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "skill",
+    "messages",
+    "deliveries",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "skill": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/message"
+      }
+    },
+    "deliveries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/delivery"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "blob": {
+      "type": "object",
+      "required": [
+        "sha256",
+        "object",
+        "size"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "object": {
+          "type": "string",
+          "pattern": "^objects/[a-f0-9]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "artifact": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blob"
+        }
+      ],
+      "required": [
+        "path",
+        "output",
+        "media_type"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "output": {
+          "type": "string"
+        },
+        "media_type": {
+          "type": "string"
+        }
+      }
+    },
+    "skill": {
+      "type": "object",
+      "required": [
+        "name",
+        "revision",
+        "files"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/blob"
+          }
+        }
+      }
+    },
+    "message": {
+      "type": "object",
+      "required": [
+        "id",
+        "event_id",
+        "at",
+        "platform",
+        "session_id",
+        "text",
+        "delivery",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "platform": {
+          "enum": [
+            "claude",
+            "codex",
+            "review-ui"
+          ]
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "delivery": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "unclassified",
+            "feedback",
+            "approval",
+            "ignore"
+          ]
+        }
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "required": [
+        "id",
+        "at",
+        "run_id",
+        "session_id",
+        "request",
+        "inputs",
+        "skill",
+        "contract",
+        "validation",
+        "artifacts",
+        "context"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "request": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "skill": {
+          "$ref": "#/$defs/skill"
+        },
+        "contract": {
+          "type": "object"
+        },
+        "validation": {
+          "enum": [
+            "passed",
+            "unchecked"
+          ]
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "context": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "required": [
+        "message_id",
+        "text",
+        "at",
+        "delivery",
+        "source"
+      ],
+      "properties": {
+        "message_id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "delivery": {
+          "type": "string"
+        },
+        "source": {
+          "const": "review-ui"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "id",
+        "status",
+        "session_id",
+        "skill",
+        "request",
+        "inputs",
+        "context",
+        "issue",
+        "before",
+        "revisions",
+        "after",
+        "approval"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "approved"
+          ]
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "skill": {
+          "$ref": "#/$defs/skill"
+        },
+        "request": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "context": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "issue": {
+          "type": "object",
+          "required": [
+            "message_id",
+            "text",
+            "summary",
+            "at"
+          ]
+        },
+        "before": {
+          "type": "string"
+        },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "after": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "approval": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/approval"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

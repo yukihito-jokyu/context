@@ -1,0 +1,363 @@
+{
+  "title": "社内備品予約システム 要件定義書",
+  "language": "ja",
+  "summary": "部署ごとの紙台帳による重複予約を防ぐ。社員が空き時間を確認して予約し、管理担当者が予約できる備品を登録する。",
+  "background": [
+    "部署ごとに紙台帳で予約を受け付けるため、同じプロジェクターを同じ時間帯に予約してしまう。"
+  ],
+  "purpose": "社員が備品の空き時間を確認して予約し、重複する時間帯の予約を確定させない。",
+  "readers": [
+    "業務担当者",
+    "開発者"
+  ],
+  "terms": [
+    {
+      "term": "予約の確定",
+      "definition": "備品と時間帯を指定した申し込みについて、重複がないことを確認して受け付けた状態を指す。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "scope": {
+    "in": [
+      "備品の登録",
+      "空き時間の確認",
+      "予約の受付と重複確認",
+      "自分の予約の取消"
+    ],
+    "out": [
+      "貸出・返却の記録",
+      "備品購入"
+    ]
+  },
+  "actors": [
+    {
+      "id": "ACT-01",
+      "name": "社員",
+      "role": "空き時間を確認し、予約と自分の予約の取消を行う。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "ACT-02",
+      "name": "管理担当者",
+      "role": "予約できる備品を登録する。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "FR-01",
+      "title": "空き時間を確認する",
+      "statement": "社員は予約する前に、選んだ備品の空き時間を確認できる。",
+      "reason": "重複する時間帯を避けて申し込めるようにするためである。",
+      "acceptance": [
+        "予約済みの時間帯がある備品を選ぶと、その時間帯を空き時間と区別できる。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02",
+        "D-03"
+      ]
+    },
+    {
+      "id": "FR-02",
+      "title": "予約し、重複を拒否する",
+      "statement": "社員が備品と開始・終了時刻を指定すると、システムは確定済みの予約と照合する。重複があれば確定せず社員に伝え、重複がなければ予約を確定する。",
+      "reason": "部署をまたぐ重複予約を防ぐためである。",
+      "acceptance": [
+        "10時から11時まで予約済みの備品に、10時30分から11時30分まで申し込むと、予約は確定しない。",
+        "予約のない備品の時間帯に申し込むと、予約が確定する。",
+        "境界時刻の扱いは「予約時刻の境界の扱い」の回答後に確認する。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02",
+        "D-03",
+        "D-04"
+      ]
+    },
+    {
+      "id": "FR-03",
+      "title": "自分の予約を取り消す",
+      "statement": "社員は自分の確定した予約を取り消せる。",
+      "reason": "利用しなくなった予約を取り消せるようにするためである。",
+      "acceptance": [
+        "自分の確定した予約を取り消すと、状態が取消に変わる。",
+        "取消から確定へ戻す操作の要否は「取消済みの予約を戻す操作の要否」で確認する。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-02",
+        "D-04"
+      ]
+    },
+    {
+      "id": "FR-04",
+      "title": "備品を登録する",
+      "statement": "管理担当者は、社員が予約できる備品を登録できる。",
+      "reason": "社員が予約の対象となる備品を選べるようにするためである。",
+      "acceptance": [
+        "管理担当者が備品を登録すると、社員が予約対象として確認できる。"
+      ],
+      "status": "stated",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02"
+      ]
+    }
+  ],
+  "quality": [
+    {
+      "category": "performance",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質の目標と確認方法」で業務上の条件と確認方法を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "availability",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質の目標と確認方法」で業務上の条件と確認方法を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "security",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質の目標と確認方法」で業務上の条件と確認方法を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "privacy",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質の目標と確認方法」で業務上の条件と確認方法を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "operations",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質の目標と確認方法」で業務上の条件と確認方法を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "category": "accessibility",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質の目標と確認方法」で業務上の条件と確認方法を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "constraints": [],
+  "open_questions": [
+    {
+      "id": "Q-01",
+      "question": "前の予約の終了時刻と次の開始時刻が同じ場合、予約を受け付けるか。",
+      "consequence": "時刻が重なる条件の境界が確定するまで、境界時刻の受入条件は未決である。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-02",
+      "question": "品質の目標と確認方法をどう定めるか。",
+      "consequence": "性能、可用性、セキュリティ、個人情報、運用、アクセシビリティの条件を確認するまで、品質の受入条件は未決である。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-03",
+      "question": "取消済みの予約を確定へ戻す操作は必要か。",
+      "consequence": "要否が決まるまで、取消から確定への操作と受入条件を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-01",
+      "label": "備品予約の打ち合わせメモ",
+      "location": "会話の要望 · 発言1",
+      "quote": "部署ごとの紙台帳では同じプロジェクターの予約が重なる。社員は備品の空き時間を確認し、開始・終了時刻を指定して予約できる。管理担当者は備品を登録する。同じ備品の重複する時間帯の予約は受け付けない。社員は自分の確定した予約を取り消せる。貸出・返却の記録と備品購入は対象外。"
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "D-01",
+      "kind": "context",
+      "title": "システムの境界と外部の関係",
+      "intro": "社員と管理担当者が、システムに対して何を行うかを確認する。",
+      "takeaway": "システムの外に社員と管理担当者を置き、予約の確認・受付と備品登録を対象とする。",
+      "alt": "社員と管理担当者が、備品予約システムへ空き時間の確認、予約、備品登録を行う関係。",
+      "requirement_ids": [
+        "FR-01",
+        "FR-02",
+        "FR-04"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  employee[\"社員\"]\n  manager[\"管理担当者\"]\n  subgraph boundary[\"今回のシステム\"]\n    system[\"備品予約システム\"]\n  end\n  employee -->|\"空き時間の確認\"| system\n  employee -->|\"予約\"| system\n  manager -->|\"備品の登録\"| system\n"
+    },
+    {
+      "id": "D-02",
+      "kind": "usecase",
+      "title": "誰が何をできるか",
+      "intro": "社員と管理担当者の役割を、実現する要件と対応させる。",
+      "takeaway": "社員は確認・予約・取消を行い、管理担当者は備品を登録する。",
+      "alt": "境界の外の社員が空き時間の確認、予約、取消を行い、管理担当者が備品登録を行う。",
+      "requirement_ids": [
+        "FR-01",
+        "FR-02",
+        "FR-03",
+        "FR-04"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  employee[\"社員\"]\n  manager[\"管理担当者\"]\n  subgraph system[\"備品予約システム\"]\n    u1([\"空き時間を確認\"])\n    u2([\"予約する\"])\n    u3([\"自分の予約を取り消す\"])\n    u4([\"備品を登録\"])\n  end\n  employee --- u1\n  employee --- u2\n  employee --- u3\n  manager --- u4\n"
+    },
+    {
+      "id": "D-03",
+      "kind": "workflow",
+      "title": "予約の受付が分かれる条件",
+      "intro": "社員の確認と申し込みの後、重複の有無で結果が変わる順序を確認する。",
+      "takeaway": "重複がある予約は確定せず、ない予約を確定する。境界時刻の扱いは「予約時刻の境界の扱い」で確かめる。",
+      "alt": "空き時間を確認し予約を入力した後、重複があれば拒否し、なければ確定する流れ。",
+      "requirement_ids": [
+        "FR-01",
+        "FR-02"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart TD\n  a[\"社員が空き時間を確認\"]\n  b[\"社員が備品と時間帯を入力\"]\n  c{\"同じ備品の時間帯が重複するか\"}\n  d[\"確定せず、社員に伝える\"]\n  f[\"予約を確定する\"]\n  a --> b --> c\n  c -->|\"あり\"| d\n  c -->|\"なし\"| f\n"
+    },
+    {
+      "id": "D-04",
+      "kind": "state",
+      "title": "予約の状態と取消",
+      "intro": "予約が確定した後、社員の取消によって状態が変わることを確認する。",
+      "takeaway": "社員は自分の確定した予約を取り消せる。取消を元に戻す操作は、入力に指定がないため未決である。",
+      "alt": "重複しない予約の受付で確定状態になり、自分の予約の取消により取消状態になる。",
+      "requirement_ids": [
+        "FR-02",
+        "FR-03"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "stateDiagram-v2\n  state \"確定\" as Confirmed\n  state \"取消\" as Cancelled\n  [*] --> Confirmed: 予約受付\n  Confirmed --> Cancelled: 本人が取消\n"
+    }
+  ],
+  "diagram_decisions": [
+    {
+      "kind": "context",
+      "selected": true,
+      "reason": "対象システムと利用者の境界を確認するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "usecase",
+      "selected": true,
+      "reason": "利用者ごとの必要な振る舞いを確認するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "workflow",
+      "selected": true,
+      "reason": "重複の有無による業務の分岐を確認するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "state",
+      "selected": true,
+      "reason": "確定と取消の状態変化が入力にあるため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "screen",
+      "selected": false,
+      "reason": "画面名と操作経路が未指定のため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "domain",
+      "selected": false,
+      "reason": "独立した概念の関係の整理を要する材料がないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "sequence",
+      "selected": false,
+      "reason": "外部システムとの呼出順序が未指定のため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "concept",
+      "selected": false,
+      "reason": "概念の属性や関係を整理する追加の要望がないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "component",
+      "selected": false,
+      "reason": "構成の指定がないため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "design_notes": []
+}
