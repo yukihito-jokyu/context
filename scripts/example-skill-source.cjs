@@ -11,6 +11,9 @@ function collectFiles(root, ignoreCaches = false) {
     for (const entry of fs.readdirSync(path.join(root, relative), {withFileTypes: true}).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
       const file = relative ? `${relative}/${entry.name}` : entry.name;
       if (ignoreCaches && (ignoredDirectories.has(entry.name) || entry.name.endsWith('.pyc'))) continue;
+      // These local evaluation records are excluded from Git by the skill workflow.
+      // Artifact inventories still include every file; only source inventories omit them.
+      if (ignoreCaches && /(?:^|\/)dev\/(?:results(?:\/|$)|convergence-report\.md$)/.test(file)) continue;
       if (entry.isSymbolicLink()) throw new Error(`シンボリックリンクは登録できません: ${file}`);
       if (entry.isDirectory()) visit(file);
       else if (entry.isFile()) files.push(file);

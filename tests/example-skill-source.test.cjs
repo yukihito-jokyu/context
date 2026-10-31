@@ -51,6 +51,24 @@ test('実行キャッシュだけはスキルの変更として扱わない', t 
   fs.writeFileSync(path.join(f.skillDir, '__pycache__', 'run.pyc'), 'cache');
   assert.equal(verifyExampleSkillSource(f), 'current');
 });
+test('共有しない検証記録の有無は配布ソースの一致に影響せず、開発仕様の変更は検出する', t => {
+  const f = fixture(t);
+  fs.mkdirSync(path.join(f.skillDir, 'dev', 'results'), {recursive: true});
+  fs.writeFileSync(path.join(f.skillDir, 'dev', 'results', 'trace.json'), 'local trace');
+  fs.writeFileSync(path.join(f.skillDir, 'dev', 'convergence-report.md'), 'local findings');
+  assert.equal(verifyExampleSkillSource(f), 'current');
+  fs.rmSync(path.join(f.skillDir, 'dev'), {recursive: true});
+  assert.equal(verifyExampleSkillSource(f), 'current');
+  fs.mkdirSync(path.join(f.skillDir, 'dev'));
+  fs.writeFileSync(path.join(f.skillDir, 'dev', 'spec.json'), '{}');
+  assert.throws(() => verifyExampleSkillSource(f), /同梱資料/);
+});
+test('成果物一覧ではdev/resultsという名前のファイルも登録を省略できない', t => {
+  const f = fixture(t);
+  fs.mkdirSync(path.join(f.exampleDir, 'dev', 'results'), {recursive: true});
+  fs.writeFileSync(path.join(f.exampleDir, 'dev', 'results', 'extra.json'), 'extra');
+  assert.throws(() => verifyArtifacts(f), /未登録/);
+});
 test('移行時の基準は理由と日時が必須で、変更検出は免除しない', t => {
   const f = fixture(t);
   delete f.record.runner;
