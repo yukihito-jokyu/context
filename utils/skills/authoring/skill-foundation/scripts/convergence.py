@@ -3,22 +3,30 @@
 
 サブコマンド:
   prepare        課題 × runner × 人数の分だけ、一時プロジェクトを作ってスキルを置き、plan.json を書く。
+                 runner・人数・ラウンドの上限・基準・モデル・推論エフォートは、引数 → 作るスキルの spec の convergence →
+                 settings/user-setting.yaml → settings/skill-setting.yaml（skill-foundation の設定）の順に、null でない
+                 最初の値に決め、出どころを表示して plan.json の settings に残す。
                  課題ごとに、作業の前からある名前（英字の識別子）を記録する（names の指標に使う）。
                  ラウンド2からは、前のラウンドの AI の分析と、それを締め込みで分類した記録（convergence-report.md の
                  「## 動きの指摘」）が揃っていないと止まる
   prompts        runner subagent の実行ごとに、Agent ツールに渡すプロンプトと、最終の返答の保存先を出す
   run            plan の各プロジェクトで runner（claude -p / codex exec）を実行し、結果を _results/ に保存する。
-                 runner codex は --json の出力の行に届いた時刻を付けて _results/<実行ID>.events.jsonl にも保存する
-                 （出来事に時刻が無いため）。runner subagent は起動せず、保存された最終の返答を集める
+                 runner claude の --output-format stream-json と runner codex の --json の出力は、行に届いた時刻を付けて
+                 _results/<実行ID>.events.jsonl にも保存する（codex の出来事に時刻が無いため）。runner subagent は起動せず、
+                 保存された最終の返答を集める
   diff           課題ごとにプロジェクト同士を比べ、指標とレポート（report.json / report.md / *.patch）を書く。
-                 スキル自身を変えたか、このスキルの hooks の登録を外したエージェントがいる課題は基準を満たさない。
+                 エージェントが作った・変えたファイルの写しを records/outputs/<課題>__<エージェント>/ に置く（catalog.py が見せる）。
+                 独立エージェントの作業ディレクトリ制限（fence.py）の登録を外した課題は基準を満たさない。
+                 Eval（dev/eval/eval.json）があれば、各エージェントの出力を採点する（STEP-07）。code の判定はここで当て、
+                 model の判定は分析役に頼む（判定する中身を <課題>/<エージェント>.eval.json に書く）。Eval に落ちた出力が
+                 ある課題も基準を満たさない
                  各エージェントの動き（traces.json）と、エージェントが読んだ SKILL.md の写し（used-SKILL.md）も書く
   trace          各エージェントの動きだけを traces.json に書く（diff より前のラウンドに後から足すとき）。
                  実行の記録（start・check・finish）と、次の記録から、道具の呼び出しを時刻・道具・対象・成否の列にする。
                  runner subagent: Claude Code の Agent ツールの記録（~/.claude/projects/ に置く。プロンプトの全文が
                  一致するもの）。無ければ Codex のサブエージェントの記録（~/.codex/sessions/ に置く。依頼文は暗号化されて
                  残るので、コマンドとファイルのパスに作業ディレクトリが一番多く出るもの）
-                 runner codex: run が保存した --json の出力。runner claude では、実行の記録だけになる。
+                 runner claude・codex: run が保存した stream-json・--json の出力（events.jsonl）。
                  実行ごとのモデルと推論エフォート（model・effort）も書く。subagent は記録（Claude Code は message.model と
                  effort、Codex は turn_context）から、claude は claude -p の出力の modelUsage から（推論エフォートは残らない）、
                  codex は --json の出力にモデルが無いので、コマンドの -m・-c か ~/.codex/config.toml から読み、settings を付ける
@@ -33,11 +41,15 @@
   analysis-collect
                  分析役が書いた analysis.json（操作ごとの理由の推定と当てはまり、流れの評価、ほかのエージェントとの違い）を
                  確かめ、dev/results/convergence/round-<R>/analysis.json に集める。catalog.py が「エージェントの動き」に出す。
+                 分析役の model の判定を report.json の採点に入れ、課題の基準を決め直す。
                  指摘と直し方の案を手順ごとに集めたまとめ（analysis.md）も書く。締め込みで読み、convergence-report.md の
                  「## 動きの指摘」の表に分類と対処を書く。prepare は、前のラウンドのこの表が揃うまで次のラウンドを準備しない
 
-runner の既定（spec の convergence.runner_commands で上書きできる。{prompt} と {dir} が置き換わる）:
-  claude: claude -p --output-format json --permission-mode acceptEdits --no-session-persistence
+runner の既定（spec の convergence.runner_commands で上書きできる。{prompt} と {dir} が置き換わる）。
+plan.json の settings に runner のモデル・推論エフォートがあれば、既定の起動コマンドに足す（claude は --model・--effort、
+codex は -m・-c model_reasoning_effort。runner_commands で上書きしたときは足さない。subagent は prompts が Agent ツールの
+model・effort を示す）:
+  claude: claude -p --output-format stream-json --verbose --permission-mode acceptEdits --no-session-persistence
           --setting-sources project,local --allowedTools ...（ユーザー単位の設定を読まない）
   codex : codex exec --json --sandbox workspace-write --skip-git-repo-check --ephemeral
           --dangerously-bypass-hook-trust（一時プロジェクトの hooks は信頼の手続きを経ていないため）
@@ -70,6 +82,7 @@ import argparse
 import datetime
 import difflib
 import glob
+import gzip
 import hashlib
 import itertools
 import json
@@ -89,6 +102,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _lib  # noqa: E402
 import _skillrt as rt  # noqa: E402
+import eval_check  # noqa: E402
 
 PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}
 CLAUDE_TOOLS = ["Skill", "Read", "Write", "Edit", "Glob", "Grep", "Bash(python3 *)", "Bash(git diff *)",
@@ -121,7 +135,7 @@ REVIEW_ASK = {
           "write its ID and the reason as `<ID> <reason>`, one per line. If every item is met, write only \"no findings\". "
           "Do not change any file.",
 }
-SKIP = {".git", "__pycache__", "node_modules", ".venv"}
+SKIP = {".git", "__pycache__", "node_modules", ".venv", ".skill-feedback"}
 MAX_BYTES = 1_000_000
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*")
 FENCE = Path(__file__).resolve().parent / "fence.py"
@@ -134,12 +148,70 @@ USED_SKILL = "used-SKILL.md"  # ラウンドでエージェントが読んだ SK
 
 def default_runner(runner: str) -> list[str]:
     if runner == "claude":
-        return ["claude", "-p", "{prompt}", "--output-format", "json", "--permission-mode", "acceptEdits",
+        return ["claude", "-p", "{prompt}", "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits",
                 "--no-session-persistence", "--setting-sources", "project,local", "--allowedTools", *CLAUDE_TOOLS]
     return [codex_binary(), "exec", "--json", "--sandbox", "workspace-write", "--skip-git-repo-check", "--ephemeral",
             "--dangerously-bypass-hook-trust", "-c", 'projects."{dir}".trust_level="trusted"',
             "-c", "sandbox_workspace_write.exclude_slash_tmp=true", "-c", "sandbox_workspace_write.exclude_tmpdir_env_var=true",
             "-C", "{dir}", "-o", "{last}", "{prompt}"]
+
+
+def with_model(template: list[str], runner: str, model: str | None, effort: str | None) -> list[str]:
+    """既定の起動コマンドに、設定のモデルと推論エフォートを足す。"""
+    if runner == "claude":
+        at = template.index("--allowedTools") if "--allowedTools" in template else len(template)  # 道具の一覧の前に入れる
+        extra = (["--model", model] if model else []) + (["--effort", effort] if effort else [])
+        return template[:at] + extra + template[at:]
+    if runner == "codex":
+        at = template.index("exec") + 1
+        extra = (["-m", model] if model else []) + (["-c", f'model_reasoning_effort="{effort}"'] if effort else [])
+        return template[:at] + extra + template[at:]
+    return template
+
+
+def chosen(plan: dict, runner: str) -> tuple[str | None, str | None]:
+    """prepare が plan.json に残した、runner のモデルと推論エフォート。"""
+    settings = plan.get("settings", {})
+    return settings.get("model", {}).get(runner), settings.get("effort", {}).get(runner)
+
+
+def per_runner(items: list[str] | None) -> dict:
+    """--model・--effort の値。runner=値 はその runner に、値だけなら全部の runner に当てる。"""
+    found = {}
+    for item in items or []:
+        runner, sep, value = item.partition("=")
+        found.update({runner.strip(): value.strip()} if sep else {r: item.strip() for r in RUNNERS})
+    return found
+
+
+def plan_settings(spec: dict, args) -> tuple[dict, dict]:
+    """prepare と review-prepare の、収束テストの動かし方（_lib.convergence_settings）。足りない項目があれば止まる。"""
+    runners = [r for r in (args.runners or "").split(",") if r]
+    unknown = [r for r in runners if r not in RUNNERS]
+    if unknown:
+        _lib.fail(f"未知の runner: {unknown}（{', '.join(RUNNERS)} のどれか）")
+    over = {"runners": runners or None, "agents": args.agents, "model": per_runner(args.model), "effort": per_runner(args.effort)}
+    cfg, sources, warnings = _lib.convergence_settings(spec, over)
+    for warning in warnings:
+        print(f"注意: {warning}")
+    missing = [path for path in _lib.CONVERGENCE_REQUIRED if _lib.setting_value(cfg, path) is None]
+    if missing:
+        _lib.fail(f"収束テストの設定 {missing} が、引数・spec の convergence・settings のどこにもありません"
+                  "（skill-foundation の settings/skill-setting.yaml の convergence に書く）")
+    return cfg, sources
+
+
+def show_settings(cfg: dict, sources: dict, runners: list[str]) -> None:
+    """決めた動かし方と出どころ。モデルと推論エフォートは、指定が無ければ runner の既定で動く。"""
+    def where(path: str) -> str:
+        return _lib.SETTING_SOURCES.get(sources.get(path), "指定なし（runner の既定）")
+    print("動かし方（強い順: 引数 → spec の convergence → ユーザーの設定 → スキルの設定）:")
+    for path in ("runners", "agents", "max_rounds", "thresholds.files", "thresholds.structure", "thresholds.names"):
+        print(f"  {path} = {json.dumps(_lib.setting_value(cfg, path), ensure_ascii=False)}（{where(path)}）")
+    for kind in ("model", "effort"):
+        for runner in runners:
+            value = cfg[kind].get(runner)
+            print(f"  {kind}.{runner} = {value or '-'}（{where(f'{kind}.{runner}')}）")
 
 
 def fence_command(platform: str, lab: Path | None = None) -> str:
@@ -248,6 +320,20 @@ def snapshot(directory: Path) -> dict[str, str]:
 
 # ---------------------------------------------------------------- prepare
 
+def recorded_inputs(skill_dir: Path, task: dict) -> list[tuple[Path, str]]:
+    """Only replay captured input files, never the feedback or expected outputs."""
+    result = []
+    for item in task.get("input_files", []):
+        source = (skill_dir / item["source"]).resolve()
+        relative = Path(item["path"])
+        if (not source.is_relative_to((skill_dir / "dev/feedback-inputs").resolve()) or not source.is_file()
+                or relative.is_absolute() or ".." in relative.parts or not relative.parts
+                or relative.parts[0] in {".git", ".claude", ".agents", ".codex", ".skill-runs", ".skill-feedback"}):
+            _lib.fail(f"課題 {task.get('id')} の input_files が入力ファイルの範囲を外れています")
+        result.append((source, relative.as_posix()))
+    return result
+
+
 def cmd_prepare(args) -> int:
     skill_dir = Path(args.skill).resolve()
     spec = _lib.load_spec(skill_dir)
@@ -255,11 +341,8 @@ def cmd_prepare(args) -> int:
     if str(conv.get("skip_reason") or "").strip():  # measure が skip のとき（STEP-02）は、一時プロジェクトを作らない
         _lib.fail(f"spec の convergence.skip_reason に、収束テストを省くと書いてあります（{conv['skip_reason']}）。"
                   "実行するなら、skip_reason を消してから準備してください（STEP-02）")
-    agents = args.agents or conv.get("agents", 2)
-    runners = [r for r in (args.runners or ",".join(conv.get("runners", ["claude", "codex"]))).split(",") if r]
-    unknown = [r for r in runners if r not in RUNNERS]
-    if unknown:
-        _lib.fail(f"未知の runner: {unknown}（{', '.join(RUNNERS)} のどれか）")
+    cfg, sources = plan_settings(spec, args)
+    agents, runners = cfg["agents"], cfg["runners"]
     tasks = _lib.load_json(skill_dir / "dev/evals.json").get("tasks", [])
     if args.only_tasks:
         tasks = [t for t in tasks if t.get("id") in set(args.only_tasks.split(","))]
@@ -268,17 +351,32 @@ def cmd_prepare(args) -> int:
     if not tasks:
         _lib.fail("課題が0件です")
     for task in tasks:
+        recorded_inputs(skill_dir, task)
         if _lib.TODO_MARKER in task.get("prompt", ""):
             _lib.fail(f"課題 {task.get('id')} の prompt がひな形のままです")
-    if args.round > 1:  # 前のラウンドの AI の分析を締め込みに使ってから、次のラウンドに進む
+    if eval_check.scoring(skill_dir) is not None:  # 各エージェントの出力を Eval で採点する（STEP-07）
+        errors, stale = eval_check.check(skill_dir)[0], eval_check.stale(skill_dir)
+        lacking = eval_check.missing_targets(skill_dir)
+        problem = (f"Eval が eval_check.py に通っていません（指摘 {len(errors)} 件）" if errors else
+                   f"{eval_check.RESULT_REL} が{stale}" if stale else
+                   f"判定するファイルの場所（target）が無い振る舞いがあります（{', '.join(lacking)}）" if lacking else "")
+        if problem:
+            _lib.fail(f"{problem}。収束テストで出力を Eval で採点できません（references/eval.md の7章、STEP-07）")
+    if args.round > 1:  # 前のラウンドの AI の分析と Eval の採点を締め込みに使ってから、次のラウンドに進む
         prev, report = args.round - 1, skill_dir / "dev/convergence-report.md"
+        text = report.read_text(encoding="utf-8") if report.is_file() else ""
         stale = _lib.stale_analyses(skill_dir, prev)
         gaps = ([f"AI の分析が無いか、記録を取り直す前の分析です（{', '.join(stale)}）"] if stale else []) + \
-            _lib.uncited_findings(skill_dir, prev, report.read_text(encoding="utf-8") if report.is_file() else "")
+            _lib.uncited_findings(skill_dir, prev, text)
         if gaps:
             _lib.fail(f"ラウンド {prev} のエージェントの動きの分析を、締め込みに使った記録がありません。analysis-collect の後に "
                       f"round-{prev}/analysis.md の指摘を分類し、dev/convergence-report.md の「## 動きの指摘」に書いてから準備してください"
                       "（convergence-test.md の5章）\n" + "\n".join(f"- {g}" for g in gaps))
+        gaps = eval_check.round_gaps(skill_dir, prev, text) + [g for g in [eval_check.realign_gap(skill_dir, prev, text)] if g]
+        if gaps:
+            _lib.fail(f"ラウンド {prev} の Eval の採点を、締め込みに使った記録がありません。落ちた判定を分類して dev/convergence-report.md の"
+                      "「## Eval の採点」に書き、Eval の疑いか抜けがあれば、ユーザーとすり合わせて Eval を直してから準備してください"
+                      "（references/eval.md の7章）\n" + "\n".join(f"- {g}" for g in gaps))
     workdir = Path(args.workdir).resolve() if args.workdir else Path(tempfile.gettempdir()) / "skill-foundation" / spec["name"]
     rdir = round_dir(workdir, args.round)
     if rdir.exists():
@@ -297,6 +395,12 @@ def cmd_prepare(args) -> int:
                     shutil.copytree(skill_dir / task["fixture"], target)
                 else:
                     target.mkdir(parents=True)
+                for source, relative in recorded_inputs(skill_dir, task):
+                    destination = target / relative
+                    if not destination.resolve().is_relative_to(target.resolve()):
+                        _lib.fail("入力ファイルの配置先が作業ディレクトリを外れています")
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, destination)
                 # スキルと hooks と fence.py を置いてから git の初回コミットを作る（エージェントの git status に出さない）
                 installed = target / place / spec["name"]
                 installed.parent.mkdir(parents=True, exist_ok=True)
@@ -312,8 +416,10 @@ def cmd_prepare(args) -> int:
                     if code != 0:
                         _lib.fail(f"{task['id']} の setup `{command}` が失敗しました: {_lib.tail(out, 5)}")
                 prompt = task["prompt"]
+                if task.get("input_values"):
+                    prompt += "\n\n入力: " + json.dumps(task["input_values"], ensure_ascii=False)
                 if runner == "subagent":
-                    prompt = subagent_prompt(spec, task, target, installed)
+                    prompt = subagent_prompt(spec, {**task, "prompt": prompt}, target, installed)
                 elif task.get("invoke") == "explicit":
                     prompt = INVOKE[runner].replace("{name}", spec["name"]) + prompt
                 runs.append({"id": run_id, "task": task["id"], "runner": runner, "dir": str(target), "prompt": prompt,
@@ -322,10 +428,12 @@ def cmd_prepare(args) -> int:
                 mark_lab(target, rdir, run_id, runner, spec.get("language"))
     plan = {"skill": str(skill_dir), "name": spec["name"], "round": args.round, "runners": runners, "agents": agents,
             "tasks": [t["id"] for t in tasks], "expect": {t["id"]: t.get("expect_status", "done") for t in tasks},
-            "place": place, "runs": runs, "vocab": vocab, "fence": True, "prepared_at": rt.now()}
+            "place": place, "runs": runs, "vocab": vocab, "fence": True, "prepared_at": rt.now(),
+            "settings": {k: cfg[k] for k in ("max_rounds", "thresholds", "model", "effort")}, "setting_sources": sources}
     _lib.write_json(rdir / "plan.json", plan)
     print(f"準備しました: {rdir}")
     print(f"課題 {len(tasks)} 件 × runner {len(runners)} 種 × {agents} 人 = セッション {len(runs)} 回")
+    show_settings(cfg, sources, runners)
     if tester:
         print(tester)
     command = "prompts" if "subagent" in runners else "run"
@@ -365,8 +473,8 @@ def cmd_review_prepare(args) -> int:
     if str(conv.get("skip_reason") or "").strip():  # measure が skip のとき（STEP-02）は、一時プロジェクトを作らない
         _lib.fail(f"spec の convergence.skip_reason に、収束テストを省くと書いてあります（{conv['skip_reason']}）。"
                   "実行するなら、skip_reason を消してから準備してください（STEP-02）")
-    agents = args.agents or conv.get("agents", 2)
-    runners = [r for r in (args.runners or ",".join(conv.get("runners", ["claude", "codex"]))).split(",") if r]
+    cfg, sources = plan_settings(spec, args)
+    agents, runners = cfg["agents"], cfg["runners"]
     doc = _lib.load_json(skill_dir / "dev/probes.json")
     samples = doc.get("reviews", [])
     if not samples:
@@ -431,10 +539,12 @@ def cmd_review_prepare(args) -> int:
                 mark_lab(target, rdir, runs[-1]["id"], runner, spec.get("language"))
     plan = {"kind": "review", "skill": str(skill_dir), "name": spec["name"], "round": args.round, "runners": runners,
             "agents": agents, "samples": [{"id": x["id"], "rule": x["rule"]} for x in samples], "place": place, "runs": runs,
-            "fence": True, "prepared_at": rt.now()}
+            "fence": True, "prepared_at": rt.now(),
+            "settings": {k: cfg[k] for k in ("model", "effort")}, "setting_sources": sources}
     _lib.write_json(rdir / "plan.json", plan)
     print(f"準備しました: {rdir}")
     print(f"見本 {len(samples)} 件 × runner {len(runners)} 種 × {agents} 人 = セッション {len(runs)} 回")
+    show_settings(cfg, sources, runners)
     if tester:
         print(tester)
     command = "prompts" if "subagent" in runners else "run"
@@ -506,6 +616,10 @@ def cmd_prompts(args) -> int:
              "エージェントの最終の返答は、保存先にそのまま書く。全件を書いたら run を実行する。"))
     print(f"{TESTER} が見つからないと言われたら、Claude Code を再起動してから起動し直す。ほかの型で代わりに動かさない"
           "（fence.py が働かない）。")
+    model, effort = chosen(plan, "subagent")
+    if model or effort:
+        print("Agent ツールに、設定の " + "、".join(f"{k} {v}" for k, v in (("model", model), ("effort", effort)) if v)
+              + " を指定して起動する（設定に無い方は指定しない）。")
     for run in runs:
         prompt_file = prompts / f"{safe(run['id'])}.md"
         prompt_file.write_text(run["prompt"], encoding="utf-8")
@@ -517,11 +631,15 @@ def cmd_prompts(args) -> int:
 # ---------------------------------------------------------------- run
 
 def last_message(runner: str, stdout: str, last_file: Path) -> str:
-    if runner == "claude":
-        try:
-            return str(json.loads(stdout).get("result", ""))
-        except (json.JSONDecodeError, AttributeError):
-            return stdout[-4000:]
+    if runner == "claude":  # --output-format stream-json の最後の result 行（json の1行の出力も読む）
+        for line in reversed(stdout.splitlines()):
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(event, dict) and "result" in event:
+                return str(event.get("result", ""))
+        return stdout[-4000:]
     if last_file.is_file():
         return last_file.read_text(encoding="utf-8", errors="replace")
     return _lib.tail(stdout, 40)
@@ -537,7 +655,7 @@ def model_info(models: list, efforts: list, **extra) -> dict:
 
 
 def claude_model(out: str) -> dict:
-    """claude -p --output-format json の結果の modelUsage で、出力のトークンが一番多いモデル。推論エフォートは結果に無い。"""
+    """claude -p の結果（stream-json の最後の result 行）の modelUsage で、出力のトークンが一番多いモデル。推論エフォートは結果に無い。"""
     for text in [out, *reversed(out.splitlines())]:
         try:
             usage = json.loads(text).get("modelUsage")
@@ -607,6 +725,8 @@ def cmd_run(args) -> int:
     spec = _lib.load_spec(Path(plan["skill"]))
     conv = spec.get("convergence", {})
     overrides = conv.get("runner_commands", {})
+    cfg = _lib.convergence_settings(spec)[0]
+    parallel, timeout = args.parallel or cfg["parallel"] or 3, args.timeout or cfg["timeout"] or 1800
     runs = plan["runs"]
     if args.only:
         runs = [r for r in runs if r["id"] in set(args.only.split(","))]
@@ -616,16 +736,16 @@ def cmd_run(args) -> int:
 
     def execute(run: dict):
         last = results / f"{safe(run['id'])}.last.txt"
-        template = overrides.get(run["runner"]) or default_runner(run["runner"])
+        template = overrides.get(run["runner"]) or with_model(default_runner(run["runner"]), run["runner"], *chosen(plan, run["runner"]))
         command = [a.replace("{prompt}", run["prompt"]).replace("{dir}", run["dir"]).replace("{last}", str(last))
                    for a in template]
         tmp = Path(run["dir"]) / FENCE_REL / "tmp"  # 入力にパスが出ない一時ファイルも、一時プロジェクトの中に入れる
         started = time.monotonic()
         run_env = {**env, "TMPDIR": str(tmp) + "/"} if tmp.is_dir() else env
-        if run["runner"] == "codex":  # 操作の列は trace が読む
-            code, out = run_logged(command, Path(run["dir"]), args.timeout, run_env, results / EVENTS.format(id=safe(run["id"])))
+        if run["runner"] in ("codex", "claude"):  # 操作の列は trace が読む
+            code, out = run_logged(command, Path(run["dir"]), timeout, run_env, results / EVENTS.format(id=safe(run["id"])))
         else:
-            code, out = _lib.run(command, Path(run["dir"]), timeout=args.timeout, env=run_env)
+            code, out = _lib.run(command, Path(run["dir"]), timeout=timeout, env=run_env)
         model = codex_settings(command) if run["runner"] == "codex" else claude_model(out) if run["runner"] == "claude" else {}
         record = {"id": run["id"], "runner": run["runner"], "exit": code, "seconds": round(time.monotonic() - started, 1),
                   "message": last_message(run["runner"], out, last), "output_tail": _lib.tail(out, 60), **model}
@@ -647,8 +767,11 @@ def cmd_run(args) -> int:
                          "message": last.read_text(encoding="utf-8", errors="replace"), "output_tail": ""})
         print(f"完了  {run['id']}  Agent ツールの結果を集めた")
     runs = [r for r in runs if r["runner"] != "subagent"]
-    print(f"{len(runs)} 件を最大 {args.parallel} 並列で実行します（1件の上限 {args.timeout} 秒）")
-    with ThreadPoolExecutor(max_workers=args.parallel) as pool:
+    unused = sorted({r["runner"] for r in runs if r["runner"] in overrides and any(chosen(plan, r["runner"]))})
+    if unused:
+        print(f"注意: {', '.join(unused)} は spec の convergence.runner_commands で起動するので、設定のモデル・推論エフォートを足さない")
+    print(f"{len(runs)} 件を最大 {parallel} 並列で実行します（1件の上限 {timeout} 秒）")
+    with ThreadPoolExecutor(max_workers=parallel) as pool:
         for run_id, code, seconds in pool.map(execute, runs):
             failed += code != 0
             print(f"{'完了' if code == 0 else '失敗'}  {run_id}  終了コード {code}（{seconds:.0f} 秒）")
@@ -726,15 +849,9 @@ def mean(values: list[float]) -> float | None:
     return round(sum(values) / len(values), 3) if values else None
 
 
-def tampered(run: dict, plan: dict, targets: list[str], now: dict[str, str]) -> list[str]:
-    """スキル自身のファイルを変えたか、このスキルの hooks の登録を外した・変えたエージェントの証拠。"""
-    prefix = f"{plan['place']}/{plan['name']}/"
-    base = run["baseline"]
-    found = sorted(rel for rel in set(base) | set(now) if rel.startswith(prefix) and base.get(rel) != now.get(rel))
-    code, output = _lib.run([sys.executable, str(Path(plan["skill"]) / "scripts/install.py"), "--project", run["dir"],
-                             "--targets", ",".join(targets), "--check"], Path(run["dir"]))
-    if code != 0:
-        found += [line[len("ERROR "):] for line in output.splitlines() if line.startswith("ERROR ")] or ["install.py --check が失敗"]
+def fence_changes(run: dict, plan: dict) -> list[str]:
+    """独立エージェントの作業ディレクトリ制限を外した証拠だけを返す。"""
+    found = []
     if plan.get("fence") and run.get("runner") in FENCE_CONFIGS:
         rel = FENCE_CONFIGS[run["runner"]][0]
         config = Path(run["dir"]) / rel
@@ -775,6 +892,16 @@ def metrics(names: list[str], changes: dict, contents: dict, vocab: set[str] | N
             "names": named, "content": mean(content), "new_names": {n: sorted(new[n])[:40] for n in names}}
 
 
+def eval_asks(project: Path, scores: dict) -> dict:
+    """model の判定を分析役に頼む振る舞いと、判定する中身（analysis-prepare が record.md に入れる）。"""
+    asks = {}
+    for bid, score in scores.items():
+        if score["result"] == "pending":
+            rel, _, frag = score["target"].partition("#")
+            asks[bid] = {"target": score["target"], "text": eval_check.model_text(eval_check.target_text(project, rel, frag) or "", rel)}
+    return asks
+
+
 def cmd_diff(args) -> int:
     workdir = Path(args.workdir).resolve()
     rdir = round_dir(workdir, args.round)
@@ -782,22 +909,24 @@ def cmd_diff(args) -> int:
     skill_dir = Path(plan["skill"])
     spec = _lib.load_spec(skill_dir)
     conv = spec.get("convergence", {})
-    thresholds = {"files": 1.0, "structure": 1.0, "names": 0.8, **conv.get("thresholds", {})}
+    thresholds = plan.get("settings", {}).get("thresholds") or _lib.convergence_settings(spec)[0]["thresholds"]
     ignore = conv.get("ignore", [])
     out = Path(args.out).resolve() if args.out else skill_dir / f"dev/results/convergence/round-{plan['round']}"
     out.mkdir(parents=True, exist_ok=True)
     name = plan["name"]
+    scored = eval_check.scoring(skill_dir)
     report = {"round": plan["round"], "runners": plan["runners"], "thresholds": thresholds, "fence": bool(plan.get("fence")),
-              "tasks": []}
+              "eval": {"hash": scored["hash"], "dialog": scored["dialog"]} if scored else {}, "tasks": []}
     for tid in plan["tasks"]:
         runs = sorted([r for r in plan["runs"] if r["task"] == tid], key=lambda r: r["id"])
         names, changes, contents, statuses, checks, messages, broken, events = [], {}, {}, {}, {}, {}, {}, {}
+        expected, grades = plan.get("expect", {}).get(tid, "done"), {}
         for run in runs:
             label = run["id"].split("/", 1)[1]
             names.append(label)
             now = snapshot(Path(run["dir"]))
             found = changed_files(run, name, ignore, now)
-            evidence = tampered(run, plan, spec["targets"], now)
+            evidence = fence_changes(run, plan)
             if evidence:
                 broken[label] = evidence
             changes[label] = set(found)
@@ -817,6 +946,19 @@ def cmd_diff(args) -> int:
                 patch.append(f"=== {rel}\n{text if text is not None else '(削除・バイナリ)'}\n")
             (out / tid).mkdir(parents=True, exist_ok=True)
             (out / tid / f"{label}.patch").write_text("".join(patch), encoding="utf-8")
+            keep = out / "records" / "outputs" / f"{tid}__{label}"  # catalog.py が画像と HTML を見せる写し。records/ は git に入れない
+            shutil.rmtree(keep, ignore_errors=True)
+            for rel in found:
+                if (Path(run["dir"]) / rel).is_file():
+                    (keep / rel).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(Path(run["dir"]) / rel, keep / rel)
+            (out / tid / f"{label}.eval.json").unlink(missing_ok=True)
+            if scored and expected != "unused":  # スキルを使わないのが正解の課題には、Eval を当てない
+                grades[label] = eval_check.score_run(skill_dir, scored["doc"], Path(run["dir"]), name,
+                                                     state.get("input", {}) if state else {})
+                asks = eval_asks(Path(run["dir"]), grades[label])
+                if asks:
+                    _lib.write_json(out / tid / f"{label}.eval.json", asks)
         vocab = set(plan.get("vocab", {}).get(tid, []))
         overall = metrics(names, changes, contents, vocab)
         by_runner = {}
@@ -824,11 +966,12 @@ def cmd_diff(args) -> int:
             group = [n for n in names if n.startswith(runner + "-")]
             if len(group) >= 2:
                 by_runner[runner] = {k: v for k, v in metrics(group, changes, contents, vocab).items() if k != "new_names"}
-        expected = plan.get("expect", {}).get(tid, "done")
         check_ok = all(c["exit"] == 0 for c in checks.values())
-        converged = (set(statuses.values()) == {expected} and check_ok and not broken
-                     and overall["files"] >= thresholds["files"] and overall["structure"] >= thresholds["structure"]
-                     and overall["names"] >= thresholds["names"])
+        variance_ok = (set(statuses.values()) == {expected} and check_ok and not broken
+                       and overall["files"] >= thresholds["files"] and overall["structure"] >= thresholds["structure"]
+                       and overall["names"] >= thresholds["names"])
+        eval_ok = eval_check.task_ok(grades)  # model の判定待ちが残れば None（analysis-collect が決め直す）
+        converged = variance_ok and eval_ok is True
         partial = [{"path": p, "who": [n for n in names if p in changes[n]]}
                    for p in sorted(set().union(*changes.values())) if 0 < sum(p in changes[n] for n in names) < len(names)]
         excerpts = []
@@ -841,14 +984,18 @@ def cmd_diff(args) -> int:
                                                                        f"{b}/{rel}", lineterm=""))[:60]})
         report["tasks"].append({"id": tid, "agents": names, "expect_status": expected, "status": statuses, **overall, "by_runner": by_runner,
                                 "check": {n: c["exit"] for n, c in checks.items()}, "converged": converged,
-                                "tampered": broken, "events": events,
+                                "variance_ok": variance_ok, "eval": grades, "eval_ok": eval_ok,
+                                "fence_changed": broken, "events": events,
                                 "changed_files": {n: sorted(changes[n]) for n in names}, "partial_files": partial,
                                 "excerpts": excerpts, "check_failures": {n: c["tail"] for n, c in checks.items() if c["exit"]},
                                 "messages": {n: messages[n][-1500:] for n in names}})
     _lib.write_json(out / "report.json", report)
     (out / "report.md").write_text(render_report(report), encoding="utf-8")
-    write_traces(plan, rdir, out)
+    lost = [line for line in write_traces(plan, rdir, out) if "（記録が見つからない）" in line]
     print(summary(report))
+    if lost:
+        print("操作の記録が見つからないエージェント（動きを分析できない。skill_lint.py --final が止める。convergence-test.md の7章）:\n"
+              + "\n".join(lost))
     print(f"レポート: {out / 'report.md'}")
     return 0 if all(t["converged"] for t in report["tasks"]) else 1
 
@@ -859,7 +1006,7 @@ TRANSCRIPTS = Path.home() / ".claude" / "projects"  # Claude Code が Agent ツ�
 CODEX_SESSIONS = Path.home() / ".codex" / "sessions"  # Codex がセッションの記録（<年>/<月>/<日>/rollout-*.jsonl）を置く場所
 INPUT_LIMIT = 4000  # 操作の入力を残す長さ。Codex は1回の実行にコマンドをつなぐので、後ろの run.py まで残す
 OUTPUT_HEAD, OUTPUT_TAIL = 400, 200  # 操作の出力を残す字数（先頭と末尾）。AI の分析が、出力から次の操作のわけを推す
-EVENTS = "{id}.events.jsonl"  # runner codex の --json の出力（行ごとに届いた時刻つき）。_results/ に置く
+EVENTS = "{id}.events.jsonl"  # runner claude の stream-json と runner codex の --json の出力（行ごとに届いた時刻つき）。_results/ に置く
 
 
 def plan_time(plan: dict, rdir: Path) -> float:
@@ -948,12 +1095,15 @@ def excerpt(text: str, directory: str) -> dict:
 def transcript_actions(path: Path, directory: str, fenced: set | None = None) -> list[dict]:
     """記録の道具の呼び出しを、時刻・道具・主な入力・成否（tool_result の is_error）・出力の抜粋の列にする。
     fence.py が止めた呼び出し（fence.py の記録にある ID か、結果に fence.py の目印があるもの）には fenced を付ける。
-    api-request-blob などの項目は、API に送った会話の写しで前の呼び出しをもう一度含むので、読まない。"""
+    api-request-blob などの項目は、API に送った会話の写しで前の呼び出しをもう一度含むので、読まない。
+    runner claude の stream-json の出力（run_logged が届いた時刻を付けて包んだ行）も、包みを外して同じに読む。"""
     calls, results, outputs, stopped = [], {}, {}, set(fenced or ())
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
         try:
             entry = json.loads(line)
-        except ValueError:
+            if isinstance(entry, dict) and "line" in entry and "type" not in entry:
+                entry = {"timestamp": entry.get("at", ""), **json.loads(entry["line"])}
+        except (ValueError, TypeError):
             continue
         if not isinstance(entry, dict) or entry.get("type") not in ("assistant", "user"):
             continue
@@ -1171,9 +1321,91 @@ def round_procedure(skill_dir: Path, rnd: int) -> str:
     return (used if used.is_file() else skill_dir / "SKILL.md").read_text(encoding="utf-8")
 
 
+RUN_EVENTS = {"start": "start", "restart": "start --restart", "check": "check", "finish": "finish", "finish-rejected": "finish",
+              "waiting": "wait --question", "aborted": "abort --reason"}  # 実行記録の出来事と、それを書いた run.py のサブコマンド
+CLAUDE_PARTIAL = ("一部だけ（stream-json を保存する前の版の claude -p で実行した。操作は run.py の実行記録から、許可されなかった操作は"
+                  " claude -p の出力から作った。読む・書く・ほかのコマンドは残っていない）")
+
+
+def claude_result_actions(outcome: dict, state: dict, end: float, script: str, directory: str) -> tuple[list[dict], list[dict]]:
+    """stream-json を保存する前の版の runner claude の、残った記録から作る（操作, 許可されなかった操作）。操作は、実行の間に
+    run.py が書いた実行記録（state.json の history。hooks の出来事と、実行の後の diff などの check は除く）。start のコマンドは
+    記録に無いので、run.py が記録した入力と依頼文から組み立て、そのことを出力に書く。許可されなかった操作は、claude -p の
+    json の出力の permission_denials（時刻が無いので、操作の列には入れない）。end は実行が終わった時刻（結果を書いた時刻）。"""
+    begin, actions = end - float(outcome.get("seconds") or 0) - 5, []
+    given = "".join(f" --set {k}={shlex.quote(str(v))}" for k, v in (state.get("input") if isinstance(state.get("input"), dict) else {}).items())
+    given += f" {shlex.quote(str(state['text']))}" if state.get("text") else ""
+    for event in state.get("history", []):
+        sub = RUN_EVENTS.get(event.get("event")) if isinstance(event, dict) else None
+        try:
+            moment = datetime.datetime.fromisoformat(str(event.get("at", ""))).timestamp() if sub else None
+        except ValueError:
+            moment = None
+        if moment is None or not begin <= moment <= end + 2:
+            continue
+        detail = str(event.get("detail", ""))
+        count = re.match(r"(\d+) 件", detail)
+        if sub.startswith("start"):
+            argument, note = given, {"out": "コマンドは記録に無い。引数は run.py が記録した入力と依頼文から組み立てた"}
+        else:
+            argument = f" {shlex.quote(detail)}" if sub.endswith(("--question", "--reason")) else ""
+            note = {"out": f"指摘 {detail}"} if count else {}
+        actions.append({"at": event["at"], "tool": "Bash", "input": f"{script} {sub}{argument}",
+                        "ok": int(count.group(1)) == 0 if count else True, **note})
+    try:
+        output = json.loads(str(outcome.get("output_tail", "")))
+    except ValueError:
+        output = {}
+    denials = output.get("permission_denials", []) if isinstance(output, dict) else []
+    denied = [{"tool": str(d.get("tool_name", "")),
+               "input": tool_input(str(d.get("tool_name", "")), d["tool_input"] if isinstance(d.get("tool_input"), dict) else {}, directory)}
+              for d in denials if isinstance(d, dict)]
+    return actions, denied
+
+
+RECORDS = "records"  # 元の記録の写し（gzip）。一時ディレクトリや製品の記録が消えても trace で動きを作り直せるよう、結果の置き場に残す
+
+
+def keep_record(src: Path | None, out: Path, name: str) -> None:
+    """src を out/records/<name>.gz に写す。gzip の見出しの時刻に src の更新日時を入れ、戻すときに使う（中身が同じなら書き直さない）。"""
+    if not src or not src.is_file():
+        return
+    dest, data = out / RECORDS / f"{name}.gz", src.read_bytes()
+    if dest.is_file() and gzip.decompress(dest.read_bytes()) == data:
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(gzip.compress(data, mtime=int(src.stat().st_mtime)))
+
+
+def restore_record(out: Path, name: str, dest: Path) -> bool:
+    """dest が無く、out/records/<name>.gz があれば、dest に戻す（更新日時も戻す）。戻した後に dest があるか。"""
+    archived = out / RECORDS / f"{name}.gz"
+    if dest.is_file() or not archived.is_file():
+        return dest.is_file()
+    blob = archived.read_bytes()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(gzip.decompress(blob))
+    moment = int.from_bytes(blob[4:8], "little")  # gzip の見出しの MTIME
+    os.utime(dest, (moment, moment))
+    return True
+
+
+def record_files(plan: dict, rdir: Path, run: dict) -> dict[str, Path]:
+    """実行ごとに写す記録（写しの名前の後ろ: 元の場所）。製品の記録（Agent ツール、Codex のセッション）は write_traces が足す。"""
+    sid, home = safe(run["id"]), Path(run["dir"])
+    return {"events.jsonl": rdir / "_results" / EVENTS.format(id=sid), "result.json": rdir / "_results" / f"{sid}.json",
+            "state.json": home / rt.RUNS_DIRNAME / plan["name"] / "state.json", "fence.jsonl": home / FENCE_REL / "log.jsonl",
+            "prompt.md": rdir / "_prompts" / f"{sid}.md"}
+
+
 def write_traces(plan: dict, rdir: Path, out: Path, root: Path = TRANSCRIPTS, codex_root: Path = CODEX_SESSIONS) -> list[str]:
-    """各エージェントの動きを out/traces.json に書く。catalog.py がワークフロー図に重ねる。"""
+    """各エージェントの動きを out/traces.json に書く。catalog.py がワークフロー図に重ねる。元の記録の写しを out/records に残し、
+    元の記録が消えていれば写しから戻して使う。"""
     keep_procedure(plan, out)
+    keep_record(rdir / "plan.json", out, "plan.json")
+    for run in plan["runs"]:
+        for kind, src in record_files(plan, rdir, run).items():
+            restore_record(out, f"{safe(run['id'])}.{kind}", src)
     prompts = {}
     for run in plan["runs"]:
         prompt_file = rdir / "_prompts" / f"{safe(run['id'])}.md"
@@ -1183,22 +1415,31 @@ def write_traces(plan: dict, rdir: Path, out: Path, root: Path = TRANSCRIPTS, co
     found = find_transcripts(prompts, root, since) if prompts else {}
     lost = {run["id"]: run["dir"] for run in plan["runs"] if run.get("runner") == "subagent" and run["id"] not in found}
     codex = find_codex_rollouts(lost, codex_root, since) if lost else {}
+    for rid in [r for r in lost if r not in codex]:  # 製品の記録が消えた後は、写しを使う
+        sid = safe(rid)
+        if restore_record(out, f"{sid}.transcript.jsonl", rdir / RECORDS / f"{sid}.transcript.jsonl"):
+            found[rid] = rdir / RECORDS / f"{sid}.transcript.jsonl"
+        elif restore_record(out, f"{sid}.rollout.jsonl", rdir / RECORDS / f"{sid}.rollout.jsonl"):
+            codex[rid] = (rdir / RECORDS / f"{sid}.rollout.jsonl", rollout_entries(rdir / RECORDS / f"{sid}.rollout.jsonl")[1])
     runs, lines = {}, []
     for run in sorted(plan["runs"], key=lambda r: r["id"]):
         state_path = Path(run["dir"]) / rt.RUNS_DIRNAME / plan["name"] / "state.json"
         try:
-            events = json.loads(state_path.read_text(encoding="utf-8")).get("history", []) if state_path.is_file() else []
+            state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
+            events = state.get("history", [])
         except (OSError, ValueError, AttributeError):
-            events = []
+            state, events = {}, []
         stopped = fence_log(run["dir"])
         ids = {e.get("tool_use_id") for e in stopped}
         runner = run.get("runner", "")
         exec_log = rdir / "_results" / EVENTS.format(id=safe(run["id"]))
         result = rdir / "_results" / f"{safe(run['id'])}.json"
         try:  # runner claude・codex のモデルは、run が実行の結果に書く
-            model = {k: v for k, v in _lib.load_json(result).items() if k in ("model", "effort", "settings")} if result.is_file() else {}
+            outcome = _lib.load_json(result) if result.is_file() else {}
+            model = {k: v for k, v in outcome.items() if k in ("model", "effort", "settings")}
         except (OSError, ValueError, AttributeError):
-            model = {}
+            outcome, model = {}, {}
+        denied = []
         if run["id"] in found:
             actions, source = transcript_actions(found[run["id"]], run["dir"], ids), f"Agent ツールの記録 {found[run['id']].name}"
             model = transcript_model(found[run["id"]])
@@ -1208,12 +1449,22 @@ def write_traces(plan: dict, rdir: Path, out: Path, root: Path = TRANSCRIPTS, co
             model = rollout_model(path)
         elif runner == "codex" and exec_log.is_file():
             actions, source = codex_actions(exec_entries(exec_log), run["dir"], ids), f"codex exec の出力 {exec_log.name}"
+        elif runner == "claude" and exec_log.is_file():
+            actions, source = transcript_actions(exec_log, run["dir"], ids), f"claude -p の出力 {exec_log.name}"
+        elif runner == "claude" and outcome:
+            script = f"python3 {plan.get('place', PLACES['claude'])}/{plan['name']}/scripts/run.py"
+            (actions, denied), source = claude_result_actions(outcome, state, result.stat().st_mtime, script, run["dir"]), CLAUDE_PARTIAL
         else:
-            actions, source = [], "記録が見つからない" if runner in ("subagent", "codex") else f"runner {runner} の操作は記録していない"
+            actions, source = [], "記録が見つからない"
         runs[run["id"]] = {"runner": runner, "source": source, "events": events, "actions": actions, **model,
-                           **({"fenced": len(stopped)} if stopped else {})}
+                           **({"denied": denied} if denied else {}), **({"fenced": len(stopped)} if stopped else {})}
         lines.append(f"- {run['id']}: 操作 {len(actions)} 件（{source}）、実行の記録 {len(events)} 件"
                      + (f"、fence.py が止めた操作 {len(stopped)} 件" if stopped else ""))
+        sid = safe(run["id"])
+        for kind, src in record_files(plan, rdir, run).items():
+            keep_record(src, out, f"{sid}.{kind}")
+        keep_record(found.get(run["id"]), out, f"{sid}.transcript.jsonl")
+        keep_record(codex[run["id"]][0] if run["id"] in codex else None, out, f"{sid}.rollout.jsonl")
     _lib.write_json(out / "traces.json", {"round": plan["round"], "runs": runs})
     return lines
 
@@ -1221,6 +1472,8 @@ def write_traces(plan: dict, rdir: Path, out: Path, root: Path = TRANSCRIPTS, co
 def cmd_trace(args) -> int:
     workdir = Path(args.workdir).resolve()
     rdir = round_dir(workdir, args.round)
+    if args.out:  # 一時ディレクトリが消えていれば、結果の置き場の写しから plan を戻す
+        restore_record(Path(args.out).resolve(), "plan.json", rdir / "plan.json")
     plan = _lib.load_json(rdir / "plan.json")
     out = Path(args.out).resolve() if args.out else Path(plan["skill"]) / f"dev/results/convergence/round-{plan['round']}"
     out.mkdir(parents=True, exist_ok=True)
@@ -1240,6 +1493,7 @@ ANALYSIS_ASK = ("作業ディレクトリは `{dir}` である。この中だけ
                 "最終の返答は「書きました」とだけ返す。")
 WHY_MAX, SUMMARY_MAX, ITEM_MAX, ITEMS_MAX = 100, 300, 150, 5  # 分析の文の長さ（分析役に頼む上限。カタログの表と札に収める）
 SLACK = 1.5  # analysis-collect が受け入れる長さは、頼んだ上限のこの倍まで（字数を正確に数えられないため）
+EVAL_RESULTS = ("pass", "fail", "na")  # 分析役の model の判定
 RECORD_INPUT = 1500  # 記録に載せる操作の入力の字数
 
 
@@ -1263,7 +1517,8 @@ def step_flow(nos: list) -> str:
 
 
 def analysis_record(name: str, rnd: int, task: str, prompt: str, procedure: str, steps: list, agent: str, run: dict,
-                    others: list[tuple[str, dict]], status: dict, message: str, target: Path) -> str:
+                    others: list[tuple[str, dict]], status: dict, message: str, target: Path, asks: dict | None = None,
+                    behaviors: dict | None = None) -> str:
     """分析役に読ませる記録。手順・依頼・操作（入力・出力・成否・手順との照合）・最終の返答と、書き方の決まり。"""
     import catalog  # 操作を手順に当てる処理は、カタログと同じものを使う
     acts = [catalog.interpret(a) for a in run["actions"]]
@@ -1274,6 +1529,8 @@ def analysis_record(name: str, rnd: int, task: str, prompt: str, procedure: str,
     example = {"ops": [{"n": 1, "fit": "ok", "why": "手順を知るため、最初に SKILL.md を読んだ"}],
                "flow": {"verdict": "fair", "summary": "…", "issues": ["#5 …"], "suggestions": ["手順 3 に …と書く"]},
                "compare": "…"}
+    if asks:
+        example["eval"] = [{"behavior": next(iter(asks)), "result": "pass", "reason": "…"}]
     lines = [f"# エージェントの動きの分析（{name}、ラウンド {rnd}、{task}/{agent}）", "",
              f"スキル `{name}` の収束テストで、作成に関わっていない独立エージェント `{agent}` が、課題 `{task}` の依頼を解いた。"
              "その記録を読み、各操作をした理由と、流れが妥当かを分析する。", "",
@@ -1300,12 +1557,19 @@ def analysis_record(name: str, rnd: int, task: str, prompt: str, procedure: str,
              "{ITEMS} 個まで。どの手順・どのファイルかを書く",
              "- `compare`: 同じ課題のほかのエージェント（最後の節）との違いと、そのわけの推定を1〜3文で（{SUMMARY} 字以内）。"
              "ほかにいなければ空の文字列", ""]
+    if asks:
+        lines[-1:-1] = ["- `eval`: 最後の節「Eval の判定」の振る舞いごとに1件。`behavior` は振る舞いの ID、`result` は `pass`（基準を満たす）・"
+                        "`fail`（満たさない）・`na`（判定の対象が出力に無い。依頼がその出力を求めていないなど）、`reason` は判定の根拠を、"
+                        "出力のどこを見たかとともに1〜2文で（{ITEM} 字以内）。動きの良し悪しは混ぜず、基準の文と出力の中身だけで判定する"]
     for key, value in limits.items():  # 決まりの文だけを埋める（記録の入力や出力にある同じ文字は変えない）
         lines = [line.replace("{" + key + "}", str(value)) for line in lines]
     lines += ["## 手順（SKILL.md の「2.」の節）", "", procedure, "",
              f"## 依頼（課題 {task}）", "", fenced_text(prompt or "（記録に無い）"), "",
              f"## エージェント {agent}", "",
              f"- 動かし方: {run.get('runner') or '不明'}、モデル: {run.get('model') or '不明'}、推論エフォート: {run.get('effort') or '不明'}",
+             f"- 記録の出典: {run.get('source') or '不明'}" + ("。この記録に無い操作（読む・書く・scan などのコマンド）は、しなかったのではなく"
+                                                           "残っていない。記録に無いことを理由に、手順を飛ばしたとは書かず、`wrong` にしない"
+                                                           if run.get("source") == CLAUDE_PARTIAL else ""),
              f"- 結果: {status or '不明'}",
              "- チェックポイント（run.py）の記録: " + ("、".join(str(e.get("event", "")) + (f"（{e['detail']}）" if e.get("detail") else "")
                                                        for e in run.get("events", []) if isinstance(e, dict)) or "なし"),
@@ -1321,6 +1585,13 @@ def analysis_record(name: str, rnd: int, task: str, prompt: str, procedure: str,
                   fenced_text(text if len(text) <= RECORD_INPUT else text[:RECORD_INPUT] + f"\n…（{len(text) - RECORD_INPUT} 字を略）")]
         if raw.get("out"):
             lines += ["出力（抜粋）:", fenced_text(str(raw["out"]))]
+    if run.get("denied"):
+        lines += ["", f"### Claude Code が許可しなかった操作（{len(run['denied'])} 件。時刻が無く、上の操作との前後は分からない）", "",
+                  "上の操作の列には入れていない（番号が無い）。触れるときは「許可されなかった操作 1」のように書く。"]
+        for k, item in enumerate(run["denied"], 1):
+            text = str(item.get("input", ""))
+            lines += ["", f"#### 許可されなかった操作 {k}（{item.get('tool', '')}）", "",
+                      fenced_text(text if len(text) <= RECORD_INPUT else text[:RECORD_INPUT] + f"\n…（{len(text) - RECORD_INPUT} 字を略）")]
     lines += ["", "### 最終の返答（末尾）", "", fenced_text(message or "（記録に無い）"), "",
               "## ほかのエージェントの流れ（同じ課題）", ""]
     for other, data in others:
@@ -1330,6 +1601,15 @@ def analysis_record(name: str, rnd: int, task: str, prompt: str, procedure: str,
                   for k, a in enumerate(oacts, 1)]
     if not others:
         lines.append("（ほかにいない）")
+    if asks:
+        lines += ["", "## Eval の判定（出力がスキルの価値を満たすか）", "",
+                  "このスキルを作った人が、ユーザーと確かめた価値を判定する基準である。振る舞いごとに、判定するファイル（このエージェントの"
+                  "出力）の中身を基準の文に照らして判定し、`eval` に書く。"]
+        for bid, ask in asks.items():
+            behavior = (behaviors or {}).get(bid, {})
+            lines += ["", f"### {bid}", "", f"- 振る舞い: {behavior.get('text', '（記録に無い）')}",
+                      f"- 基準: {(behavior.get('judge') or {}).get('rubric', '（記録に無い）')}",
+                      f"- 判定するファイル: `{ask.get('target', '')}`", "", fenced_text(ask.get("text") or "（中身が無い）")]
     return "\n".join(lines) + "\n"
 
 
@@ -1345,7 +1625,14 @@ def cmd_analysis_prepare(args) -> int:
     evals = _lib.load_json(skill_dir / "dev/evals.json") if (skill_dir / "dev/evals.json").is_file() else {}
     prompts = {t.get("id"): t.get("prompt", "") for t in evals.get("tasks", []) if isinstance(t, dict)}
     info = {t.get("id"): t for t in report.get("tasks", []) if isinstance(t, dict)}
-    runner = args.runner or (spec.get("convergence", {}).get("runners") or ["claude"])[0]
+    cfg, sources, warnings = _lib.convergence_settings(spec, {"analysis": {"runner": args.runner, "model": args.model,
+                                                                           "effort": args.effort}})
+    for warning in warnings:
+        print(f"注意: {warning}")
+    runner = cfg["analysis"]["runner"] or (cfg["runners"] or ["claude"])[0]
+    model, effort = cfg["analysis"]["model"] or cfg["model"].get(runner), cfg["analysis"]["effort"] or cfg["effort"].get(runner)
+    scored = eval_check.scoring(skill_dir)
+    behaviors = {str(b.get("id")): b for b in eval_check.entries(scored["doc"], "behaviors")} if scored else {}
     workdir = Path(args.workdir).resolve() if args.workdir else Path(tempfile.gettempdir()) / "skill-foundation" / spec["name"]
     rdir = round_dir(workdir, args.round, "analysis")
     if rdir.exists():
@@ -1369,19 +1656,21 @@ def cmd_analysis_prepare(args) -> int:
             target.mkdir(parents=True)
             others = [(r.split("/", 1)[1], traces["runs"][r]) for r in rids if r != rid]
             t = info.get(task, {})
+            asks_path = results / task / f"{agent}.eval.json"
+            asks = _lib.load_json(asks_path) if asks_path.is_file() else {}
             record = analysis_record(spec["name"], args.round, task, prompts.get(task, ""), procedure, steps, agent, run, others,
-                                     t.get("status", {}).get(agent, ""), t.get("messages", {}).get(agent, ""), target)
+                                     t.get("status", {}).get(agent, ""), t.get("messages", {}).get(agent, ""), target, asks, behaviors)
             (target / ANALYSIS_IN).write_text(record, encoding="utf-8")
             mark_lab(target, rdir, rid, runner, spec.get("language"))
             register_fence(target, runner)
             runs.append({"id": rid, "task": task, "agent": agent, "runner": runner, "dir": str(target),
                          "prompt": ANALYSIS_ASK.replace("{dir}", str(target)), "hash": _lib.actions_hash(run["actions"]),
-                         "ops": len(run["actions"])})
+                         "ops": len(run["actions"]), "eval": sorted(asks, key=eval_check.natural)})
     plan = {"kind": "analysis", "skill": str(skill_dir), "name": spec["name"], "round": args.round, "runners": [runner],
-            "runs": runs, "prepared_at": rt.now()}
+            "runs": runs, "prepared_at": rt.now(), "settings": {"model": {runner: model}, "effort": {runner: effort}}}
     _lib.write_json(rdir / "plan.json", plan)
     print(f"準備しました: {rdir}")
-    print(f"分析 {len(runs)} 件（エージェント1人の記録ごとに1件。runner {runner}）"
+    print(f"分析 {len(runs)} 件（エージェント1人の記録ごとに1件。runner {runner}、model {model or '-'}、effort {effort or '-'}）"
           + (f"。操作の記録が無いので分析しない: {', '.join(skipped)}" if skipped else ""))
     if tester:
         print(tester)
@@ -1400,7 +1689,7 @@ def parse_analysis(text: str) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def analysis_problems(data: dict | None, ops: int) -> list[str]:
+def analysis_problems(data: dict | None, ops: int, wanted: list[str] | tuple = ()) -> list[str]:
     """分析の結果が決まり（record.md の「書くもの」）に合わないところ。"""
     if data is None:
         return ["JSON として読めない"]
@@ -1421,6 +1710,12 @@ def analysis_problems(data: dict | None, ops: int) -> list[str]:
                 problems.append(f"flow.{key} は {ITEM_MAX} 字ほどまでの文を {ITEMS_MAX} 個までの配列")
     if not text_ok(data.get("compare", ""), SUMMARY_MAX, empty=True):
         problems.append(f"compare は {SUMMARY_MAX} 字ほどまでの文")
+    if wanted:  # 頼んだ model の判定（record.md の「Eval の判定」）
+        given = {str(x.get("behavior")): x for x in data.get("eval", []) if isinstance(x, dict)} if isinstance(data.get("eval"), list) else {}
+        lacking = [b for b in wanted if b not in given or given[b].get("result") not in EVAL_RESULTS or not text_ok(given[b].get("reason"), ITEM_MAX)]
+        if lacking:
+            problems.append(f"eval に {', '.join(lacking)} の判定が無いか、決まりに合わない（result は {'・'.join(EVAL_RESULTS)}、"
+                            f"reason は {ITEM_MAX} 字ほどまでの文）")
     items = data.get("ops")
     if not isinstance(items, list):
         return problems + ["ops がない"]
@@ -1514,7 +1809,7 @@ def cmd_analysis_collect(args) -> int:
             bad.append(f"{run['id']}: {path} がない")
             continue
         data = parse_analysis(path.read_text(encoding="utf-8", errors="replace"))
-        problems = analysis_problems(data, run["ops"])
+        problems = analysis_problems(data, run["ops"], run.get("eval", []))
         if problems:
             bad.append(f"{run['id']}: " + "／".join(problems))
             continue
@@ -1532,12 +1827,20 @@ def cmd_analysis_collect(args) -> int:
                            "flow": {"verdict": flow["verdict"], "summary": flow["summary"].strip(),
                                     "issues": [x.strip() for x in flow["issues"]], "suggestions": [x.strip() for x in flow["suggestions"]]},
                            "compare": str(data.get("compare", "")).strip(),
-                           "ops": [{"fit": x["fit"], "why": x["why"].strip()} for x in data["ops"]]}
+                           "ops": [{"fit": x["fit"], "why": x["why"].strip()} for x in data["ops"]],
+                           "eval": [{"behavior": str(x["behavior"]), "result": x["result"], "reason": str(x["reason"]).strip()}
+                                    for x in data.get("eval", []) if isinstance(x, dict) and str(x.get("behavior")) in run.get("eval", [])]}
         fits = Counter(x["fit"] for x in data["ops"])
         lines.append(f"- {run['id']}: {flow['verdict']}（" + "、".join(f"{k} {fits[k]}" for k in _lib.ANALYSIS_FITS if fits[k]) + "）")
     _lib.write_json(out / "analysis.json", {"round": plan["round"], "runs": dict(sorted(kept.items()))})
-    (out / "analysis.md").write_text(analysis_digest(Path(plan["skill"]), plan["round"], traces, kept), encoding="utf-8")
+    report = merge_eval(out, kept)
+    (out / "analysis.md").write_text(analysis_digest(Path(plan["skill"]), plan["round"], traces, kept) + eval_digest(report),
+                                     encoding="utf-8")
     print("\n".join(lines))
+    if (report.get("eval") or {}).get("hash"):
+        counts = Counter(s.get("result") for t in report.get("tasks", []) for scores in (t.get("eval") or {}).values() for s in scores.values())
+        print(f"Eval の採点: 通過 {counts['pass']}、落ちた {counts['fail']}、判定するファイルが無い {counts['na']}、"
+              f"model の判定待ち {counts['pending']}（report.json の基準を決め直した）")
     print(f"分析: {out / 'analysis.json'}（{len(kept)} 件）")
     print(f"まとめ: {out / 'analysis.md'}（指摘を手順ごとに集めたもの。締め込みで読む。convergence-test.md の5章）")
     if bad:
@@ -1547,18 +1850,65 @@ def cmd_analysis_collect(args) -> int:
     return 0
 
 
+def merge_eval(out: Path, analyses: dict) -> dict:
+    """分析役の model の判定を report.json の採点に入れ、課題の基準（ばらつき かつ Eval）を決め直す。
+    判定は今の分析だけから取る（記録を取り直して捨てた分析の判定は、判定待ちに戻す）。"""
+    path = out / "report.json"
+    if not path.is_file():
+        return {}
+    report = _lib.load_json(path)
+    if not (report.get("eval") or {}).get("hash"):  # Eval で採点していないラウンドの記録は変えない
+        return report
+    for t in report.get("tasks", []):
+        grades = t.get("eval") or {}
+        for agent, scores in grades.items():
+            judged = {x["behavior"]: x for x in analyses.get(f"{t['id']}/{agent}", {}).get("eval", [])}
+            for bid, score in scores.items():
+                if score.get("result") == "pending" or score.get("by") == "analysis":
+                    hit = judged.get(bid)
+                    score.update(result=hit["result"], detail=hit["reason"], by="analysis") if hit else \
+                        score.update(result="pending", detail="", by="")
+        if grades:
+            t["eval_ok"] = eval_check.task_ok(grades)
+            t["converged"] = bool(t.get("variance_ok", t.get("converged"))) and t["eval_ok"] is True
+    _lib.write_json(path, report)
+    (out / "report.md").write_text(render_report(report), encoding="utf-8")
+    return report
+
+
+def eval_digest(report: dict) -> str:
+    """analysis.md に足す、Eval に落ちた判定の一覧。締め込みで分類し、convergence-report.md の「## Eval の採点」に書く。"""
+    if not (report.get("eval") or {}).get("hash"):
+        return ""
+    lines = ["", f"## Eval に落ちた判定（ラウンド {report.get('round')}）", "",
+             "落ちた判定ごとに、出力の誤り（スキルを直す）か Eval の疑い（判定がずれている）かを確かめ、dev/convergence-report.md の"
+             "「## Eval の採点」の表に分類と対処を書く。上の動きの指摘のうち、Eval で確かめていない問題は Eval の抜けとして同じ表に書く。"
+             "疑いか抜けがあれば、ユーザーとすり合わせて Eval を直してから次のラウンドに進む（references/eval.md の7章）。", ""]
+    fails = [f"- {t['id']}/{agent} {bid}（{s.get('type')}）: {s.get('detail') or '理由の記録なし'}"
+             for t in report.get("tasks", []) for agent, scores in (t.get("eval") or {}).items()
+             for bid, s in scores.items() if s.get("result") == "fail"]
+    return "\n".join(lines + (fails or ["（落ちた判定は無い）"])) + "\n"
+
+
+def eval_cell(task: dict) -> str:
+    counts = Counter(s.get("result") for scores in (task.get("eval") or {}).values() for s in scores.values())
+    if not counts:
+        return "—"
+    return f"落ちた {counts['fail']}" if counts["fail"] else (f"判定待ち {counts['pending']}" if counts["pending"] else "通過")
+
+
 def fmt(value) -> str:
     return "—" if value is None else f"{value:.3f}"
 
 
 def summary(report: dict) -> str:
-    lines = ["| 課題 | status | files | structure | names | content | check | runner 別 files | 基準 |", "|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| 課題 | status | files | structure | names | content | check | runner 別 files | Eval | 基準 |", "|---|---|---|---|---|---|---|---|---|---|"]
     for t in report["tasks"]:
         status = "、".join(sorted(set(t["status"].values())))
         check = "—" if not t["check"] else ("全員通過" if all(v == 0 for v in t["check"].values()) else "失敗あり")
         runner = "、".join(f"{k} {fmt(v['files'])}" for k, v in t["by_runner"].items()) or "—"
         lines.append(f"| {t['id']} | {status} | {fmt(t['files'])} | {fmt(t['structure'])} | {fmt(t.get('names'))} | {fmt(t['content'])} | "
-                     f"{check} | {runner} | {'満たす' if t['converged'] else '満たさない'} |")
+                     f"{check} | {runner} | {eval_cell(t)} | {'満たす' if t['converged'] else '満たさない'} |")
     return "\n".join(lines)
 
 
@@ -1566,8 +1916,9 @@ def render_report(report: dict) -> str:
     th = report["thresholds"]
     lines = [f"# 収束テスト ラウンド {report['round']}", "",
              "convergence.py diff が生成する。ばらつきの分類（V1〜V8）と対処は dev/convergence-report.md に書く。", "",
-             f"基準: status が全員、課題の expect_status（既定 done）と同じ。check が全員通過。スキル自身や hooks の登録を"
-             f"変えたエージェントがいない。files ≥ {th['files']}、structure ≥ {th['structure']}、names ≥ {th.get('names', 0.8)}", "",
+             f"基準: status が全員、課題の expect_status（既定 done）と同じ。check が全員通過。独立エージェントの作業ディレクトリ制限"
+             f"（fence.py）の登録が維持されている。files ≥ {th['files']}、structure ≥ {th['structure']}、names ≥ {th.get('names', 0.8)}"
+             + ("。Eval の採点で落ちた出力が無く、model の判定待ちが無い（STEP-07）" if (report.get("eval") or {}).get("hash") else ""), "",
              "## 指標", "", summary(report)]
     if "subagent" in report.get("runners", []):
         lines[6:6] = ["runner subagent は Agent ツールで実行した。一時プロジェクトの hooks は働かず、run.py の check と finish だけで"
@@ -1587,9 +1938,16 @@ def render_report(report: dict) -> str:
             lines += [f"#### `{ex['path']}`（{ex['pair'][0]} と {ex['pair'][1]}）", "", "```diff", *ex["diff"], "```", ""]
         if not t["excerpts"]:
             lines.append("なし")
-        if t.get("tampered"):
-            lines += ["", "### スキル自身や hooks の登録を変えたエージェント（失格）", ""]
-            lines += [f"- {n}: {'、'.join(paths)}" for n, paths in t["tampered"].items()]
+        if t.get("fence_changed"):
+            lines += ["", "### 作業ディレクトリの制限を外したエージェント（失格）", ""]
+            lines += [f"- {n}: {'、'.join(paths)}" for n, paths in t["fence_changed"].items()]
+        if t.get("eval"):
+            names = {"pass": "通過", "fail": "落ちた", "na": "判定するファイルが無い", "pending": "model の判定待ち", "human": "人が確かめる"}
+            lines += ["", "### Eval の採点", ""]
+            for n, scores in t["eval"].items():
+                lines.append(f"- {n}: " + "、".join(f"{bid} {names.get(sc.get('result'), sc.get('result'))}"
+                                                     + (f"（{sc['detail']}）" if sc.get("result") == "fail" and sc.get("detail") else "")
+                                                     for bid, sc in scores.items()))
         if t["check_failures"]:
             lines += ["", "### check に失敗したエージェント", ""]
             for n, tail in t["check_failures"].items():
@@ -1604,7 +1962,9 @@ def main() -> int:
     p.add_argument("skill")
     p.add_argument("--round", type=int, required=True)
     p.add_argument("--agents", type=int)
-    p.add_argument("--runners", help="カンマ区切り（claude、codex）")
+    p.add_argument("--runners", help="カンマ区切り（claude、codex、subagent。既定 settings の convergence.runners）")
+    p.add_argument("--model", action="append", metavar="[RUNNER=]MODEL", help="エージェントのモデル（既定 settings の convergence.model）")
+    p.add_argument("--effort", action="append", metavar="[RUNNER=]EFFORT", help="推論エフォート（既定 settings の convergence.effort）")
     p.add_argument("--include-holdout", action="store_true")
     p.add_argument("--only-tasks")
     p.add_argument("--workdir")
@@ -1616,6 +1976,8 @@ def main() -> int:
     p.add_argument("--round", type=int, required=True)
     p.add_argument("--agents", type=int)
     p.add_argument("--runners", help="カンマ区切り（claude、codex、subagent）")
+    p.add_argument("--model", action="append", metavar="[RUNNER=]MODEL", help="エージェントのモデル（既定 settings の convergence.model）")
+    p.add_argument("--effort", action="append", metavar="[RUNNER=]EFFORT", help="推論エフォート（既定 settings の convergence.effort）")
     p.add_argument("--workdir")
     p.add_argument("--force", action="store_true")
     p.add_argument("--agents-dir", help=f"runner subagent の専用のエージェント型（{TESTER}.md）の置き場（既定 このスキルの置き場の .claude/agents）")
@@ -1635,8 +1997,8 @@ def main() -> int:
     p.add_argument("--workdir", required=True)
     p.add_argument("--round", type=int, required=True)
     p.add_argument("--kind", choices=["task", "review", "analysis"], default="task")
-    p.add_argument("--parallel", type=int, default=3)
-    p.add_argument("--timeout", type=int, default=1800)
+    p.add_argument("--parallel", type=int, help="同時に動かす数（既定 settings の convergence.parallel）")
+    p.add_argument("--timeout", type=int, help="1件の上限の秒数（既定 settings の convergence.timeout）")
     p.add_argument("--only", help="カンマ区切りの実行ID")
     p.set_defaults(func=cmd_run)
     p = sub.add_parser("diff")
@@ -1654,7 +2016,9 @@ def main() -> int:
     p = sub.add_parser("analysis-prepare")
     p.add_argument("skill")
     p.add_argument("--round", type=int, required=True)
-    p.add_argument("--runner", choices=RUNNERS, help="分析役の runner（既定 spec の convergence.runners の先頭）")
+    p.add_argument("--runner", choices=RUNNERS, help="分析役の runner（既定 settings の convergence.analysis.runner、無ければ runners の先頭）")
+    p.add_argument("--model", help="分析役のモデル（既定 settings の convergence.analysis.model、無ければ その runner の model）")
+    p.add_argument("--effort", help="分析役の推論エフォート（既定 settings の convergence.analysis.effort、無ければ その runner の effort）")
     p.add_argument("--workdir")
     p.add_argument("--force", action="store_true")
     p.add_argument("--agents-dir", help=f"runner subagent の専用のエージェント型（{TESTER}.md）の置き場（既定 このスキルの置き場の .claude/agents）")

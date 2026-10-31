@@ -35,6 +35,8 @@ TEXT = {
         "inputs_none": "入力の項目は無い。依頼文だけを `run.py start` に渡す。",
         "inputs_note": "入力は `run.py start --set <キー>=<値>` で渡す。キーは表のキー・項目名・別名のどれでもよく、全角と半角、大文字と小文字、`-`・`_`・空白の違いは吸収される。契約に無いキーは無視して記録する。依頼文そのものは最後の引数に渡す。依頼文の中の「キー: 値」の行も読む。",
         "ask": "start の前に聞く: {q}", "default": "既定値 `{v}`", "none": "空のまま",
+        "default_by": "{by} が `{case}` なら `{value}`", "default_by_sep": "、", "default_by_else": "。ほかは",
+        "settings_note": "依頼に指定の無い入力は、`settings/user-setting.yaml`（ユーザーの設定）、`settings/skill-setting.yaml`（このスキルの設定）の `inputs` の順に、null でない最初の値で補い、どちらにも無ければ表の「無いとき」に従う。依頼文から推した値は `--guess <キー>=<値>` で渡し、設定より弱く、表の既定値より強い。どこから補ったかは start の出力と報告の「既定値で決めた値」に出る。",
         "aliases": "別名", "types": {"string": "文字列", "int": "整数（全角も可）", "bool": "はい・いいえ（true/false、する/しない も可）",
                                     "list": "一覧（`,`・`、`・改行で区切る）", "enum": "{choices} のどれか",
                                     "path": "パス", "slug": "英小文字・数字・`-` に変換"},
@@ -43,9 +45,7 @@ TEXT = {
         "con_head": "| 出力 | 置き場 | 件数 | 検査（ルールID） |",
         "con_note": "`{run}` は実行記録の置き場 `.skill-runs/{name}` を指す。`run.py start` の前からあったファイルで、内容が変わっていないものは検査しない。",
         "count": "{low}〜{high} 件", "count_open": "{low} 件以上",
-        "name_pattern": "ファイル名が `{p}` に一致", "tamper": "保護ファイルが実行中に変わっていない（{rule}）",
-        "scope": "上の出力{allow}のほかに、start の後に変わったファイルが無い（{rule}。git の作業ツリーで判定し、git が無いときは検査しない）",
-        "scope_allow": "と、変えてよいファイル {globs}",
+        "name_pattern": "ファイル名が `{p}` に一致",
         "checks": {
             "headings_equals": "見出し（レベル {level}）が {items} の順で過不足なく並ぶ",
             "headings_includes": "見出し（レベル {level}）に {items} がこの順で含まれる",
@@ -69,21 +69,14 @@ TEXT = {
                         "- `run.py finish`: 指摘 0 件", "", "## 補足", "", "- <notes.md の箇条書き。無ければ「- なし」>"],
         "ctl_head": "| 仕組み | いつ働くか | 何をするか |",
         "ctl_rows": [
-            ["`scripts/run.py start`", "手順の始め", "入力を正規化し（表記ゆれ・全角・未知のキーを受け入れる）、既定値で補い、保護ファイルのハッシュと git の作業ツリーの状態を記録する。保護ファイルが合格時の指紋（`assets/seal.json`）と違えば始めない（終了コード1）"],
+            ["`scripts/run.py start`", "手順の始め", "入力を正規化し（表記ゆれ・全角・未知のキーを受け入れる）、既定値で補い、実行記録を作る"],
             ["`scripts/run.py check` と `finish`", "出力を書いた後と最後", "契約（`assets/contract.json`）の format で出力を直してから検査する。finish は通ったときだけ実行を終える"],
-            ["hooks の pre-tool", "ファイルを編集する前", "保護ファイルと実行記録の編集を止める（Claude Code は確認を求め、Codex は拒否する）。実行していないときも、合格時の指紋があるスキルの保護ファイルの編集に Claude Code で確認を求める"],
-            ["hooks の post-tool", "ファイルを編集した後", "出力に当たるファイルを format で直し、検査し、指摘を返す。出力でも変えてよいファイルでもなければ CTL-05 の指摘を返す"],
-            ["hooks の stop", "応答を終える前", "出力全体を検査し、通るまで応答を終えさせない（最大 {limit} 回。超えると status: failed）"],
-            ["hooks の prompt", "ユーザーが発言したとき", "質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない"],
+            ["hooks の pre-tool", "ファイルを編集する前", "実行記録への直接の編集を拒否する。スキル自身のファイルは編集できる"],
+            ["hooks の post-tool", "ファイルを編集した後", "出力に当たるファイルを format で直し、検査し、指摘を返す"],
+            ["hooks の stop", "応答を終える前", "実行中は出力全体を検査する（最大 {limit} 回。超えると status: failed）"],
+            ["hooks の prompt", "ユーザーが発言したとき", "質問待ちを解く。発言を止めたり書き換えたりしない"],
         ],
-        "ctl_note": "hooks は、このスキルの実行中（`.skill-runs/{name}/state.json` の status が active）だけ出力を検査する。hooks が無い環境でも、`run.py check` と `finish` が同じ検査をする。",
-        "ctl_change": ["このスキル（ルール、契約、手順、スクリプト）を変えるときは、次の順にする。保護ファイルだけを直接書き換えると、合格時の指紋と違うため次の `run.py start` が止まる（CTL-02）。`<skill-foundation>` は skill-foundation のディレクトリを指す。", "",
-                       "1. 実行中なら `python3 <skill>/scripts/run.py abort --reason <理由>` で止める",
-                       "2. `dev/spec.json` を直す。手で書く部分（この SKILL.md の「2. 手順」、`scripts/` のスキル固有のスクリプト、`references/`、`assets/examples/`）は直接直す",
-                       "3. `python3 <skill-foundation>/scripts/render_skill.py --dir <skill>` で生成した部分を作り直す",
-                       "4. ルールや契約を変えたなら `dev/probes.json` の違反例も合わせ、`python3 <skill-foundation>/scripts/probe.py <skill>` を通す",
-                       "5. `python3 <skill-foundation>/scripts/skill_lint.py <skill> --final --seal` を通す。通ると指紋を記録し直す"],
-        "ctl_protected": "保護ファイル（スキルのディレクトリからの相対パス）: {globs}",
+        "ctl_note": "出力の検査は実行中（`.skill-runs/{name}/state.json` の status が active）に働く。hooks が無い環境でも、`run.py check` と `finish` が同じ検査をする。",
         "ctl_install": "hooks の登録: `python3 <skill>/scripts/install.py --project <プロジェクトのルート>`（{where} に追記する{trust}）",
         "ctl_where": {"claude": "Claude Code は `.claude/settings.json`", "codex": "Codex は `.codex/hooks.json`"}, "ctl_where_sep": "、",
         "ctl_trust": "。Codex では、追記した hooks を `/hooks` で信頼するまで動かない",
@@ -106,6 +99,8 @@ TEXT = {
         "inputs_none": "There are no input items. Pass only the request text to `run.py start`.",
         "inputs_note": "Pass inputs as `run.py start --set <key>=<value>`. The key may be the key, the item name, or an alias; full-width/half-width, case, and `-`/`_`/space differences are absorbed. Keys not in the contract are ignored and recorded. Pass the request text as the last argument; `key: value` lines in it are also read.",
         "ask": "ask before start: {q}", "default": "default `{v}`", "none": "left empty",
+        "default_by": "`{value}` when {by} is `{case}`", "default_by_sep": "; ", "default_by_else": "; otherwise ",
+        "settings_note": "Inputs the request does not give are filled from `inputs` in `settings/user-setting.yaml` (user setting), then `settings/skill-setting.yaml` (this skill's setting), using the first non-null value; when neither has one, the \"When missing\" column applies. Pass values guessed from the request as `--guess <key>=<value>`; they are weaker than the settings and stronger than the table defaults. Where each value came from is shown in the start output and in the report's defaults section.",
         "aliases": "aliases", "types": {"string": "text", "int": "integer", "bool": "yes/no (true/false, on/off)",
                                      "list": "list (separated by `,` or newlines)", "enum": "one of {choices}",
                                      "path": "path", "slug": "converted to lowercase letters, digits and `-`"},
@@ -114,9 +109,7 @@ TEXT = {
         "con_head": "| Output | Location | Count | Checks (rule ID) |",
         "con_note": "`{run}` is the run record directory `.skill-runs/{name}`. Files that existed before `run.py start` and are unchanged are not checked.",
         "count": "{low}-{high}", "count_open": "{low} or more",
-        "name_pattern": "file name matches `{p}`", "tamper": "protected files unchanged during the run ({rule})",
-        "scope": "no file other than the outputs above{allow} changed after start ({rule}; judged from the git work tree, not checked without git)",
-        "scope_allow": " and the allowed files {globs}",
+        "name_pattern": "file name matches `{p}`",
         "checks": {
             "headings_equals": "level-{level} headings are exactly {items} in this order",
             "headings_includes": "level-{level} headings include {items} in this order",
@@ -141,21 +134,14 @@ TEXT = {
                         "- `run.py finish`: 0 findings", "", "## Notes", "", "- <bullets from notes.md, or \"- None\">"],
         "ctl_head": "| Mechanism | When | What it does |",
         "ctl_rows": [
-            ["`scripts/run.py start`", "start of the procedure", "normalizes inputs (accepts variant spellings, full-width text and unknown keys), fills defaults, records hashes of protected files and the git work tree state; does not start when the protected files differ from the seal (`assets/seal.json`) (exit code 1)"],
+            ["`scripts/run.py start`", "start of the procedure", "normalizes inputs (accepts variant spellings, full-width text and unknown keys), fills defaults and creates the run record"],
             ["`scripts/run.py check` and `finish`", "after writing outputs and at the end", "fixes the outputs with the contract's format, then checks them against the contract (`assets/contract.json`); finish ends the run only when they pass"],
-            ["pre-tool hook", "before a file edit", "stops edits to protected files and the run record (Claude Code asks the user, Codex denies); when not running, still asks in Claude Code before an edit to a protected file of a sealed skill"],
-            ["post-tool hook", "after a file edit", "fixes the edited output file with format, checks it and returns findings; reports CTL-05 for a file that is neither an output nor allowed"],
-            ["stop hook", "before the turn ends", "checks all outputs and keeps the turn going until they pass (at most {limit} times, then status: failed)"],
-            ["prompt hook", "when the user speaks", "only clears the waiting state; never blocks or rewrites the user's message"],
+            ["pre-tool hook", "before a file edit", "rejects direct edits to run records; skill files remain editable"],
+            ["post-tool hook", "after a file edit", "fixes the edited output file with format, checks it and returns findings"],
+            ["stop hook", "before the turn ends", "checks outputs while active (at most {limit} times, then status: failed)"],
+            ["prompt hook", "when the user speaks", "resumes a waiting run; never blocks or rewrites the message"],
         ],
-        "ctl_note": "Hooks check outputs only while this skill is running (status active in `.skill-runs/{name}/state.json`). Without hooks, `run.py check` and `finish` perform the same checks.",
-        "ctl_change": ["To change this skill (rules, contract, procedure, scripts), follow these steps. If only the protected files are edited directly, the next `run.py start` stops because they differ from the seal (CTL-02). `<skill-foundation>` is the directory of skill-foundation.", "",
-                       "1. If a run is in progress, stop it with `python3 <skill>/scripts/run.py abort --reason <reason>`",
-                       "2. Edit `dev/spec.json`. Edit the hand-written parts (\"2. Procedure\" of this SKILL.md, the skill's own scripts in `scripts/`, `references/`, `assets/examples/`) directly",
-                       "3. Regenerate the generated parts with `python3 <skill-foundation>/scripts/render_skill.py --dir <skill>`",
-                       "4. If rules or the contract changed, update the probes in `dev/probes.json` and pass `python3 <skill-foundation>/scripts/probe.py <skill>`",
-                       "5. Pass `python3 <skill-foundation>/scripts/skill_lint.py <skill> --final --seal`; it seals the skill again"],
-        "ctl_protected": "Protected files (relative to the skill directory): {globs}",
+        "ctl_note": "Output checks run while status is active. Without hooks, `run.py check` and `finish` perform the same checks.",
         "ctl_install": "Register hooks: `python3 <skill>/scripts/install.py --project <project root>` (adds entries to {where}{trust})",
         "ctl_where": {"claude": "`.claude/settings.json` for Claude Code", "codex": "`.codex/hooks.json` for Codex"}, "ctl_where_sep": " and ",
         "ctl_trust": "; Codex runs them only after you trust them in `/hooks`",
@@ -264,7 +250,7 @@ def accepted(spec: dict, item: dict) -> str:
     return form
 
 
-def block_inputs(spec: dict) -> str:
+def block_inputs(spec: dict, skill_dir: Path | None = None) -> str:
     t = text_of(spec)
     items = spec.get("inputs", [])
     if not items:
@@ -273,12 +259,19 @@ def block_inputs(spec: dict) -> str:
     for item in items:
         if item.get("default") is not None:
             missing = t["default"].replace("{v}", json.dumps(item["default"], ensure_ascii=False).strip('"'))
+            by = item.get("default_by") or {}
+            if by.get("values"):
+                cases = [t["default_by"].replace("{by}", f"`{by.get('input')}`").replace("{case}", k).replace("{value}", v)
+                         for k, v in by["values"].items()]
+                missing = t["default_by_sep"].join(cases) + t["default_by_else"] + missing
         elif item.get("ask"):
             missing = t["ask"].replace("{q}", item.get("question", ""))
         else:
             missing = t["none"]
         lines.append(f"| {cell(item.get('label', item['key']))} | `{item['key']}` | {cell(accepted(spec, item))} | {cell(missing)} |")
     lines += ["", t["inputs_note"]]
+    if skill_dir is not None and (skill_dir / "settings").is_dir():
+        lines += ["", t["settings_note"]]
     return "\n".join(lines) + "\n"
 
 
@@ -365,16 +358,11 @@ def block_contract(spec: dict) -> str:
         checks += [describe_check(spec, ch) for ch in out.get("checks", [])]
         sep = "。" if _lib.labels(spec) == "ja" else "; "
         lines.append(f"| {cell(out['id'] + ' ' + out.get('label', ''))} | `{out['path']}` | {span}（{out.get('rule')}） | {cell(sep.join(checks)) or '—'} |")
-    allow = spec.get("control", {}).get("allow_changes", [])
-    globs = ("、" if _lib.labels(spec) == "ja" else ", ").join(f"`{g}`" for g in allow)
     lines += ["", t["con_note"].replace("{name}", spec["name"]), ""]
     for group in spec.get("together", []):
         ids = ("、" if _lib.labels(spec) == "ja" else ", ").join(group.get("outputs", []))
         message = (f"（{group['message']}）" if _lib.labels(spec) == "ja" else f" ({group['message']})") if group.get("message") else ""
         lines.append(t["together"].replace("{ids}", ids).replace("{rule}", group.get("rule", "")).replace("{message}", message))
-    lines += ["- " + t["tamper"].replace("{rule}", "CTL-02"),
-              "- " + t["scope"].replace("{rule}", "CTL-05").replace(
-                  "{allow}", t["scope_allow"].replace("{globs}", globs) if allow else "")]
     return "\n".join(lines) + "\n"
 
 
@@ -403,7 +391,6 @@ def block_report(spec: dict) -> str:
 def block_control(spec: dict) -> str:
     t = text_of(spec)
     control = spec.get("control", {})
-    globs = ("、" if _lib.labels(spec) == "ja" else ", ").join(f"`{g}`" for g in control.get("protected", []))
     if control.get("hooks", True) is False:
         lines = [t["ctl_head"], "|---|---|---|", *["| " + " | ".join(r) + " |" for r in t["ctl_rows"][:2]], "",
                  t["ctl_nohooks"]]
@@ -411,7 +398,6 @@ def block_control(spec: dict) -> str:
         rows = [[c.replace("{limit}", str(control.get("max_stop_blocks", 3))) for c in r] for r in t["ctl_rows"]]
         lines = [t["ctl_head"], "|---|---|---|", *["| " + " | ".join(r) + " |" for r in rows], "",
                  t["ctl_note"].replace("{name}", spec["name"]), "", ctl_install(spec, t)]
-    lines += ["", t["ctl_protected"].replace("{globs}", globs), "", *t["ctl_change"]]
     return "\n".join(lines) + "\n"
 
 
@@ -459,8 +445,7 @@ def contract(spec: dict) -> dict:
         "inputs": spec.get("inputs", []),
         "outputs": spec.get("outputs", []),
         "together": spec.get("together", []),
-        "control": {"hooks": control.get("hooks", True), "protected": control.get("protected", []),
-                    "tamper_rule": "CTL-02", "scope_rule": "CTL-05", "allow_changes": control.get("allow_changes", []),
+        "control": {"hooks": control.get("hooks", True),
                     "max_stop_blocks": control.get("max_stop_blocks", 3)},
         "report": {"include_output": spec.get("report", {}).get("include_output"), "rule": "RPT-01",
                    "sections": spec.get("report", {}).get("sections", [])},
@@ -504,7 +489,8 @@ def render_all(skill_dir: Path, spec: dict) -> dict[str, str]:
     text = frontmatter(spec) + body
     for block_id in _lib.BLOCKS:
         try:
-            text = _lib.replace_block(text, block_id, RENDERERS[block_id](spec))
+            block = RENDERERS[block_id](spec, skill_dir) if block_id == "inputs" else RENDERERS[block_id](spec)
+            text = _lib.replace_block(text, block_id, block)
         except KeyError:
             _lib.fail(f"SKILL.md に生成部分 {block_id} の目印がありません（<!-- BEGIN GENERATED:{block_id} --> と END）。"
                       "ひな形から目印を戻してください")

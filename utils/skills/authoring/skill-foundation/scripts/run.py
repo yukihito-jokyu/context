@@ -4,8 +4,8 @@
 AI はスキルの手順の最初に start、出力を書いたら check、最後に finish を実行する。hooks が使える環境では、
 編集の直後と応答を終える前に、hook.py が同じ検査を自動で回す。
 
-  start   入力を正規化（表記ゆれ・全角・未知のキーを受け入れ、既定値で補う）し、実行記録を作る。
-          保護ファイルが合格時の指紋（assets/seal.json）と違えば始めない（終了コード1）
+  start   入力を正規化（表記ゆれ・全角・未知のキーを受け入れ、既定値で補う）し、実行記録を作る。依頼に無い入力は、
+          settings/user-setting.yaml → settings/skill-setting.yaml → --guess → 契約の既定値の順に補う。
   check   契約（assets/contract.json）の format で出力を直してから検査する。--file でファイル1つだけ
   finish  検査に通れば実行を終え、報告の本文を出す。通らなければ指摘を出して終わらない
   wait    ユーザーへの質問を待つ間、hooks の強制を止める（返答の後に resume）
@@ -16,7 +16,8 @@ AI はスキルの手順の最初に start、出力を書いたら check、最�
 終了コード: 0 成功、1 検査の指摘あり、2 使い方・状態の誤り、3 start の前にユーザーへの質問が必要
 
 使い方:
-  python3 <skill>/scripts/run.py start [--set key=value ...] [--input-json JSON] [--input-file F] [--restart] [依頼文...]
+  python3 <skill>/scripts/run.py start [--set key=value ...] [--guess key=value ...] [--input-json JSON] [--input-file F]
+                                       [--restart] [依頼文...]
   python3 <skill>/scripts/run.py check [--file 相対パス]
   python3 <skill>/scripts/run.py finish
 """
@@ -26,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -77,6 +79,21 @@ def parse_raw(args) -> tuple[dict, str]:
     return raw, "\n".join(text_parts)
 
 
+def parse_guess(args) -> dict:
+    """--guess の値。依頼文から推した値で、設定より弱く、契約の既定値より強い。"""
+    pairs = [item.partition("=") for item in args.guess or []]
+    return {key.strip(): value.strip() for key, sep, value in pairs if sep}
+
+
+def source_text(key: str, state: dict, contract: dict) -> str:
+    """依頼に無かった入力を、どこから補ったか（ユーザーの設定・スキルの設定・推定・ほかの入力・既定値）。"""
+    source = state.get("default_from", {}).get(key)
+    if source is None:
+        return ""
+    by = next((i.get("default_by", {}) for i in contract.get("inputs", []) if i["key"] == key), {})
+    return report_text(contract)["from"].get(source, source).replace("{input}", by.get("input", ""))
+
+
 def cmd_start(args, contract: dict, name: str) -> int:
     root = resolve_root(args.root)
     existing = rt.load_state(root, name)
@@ -84,15 +101,10 @@ def cmd_start(args, contract: dict, name: str) -> int:
         rt.emit(f"ERROR {name} の実行が続いています（status: {existing['status']}）。"
                 "続けるなら check / finish、最初からやり直すなら start --restart を実行してください", sys.stderr)
         return 2
-    unsealed = rt.seal_findings(rt.SKILL_DIR, contract)
-    if unsealed:
-        # 実行していない間（hooks が止めない間）にスキル自身が変わった。変わったまま検査すると、緩んだ検査で通ってしまう
-        print_findings(unsealed)
-        rt.emit(f"ERROR {name} のファイルが合格時の指紋（{rt.SEAL_REL}）と違うため、始めません。この出力をユーザーに伝えて止まってください。"
-                "スキルを変えたのが意図どおりなら、SKILL.md の「8. 制御の仕組み」の変え方で直し、指紋を記録し直します（CTL-02）")
-        return 1
     raw, text = parse_raw(args)
-    normalized = rt.normalize_input(raw, text, contract)
+    settings, setting_warnings = rt.load_settings()
+    normalized = rt.normalize_input(raw, text, contract, settings, parse_guess(args))
+    normalized["warnings"] = setting_warnings + normalized["warnings"]
     if normalized["questions"]:
         rt.emit("start の前にユーザーに聞くこと（聞いた答えを --set で渡して start をやり直す）:")
         for q in normalized["questions"]:
@@ -100,25 +112,21 @@ def cmd_start(args, contract: dict, name: str) -> int:
         return 3
     state = {
         "runtime": rt.RUNTIME_VERSION, "skill": name, "status": "active", "started_at": rt.now(),
+        "run_id": uuid.uuid4().hex,
         "root": str(root), "skill_dir": str(rt.SKILL_DIR), "input": normalized["values"],
-        "defaulted": normalized["defaulted"], "warnings": normalized["warnings"], "extra": normalized["extra"],
+        "defaulted": normalized["defaulted"], "default_from": normalized["default_from"],
+        "warnings": normalized["warnings"], "extra": normalized["extra"],
         "text": normalized["text"], "baseline": rt.snapshot(root, contract, name, normalized["values"]),
-        "protected": rt.protected_hashes(rt.SKILL_DIR, contract), "hooks": rt.hook_registrations(root, name),
         "stop_blocks": 0, "history": [], "restarts": 0, "previous": [],
-        "worktree": rt.worktree(root) if contract.get("control", {}).get("scope_rule") else None,
     }
     if existing and existing.get("status") in ("active", "waiting"):
-        # restart で基準を取り直すと、実行中の改ざんや契約の外の変更が消えるので、最初の start の記録を引き継ぐ（CTL-02、CTL-05）
-        for key in ("started_at", "protected", "hooks", "worktree", "stop_blocks", "history", "previous"):
+        # 出力の比較基準と実行履歴は、最初の start から引き継ぐ
+        for key in ("started_at", "stop_blocks", "history", "previous", "run_id"):
             if key in existing:
                 state[key] = existing[key]
-        state["baseline"] = {**state["baseline"], **existing.get("baseline", {})}
+        state["baseline"] = existing.get("baseline", {})
         state["restarts"] = existing.get("restarts", 0) + 1
     else:
-        # 実行と実行の間（hooks が働かない間）に変わった保護ファイルは、指摘にせず報告の「検証」に出す（CTL-02）
-        if existing and existing.get("protected"):
-            before, after = existing["protected"], state["protected"]
-            state["changed_since_last"] = sorted(r for r in set(before) | set(after) if before.get(r) != after.get(r))
         if existing and existing.get("status") in ("aborted", "failed"):
             # 中断や打ち切りの後に始め直しても、報告の「検証」に前の実行が残る
             reason = existing.get("abort_reason") or "検査を通らないまま終了した（終了の差し戻しの上限）"
@@ -127,7 +135,8 @@ def cmd_start(args, contract: dict, name: str) -> int:
     rt.log_event(state, "restart" if state["restarts"] else "start")
     rt.save_state(root, state)
     if args.json:
-        rt.emit(json.dumps({k: state[k] for k in ("skill", "root", "skill_dir", "input", "defaulted", "warnings", "extra")},
+        rt.emit(json.dumps({k: state[k] for k in ("skill", "root", "skill_dir", "input", "defaulted", "default_from", "warnings",
+                                                 "extra")},
                            ensure_ascii=False, indent=2))
         return 0
     labels = {s["key"]: s.get("label", s["key"]) for s in contract.get("inputs", [])}
@@ -137,7 +146,7 @@ def cmd_start(args, contract: dict, name: str) -> int:
     if not normalized["values"]:
         rt.emit("  なし")
     for key, value in normalized["values"].items():
-        mark = "（既定値）" if key in normalized["defaulted"] else ""
+        mark = f"（{source_text(key, state, contract)}）" if key in normalized["defaulted"] else ""
         rt.emit(f"  {labels.get(key, key)}（{key}）= {json.dumps(value, ensure_ascii=False)}{mark}")
     for warning in normalized["warnings"]:
         rt.emit(f"  注意: {warning}")
@@ -186,22 +195,24 @@ def cmd_check(args, contract: dict, name: str) -> int:
 REPORT = {
     "ja": {"result": "結果", "done": "{name}: 完了（検証に合格）", "outputs": "出力", "defaults": "既定値で決めた値",
            "unread": "入力で読めなかった値", "checks": "検証", "none": "- なし", "passed": "- `run.py finish`: 指摘 0 件",
-           "no_scope": "- {rule}: git の作業ツリーが無いため、契約の外の変更を検査していない", "notes_head": "補足",
+           "notes_head": "補足",
            "notes": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。",
            "aborted": "{name}: 中断（理由: {reason}）", "not_checked": "- 中断したため、検証していない",
-           "restarts": "- `run.py start --restart`: {n} 回（保護ファイル・hooks の登録・作業ツリーの記録は最初の start から引き継いだ）",
+           "restarts": "- `run.py start --restart`: {n} 回（実行履歴は最初の start から引き継いだ）",
            "previous": "- 前の実行: {status}（理由: {reason}）",
-           "changed_since_last": "- 前の実行の後に変わった保護ファイル: {files}（意図した変更かを確かめる）",
-           "formatted": "- 自動で直した（format）: {items}"},
+           "formatted": "- 自動で直した（format）: {items}",
+           "from": {"user": "ユーザーの設定 settings/user-setting.yaml", "skill": "スキルの設定 settings/skill-setting.yaml",
+                    "guess": "依頼文からの推定", "derived": "{input} から決まる既定値", "default": "既定値"}},
     "en": {"result": "Result", "done": "{name}: done (checks passed)", "outputs": "Outputs", "defaults": "Values decided by default",
            "unread": "Inputs that could not be read", "checks": "Checks", "none": "- None", "passed": "- `run.py finish`: 0 findings",
-           "no_scope": "- {rule}: no git work tree, so changes outside the contract were not checked", "notes_head": "Notes",
+           "notes_head": "Notes",
            "notes": "Reply with the text below unchanged. Do not add text before or after it, and do not summarize it.",
            "aborted": "{name}: aborted (reason: {reason})", "not_checked": "- Not checked because the run was aborted",
-           "restarts": "- `run.py start --restart`: {n} time(s) (protected files, hook registrations and the work tree were carried over from the first start)",
+           "restarts": "- `run.py start --restart`: {n} time(s) (run history was carried over from the first start)",
            "previous": "- Previous run: {status} (reason: {reason})",
-           "changed_since_last": "- Protected files changed since the previous run: {files} (confirm the change was intended)",
-           "formatted": "- Fixed automatically (format): {items}"},
+           "formatted": "- Fixed automatically (format): {items}",
+           "from": {"user": "user setting settings/user-setting.yaml", "skill": "skill setting settings/skill-setting.yaml",
+                    "guess": "guessed from the request", "derived": "default from {input}", "default": "default"}},
 }
 
 
@@ -232,6 +243,7 @@ def render_report(state: dict, contract: dict, changed: dict, sections: list[str
     lines += [f"- `{rel}`（{out_id} {out_labels.get(out_id, '')}）" for out_id, rel in files] or [t["none"]]
     lines += ["", f"## {t['defaults']}", ""]
     lines += [f"- {labels.get(k, k)}（{k}）: {json.dumps(state['input'].get(k), ensure_ascii=False)}"
+              + (f"（{source_text(k, state, contract)}）" if source_text(k, state, contract) else "")
               for k in state.get("defaulted", [])] or [t["none"]]
     lines += ["", f"## {t['unread']}", ""]
     lines += [f"- {w}" for w in state.get("warnings", [])] or [t["none"]]
@@ -239,17 +251,10 @@ def render_report(state: dict, contract: dict, changed: dict, sections: list[str
     if state.get("formatted"):
         items = "、".join(f"{item.split(' ', 1)[0]} `{item.split(' ', 1)[1]}`" for item in state["formatted"][:10])
         lines.append(t["formatted"].replace("{items}", items))
-    rule = contract.get("control", {}).get("scope_rule")
-    if rule and state.get("worktree") is None and aborted is None:
-        lines.append(t["no_scope"].replace("{rule}", rule))
     if state.get("restarts"):
         lines.append(t["restarts"].replace("{n}", str(state["restarts"])))
     for prev in state.get("previous", []):
         lines.append(t["previous"].replace("{status}", prev["status"]).replace("{reason}", prev["reason"]))
-    changed_files = state.get("changed_since_last", [])
-    if changed_files:
-        shown = "、".join(f"`{f}`" for f in changed_files[:10]) + (f" …（全 {len(changed_files)} 件）" if len(changed_files) > 10 else "")
-        lines.append(t["changed_since_last"].replace("{files}", shown))
     lines += ["", f"## {t['notes_head']}", ""] + (notes or [t["none"]])
     return "\n".join(lines) + "\n"
 
@@ -340,6 +345,7 @@ def main() -> int:
     p = sub.add_parser("start", help="入力を正規化して実行を始める")
     p.add_argument("text", nargs="*", help="依頼文（自由記述）。「キー: 値」の行も読む")
     p.add_argument("--set", action="append", metavar="KEY=VALUE")
+    p.add_argument("--guess", action="append", metavar="KEY=VALUE", help="依頼文から推した値。設定（settings/）より弱く、既定値より強い")
     p.add_argument("--input-json")
     p.add_argument("--input-file")
     p.add_argument("--restart", action="store_true")

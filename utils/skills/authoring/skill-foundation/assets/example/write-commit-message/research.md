@@ -4,14 +4,14 @@
 
 ## git diff --cached が返す範囲
 
-- 確認方法：`git diff --help`（git [version redacted]、2026-10-26 に確認）。「This form is to view the changes you staged for the next commit relative to the named <commit>」「--staged is a synonym of --cached」とある
+- 確認方法：`git diff --help`（git（詳細版は非掲載）、2026-10-26 に確認）。「This form is to view the changes you staged for the next commit relative to the named <commit>」「--staged is a synonym of --cached」とある
 - 確認の状態：確認済み
 - 分かったこと：`--cached` はステージ済みの変更だけを返し、未ステージの変更を含まない。HEAD が無いリポジトリでも、ステージ済みの変更をすべて返す
 - 使ったルール：IN-01、IN-02、STEP-03
 
 ## コミットメッセージの1行目と2行目
 
-- 確認方法：`git help commit` の DISCUSSION 節（git [version redacted]、2026-10-26 に確認）。「a single short (no more than 50 characters) line summarizing the change, followed by a blank line」とある
+- 確認方法：`git help commit` の DISCUSSION 節（git（詳細版は非掲載）、2026-10-26 に確認）。「a single short (no more than 50 characters) line summarizing the change, followed by a blank line」とある
 - 確認の状態：確認済み
 - 分かったこと：1行目は50文字以内の要約、2行目は空行、その後に詳しい説明を書く。最初の空行までが題名として扱われる
 - 使ったルール：OUT-02、OUT-05

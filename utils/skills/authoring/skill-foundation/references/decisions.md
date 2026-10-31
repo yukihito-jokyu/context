@@ -32,24 +32,25 @@
   規約の依頼から、規約を書くだけのスキルを作り始める
   ```
 
-## IN-02 フェーズごとに決めた references だけを読み、ほかのスキル作成スキルを使わない
+## IN-02 手順ごとに決めた references だけを読み、ほかのスキル作成スキルを使わない
 
 - 軸: I4
-- ルール: 各フェーズでは次の表のファイルだけを読む。ほかのスキル作成スキル（my-skill-creator、my-skill-creater、anthropic-skills:skill-creator、Codex の skill-creator）のファイルを読まず、呼び出さない。
+- ルール: 手順3の Eval 作成と各フェーズでは、次の表のファイルだけを読む。ほかのスキル作成スキル（my-skill-creator、my-skill-creater、anthropic-skills:skill-creator、Codex の skill-creator）のファイルを読まず、呼び出さない。
 - 理由: 読む資料が AI ごとに違うと、作るスキルの形が分かれる。ほかのスキル作成スキルは別の構成と規則を持つため、混ざると収束しない。
 - 決め方: 依頼の指定
-- 守らせ方: doc: SKILL.md の手順（各フェーズで読むファイルを示す）
+- 守らせ方: doc: SKILL.md の手順（手順3の Eval 作成と各フェーズで読むファイルを示す）
 - 機械化しない理由: 痕跡が残らない：読んだファイルと呼び出したスキルは、出力に残らない
 
 場合分け:
 
-| フェーズ | 読むファイル |
+| 手順 | 読むファイル |
 |---|---|
+| Eval 作成（手順3） | `references/eval.md`、`assets/templates/eval.example.json`。収束テストの題材を書くときは、`assets/templates/evals.example.json`、`references/convergence-test.md` の1章、`references/skill-profiles.md` の種類の節（課題の例）。後付けなら元の `<base>/<name>/SKILL.md` |
 | 0 受付 | `references/intake.md`、`references/skill-profiles.md` の種類の節 |
 | 1 骨組み、2 調査 | `references/runtime.md`、`references/platforms.md`、`references/research.md`、`references/skill-profiles.md` の種類の節（調べる先） |
 | 3 決める | `references/variance-axes.md`、`references/writing.md`、`references/control-ladder.md` の3章、`references/skill-profiles.md` の種類の節 |
-| 4 縛る、5 証明する | `references/control-ladder.md`、`references/skill-profiles.md` の種類の節 |
-| 6 測る | `references/convergence-test.md`、`references/skill-profiles.md` の種類の節 |
+| 4 縛る、5 証明する | `references/control-ladder.md`、`references/skill-profiles.md` の種類の節。Eval を作ったなら `references/eval.md` の7章 |
+| 6 測る | `references/convergence-test.md`、`references/skill-profiles.md` の種類の節。Eval を作ったなら `references/eval.md` の7章 |
 | 7 仕上げ | 読まない |
 | 上のどれでもない | 読まない |
 
@@ -64,10 +65,10 @@
   my-skill-creator を呼び出して SKILL.md の下書きを作らせる
   ```
 
-## STEP-01 フェーズ0〜7を順に進め、生成と検査はスクリプトに任せ、一緒に変えるファイルを揃える
+## STEP-01 手順3の Eval 作成とフェーズ0〜7を順に進め、生成と検査はスクリプトに任せ、一緒に変えるファイルを揃える
 
 - 軸: P1, P3, O7
-- ルール: SKILL.md の「2. 手順」のフェーズ0〜7を番号の順に行う。骨組みは `init_skill.py`、生成部分は `render_skill.py` で作り、手で書かない。`dev/spec.json` を変えたら、同じ変更の中で `render_skill.py` を実行し、ルールID を変えたなら `dev/probes.json` の違反例と `dev/research.md` の「使ったルール」も合わせる（一緒に変えるファイルの組）。各フェーズの終わりに `skill_lint.py` を実行し、エラーが0件になってから次のフェーズに進む。
+- ルール: SKILL.md の「2. 手順」を番号の順に行う（手順3の Eval 作成の後に、フェーズ0〜7）。骨組みは `init_skill.py`、生成部分は `render_skill.py` で作り、手で書かない。`dev/spec.json` を変えたら、同じ変更の中で `render_skill.py` を実行し、ルールID を変えたなら `dev/probes.json` の違反例と `dev/research.md` の「使ったルール」も合わせる（一緒に変えるファイルの組）。各フェーズの終わりに `skill_lint.py` を実行し、エラーが0件になってから次のフェーズに進む。
 - 理由: フェーズを飛ばしたり、生成部分を手で書いたり、spec だけを変えたりすると、spec と SKILL.md・違反例・調査の記録が食い違い、読む AI ごとに従う内容が変わる。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: script, validate: scripts/init_skill.py、scripts/render_skill.py、scripts/skill_lint.py。契約の command 検査が、finish の前に `skill_lint.py --final --project` を実行する
@@ -113,18 +114,18 @@
 ## STEP-03 使う道具は python3、git、skill-foundation のスクリプト、収束テストの runner に限る
 
 - 軸: P4
-- ルール: 使うコマンドは `python3`（skill-foundation の `scripts/` と、作るスキルの `scripts/`）、`git`、収束テストの runner だけにする。パッケージを追加で入れない。収束テストの runner は次の表で決め、`convergence.py prepare --runners` に渡す。
+- ルール: 使うコマンドは `python3`（skill-foundation の `scripts/` と、作るスキルの `scripts/`）、`git`、収束テストの runner だけにする。パッケージを追加で入れない。収束テストの runner は次の表で決める。`convergence.py prepare` は、`--runners` が無ければ、作るスキルの spec の `convergence.runners`、`settings/user-setting.yaml`、`settings/skill-setting.yaml` の順に、null でない最初の値を使う。エージェントのモデルと推論エフォートも同じ順の `convergence.model`・`convergence.effort` に従い、prepare が runner の起動コマンドに足す（runner `subagent` は、`convergence.py prompts` が示す値で Agent ツールを起動する）。
 - 理由: 道具が AI ごとに違うと、生成物の形と検査の結果が変わる。追加のパッケージは利用者の環境に残る。runner を AI が選ぶと、同じスキルでも測り方が実行ごとに変わる。
 - 決め方: 道具・スクリプト・入力を増やさない答え
-- 守らせ方: doc: SKILL.md の手順9と references/convergence-test.md の3章
+- 守らせ方: doc: SKILL.md の手順10と references/convergence-test.md の3章
 - 機械化しない理由: 痕跡が残らない：実行したコマンドと入れたパッケージは、作ったスキルのファイルに残らない
 
 場合分け:
 
 | 状況 | runner |
 |---|---|
-| `claude` と `codex` のどちらも起動できる | spec の `convergence.runners`（既定 `claude`、`codex`） |
-| 片方だけ起動できる（コマンドが無い、起動が拒否された） | 起動できる方だけ |
+| `claude` と `codex` のどちらも起動できる | `convergence.py prepare` が上の順で決めた runner（`--runners` を渡さない） |
+| 片方だけ起動できる（コマンドが無い、起動が拒否された） | 起動できる方だけ（`--runners` に渡す） |
 | どちらも起動できず、Agent ツールがある | `subagent`。`convergence.py prompts` が出したプロンプトを、専用のエージェント型 `skill-foundation-tester`（prepare が `.claude/agents/` に置く。fence.py（作業ディレクトリの外への操作を止める仕組み）が働く）の新しいエージェントにそのまま渡し、最終の返答を保存先に書く |
 | 上のどれでもない | 実行しない。`convergence.skip_reason` に「独立エージェントを起動できない」と書く |
 
@@ -142,10 +143,10 @@
 ## STEP-04 検査に落ちたら作るスキルの側を直し、残ったばらつきは結論に書く
 
 - 軸: P5
-- ルール: `skill_lint.py` か `probe.py` が失敗したら、作るスキルの `dev/spec.json`、`scripts/`、SKILL.md の「2. 手順」を直してやり直す。skill-foundation のファイルは変えない。収束テストの各ラウンドでは、`convergence.py analysis-collect` が書く `analysis.md` の指摘を、基準を満たした課題のものも記録で確かめ、V1〜V8 か推定違いに分類して、`dev/convergence-report.md` の「## 動きの指摘」の表に書いてから次のラウンドへ進む。収束テストが `convergence.max_rounds` のラウンドで基準を満たさなかったら、`run.py wait --question` を実行してから、残った課題ごとにばらつきの分類（V1〜V8）を示し、ラウンドを足して続けるかを聞く。続けるなら `convergence.max_rounds` を1つ増やして締め込む。続けないなら、残った課題の ID、分類、残した理由を `dev/convergence-report.md` の「結論」に1課題1行で書く。
+- ルール: `skill_lint.py` か `probe.py` が失敗したら、作るスキルの `dev/spec.json`、`scripts/`、SKILL.md の「2. 手順」を直してやり直す。収束テストの各ラウンドでは、`convergence.py analysis-collect` が書く `analysis.md` の指摘を、基準を満たした課題のものも記録で確かめ、V1〜V8 か推定違いに分類して、`dev/convergence-report.md` の「## 動きの指摘」の表に書いてから次のラウンドへ進む。収束テストがラウンドの上限（`convergence.py prepare` が示す `max_rounds`。STEP-03 と同じ順で決まる）で基準を満たさなかったら、`run.py wait --question` を実行してから、残った課題ごとにばらつきの分類（V1〜V8）を示し、ラウンドを足して続けるかを聞く。続けるなら、作るスキルの spec の `convergence.max_rounds` に今の上限より1つ大きい値を書いて締め込む。続けないなら、残った課題の ID、分類、残した理由を `dev/convergence-report.md` の「結論」に1課題1行で書く。
 - 理由: 検査や skill-foundation を緩めて通すと、検査が無いのと同じになる。ラウンドを足し続けるかを AI が決めると、費用と作るスキルの重さが AI ごとに変わる。残ったばらつきを書かないと、利用者が限界を知らずに使う。
 - 決め方: 機械で守らせられる答え
-- 守らせ方: validate, doc: `skill_lint.py --final` が、基準を満たさない課題が「結論」に書かれているかと、AI の分析に指摘のあるエージェントが「## 動きの指摘」の表にあるかを確かめる。次のラウンドの `convergence.py prepare` も、前のラウンドの表が揃うまで止まる。skill-foundation のファイルは CTL-02 で守る
+- 守らせ方: validate, doc: `skill_lint.py --final` が、基準を満たさない課題が「結論」に書かれているかと、AI の分析に指摘のあるエージェントが「## 動きの指摘」の表にあるかを確かめる。次のラウンドの `convergence.py prepare` も、前のラウンドの表が揃うまで止まる
 - 良い例:
 
   ```text
@@ -157,22 +158,65 @@
   上限のラウンドで基準を満たさないまま、聞かずに結論に「おおむね収束した」と書く
   ```
 
-## STEP-05 検査に通った作ったスキルは、finish が合格時の指紋を記録する
+## STEP-05 廃止
 
-- 軸: P3
-- ルール: 作ったスキルは、skill-foundation の `run.py finish` が検査に通った後に `report_skill.py --seal` で合格時の指紋を記録する（`assets/seal.json`）。指紋を記録した後に作ったスキルを変えるときは、作ったスキルの SKILL.md の「8. 制御の仕組み」の変え方に従い、`skill_lint.py <作ったスキル> --final --seal` で指紋を記録し直す。
-- 理由: hooks は実行中しか働かないため、合格時の指紋が無いと、作った後に検査を緩める変更が入っても次の実行が気づかない。指紋の記録を AI の判断に任せると、指紋を記録するスキルとしないスキルが混ざる。
-- 決め方: 機械で守らせられる答え
-- 守らせ方: runtime: 契約の report.sections に stage: finish で置いた `scripts/report_skill.py --seal` を、scripts/run.py の finish が検査に通った後だけ実行する。合格時の指紋は skill_lint.py --final に通った状態だけに書く
+- 廃止（ID は再利用しない）: ユーザーによる微修正を妨げる変更制限と変更後の特別な検査手順を廃止した。
+
+## STEP-06 受付の前に、ユーザーと確かめた価値から Eval を作り、Eval 自体を検証し、収束テストの題材を確かめる
+
+- 軸: P1, P2, O8
+- ルール: SKILL.md の手順3では、受付の前に Eval を作る。作るかは次の表で決める。作るときは references/eval.md の順に、材料（利用場面、今の不満や失敗、望む結果、許容できない結果）から価値仮説を立て、ユーザーとの対話で確定した価値を、外から確かめられる振る舞い、成功と失敗の事例、正解の根拠、判定方法に落として `<base>/<name>/dev/eval/eval.json` に書く。ユーザーに聞くことは eval.json の `questions` に書き、カタログの「Eval 作成」タブで答えてもらい、チャット欄に貼られた回答を `eval_check.py --answer` で `dialog` に記録する。Eval を作り、入力 `measure` が `skip` でなければ、続けて収束テストの題材（`<base>/<name>/dev/evals.json`）の案を書き、同じ聞き方でユーザーと確かめる。作らないときは `skip_reason` だけを書く。`skip_reason` は Eval の検査を止める記法なので、書いてよいのは表で作らないことになったときだけである。どちらのときも `eval_check.py` のエラーを0件にしてから受付に進む。
+- 理由: 価値を確かめずにルールを決めると、誰が使っても同じ出力になっても、その出力がユーザーの役に立つとは限らない。価値を AI だけで決めると、AI の思い込みが正しさの基準になる。Eval 自体を検証しないと、何でも通す判定方法や、許容できない結果を見逃す事例が残る。収束テストの題材をユーザーが知らないまま測ると、揃った結果が、ユーザーの使い方でも揃うのかが分からない。
+- 決め方: 依頼の指定
+- 守らせ方: script, validate, doc: scripts/eval_check.py が Eval 自体を検証し、結果を dev/results/eval-check.json に書く。答えを待っている質問（questions）があるあいだは、そのことを指摘して止める。`--answer` が貼られた回答を言い換えずに dialog に記録する。scripts/catalog.py が、質問を「Eval 作成」タブに1枚ずつ削って開くカードで出し、回答をチャット欄に貼る文にまとめる。収束テストの題材は、同じタブに最後の回答の時の版との違いのラベルを付けて載せる（合意した後に変えても止めない）。`skill_lint.py --final` が、今の Eval が eval_check.py の検査に通っていることか、`skip_reason` を求める
+
+場合分け:
+
+| 状況 | 扱い |
+|---|---|
+| `eval` が `make` で、ユーザーに質問できる | 作る。質問の前に `run.py wait --question` を実行する（CTL-03） |
+| `eval` が `skip` | 作らず、`skip_reason` に「利用者が Eval を省くと指定した」と書く |
+| ユーザーに質問できない（依頼文だけで動く独立エージェントとして実行している） | 作らず、`skip_reason` に「利用者に価値を確かめられない」と書く |
+| 上のどれでもない | `make` と同じに扱う |
+
 - 良い例:
 
   ```text
-  finish の本文の「## 改変チェックの記録」に、`assets/seal.json` に保護ファイルのハッシュを書いたと出ている
+  材料の4種類を1つの `questions` で聞き、カタログで答えてもらった回答を `eval_check.py --answer` で記録し、仮説を同じ聞き方で確かめて確定させ、振る舞いごとに成功と失敗の事例を書いて `eval_check.py` を通してから受付に進む
   ```
 - 悪い例:
 
   ```text
-  作り終えた後、指紋を記録せずに完了と返答し、後から契約の正規表現を緩めても誰も気づかない
+  ユーザーに聞かずに依頼文だけから価値と事例を書き、成功の事例だけを置く
+  ```
+
+## STEP-07 収束テストの各ラウンドで、各エージェントの出力を Eval で採点し、Eval の問題をユーザーとすり合わせてから次のラウンドに進む
+
+- 軸: P1, P5
+- ルール: Eval を作ったときは、フェーズ4で、code と model の振る舞いに判定するファイルの場所（`target`。出力の契約の置き場と同じ書き方で、`#<要素の id>` を付けると HTML のその要素だけを判定する）を書く。収束テストの各ラウンドでは、`convergence.py diff` が code の判定を当て、`analysis-collect` が分析役の model の判定を取り込む。Eval に落ちた出力がある課題は、基準を満たさない。締め込みでは、落ちた判定と、`analysis.md` の指摘のうち Eval のどの振る舞いも確かめていない問題を、次の表で分類し、`dev/convergence-report.md` の「## Eval の採点」の表に、ラウンド、課題/エージェント、振る舞い、分類、対処を書く。Eval の疑いか抜けがあれば、次のラウンドに進む前に、`run.py wait --question` を実行してからユーザーとすり合わせ、対話を `dialog` に足して `dev/eval/eval.json` を直し、`eval_check.py` のエラーを0件にする。そのラウンドで収束テストを終えるとき（STEP-04 で続けないと決めたとき、または最終ラウンドで全課題が基準を満たしたとき）は、Eval を直さず、疑いと抜けの振る舞い（抜けは価値）の ID、分類、残した理由を `dev/convergence-report.md` の「結論」に1件1行で書く。直すのは次にラウンドを足すときで、そのときは `convergence.py prepare` が直すまで止まる。
+- 理由: ばらつきだけを測ると、全員が同じ誤りをしても基準を満たす。Eval で採点すれば、出力が価値を満たすかも測れる。Eval は手順3でユーザーと決めた基準なので、実際の出力に当てると判定のずれが見つかることがある。落ちた判定を AI だけで Eval の誤りと決めて直すと、価値の基準を AI の都合で緩めることになる。収束テストを終えるラウンドで Eval を直しても、直した Eval で採点するラウンドが無く、確かめられないまま残るだけなので、直すのは次にラウンドを足すときにする。
+- 決め方: 依頼の指定
+- 守らせ方: script, validate, doc: scripts/convergence.py の diff が code の判定を report.json に書き、analysis-prepare が model の判定を分析役に頼み、analysis-collect が取り込んで課題の基準を決め直す。scripts/skill_lint.py の `--phase 4` が target を、次のラウンドの `convergence.py prepare` と `skill_lint.py --final` が、判定待ち、「## Eval の採点」の表の分類と対処、Eval の疑いか抜けの後に Eval を直したか（`skill_lint.py --final` は、最後のラウンドなら「結論」に残したかでもよい）、最後のラウンドを今の Eval で採点したかを確かめる
+- 分けた理由: STEP-06 は手順3で Eval を作るときに破られ、STEP-07 は収束テストの各ラウンドで破られる。Eval を正しく作っても、target を書かない、落ちた判定を分類しない、Eval の疑いをユーザーとすり合わせずに次のラウンドへ進む、という違反は STEP-06 を守ったまま起きる
+
+場合分け:
+
+| 状況 | 分類と扱い |
+|---|---|
+| 落ちた出力が、確定した価値を満たしていない（判定が正しい） | 出力の誤り。ばらつきと同じく、作るスキルの側を直す |
+| 落ちた出力が、確定した価値を満たしている。または判定が課題の状況に合わない | Eval の疑い。ユーザーとすり合わせて、振る舞い・判定方法・事例を直す |
+| `analysis.md` の指摘の問題を、Eval のどの振る舞いも確かめていない | Eval の抜け。ユーザーとすり合わせて、振る舞いと事例を足す |
+| 上のどれでもない | 出力の誤りと同じに扱う |
+
+- 良い例:
+
+  ```text
+  落ちた判定ごとに出力を開き、価値を満たしていなければ出力の誤りとしてスキルを直し、判定がずれていればユーザーに示して Eval を直してから次のラウンドに進む
+  ```
+- 悪い例:
+
+  ```text
+  Eval に落ちた出力を見て、判定が厳しすぎると AI だけで決め、Eval の検査を緩めて次のラウンドに進む
   ```
 
 ## OUT-01 作るスキルは対象の製品から決めた置き場に1つ置く
@@ -206,10 +250,10 @@
 ## OUT-02 スキルの構成は init_skill.py が作る形だけにする
 
 - 軸: O2
-- ルール: スキルの直下には `SKILL.md`、`references/`、`assets/`、`scripts/`、`dev/` だけを置く。SKILL.md の節は「1. 使う場面」から「8. 制御の仕組み」の8つで、手で書くのは「2. 手順」だけにする。`assets/examples/` には、検査に通る出力の見本を1つ以上置く。見本は `dev/probes.json` の baseline から `from` で使い、出力を書く手順で示す。
+- ルール: スキルの直下には `SKILL.md`、`references/`、`assets/`、`scripts/`、`dev/` だけを置く。既定値を設定で変えられるスキルは、`settings/` に `skill-setting.yaml`（スキルの設定）と `user-setting.yaml`（ユーザーの設定）だけを置いてよい。SKILL.md の節は「1. 使う場面」から「8. 制御の仕組み」の8つで、手で書くのは「2. 手順」だけにする。`assets/examples/` には、検査に通る出力の見本を1つ以上置く。見本は `dev/probes.json` の baseline から `from` で使い、出力を書く手順で示す。
 - 理由: 構成が揃うと、読む AI が同じ場所で同じ情報を探せる。見本があると、AI はルールの文から形を想像せずに、検査に通った実物を写せる。
 - 決め方: 出力を使う道具や形式の公式の決まり
-- 守らせ方: script, validate: scripts/init_skill.py が構成を作り、`skill_lint.py` が直下の名前・必須のファイル・節の並び・frontmatter を確かめる。見本は `skill_lint.py` が置き場・baseline の from・手順の記載を確かめ、probe.py が baseline として検査に通す
+- 守らせ方: script, validate: scripts/init_skill.py が構成を作り、`skill_lint.py` が直下の名前・必須のファイル・節の並び・frontmatter と、settings/ の2つのファイルの形（入力の key と type、収束テストの項目）を確かめる。見本は `skill_lint.py` が置き場・baseline の from・手順の記載を確かめ、probe.py が baseline として検査に通す
 - 良い例:
 
   ```text
@@ -357,23 +401,9 @@
   出力を書いた直後に「完了しました」と返答する
   ```
 
-## CTL-02 実行中はスキル自身のファイルを変えない
+## CTL-02 廃止
 
-- 軸: C2
-- ルール: `run.py start` から `run.py finish` までの間、スキルの保護ファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`）と、プロジェクトに登録したこのスキルの hooks を変えない。出力が契約に合わないときは、出力の方を直す。保護ファイルが合格時の指紋（`assets/seal.json`）と違うと `run.py start` が終了コード1で止まるので、そのときは出力された指摘をユーザーに伝えて止まる。
-- 理由: 検査や契約を緩めて通すと、検査が無いのと同じになる。
-- 決め方: 機械で守らせられる答え
-- 守らせ方: runtime, validate: scripts/run.py の start が保護ファイルのハッシュと hooks の登録を記録し、check と finish が比べる。`start --restart` は記録を最初の start から引き継ぐ。hooks が編集の前に止める。start は合格時の指紋と保護ファイルを比べ、違えば始めない
-- 良い例:
-
-  ```text
-  指摘されたルールIDを「4. ルール」で引き、出力のファイルを直す
-  ```
-- 悪い例:
-
-  ```text
-  検査に通すために `assets/contract.json` の正規表現を緩める
-  ```
+- 廃止（ID は再利用しない）: ユーザーによる微修正を妨げる変更制限と変更後の特別な検査手順を廃止した。
 
 ## CTL-03 質問は start の前に済ませる
 
@@ -393,11 +423,11 @@
   出力を半分書いたところで、形式をユーザーに尋ねる
   ```
 
-## CTL-04 hooks は出力の検査だけに使い、入力を止めない
+## CTL-04 hooks で出力を検査する
 
 - 軸: C4
-- ルール: hooks は、このスキルの実行中（status: active）に、編集の後の検査、応答を終える前の検査、保護ファイルの編集の停止の3つを行う。実行していないときは、合格時の指紋があるスキル（`assets/seal.json` がある）の保護ファイルの編集に、Claude Code で確認を求めることだけを行う。ユーザーの発言を止めたり書き換えたりしない。
-- 理由: 縛る対象は AI の出力であり、ユーザーの入力ではない。このスキルを使っていないセッションの邪魔をしない。ただし、実行していない間にスキル自身が変わると、次の実行の検査が緩んだままになるので、指紋を記録したファイルの編集だけは人に確かめさせる。
+- ルール: hooks は実行中（status: active）に、編集の後と応答を終える前に出力を検査する。実行記録への直接の編集は拒否する。ユーザーの発言を止めたり書き換えたりしない。hooks が無くても run.py check と finish で同じ出力の検査を行う。
+- 理由: スキルの微修正を妨げず、出力の検証結果と実行記録を揃える。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: runtime: scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する
 - 良い例:
@@ -409,22 +439,4 @@
 
   ```text
   UserPromptSubmit の hook で、依頼文の書き方が違うと拒否する
-  ```
-
-## CTL-05 契約の出力のほかにファイルを変えない
-
-- 軸: C5
-- ルール: `run.py start` から `run.py finish` までの間に作る・変えるファイルは、「5. 出力の契約」の出力と `control.allow_changes` に挙げたものだけにする。作業用のメモや一時ファイルも、出力の置き場の外に作らない。
-- 理由: 出力の外に作るファイル（メモ、控え、別名の写し）は AI ごとに違い、利用者のリポジトリに残る。
-- 決め方: 機械で守らせられる答え
-- 守らせ方: runtime, validate: scripts/run.py の start が git の作業ツリーの状態を記録し、check と finish が比べる。編集の直後には hooks が知らせる
-- 良い例:
-
-  ```text
-  下書きも出力の置き場（`.skill-runs/<name>/`）の中に書く
-  ```
-- 悪い例:
-
-  ```text
-  リポジトリの直下に `notes.md` を作って下書きする
   ```

@@ -25,21 +25,8 @@
     "axes": [
       "C2"
     ],
-    "title": "Do not change the skill's own files during a run",
-    "decision": "Between `run.py start` and `run.py finish`, do not change the protected files of the skill (`SKILL.md`, `scripts/`, `assets/`, `references/`) or the hooks of this skill registered in the project. When an output violates the contract, fix the output. When the protected files differ from the seal (`assets/seal.json`), `run.py start` exits with code 1; then tell the user the printed findings and stop.",
-    "reason": "Loosening the checks or the contract to pass makes the checks worthless.",
-    "basis": "machine",
-    "control": [
-      "runtime",
-      "validate"
-    ],
-    "how": "scripts/run.py start records hashes of the protected files and the hook registrations; check and finish compare them. `start --restart` carries the record over from the first start. Hooks stop the edit beforehand. start compares the protected files with the seal and does not start when they differ",
-    "why_not_machine": "",
-    "probes": [
-      "builtin"
-    ],
-    "good": "Look up the reported rule ID in \"4. Rules\" and fix the output file",
-    "bad": "Relax a regular expression in `assets/contract.json` to pass the check"
+    "title": "Restrictions on editing the skill",
+    "retired": "Removed edit restrictions and resealing to allow user-requested changes."
   },
   {
     "id": "CTL-03",
@@ -68,9 +55,9 @@
     "axes": [
       "C4"
     ],
-    "title": "Use hooks only to check outputs, never to block input",
-    "decision": "While this skill is running (status: active), hooks do three things: check after an edit, check before the turn ends, and stop edits to protected files. When it is not running, they only ask for confirmation in Claude Code before an edit to a protected file of a sealed skill (one with `assets/seal.json`). They never block or rewrite what the user says.",
-    "reason": "What is constrained is the AI's output, not the user's input, and sessions that do not use this skill are left alone. But if the skill itself changes between runs, the next run's checks stay loosened, so edits to sealed files are confirmed by a person.",
+    "title": "Use hooks for output checks",
+    "decision": "Hooks check outputs after edits and before ending a turn while status is active. Reject direct edits to run records. Never block or rewrite user messages. Without hooks, run.py check and finish perform the same output checks.",
+    "reason": "Allow small skill changes while keeping output validation and run records consistent.",
     "basis": "machine",
     "control": [
       "runtime"
@@ -82,27 +69,6 @@
     ],
     "good": "The Stop hook sends the agent back until the checks pass",
     "bad": "A UserPromptSubmit hook rejects requests written in an unexpected way"
-  },
-  {
-    "id": "CTL-05",
-    "axes": [
-      "C5"
-    ],
-    "title": "Change no file other than the contract outputs",
-    "decision": "Between `run.py start` and `run.py finish`, create or change only the outputs in \"5. Output contract\" and the files listed in `control.allow_changes`. Do not create notes or temporary files outside the output location.",
-    "reason": "Files written outside the outputs (notes, backups, copies under other names) differ by AI and stay in the user's repository.",
-    "basis": "machine",
-    "control": [
-      "runtime",
-      "validate"
-    ],
-    "how": "scripts/run.py start records the git work tree state; check and finish compare it. Hooks report right after an edit",
-    "why_not_machine": "",
-    "probes": [
-      "builtin"
-    ],
-    "good": "Write drafts inside the output location (`.skill-runs/<name>/`)",
-    "bad": "Create `notes.md` at the repository root for a draft"
   },
   {
     "id": "RPT-01",
