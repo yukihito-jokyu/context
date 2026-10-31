@@ -24,9 +24,9 @@ from pathlib import Path
 RUNTIME_VERSION = "1.0.0"
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CONTRACT_REL = "assets/contract.json"
-SEAL_REL = "assets/seal.json"  # 合格時の指紋。skill_lint.py --seal と、skill-foundation の finish が書く（CTL-02）
+# 依頼に指定の無い入力の既定値。前の方が強く、null の項目は次へ進む（ユーザーの設定 → スキルの設定）
+SETTINGS_FILES = [("user", "settings/user-setting.yaml"), ("skill", "settings/skill-setting.yaml")]
 RUNS_DIRNAME = ".skill-runs"
-HOOK_CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
 # 出力の探索で入らないディレクトリ（パターンの固定部分に含まれる場合は入る）
 SKIP_DIRS = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache",
              ".mypy_cache", ".ruff_cache", ".tox", ".next", ".turbo", ".cache", RUNS_DIRNAME}
@@ -50,6 +50,136 @@ def sha256(path: Path) -> str:
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_yaml(path: Path) -> object:
+    """settings/ の設定（YAML）。標準ライブラリに YAML が無いので、設定に使う形だけを読む: 字下げの入れ子のマップ
+    （`キー: 値`）、`- 値` と `[a, b]` の一覧、null・真偽・数・文字列（引用符の有無どちらも）、`#` から行末のコメント。
+    中身が無ければ空のマップ。読めない形は行番号付きの ValueError にする。"""
+    lines = []
+    for no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        text = _yaml_uncomment(raw).rstrip()
+        if text.strip() in ("", "---", "..."):
+            continue
+        indent = len(text) - len(text.lstrip(" "))
+        if text[indent] == "\t":
+            raise ValueError(f"{no} 行目: 字下げにタブは使えません。空白で字下げしてください")
+        lines.append((no, indent, text.strip()))
+    if not lines:
+        return {}
+    value, end = _yaml_block(lines, 0, lines[0][1])
+    if end < len(lines):
+        raise ValueError(f"{lines[end][0]} 行目: 字下げが前の行と合いません")
+    return value
+
+
+def _yaml_uncomment(line: str) -> str:
+    """`#` から行末のコメントを消す。引用符の中と、語の途中の `#` は残す。"""
+    quote, i = None, 0
+    while i < len(line):
+        ch = line[i]
+        if quote:
+            if quote == '"' and ch == "\\":
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch in "\"'" and (i == 0 or line[i - 1] in " \t[,:-"):
+            quote = ch
+        elif ch == "#" and (i == 0 or line[i - 1] in " \t"):
+            return line[:i]
+        i += 1
+    return line
+
+
+def _yaml_is_item(text: str) -> bool:
+    return text == "-" or text.startswith("- ")
+
+
+def _yaml_block(lines: list[tuple[int, int, str]], i: int, indent: int) -> tuple[object, int]:
+    """字下げ indent の塊（マップか `- ` の一覧）を読み、値と、塊の次の行の位置を返す。"""
+    if _yaml_is_item(lines[i][2]):
+        items = []
+        while i < len(lines) and lines[i][1] == indent and _yaml_is_item(lines[i][2]):
+            no, rest = lines[i][0], lines[i][2][1:].strip()
+            i += 1
+            if rest:
+                items.append(_yaml_scalar(rest, no))
+            elif i < len(lines) and lines[i][1] > indent:
+                value, i = _yaml_block(lines, i, lines[i][1])
+                items.append(value)
+            else:
+                items.append(None)
+        return items, i
+    mapping: dict = {}
+    while i < len(lines) and lines[i][1] == indent:
+        no, _, text = lines[i]
+        match = re.match(r'("(?:[^"\\]|\\.)*"|\'[^\']*\'|[^\s"\'\-][^:]*?)\s*:(?:\s+(.*))?$', text)
+        if not match:
+            raise ValueError(f"{no} 行目: `キー: 値` の形にしてください: {text}")
+        key = _yaml_scalar(match.group(1), no) if match.group(1)[0] in "\"'" else match.group(1)
+        if key in mapping:
+            raise ValueError(f"{no} 行目: キー `{key}` が同じ塊に2回あります")
+        rest, i = (match.group(2) or "").strip(), i + 1
+        if rest:
+            mapping[key] = _yaml_scalar(rest, no)
+        elif i < len(lines) and (lines[i][1] > indent or (lines[i][1] == indent and _yaml_is_item(lines[i][2]))):
+            mapping[key], i = _yaml_block(lines, i, lines[i][1])
+        else:
+            mapping[key] = None
+    if i < len(lines) and lines[i][1] > indent:
+        raise ValueError(f"{lines[i][0]} 行目: 字下げが前の行と合いません")
+    return mapping, i
+
+
+def _yaml_split(text: str) -> list[str]:
+    """`[a, b]` の中身を、引用符の外の `,` で分ける。"""
+    parts, quote, start, i = [], None, 0, 0
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            if quote == '"' and ch == "\\":
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == ",":
+            parts.append(text[start:i])
+            start = i + 1
+        i += 1
+    return parts + [text[start:]]
+
+
+def _yaml_scalar(text: str, no: int) -> object:
+    """1行の値: null・真偽・数・引用符の文字列・`[a, b]` の一覧。ほかは文字列のまま。"""
+    text = text.strip()
+    if text in ("", "~", "null", "Null", "NULL"):
+        return None
+    if text in ("true", "True", "TRUE", "false", "False", "FALSE"):
+        return text.lower() == "true"
+    if text.startswith("["):
+        if not text.endswith("]"):
+            raise ValueError(f"{no} 行目: `[` を同じ行の `]` で閉じてください: {text}")
+        inner = text[1:-1].strip()
+        return [_yaml_scalar(part, no) for part in _yaml_split(inner)] if inner else []
+    if text.startswith("{"):
+        if text.replace(" ", "") == "{}":
+            return {}
+        raise ValueError(f"{no} 行目: `{{...}}` の書き方は読めません。字下げで書いてください: {text}")
+    if text.startswith('"'):
+        try:
+            return json.loads(text)
+        except ValueError:
+            raise ValueError(f"{no} 行目: 引用符の文字列が閉じていないか、読めない `\\` があります: {text}") from None
+    if text.startswith("'"):
+        if len(text) < 2 or not text.endswith("'"):
+            raise ValueError(f"{no} 行目: 引用符の文字列が閉じていません: {text}")
+        return text[1:-1].replace("''", "'")
+    if re.fullmatch(r"[-+]?\d+", text):
+        return int(text)
+    if re.fullmatch(r"[-+]?(\d+\.\d*|\.\d+|\d+)([eE][-+]?\d+)?", text):
+        return float(text)
+    return text
 
 
 def write_json(path: Path, data: object) -> None:
@@ -161,6 +291,19 @@ def static_prefix(pattern: str) -> str:
     return "/".join(parts)
 
 
+def path_aliases(root: Path, pattern: str) -> list[str]:
+    """pattern と、その固定の部分のシンボリックリンクを解決した書き方（例：.claude/skills → .agents/skills）。
+    git と hooks は実体のパスで知らせるので、リンクを通した置き場の出力も照合できるようにする。"""
+    prefix = static_prefix(pattern)
+    if not prefix:
+        return [pattern]
+    try:
+        real = (root / prefix).resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return [pattern]  # リンクの先がプロジェクトの外
+    return [pattern] if real == prefix else [pattern, real + pattern[len(prefix):]]
+
+
 def iter_glob(root: Path, pattern: str) -> list[str]:
     """pattern に一致するファイルの相対パス（POSIX 形式、昇順）。シンボリックリンクは辿らない。"""
     regex = glob_to_regex(pattern)
@@ -173,7 +316,7 @@ def iter_glob(root: Path, pattern: str) -> list[str]:
         rel_dir = Path(dirpath).relative_to(root).as_posix()
         rel_dir = "" if rel_dir == "." else rel_dir
         dirnames[:] = sorted(d for d in dirnames
-                             if d not in SKIP_DIRS and not (Path(dirpath) / d).is_symlink())
+                             if d not in SKIP_DIRS and d != ".skill-feedback" and not (Path(dirpath) / d).is_symlink())
         for f in filenames:
             rel = f"{rel_dir}/{f}" if rel_dir else f
             if regex.match(rel) and not (Path(dirpath) / f).is_symlink():
@@ -187,49 +330,6 @@ def snapshot(root: Path, contract: dict, name: str, values: dict | None = None) 
         for rel in iter_glob(root, expand(out["path"], name, values)):
             files[rel] = sha256(root / rel)
     return files
-
-
-def protected_hashes(skill_dir: Path, contract: dict) -> dict:
-    globs = contract.get("control", {}).get("protected", [])
-    hashes = {}
-    for dirpath, dirnames, filenames in os.walk(skill_dir):
-        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
-        for f in filenames:
-            rel = (Path(dirpath) / f).relative_to(skill_dir).as_posix()
-            if matches_any(rel, globs):
-                hashes[rel] = sha256(Path(dirpath) / f)
-    return hashes
-
-
-def seal_hashes(skill_dir: Path, contract: dict) -> dict:
-    """合格時の指紋（seal.json）に書く保護ファイルのハッシュ。seal.json 自身は除く。"""
-    return {rel: digest for rel, digest in protected_hashes(skill_dir, contract).items() if rel != SEAL_REL}
-
-
-def write_seal(skill_dir: Path, contract: dict) -> int:
-    hashes = seal_hashes(skill_dir, contract)
-    write_json(skill_dir / SEAL_REL, {"runtime": RUNTIME_VERSION, "files": hashes})
-    return len(hashes)
-
-
-def seal_findings(skill_dir: Path, contract: dict) -> list[dict]:
-    """合格時の指紋（assets/seal.json）と今の保護ファイルの違い。合格時の指紋の無いスキル（作っている途中）では何も返さない。
-    hooks は実行していない間の変更を止められないので、次の start がここで見つける（CTL-02）。"""
-    path = skill_dir / SEAL_REL
-    if not path.is_file():
-        return []
-    rule = contract.get("control", {}).get("tamper_rule", "CTL")
-    try:
-        sealed = load_json(path).get("files", {})
-    except (OSError, ValueError, AttributeError):
-        return [finding(rule, f"{skill_dir.name}/{SEAL_REL}", 0, "合格時の指紋が読めません")]
-    current = seal_hashes(skill_dir, contract)
-    result = []
-    for rel in sorted(set(sealed) | set(current)):
-        if sealed.get(rel) != current.get(rel):
-            what = "変わりました" if rel in sealed and rel in current else ("足されました" if rel in current else "消されました")
-            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0, f"合格した後に{what}"))
-    return result
 
 
 # ---------------------------------------------------------------- 入力の正規化（寛容）
@@ -292,8 +392,30 @@ def convert_type(value, spec: dict):
     raise ValueError(f"未知の type: {kind}")
 
 
-def normalize_input(raw: dict, text: str, contract: dict) -> dict:
-    """依頼から受け取った値を契約の inputs に合わせる。エラーにせず、補ったこと・読めなかったことを記録する。"""
+def load_settings(skill_dir: Path = SKILL_DIR) -> tuple[list[tuple[str, dict]], list[str]]:
+    """settings/ の設定（YAML）を強い順に返す。無いファイルは飛ばし、読めないファイルは注意にして飛ばす。"""
+    layers, warnings = [], []
+    for source, rel in SETTINGS_FILES:
+        path = skill_dir / rel
+        if not path.is_file():
+            continue
+        try:
+            data = load_yaml(path)
+        except (OSError, ValueError) as exc:
+            warnings.append(f"{rel}: YAML として読めないので使いません（{exc}）")
+            continue
+        if isinstance(data, dict):
+            layers.append((source, data))
+        else:
+            warnings.append(f"{rel}: オブジェクトでないので使いません")
+    return layers, warnings
+
+
+def normalize_input(raw: dict, text: str, contract: dict, settings: list[tuple[str, dict]] | None = None,
+                    guessed: dict | None = None) -> dict:
+    """依頼から受け取った値を契約の inputs に合わせる。エラーにせず、補ったこと・読めなかったことを記録する。
+    依頼に無い値は、設定（settings の強い順）→ 依頼文からの推定（guessed）→ default_by（前の入力から決まる値）→ default の順に補い、
+    補った元を default_from に残す。"""
     specs = contract.get("inputs", [])
     by_canon = {}
     for spec in specs:
@@ -312,27 +434,47 @@ def normalize_input(raw: dict, text: str, contract: dict) -> dict:
             given[target] = value
         else:
             extra[key] = value
-    values, defaulted, questions, warnings = {}, [], [], []
+    guesses = {by_canon[canon(k)]: v for k, v in (guessed or {}).items() if canon(k) in by_canon}
+    where = {**dict(SETTINGS_FILES), "guess": "--guess", "derived": "default_by", "default": "default"}
+    values, defaulted, default_from, questions, warnings = {}, [], {}, [], []
     for spec in specs:
         key = spec["key"]
+        unread = None
         if key in given and str(given[key]).strip() != "":
             try:
                 values[key] = convert(given[key], spec)
                 continue
             except ValueError as exc:
-                warnings.append(f"{key}: {exc}。既定値で補います" if "default" in spec else f"{key}: {exc}。そのまま使います")
-                if "default" not in spec:
-                    values[key] = given[key]
-                    continue
-        if "default" in spec and spec["default"] is not None:
-            values[key] = spec["default"]
+                unread = given[key]
+                warnings.append(f"{key}: {exc}。設定か既定値があれば補い、無ければそのまま使います")
+        candidates = [(source, data["inputs"].get(key)) for source, data in settings or []
+                      if isinstance(data.get("inputs"), dict)]
+        candidates.append(("guess", guesses.get(key)))
+        by = spec.get("default_by") or {}
+        if by.get("input") in values:
+            ref = values[by["input"]]
+            candidates.append(("derived", by.get("values", {}).get(",".join(sorted(ref)) if isinstance(ref, list) else str(ref))))
+        candidates.append(("default", spec.get("default")))
+        for source, value in candidates:
+            if value is None or value == [] or str(value).strip() == "":
+                continue
+            try:
+                values[key] = convert(value, spec)
+            except ValueError as exc:
+                warnings.append(f"{key}: {where[source]} の値が使えません（{exc}）。次の候補で補います")
+                continue
             defaulted.append(key)
-        elif spec.get("ask"):
-            questions.append(f"{spec.get('label', key)}（{key}）: {spec.get('question', '値を確かめる')}")
+            default_from[key] = source
+            break
         else:
-            values[key] = None
-    return {"values": values, "defaulted": defaulted, "questions": questions, "warnings": warnings,
-            "extra": extra, "text": text}
+            if unread is not None:
+                values[key] = unread
+            elif spec.get("ask"):
+                questions.append(f"{spec.get('label', key)}（{key}）: {spec.get('question', '値を確かめる')}")
+            else:
+                values[key] = None
+    return {"values": values, "defaulted": defaulted, "default_from": default_from, "questions": questions,
+            "warnings": warnings, "extra": extra, "text": text}
 
 
 # ---------------------------------------------------------------- 出力の検査（厳格）
@@ -444,10 +586,6 @@ def format_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path,
     path, fixes, problems = root / rel, [], []
     for fix in out.get("format", []):
         rule, kind = fix["rule"], fix["type"]
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            return fixes, problems
         if kind == "command":
             before = sha256(path)
             code, output = run_shell(fill_command(fix["run"], root, name, skill_dir, values, rel), root, int(fix.get("timeout", 60)))
@@ -456,6 +594,10 @@ def format_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path,
             elif path.is_file() and sha256(path) != before:
                 fixes.append(finding(rule, rel, 0, fix.get("message") or f"`{fix['run']}` で整えました"))
             continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            return fixes, problems
         if kind == "trailing_space":
             new, what = re.sub(r"[ \t]+$", "", text, flags=re.M), "行末の空白を消しました"
         elif kind == "final_newline":
@@ -495,7 +637,7 @@ def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, valu
     """出力ファイル1つを、契約の checks で検査する。edit（編集の直後の検査）では stage: finish の検査を飛ばす。"""
     path = root / rel
     try:
-        text = path.read_text(encoding="utf-8")
+        text = "" if out.get("binary") else path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return [finding(out.get("rule", "OUT"), rel, 0, "UTF-8 のテキストとして読めません")]
     lines = text.splitlines()
@@ -507,6 +649,9 @@ def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, valu
         if edit and check.get("stage") == "finish":
             continue
         rule, kind = check["rule"], check["type"]
+        if out.get("binary") and kind != "command":
+            findings.append(finding(rule, rel, 0, "binary の出力には command の検査を指定してください"))
+            continue
         message = check.get("message", "")
         suffix = f"（{message}）" if message else ""
         if kind == "headings":
@@ -576,22 +721,21 @@ def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, valu
 
 def check_outputs(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
                   only: str | None = None, fixes: list | None = None) -> tuple[list[dict], dict]:
-    """契約の出力を、format で直してから検査する。only を渡すとそのファイルだけを検査し、件数と改ざんは見ない。
+    """契約の出力を、format で直してから検査する。only を渡すとそのファイルだけを検査し、件数は見ない。
     戻り値は（指摘の一覧, 出力ID → 変わったファイルの一覧）。直したものは fixes に足す。"""
     fixes = [] if fixes is None else fixes
     name = state["skill"]
     values = state.get("input", {})
     baseline = state.get("baseline", {})
-    findings, changed_by_output, matched = [], {}, False
+    findings, changed_by_output = [], {}
     for out in contract.get("outputs", []):
         pattern = expand(out["path"], name, values)
         rule = out.get("rule", "OUT")
         if only is not None:
-            if glob_to_regex(pattern).match(only) and (root / only).is_file():
+            if any(glob_to_regex(p).match(only) for p in path_aliases(root, pattern)) and (root / only).is_file():
                 fixed, problems = format_file(root, only, out, name, skill_dir, values)
                 fixes += fixed
                 findings += problems + check_file(root, only, out, name, skill_dir, values, edit=True)
-                matched = True
             continue
         changed = [rel for rel in iter_glob(root, pattern) if baseline.get(rel) != sha256(root / rel)]
         changed_by_output[out["id"]] = changed
@@ -615,13 +759,9 @@ def check_outputs(root: Path, state: dict, contract: dict, skill_dir: Path = SKI
                 note = f"（{group['message']}）" if group.get("message") else ""
                 findings.append(finding(group.get("rule", "OUT"), ", ".join(missing), 0,
                                         f"出力 {', '.join(touched)} を変えたので、{', '.join(missing)} も一緒に変えてください{note}"))
-        findings += tamper_findings(root, state, contract, skill_dir)
-        findings += scope_findings(root, state, contract, skill_dir)
         findings += notes_findings(root, name, contract)
     elif only == notes_rel(name):
         findings += notes_findings(root, name, contract)
-    elif not matched:
-        findings += scope_findings(root, state, contract, skill_dir, only=only)
     return findings, changed_by_output
 
 
@@ -667,7 +807,7 @@ def fill_command(template: str, root: Path, name: str, skill_dir: Path, values: 
 def report_sections(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
                     stage: str = "finish") -> tuple[list[str], list[dict]]:
     """契約の report.sections のコマンドを実行し、その出力（Markdown の節）を返す。失敗は指摘にする。
-    stage: finish の節（合格時の指紋の記録のように、終えるときだけ行うもの）は、check からは実行しない。"""
+    stage: finish の節（終えるときだけ行うもの）は、check からは実行しない。"""
     rule = contract.get("report", {}).get("rule", "RPT")
     texts, findings = [], []
     for i, section in enumerate(contract.get("report", {}).get("sections", []), 1):
@@ -680,93 +820,6 @@ def report_sections(root: Path, state: dict, contract: dict, skill_dir: Path = S
         else:
             texts.append(output.strip())
     return texts, findings
-
-
-def worktree(root: Path) -> dict | None:
-    """git が変更・未追跡と見なすファイルとそのハッシュ。git が使えないときは None（CTL-05 の検査をしない）。"""
-    try:
-        proc = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"], cwd=root,
-                              capture_output=True, text=True, timeout=60)
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if proc.returncode != 0:
-        return None
-    files, entries, i = {}, proc.stdout.split("\0"), 0
-    while i < len(entries):
-        entry, i = entries[i], i + 1
-        if len(entry) < 4:
-            continue
-        if entry[0] in "RC":
-            i += 1  # 移動・複写の元のパスを読み飛ばす
-        rel = entry[3:]
-        files[rel] = sha256(root / rel) if (root / rel).is_file() else "missing"
-    return files
-
-
-def scope_findings(root: Path, state: dict, contract: dict, skill_dir: Path, only: str | None = None) -> list[dict]:
-    """契約の出力と allow_changes の外で、start の後に変わったファイル。"""
-    control = contract.get("control", {})
-    rule = control.get("scope_rule")
-    if not rule or state.get("worktree") is None:
-        return []
-    name, values = state["skill"], state.get("input", {})
-    allowed = [expand(o["path"], name, values) for o in contract.get("outputs", [])]
-    allowed += [expand(g, name, values) for g in control.get("allow_changes", [])] + [f"{RUNS_DIRNAME}/**"]
-    if only is not None:
-        path = root / only
-        ignored = subprocess.run(["git", "check-ignore", "-q", "--", only], cwd=root, capture_output=True).returncode == 0
-        current = {} if ignored else {only: sha256(path) if path.is_file() else "missing"}  # 全体の検査と同じく無視されたファイルは見ない
-    else:
-        current = worktree(root) or {}
-    before = state["worktree"]
-    inside = skill_dir.resolve()
-    stray = []
-    for rel, digest in sorted(current.items()):
-        if before.get(rel) == digest or matches_any(rel, allowed):
-            continue
-        if (root / rel).resolve() == inside or inside in (root / rel).resolve().parents:
-            continue  # スキル自身の変更は CTL-02 が扱う
-        stray.append(finding(rule, rel, 0, "契約の出力に無いファイルを変えています。元に戻すか削除してください"))
-    return stray
-
-
-def hook_registrations(root: Path, name: str) -> list[str]:
-    """プロジェクトに登録された、このスキルの hook.py を呼ぶ項目（「platform event matcher command」の並び）。"""
-    result = []
-    for platform, rel in HOOK_CONFIGS.items():
-        try:
-            data = load_json(root / rel)
-        except (OSError, ValueError):
-            continue
-        events = data.get("hooks", {}) if isinstance(data, dict) else {}
-        for event, groups in (events.items() if isinstance(events, dict) else []):
-            for group in groups if isinstance(groups, list) else []:
-                if not isinstance(group, dict):
-                    continue
-                for handler in group.get("hooks", []) if isinstance(group.get("hooks"), list) else []:
-                    command = str(handler.get("command", "")) if isinstance(handler, dict) else ""
-                    if f"/{name}/scripts/hook.py" in command:
-                        result.append(f"{platform} {event} {group.get('matcher') or '-'} {command}")
-    return sorted(result)
-
-
-def tamper_findings(root: Path, state: dict, contract: dict, skill_dir: Path) -> list[dict]:
-    rule = contract.get("control", {}).get("tamper_rule", "CTL")
-    before = state.get("protected", {})
-    after = protected_hashes(skill_dir, contract)
-    result = []
-    for rel in sorted(set(before) | set(after)):
-        if before.get(rel) != after.get(rel):
-            result.append(finding(rule, f"{skill_dir.name}/{rel}", 0,
-                                  "スキル自身のファイル（保護対象）が実行中に変わりました。元に戻してください"))
-    if "hooks" in state:
-        current = set(hook_registrations(root, state["skill"]))
-        for entry in state["hooks"]:
-            if entry not in current:
-                platform = entry.split(" ", 1)[0]
-                result.append(finding(rule, HOOK_CONFIGS.get(platform, platform), 0,
-                                      f"このスキルの hooks の登録が実行中に外されたか変えられました（{entry}）。元に戻してください"))
-    return result
 
 
 # ---------------------------------------------------------------- 外部コマンド

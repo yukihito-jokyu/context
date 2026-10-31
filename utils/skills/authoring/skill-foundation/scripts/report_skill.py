@@ -11,13 +11,8 @@ run.py finish が契約の report.sections から呼び、出力をそのまま�
   ## 確かめていないこと    上の結果と設定から決まる注意
   ## プロジェクトに置いたもの  スキルの本体、リンク、hooks の登録（ファイルを読んで確かめる）
 
---seal を付けると、上の節の代わりに、作ったスキルの合格時の指紋を記録して（assets/seal.json）「## 改変チェックの記録」の節だけを出す。
-契約の report.sections に stage: finish で置き、finish が検査に通った後にだけ実行する（STEP-05）。
-
-終了コード: 0 出力した、1 skill_lint.py --final にエラーがあり指紋を記録しなかった、2 スキルのディレクトリか dev/spec.json が無い
-
 使い方:
-  python3 report_skill.py <作ったスキルのディレクトリ> --project <プロジェクトのルート> [--seal]
+  python3 report_skill.py <作ったスキルのディレクトリ> --project <プロジェクトのルート>
 """
 
 from __future__ import annotations
@@ -31,7 +26,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _lib  # noqa: E402
-import _skillrt as rt  # noqa: E402
 
 CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
 PRODUCTS = {"claude": "Claude Code", "codex": "Codex"}
@@ -119,19 +113,6 @@ def run_lint(skill_dir: Path, project: Path) -> tuple[str, list[str], int]:
     return text, warnings, code
 
 
-def section_seal(spec: dict, skill_dir: Path, project: Path) -> tuple[list[str], int]:
-    """作ったスキルの合格時の指紋を記録する。検査に通った状態だけを記録するので、skill_lint.py --final をもう一度通す。"""
-    lint_text, _, code = run_lint(skill_dir, project)
-    if code != 0:
-        return ["## 改変チェックの記録", "", f"- 指紋を記録しなかった（`skill_lint.py --final`: {lint_text}）"], 1
-    count = rt.write_seal(skill_dir, rt.load_contract(skill_dir))
-    rel = (skill_dir / rt.SEAL_REL).relative_to(project).as_posix()
-    return ["## 改変チェックの記録", "",
-            f"- `{rel}` に保護ファイル {count} 件のハッシュを書いた",
-            f"- これより後に保護ファイルを変えると、指紋を記録し直すまで `{spec['name']}` の `run.py start` が止まる。"
-            "変え方は、作ったスキルの SKILL.md の「8. 制御の仕組み」にある"], 0
-
-
 def section_checks(skill_dir: Path, lint_text: str) -> list[str]:
     lines = ["## 作ったスキルの検証", "", "| 検証 | 結果 |", "|---|---|", f"| `skill_lint.py --final` | {lint_text} |"]
     path = skill_dir / "dev/results/probe-results.json"
@@ -181,8 +162,8 @@ def section_convergence(spec: dict, skill_dir: Path) -> tuple[list[str], list[st
             checks = task.get("check", {})
             check = "—" if not checks else ("全員通過" if all(v == 0 for v in checks.values()) else "失敗あり")
             verdict = "満たす" if task.get("converged") else "満たさない"
-            if task.get("tampered"):
-                verdict += f"（スキル自身や hooks の登録を変えた: {'、'.join(task['tampered'])}）"
+            if task.get("fence_changed"):
+                verdict += f"（作業範囲の制限を外した: {'、'.join(task['fence_changed'])}）"
             lines.append(f"| {report['round']} | {task.get('id')} | {agents_text(task.get('agents', []))} | {status} | "
                          f"{fmt(task.get('files'))} | {fmt(task.get('structure'))} | {fmt(task.get('names'))} | {check} | {verdict} |")
     last = data[-1]
@@ -217,10 +198,6 @@ def section_convergence(spec: dict, skill_dir: Path) -> tuple[list[str], list[st
     return lines, unchecked + [f"基準を満たさない課題が残っている（{'、'.join(left)}）"]
 
 
-def under_git(project: Path) -> bool:
-    return any((p / ".git").exists() for p in [project, *project.parents])
-
-
 def hook_events(project: Path, platform: str, name: str) -> list[str]:
     config = project / CONFIGS[platform]
     if not config.is_file():
@@ -249,20 +226,29 @@ def section_unverified(spec: dict, skill_dir: Path, project: Path, warnings: lis
     items = list(extra)
     items += [f"調査で確かめられなかった事実: {h}（dev/research.md）" for h in unverifiable(skill_dir)]
     hooks_on = spec.get("control", {}).get("hooks", True)
+    plugin = _lib.plugin_root(skill_dir)
+    if hooks_on and plugin is not None:
+        items.append(f"hooks はプラグイン `{plugin.name}` で配るため、利用者がプラグインを入れた環境でだけ動く（入れていなければ `run.py check` と `finish` だけで検査される）")
     if hooks_on and "codex" in spec.get("targets", []):
         items.append("Codex の hooks は、Codex の `/hooks` で信頼するまで動かない（それまでは `run.py check` と `finish` だけで検査される）")
     if not hooks_on:
         items.append("hooks を使わない設定のため、編集の直後と応答を終える前の検査は働かない")
-    if not under_git(project):
-        items.append("このプロジェクトは git の管理下に無いため、作ったスキルの実行時に契約の外の変更（CTL-05）を検査しない")
     items += [f"skill_lint.py の警告: {w}" for w in warnings if "convergence.skip_reason" not in w]
     return ["## 確かめていないこと", ""] + ([f"- {i}" for i in items] or ["- なし"])
+
+
+def shipped_hooks(skill_dir: Path, name: str) -> dict[str, list[str]]:
+    """プラグインで配る本体なら、製品ごとに、プラグインが配るこのスキルの hooks のイベント。"""
+    plugin = _lib.plugin_root(skill_dir)
+    return {p: _lib.plugin_hook_events(plugin, p, name) for p in PRODUCTS} if plugin is not None else {}
 
 
 def section_placed(spec: dict, skill_dir: Path, project: Path) -> list[str]:
     name = spec["name"]
     files = [f for f in _lib.iter_files(skill_dir) if not f.endswith(".DS_Store")]
-    lines = ["## プロジェクトに置いたもの", "", f"- `{skill_dir.relative_to(project).as_posix()}/`: スキルの本体（ファイル {len(files)} 個）"]
+    plugin = _lib.plugin_root(skill_dir)
+    shipped = f"。プラグイン `{plugin.name}` で配る" if plugin is not None else ""
+    lines = ["## プロジェクトに置いたもの", "", f"- `{skill_dir.relative_to(project).as_posix()}/`: スキルの本体（ファイル {len(files)} 個{shipped}）"]
     link = project / ".agents/skills" / name
     if link.is_symlink():
         lines.append(f"- `.agents/skills/{name}`: 本体へのリンク")
@@ -270,6 +256,9 @@ def section_placed(spec: dict, skill_dir: Path, project: Path) -> list[str]:
         events = hook_events(project, platform, name)
         if events:
             lines.append(f"- `{CONFIGS[platform]}`: `{name}` の hooks を {len(events)} つ登録（{'、'.join(events)}）")
+    for platform, events in shipped_hooks(skill_dir, name).items():
+        if events:
+            lines.append(f"- プラグイン `{plugin.name}`: {PRODUCTS[platform]} に `{name}` の hooks を {len(events)} つ配る（{'、'.join(events)}）")
     return lines
 
 
@@ -277,17 +266,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dir", help="作ったスキルのディレクトリ")
     parser.add_argument("--project", required=True, help="プロジェクトのルート")
-    parser.add_argument("--seal", action="store_true", help="作ったスキルの合格時の指紋を記録し、「## 改変チェックの記録」の節だけを出す")
     args = parser.parse_args()
     skill_dir, project = Path(args.dir).resolve(), Path(args.project).resolve()
     if not (skill_dir / _lib.SPEC_REL).is_file():
         print(f"{skill_dir / _lib.SPEC_REL} がありません", file=sys.stderr)
         return 2
     spec = _lib.load_spec(skill_dir)
-    if args.seal:
-        lines, code = section_seal(spec, skill_dir, project)
-        print("\n".join(lines))
-        return code
     lint_text, warnings, _ = run_lint(skill_dir, project)
     convergence, extra = section_convergence(spec, skill_dir)
     parts = [section_skill(spec, skill_dir, project), section_decisions(spec), section_checks(skill_dir, lint_text),

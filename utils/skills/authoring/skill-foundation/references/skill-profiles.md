@@ -109,7 +109,6 @@
 検査の候補:
 
 - command（直した後の検査コマンドが通る）
-- control.allow_changes で変更してよい範囲を絞る（CTL-05）
 
 課題の例:
 

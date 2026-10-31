@@ -1,45 +1,75 @@
 {
-    "hooks": {
-        "SessionStart": [
-            {
-                "matcher": "compact",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "python3 .codex/load_context_on_compact.py"
-                    }
-                ]
-            }
-        ],
-        "PermissionRequest": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "terminal-notifier -title \"codex\" -subtitle \"質問\" -message \"ユーザーに質問があります\" -sender \"com.apple.Terminal\" -sound \"Finished\""
-                    }
-                ]
-            }
-        ],
-        "Stop": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "terminal-notifier -title \"codex\" -subtitle \"タスク完了\" -message \"タスクが完了しました\" -sender \"com.apple.Terminal\" -sound \"Finished\""
-                    }
-                ]
-            }
-        ],
-        "UserPromptSubmit": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "python3 .codex/user_prompt_submit.py"
-                    }
-                ]
-            }
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .codex/load_context_on_compact.py"
+          }
         ]
-    }
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title \"codex\" -subtitle \"タスク完了\" -message \"タスクが完了しました\" -sender \"com.apple.Terminal\" -sound \"Finished\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/skills/skill-foundation/scripts/hook.py\" --platform codex stop",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .codex/user_prompt_submit.py"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/skills/skill-foundation/scripts/hook.py\" --platform codex prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/skills/skill-foundation/scripts/hook.py\" --platform codex pre-tool",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/skills/skill-foundation/scripts/hook.py\" --platform codex post-tool",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
 }

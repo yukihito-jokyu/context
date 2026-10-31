@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Claude Code と Codex の hooks から呼ばれ、実行中のスキルの出力を検査する。skill-foundation の共通ランタイム。
 
-このスキルの実行記録（.skill-runs/<name>/state.json）が status: active のときだけ働く。実行していない
-セッションでは、合格時の指紋があるスキル（assets/seal.json がある）の保護ファイルの編集に Claude Code で確認を求める
-ことだけをする（入力側＝ユーザーの操作は妨げない。縛るのは AI の出力だけ）。
+出力の検査は status: active のときに働く。成果物の保存とユーザーの指摘・承認の収集は完了後も働く。
+スキル自身のファイルは編集でき、変更後に特別な手続きは不要。
 
-  pre-tool   編集の前: スキル自身の保護ファイルと実行記録への直接の編集を止める
+  pre-tool   編集の前: 実行記録への直接の編集を止める
   post-tool  編集の後: 契約の出力に当たるファイルを format で直し、検査し、指摘を AI に返す
   stop       応答を終える前: 出力全体を検査し、通っていなければ終わらせずに直させる（回数に上限あり）
-  prompt     ユーザーの発言: 質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない
+  prompt     ユーザーの発言: 指摘と承認の原文を保存し、質問待ちを解く。発言を止めたり書き換えたりしない
 
 製品ごとの違い（stdin の形、編集ツールの名前、返し方）はここで吸収する。
   Claude Code: 編集は Edit/Write/MultiEdit/NotebookEdit の tool_input.file_path。止めるのは permissionDecision
@@ -76,13 +75,6 @@ def relative(path: Path, base: Path) -> str | None:
         return None
 
 
-def deny(platform: str, reason: str) -> int:
-    decision = "ask" if platform == "claude" else "deny"  # Claude Code は人に判断を委ねる。Codex は ask が無い
-    rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision,
-                                               "permissionDecisionReason": reason}}, ensure_ascii=False))
-    return 0
-
-
 def feedback(reason: str) -> int:
     rt.emit(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
     return 0
@@ -90,35 +82,19 @@ def feedback(reason: str) -> int:
 
 def pre_tool(event: dict, platform: str, root: Path, state: dict, contract: dict) -> int:
     name = state["skill"]
-    globs = contract.get("control", {}).get("protected", [])
     for path in edited_paths(event, Path(event.get("cwd") or root)):
-        in_skill = relative(path, rt.SKILL_DIR)
-        if in_skill is not None and rt.matches_any(in_skill, globs):
-            return deny(platform, f"{name} の実行中は、スキル自身のファイル（{in_skill}）を変えられません。"
-                                  "出力を契約に合わせて直してください。ユーザーがスキルの変更を指示した場合だけ、"
-                                  f"`python3 {rt.SKILL_DIR}/scripts/run.py abort --reason <理由>` の後に、SKILL.md の「8. 制御の仕組み」の"
-                                  "変え方で変更します。")
         in_root = relative(path, root)
+        if in_root is not None and in_root.startswith(f".skill-feedback/{name}/"):
+            rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                "permissionDecisionReason": "指摘・承認の記録は feedback.py が管理します。直接編集しないでください。"}},
+                               ensure_ascii=False))
+            return 0
         if in_root is not None and in_root.startswith(rt.run_rel(name) + "/") and \
                 Path(in_root).name in ("state.json", "report.md"):
             rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
                                                        "permissionDecisionReason": f"{in_root} は run.py だけが書きます。手で編集しないでください。"}},
                                ensure_ascii=False))
             return 0
-    return 0
-
-
-def sealed_pre_tool(event: dict, platform: str, contract: dict, name: str) -> int:
-    """実行していないときの pre-tool。合格時の指紋があるスキルの保護ファイルの編集に、Claude Code で確認を求める（CTL-04）。
-    Codex には確認が無く、拒否すると利用者の保守も止まるので何もしない。次の start が合格時の指紋との違いで止める（CTL-02）。"""
-    if platform != "claude" or not (rt.SKILL_DIR / rt.SEAL_REL).is_file():
-        return 0
-    globs = contract.get("control", {}).get("protected", [])
-    for path in edited_paths(event, Path(event.get("cwd") or os.getcwd())):
-        in_skill = relative(path, rt.SKILL_DIR)
-        if in_skill is not None and rt.matches_any(in_skill, globs):
-            return deny(platform, f"{name} は合格時の指紋があるスキルです（{rt.SEAL_REL}）。{in_skill} を変えると、指紋を記録し直すまで "
-                                  f"{name} の start が止まります。変えるなら SKILL.md の「8. 制御の仕組み」の変え方に従ってください。")
     return 0
 
 
@@ -136,8 +112,7 @@ def post_tool(event: dict, root: Path, state: dict, contract: dict) -> int:
     if not findings and not fixes:
         return 0
     lines = [rt.format_fix(f) for f in fixes] + [f["message"] if f.get("raw") else rt.format_finding(f) for f in findings]
-    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください"
-            "（検査や契約を変えて通さない）" if findings else
+    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください" if findings else
             f"{state['skill']} の出力を契約の format で自動で直しました。編集を続ける前にファイルを読み直してください")
     return feedback(head + ":\n" + "\n".join(lines))
 
@@ -172,6 +147,24 @@ def stop(event: dict, root: Path, state: dict, contract: dict) -> int:
     return feedback(reason)
 
 
+def collect(action: str, event: dict, platform: str, root: Path, state: dict, contract: dict) -> tuple[bool, str]:
+    """The optional collector cannot prevent normal output checks or completion."""
+    try:
+        import feedback as fb
+        extension = dict(state)
+        if not fb.bind_session(root, extension, event):
+            return False, ""
+        if action == "prompt":
+            return True, fb.observe_prompt(root, extension, contract, event, platform)
+        if action == "stop" and state.get("status") in ("done", "waiting", "aborted", "failed"):
+            fb.presented(root, extension, contract, validation="passed" if state["status"] == "done" else "unchecked")
+        if action in ("pre-tool", "post-tool") and event.get("tool_name") not in EDIT_TOOLS:
+            return True, fb.activation_context(root, extension)
+    except Exception as exc:
+        print(f"Feedback collection skipped: {exc}", file=sys.stderr)
+    return True, ""
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--platform", choices=["claude", "codex"])
@@ -187,16 +180,26 @@ def main() -> int:
         return 0  # 契約が読めないときは何もしない（hooks の失敗で利用者の作業を止めない）
     name = contract.get("skill") or rt.SKILL_DIR.name
     state = rt.load_state(root, name)
-    if args.event == "pre-tool" and (state is None or state.get("status") not in rt.ENFORCING):
-        return sealed_pre_tool(event, platform, contract, name)
     if state is None:
+        return 0
+    matched, context = collect(args.event, event, platform, root, state, contract)
+    if not matched:
         return 0
     if args.event == "prompt":
         if state.get("status") == "waiting":
             state["status"] = "active"
             rt.log_event(state, "resume", "user-prompt")
             rt.save_state(root, state)
+        if context:
+            rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": context}},
+                               ensure_ascii=False))
         return 0
+    if context:
+        event_name = "PreToolUse" if args.event == "pre-tool" else "PostToolUse"
+        rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": event_name, "additionalContext": context}}, ensure_ascii=False))
+    if args.event == "pre-tool" and state.get("status") in ("done", "waiting"):
+        # Feedback records stay owned by the collector after the generation run ends.
+        return pre_tool(event, platform, root, state, contract)
     if state.get("status") not in rt.ENFORCING:
         return 0
     if args.event == "pre-tool":

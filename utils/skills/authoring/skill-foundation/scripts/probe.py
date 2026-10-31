@@ -12,15 +12,12 @@
              create の中身は content か、from に書いたスキルの見本 assets/examples/<ファイル>）。
              fixed を持つ probe（段 format）は、check が通り、出力が expect に一致し、files の1つ目に fixed が残らない
   review   : dev/probes.json の reviews の見本は、機械の検査（check）を通る（通らないなら review でなく validate にする）
-  標準     : 出力が無いと finish が落ちる（CTL-01）、保護ファイルを変えると check が落ちる・変えた後に
-             start --restart しても落ちる・hooks の登録を外すと check が落ちる・abort の後に変えて start し直すと
-             報告の「検証」に出る・合格した後に変えると start が始めない（CTL-02）、
-             wait 中は stop が止めない（CTL-03）、実行していないと hooks は何もしない・発言は止めない（CTL-04）、
-             契約の外にファイルを作ると check が落ちる（CTL-05）、finish が報告の本文を出し、
-             notes.md が箇条書きでないと check が落ちる、abort が中断の本文を出し、次の start が前の中断を残す（RPT-01）
-  hooks の動作: targets ごとに、登録した hooks のコマンドを製品の形の入力で実行し、編集の後・終える前・
-             保護ファイルの編集の前に、それぞれ AI を止める出力が出る。実行していないときは、合格時の指紋があるスキルの
-             保護ファイルの編集に Claude Code では確認を求め、Codex では何もしない（CTL-04）
+  標準     : 出力が無いと finish が落ちる（CTL-01）。スキル自身のファイルや hooks を変更しても、
+             start・check・finish は変更を理由に拒否しない。古い seal が残っていても同じである。
+             wait 中は stop が止めない（CTL-03）。実行していないと hooks は何もしない（CTL-04）。
+             finish と abort の報告、notes.md の形を確かめる（RPT-01）。
+  hooks の動作: targets ごとに、登録・matcher・出力の編集後の検査・終了前の検査・wait を確かめる。
+             スキル自身のファイルは実行中も実行していないときも編集できる。
 結果は dev/results/probe-results.json に書く（skill_lint.py --final が読む）。--only のときは書かない。
 
 使い方:
@@ -53,7 +50,6 @@ EDIT_EVENT = {
 EDIT_TOOL = {"claude": "Write", "codex": "apply_patch"}
 PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}
 CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
-DENY = {"claude": "ask", "codex": "deny"}
 
 
 class Lab:
@@ -78,7 +74,6 @@ class Lab:
         self.skill = self.root / PLACES[spec["targets"][0]] / self.name
         self.skill.parent.mkdir(parents=True, exist_ok=True)
         _lib.copy_tree(skill_dir, self.skill, exclude=("__pycache__", ".skill-runs", ".DS_Store", "dev"))
-        (self.skill / rt.SEAL_REL).unlink(missing_ok=True)  # 標準の確認は保護ファイルを変えるので、合格時の指紋は確かめるときだけ置く
         args = [sys.executable, str(self.skill / "scripts/install.py"), "--project", str(self.root),
                 "--targets", ",".join(spec["targets"])]
         code, out = _lib.run(args, self.root)
@@ -301,57 +296,32 @@ def main() -> int:
             lab.start()
             code, out = lab.run_py("finish")
             record("CTL-01-builtin", "CTL-01", code == 1, f"出力が無いと finish が落ちる（終了コード {code}）", out)
-            lab.start()
-            undo = lab.baseline()
             skill_md = lab.skill / "SKILL.md"
             original = skill_md.read_bytes()
-            skill_md.write_bytes(original + b"\n")
-            code, out = lab.run_py("check")
-            skill_md.write_bytes(original)
-            record("CTL-02-builtin", "CTL-02", code == 1 and "CTL-02" in out,
-                   f"保護ファイルを変えると check が落ちる（終了コード {code}）", out)
-            lab.revert(undo)
-
-            lab.start()
-            undo = lab.baseline()
-            skill_md.write_bytes(original + b"\n")
-            lab.start("--restart", fresh=False)
-            code, out = lab.run_py("check")
-            skill_md.write_bytes(original)
-            record("CTL-02-builtin-restart", "CTL-02", code == 1 and "CTL-02" in out,
-                   f"保護ファイルを変えてから start --restart しても check が落ちる（終了コード {code}）", out)
-            lab.revert(undo)
-
-            lab.start()
-            lab.run_py("abort", "--reason", "probe-seal")
-            rt.write_seal(lab.skill, contract)
-            sealed_code, sealed_out = lab.start(fresh=False)
-            lab.run_py("abort", "--reason", "probe-seal")
-            skill_md.write_bytes(original + b"\n")
-            code, out = lab.start(fresh=False)
-            skill_md.write_bytes(original)
-            (lab.skill / rt.SEAL_REL).unlink()
-            record("CTL-02-builtin-seal", "CTL-02", sealed_code == 0 and code == 1 and "CTL-02" in out,
-                   f"合格した後に保護ファイルを変えると start が始めない（指紋どおりの start {sealed_code}、変えた後の start {code}）",
-                   sealed_out + "\n" + out)
-
-            lab.start()
-            lab.run_py("abort", "--reason", "probe-between")
-            skill_md.write_bytes(original + b"\n")
-            lab.start(fresh=False)
-            undo = lab.baseline()
-            code, out = lab.run_py("finish")
-            skill_md.write_bytes(original)
-            shown = re.search(r"^- (前の実行の後に変わった保護ファイル|Protected files changed since the previous run): .*SKILL\.md", out, re.M)
-            record("CTL-02-builtin-between", "CTL-02", code == 0 and shown is not None,
-                   f"abort の後に保護ファイルを変えて start し直すと、報告の「検証」に出る（終了コード {code}）", out)
-            lab.revert(undo)
+            marker = lab.skill / "assets/seal.json"
+            marker.write_text('{"files": {"SKILL.md": "legacy"}}', encoding="utf-8")
+            try:
+                skill_md.write_bytes(original + b"\n")
+                code, out = lab.start()
+                record("CTL-04-builtin-start-after-edit", "CTL-04", code == 0,
+                       f"スキルの変更後も古い seal が残っていても start できる（終了コード {code}）", out)
+                undo = lab.baseline()
+                skill_md.write_bytes(original + b"\n\n")
+                code, out = lab.run_py("check")
+                record("CTL-04-builtin-check-after-edit", "CTL-04", code == 0,
+                       f"実行中にスキルを変更しても出力の check が通る（終了コード {code}）", out)
+                lab.start("--restart", fresh=False)
+                code, out = lab.run_py("finish")
+                record("CTL-04-builtin-finish-after-edit", "CTL-04", code == 0,
+                       f"変更後に restart と finish が通る（終了コード {code}）", out)
+                lab.revert(undo)
+            finally:
+                skill_md.write_bytes(original)
+                marker.unlink(missing_ok=True)
 
             hooks_on = contract.get("control", {}).get("hooks", True)
             for platform in spec.get("targets", []) if hooks_on else []:
                 config = lab.root / CONFIGS[platform]
-                if not lab.hook_commands(platform):
-                    continue  # 登録が無いことは hooks の動作の検査が落とす
                 lab.start()
                 undo = lab.baseline()
                 saved = config.read_bytes()
@@ -362,19 +332,9 @@ def main() -> int:
                 config.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
                 code, out = lab.run_py("check")
                 config.write_bytes(saved)
-                record(f"CTL-02-builtin-hooks-{platform}", "CTL-02", code == 1 and "CTL-02" in out,
-                       f"{CONFIGS[platform]} からこのスキルの hooks を外すと check が落ちる（終了コード {code}）", out)
+                record(f"CTL-04-builtin-hooks-{platform}", "CTL-04", code == 0,
+                       f"hooks の設定を変更しても出力の check が通る（終了コード {code}）", out)
                 lab.revert(undo)
-
-            lab.start()
-            undo = lab.baseline()
-            stray = lab.root / "skill-foundation-stray.txt"
-            stray.write_text("stray\n", encoding="utf-8")
-            code, out = lab.run_py("check")
-            stray.unlink()
-            record("CTL-05-builtin", "CTL-05", code == 1 and "CTL-05" in out,
-                   f"契約の外にファイルを作ると check が落ちる（終了コード {code}）", out)
-            lab.revert(undo)
 
             lab.start()
             undo = lab.baseline()
@@ -439,15 +399,10 @@ def main() -> int:
                      "編集の直後に検出される probe がありません（stage: finish でない検査の違反例を足す）", out)
                 lab.start()
                 undo = lab.baseline()
-                stray = lab.root / "skill-foundation-stray.txt"
-                stray.write_text("stray\n", encoding="utf-8")
-                code, out = lab.hook(platform, commands["PostToolUse"][0], EDIT_EVENT[platform](lab.root, stray.name))
-                stray.unlink()
-                wire("post-tool-scope", decision_of(out).get("decision") == "block" and "CTL-05" in out,
-                     "契約の外のファイルを編集した後に指摘を返す（CTL-05）", out)
                 code, out = lab.hook(platform, commands["UserPromptSubmit"][0],
                                      {"cwd": str(lab.root), "hook_event_name": "UserPromptSubmit", "prompt": "どんな書き方でも"})
-                wire("prompt", code == 0 and not out.strip(), "ユーザーの発言は止めない（CTL-04）", out)
+                wire("prompt", code == 0 and decision_of(out).get("decision") != "block",
+                     "ユーザーの発言は止めず、収集の案内だけを返す（CTL-04）", out)
                 code, out = lab.hook(platform, commands["Stop"][0],
                                      {"cwd": str(lab.root), "hook_event_name": "Stop", "stop_hook_active": False})
                 wire("stop", decision_of(out).get("decision") == "block", "finish の前に応答を終えようとすると差し戻す", out)
@@ -463,16 +418,12 @@ def main() -> int:
                           "tool_input": {"command": f"*** Begin Patch\n*** Update File: {rel_place}\n@@\n*** End Patch\n"}})
                 code, out = lab.hook(platform, commands["PreToolUse"][0], event)
                 got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
-                wire("pre-tool", got == DENY[platform], f"保護ファイルの編集の前に止める（期待 {DENY[platform]}、結果 {got or '何もしない'}）", out)
+                wire("pre-tool", code == 0 and got is None, "実行中もスキル自身のファイルを編集できる", out)
                 lab.revert(undo)
-                lab.run_py("abort", "--reason", "probe-sealed")
-                rt.write_seal(lab.skill, contract)
+                lab.run_py("abort", "--reason", "probe-edit")
                 code, out = lab.hook(platform, commands["PreToolUse"][0], event)
-                (lab.skill / rt.SEAL_REL).unlink()
                 got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
-                wanted = "ask" if platform == "claude" else None
-                wire("pre-tool-sealed", code == 0 and got == wanted,
-                     f"実行していないとき、指紋を記録した保護ファイルの編集の前に {wanted or '何もしない'}（結果 {got or '何もしない'}。CTL-04）", out)
+                wire("pre-tool-inactive", code == 0 and got is None, "実行していないときもスキルを編集できる", out)
     finally:
         lab.close()
 

@@ -13,5 +13,6 @@ title: 記録・説明
 | [notes](notes.md) | 実装中の判断と逸脱を残す |
 | [pitch](pitch.md) | 背景と判断理由を説明する |
 | [explanation-design](explanation-design.md) | 読者が理解できる説明順を設計する |
+| [write-requirement-document](write-requirement-document.md) | 会話・議事録から図付きHTMLの要件定義書を作る |
 
 組み合わせて使う場合は[ワークフロー](../workflows.md)を参照してください。各ページには入力と成果物の例を掲載しています。

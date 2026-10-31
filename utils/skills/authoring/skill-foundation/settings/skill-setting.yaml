@@ -1,0 +1,29 @@
+# スキルの設定。ユーザーの設定（settings/user-setting.yaml）で null の項目に使う既定値
+# 共有の既定値。個人ごとの値は user-setting.yaml に書くと優先される
+inputs:
+  eval: make
+  measure: ask
+  targets: [claude, codex]
+  language: null # null なら依頼文の言語に合わせる
+convergence:
+  runners: [claude, codex]
+  agents: 2
+  max_rounds: 3
+  thresholds:
+    files: 1.0
+    structure: 1.0
+    names: 0.8
+  model: # null なら runner の既定
+    claude: null
+    codex: null
+    subagent: null
+  effort: # null なら runner の既定
+    claude: null
+    codex: null
+    subagent: null
+  analysis: # null なら runner は runners の先頭、モデルと推論エフォートはその runner の値
+    runner: null
+    model: null
+    effort: null
+  parallel: 3
+  timeout: 1800

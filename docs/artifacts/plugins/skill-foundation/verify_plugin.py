@@ -4,6 +4,8 @@
 This script requires the complete Context Repository, Python 3, Node.js, git,
 and the Claude Code CLI (manifest validation only). It does not launch a model.
 Use a new --workdir; results are written to its results/ directory.
+The fixture input explicitly targets both products so a local user setting cannot
+redirect its output away from the .claude fixture paths used by these checks.
 """
 import argparse
 from datetime import datetime, timezone
@@ -35,7 +37,7 @@ def main():
     plugin = repo / "utils/plugins/skill-foundation"
     skill = repo / "utils/skills/authoring/skill-foundation"
     before_plugin, before_skill = inventory(plugin), inventory(skill)
-    assert len(before_plugin) == 12 and len(before_skill) == 97
+    definition = json.loads((plugin / "bundle.json").read_text())
     work.mkdir(parents=True)
     results = work / "results"
     results.mkdir()
@@ -86,15 +88,20 @@ def main():
         assert not any(p.is_symlink() for p in unpacked.rglob("*"))
         runtime = unpacked / "runtime/skill-foundation"
         assert inventory(runtime) == before_skill
-        seal = json.loads((runtime / "assets/seal.json").read_text())
-        assert len(seal["files"]) == 49
-        assert all(inventory(runtime)[name] == digest for name, digest in seal["files"].items())
-        run(agent + ": final runtime lint and seal", ["python3", str(runtime / "scripts/skill_lint.py"),
-                                                    str(runtime), "--final"])
+        assert not (runtime / "assets/seal.json").exists()
+        selftest = run(agent + ": bundled runtime selftest", ["python3", str(runtime / "scripts/selftest.py")])
+        assert "自己テスト: 17 段階中 失敗 0 件" in selftest.stdout, selftest.stdout
+        assert "feedback_selftest.py" in selftest.stdout and "Ran 16 tests" in selftest.stdout, selftest.stdout
+        assert (runtime / "assets/feedback.schema.json").is_file()
+        assert (runtime / "scripts/feedback.py").is_file()
+        assert (runtime / "scripts/feedback_review.py").is_file()
+        assert (runtime / "scripts/feedback_eval.py").is_file()
+        check(agent + ": feedback collection, review UI and Eval replay regression", selftest_stages=17,
+              synthetic_feedback_tests=16, real_user_approvals=0, feedback_schema_version=1)
         metadata = ".codex-plugin" if agent == "codex" else ".claude-plugin"
         assert (unpacked / metadata / "plugin.json").read_bytes() == (plugin / agent / "plugin.json").read_bytes()
         manifest = json.loads((unpacked / metadata / "plugin.json").read_text())
-        assert (manifest["name"], manifest["version"]) == ("skill-foundation", "0.1.0")
+        assert (manifest["name"], manifest["version"]) == (definition["name"], definition["version"])
         frontmatter = (skill / "SKILL.md").read_text().split("---", 2)[1]
         assert (unpacked / "skills/skill-foundation/SKILL.md").read_text() == (
             "---" + frontmatter + "---\n\n" + (plugin / "entry.md").read_text())
@@ -104,13 +111,20 @@ def main():
         if agent == "claude-code":
             tester = (unpacked / "agents/skill-foundation-tester.md").read_text()
             assert "hooks:" not in tester.split("---", 2)[1]
-            assert hooks["PreToolUse"][0]["matcher"] == "*"
+            assert hooks["PreToolUse"][0].get("matcher", "*") in (None, "", "*")
         else:
             assert not (unpacked / "agents").exists()
             assert manifest["skills"] == "./skills/" and manifest["hooks"] == "./hooks/hooks.json"
-        check(agent + ": relocation, zip, extraction, runtime, seal, manifest, thin entry, hooks",
-              distribution_files=len(inventory(unpacked)), runtime_files=97, sealed_files=49,
+        check(agent + ": relocation, zip, extraction, runtime, manifest, thin entry, hooks",
+              distribution_files=len(inventory(unpacked)), runtime_files=len(before_skill),
               archive_sha256=hashlib.sha256(archive.read_bytes()).hexdigest())
+        clean_unpacked = unpacked
+        unpacked = work / "editable path with spaces" / agent
+        shutil.copytree(clean_unpacked, unpacked)
+        runtime = unpacked / "runtime/skill-foundation"
+        (runtime / "assets/seal.json").write_text(json.dumps({"files": {"SKILL.md": "stale"}}))
+        entry = runtime / "SKILL.md"
+        entry.write_text(entry.read_text() + "\n")
         project = work / ("project-" + agent)
         project.mkdir()
         run(agent + ": project init", ["git", "init", "-q", str(project)])
@@ -125,7 +139,7 @@ def main():
         for event in hooks:
             result = hook(event, {"tool_name": tool}, "inactive " + event)
             assert result.stdout == ""
-        run(agent + ": start", ["python3", str(runtime / "scripts/run.py"), "start", "--set",
+        run(agent + ": start", ["python3", str(runtime / "scripts/run.py"), "start", "--set", "targets=claude,codex", "--set",
                                 "name=write-sample", "--set", "measure=skip", "文章を書くスキルを作る"], cwd=project)
 
         def edit(path):
@@ -134,9 +148,13 @@ def main():
                     "input": "*** Begin Patch\n*** Update File: " + str(path) + "\n*** End Patch"}}
             return {"tool_name": "Write", "tool_input": {"file_path": str(path), "content": "changed"}}
 
-        protected = hook("PreToolUse", edit(runtime / "SKILL.md"), "protected runtime edit")
-        decision = json.loads(protected.stdout)["hookSpecificOutput"]["permissionDecision"]
-        assert decision == ("deny" if platform == "codex" else "ask")
+        editable = hook("PreToolUse", edit(runtime / "SKILL.md"), "runtime edit allowed")
+        assert editable.stdout == ""
+        entry.write_text(entry.read_text() + "\n")
+        run(agent + ": restart after edit", ["python3", str(runtime / "scripts/run.py"), "start", "--restart", "--set", "targets=claude,codex", "--set",
+                                           "name=write-sample", "--set", "measure=skip", "文章を書くスキルを作る"], cwd=project)
+        record_edit = hook("PreToolUse", edit(project / ".skill-runs/skill-foundation/state.json"), "direct run-record edit denied")
+        assert json.loads(record_edit.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
         malformed = project / ".claude/skills/write-sample/SKILL.md"
         malformed.parent.mkdir(parents=True)
         malformed.write_text("# Broken output\n")
@@ -149,7 +167,8 @@ def main():
         assert hook("UserPromptSubmit", {}, "waiting resume").stdout == ""
         assert json.loads((project / ".skill-runs/skill-foundation/state.json").read_text())["status"] == "active"
         check(agent + ": configured hook commands directly executed", events=list(hooks),
-              protected_edit_decision=decision, post_tool_decision="block", stop_decision="block",
+              skill_edit_output="", direct_run_record_edit_decision="deny", legacy_seal_ignored=True,
+              restart_after_edit=True, post_tool_decision="block", stop_decision="block",
               wait_stop_output="", resumed_status="active")
 
         if agent == "claude-code":
@@ -162,13 +181,15 @@ def main():
             assert hook("PreToolUse", {**base, "tool_input": {"file_path": str(lab / "input.txt")}}, "tester allowed read").stdout == ""
             denied = hook("PreToolUse", {**base, "tool_input": {"file_path": str(project / "outside.txt")}}, "tester denied outside read")
             assert json.loads(denied.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
-            assert hook("PreToolUse", {**base, "agent_type": "other", "tool_input": {"file_path": str(project / "outside.txt")}}, "unrelated agent read").stdout == ""
+            unrelated = hook("PreToolUse", {**base, "agent_type": "other", "tool_input": {"file_path": str(project / "outside.txt")}}, "unrelated agent read")
+            assert not unrelated.stdout or json.loads(unrelated.stdout).get("hookSpecificOutput", {}).get("permissionDecision") != "deny"
             check("Claude namespaced tester fence", allowed_inside=True, denied_outside=True, unrelated_agent_transparent=True)
 
         preparation = work / ("preparation-" + agent)
         preparation.mkdir()
         run(agent + ": build convergence fixture", ["python3", str(runtime / "scripts/selftest.py"), "--build", str(preparation)])
         generated = preparation / ".claude/skills/write-commit-message"
+        run(agent + ": validate fixture Eval", ["python3", str(runtime / "scripts/eval_check.py"), str(generated)], cwd=preparation)
         prepared = run(agent + ": convergence prepare", ["python3", str(unpacked / "scripts/convergence.py"), "prepare",
                        str(generated), "--round", "1", "--runners", "subagent", "--agents", "1",
                        "--workdir", str(preparation / "work")], cwd=preparation)
@@ -180,8 +201,23 @@ def main():
         assert not list(preparation.rglob(".agents/agents"))
         check(agent + ": convergence prepare/prompts", project_agent_directories=0,
               tester_type="skill-foundation:skill-foundation-tester", independent_ai_sessions=0)
-        bundles[agent] = {"distribution_files": len(inventory(unpacked)), "runtime_files": 97,
-                          "sealed_files": 49, "runtime_inventory": inventory(runtime)}
+        finish_project = work / ("editable-finish-" + agent)
+        finish_project.mkdir()
+        run(agent + ": finish project init", ["git", "init", "-q", str(finish_project)])
+        run(agent + ": edited runtime start for finish", ["python3", str(runtime / "scripts/run.py"), "start", "--set", "targets=claude,codex", "--set",
+             "name=write-commit-message", "--set", "measure=skip", "--set", "eval=skip", "コミットメッセージを書くスキルを作る"], cwd=finish_project)
+        run(agent + ": build ready output", ["python3", str(runtime / "scripts/selftest.py"), "--build", str(finish_project), "--ready"], cwd=finish_project)
+        generated_ready = finish_project / ".claude/skills/write-commit-message"
+        run(agent + ": install isolated output", ["python3", str(generated_ready / "scripts/install.py"), "--project", str(finish_project)], cwd=finish_project)
+        entry.write_text(entry.read_text() + "\n")
+        run(agent + ": edited runtime check", ["python3", str(runtime / "scripts/run.py"), "check"], cwd=finish_project)
+        run(agent + ": edited runtime restart with output", ["python3", str(runtime / "scripts/run.py"), "start", "--restart", "--set", "targets=claude,codex", "--set",
+             "name=write-commit-message", "--set", "measure=skip", "--set", "eval=skip", "コミットメッセージを書くスキルを作る"], cwd=finish_project)
+        run(agent + ": edited runtime finish", ["python3", str(runtime / "scripts/run.py"), "finish"], cwd=finish_project)
+        assert inventory(clean_unpacked / "runtime/skill-foundation") == before_skill
+        check(agent + ": changed skill can check, restart and finish", stale_legacy_seal_ignored=True, output_checks_preserved=True)
+        bundles[agent] = {"distribution_files": len(inventory(clean_unpacked)), "runtime_files": len(before_skill),
+                          "runtime_inventory": inventory(clean_unpacked / "runtime/skill-foundation")}
     tests = run("plugin-owned tests", ["python3", "-m", "unittest", "discover", "-s",
                 "utils/plugins/skill-foundation/tests", "-p", "test_*.py", "-v"])
     assert re.search(r"Ran 7 tests", tests.stdout + tests.stderr)
@@ -193,14 +229,15 @@ def main():
     (results / "manifest-validation.log").write_text(redact(validation.stdout + validation.stderr))
     check("Claude Code CLI manifest validation", model_sessions=0, isolated_config_directory=True)
     assert inventory(plugin) == before_plugin and inventory(skill) == before_skill
-    check("canonical sources unchanged", plugin_files=12, skill_files=97)
+    check("canonical sources unchanged", plugin_files=len(before_plugin), skill_files=len(before_skill))
     record = {"checked_at": datetime.now(timezone.utc).isoformat(), "status": "passed",
-              "purpose": "Rebuild and verify plugin artifacts from the privacy-redacted canonical sources",
+              "purpose": "Rebuild and verify hook-only feedback collection and review plugin artifacts from canonical sources",
               "checks": checks, "bundles": bundles, "commands": commands,
               "source_unchanged": {"plugin": True, "skill": True},
+              "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. Canonical sources and user settings remain byte-identical.",
               "unit_test_command": "python3 -m unittest discover -s utils/plugins/skill-foundation/tests -p 'test_*.py' -v",
               "not_verified": ["Automatic hooks from a real product session", "Codex hooks trust UI",
-                               "Independent AI convergence execution", "Project installation"],
+                               "Independent AI convergence execution", "Project installation", "Real user approval in the review UI (only synthetic regression events were tested)"],
               "redactions": ["repository absolute path → <repository>", "temporary workdir → <workdir>",
                              "user home absolute path → <user-home>", "system temporary path → <system-temp>"],
               "reproduction": "Run this script with --repo-root pointing to the complete current repository and a new --workdir. The plugin-owned tests are imported from that repository; copying a test file alone is insufficient."}
@@ -212,9 +249,10 @@ def main():
         lines.extend(["", command["label"], "command: " + json.dumps(command["command"], ensure_ascii=False),
                       "cwd: " + command["cwd"], "exit: " + str(command["exit_code"]),
                       "stdout:\n" + command["stdout"], "stderr:\n" + command["stderr"]])
-    lines.extend(["", "Not verified:", *record["not_verified"], "", "Redactions:", *record["redactions"],
+    lines.extend(["", "Reproduction input adjustment:", record["input_adjustment"],
+                  "", "Not verified:", *record["not_verified"], "", "Redactions:", *record["redactions"],
                   "", "Reproduction:", record["reproduction"]])
-    (results / "verification.txt").write_text(redact("\n".join(lines)) + "\n")
+    (results / "verification.txt").write_text("\n".join(line.rstrip() for line in redact("\n".join(lines)).splitlines()) + "\n")
     print(json.dumps({"status": "passed", "results": str(results), "checks": len(checks),
                       "commands": len(commands), "bundle_files": {k: v["distribution_files"] for k, v in bundles.items()}}))
 

@@ -1,0 +1,137 @@
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "write-requirement-document",
+  "language": "ja",
+  "targets": [
+    "codex"
+  ],
+  "inputs": [
+    {
+      "key": "language",
+      "label": "出力の言語",
+      "type": "enum",
+      "enum": [
+        "ja",
+        "en"
+      ],
+      "enum_aliases": {
+        "日本語": "ja",
+        "英語": "en"
+      },
+      "aliases": [
+        "言語",
+        "lang"
+      ],
+      "impact": "reversible",
+      "default": "ja"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "source",
+      "label": "要件定義の構造化原本",
+      "path": "{run}/out/requirement-document.json",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": [
+        {
+          "type": "json_schema",
+          "rule": "OUT-02",
+          "schema": {
+            "type": "object",
+            "required": [
+              "title",
+              "summary",
+              "background",
+              "purpose",
+              "scope",
+              "requirements",
+              "sources",
+              "diagrams"
+            ]
+          }
+        },
+        {
+          "type": "require",
+          "rule": "OUT-02",
+          "pattern": "\"language\"\\s*:\\s*\"{in:language}\"",
+          "message": "原本の言語を実行時の入力とそろえる"
+        }
+      ]
+    },
+    {
+      "id": "html",
+      "label": "要件定義書のHTML",
+      "path": "{run}/out/requirement-document.html",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": [
+        {
+          "type": "command",
+          "rule": "STEP-03",
+          "rules": [
+            "OUT-01",
+            "OUT-02",
+            "OUT-04",
+            "OUT-05",
+            "OUT-06",
+            "OUT-07",
+            "OUT-08",
+            "OUT-09"
+          ],
+          "stage": "finish",
+          "run": "python3 {skill}/scripts/document.py check --source {run}/out/requirement-document.json --out {run}/out",
+          "timeout": 30
+        }
+      ]
+    },
+    {
+      "id": "manifest",
+      "label": "Mermaid・PNGの一覧とハッシュ",
+      "path": "{run}/out/manifest.json",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "mermaid",
+      "label": "Mermaid原本",
+      "path": "{run}/out/diagrams/*.mmd",
+      "count": {
+        "min": 3
+      },
+      "rule": "OUT-01",
+      "checks": []
+    }
+  ],
+  "together": [
+    {
+      "rule": "OUT-06",
+      "outputs": [
+        "source",
+        "html",
+        "manifest"
+      ],
+      "message": "構造化原本を変えたらHTMLとmanifestを再生成する"
+    }
+  ],
+  "control": {
+    "hooks": true,
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": null,
+    "rule": "RPT-01",
+    "sections": []
+  }
+}

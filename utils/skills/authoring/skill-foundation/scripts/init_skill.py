@@ -3,9 +3,9 @@
 
   1. spec の受付の項目（name、kind、mode、language、targets、title、purpose、triggers）を検査する。
      mode が retrofit（既存のスキルへの後付け）なら、元の SKILL.md を dev/original/SKILL.md に移す
-  2. spec に標準のルール（CTL-01〜05、RPT-01）が無ければ足し、種類（kind）の追加の軸を extra_axes の先頭に入れる
+  2. spec に標準のルール（CTL-01・03・04、RPT-01。CTL-02 は廃止の記録）が無ければ足し、種類（kind）の追加の軸を extra_axes の先頭に入れる
   3. ひな形から SKILL.md と dev/ の文書を作る
-  4. 実行時ランタイム（scripts/_skillrt.py、run.py、hook.py、install.py）を写す
+  4. 実行時ランタイム（scripts/_skillrt.py、run.py、hook.py、install.py、feedback.py、feedback_review.py）を写す
   5. render_skill.py で生成部分を埋める
 
 同じ spec からは常に同じ骨組みができる。
@@ -91,10 +91,16 @@ def standard_decisions(language: str) -> list[dict]:
 
 
 def merge_standard(spec: dict) -> bool:
-    present = {d.get("id") for d in spec.get("decisions", [])}
+    old = list(spec.get("decisions", []))
+    spec["decisions"] = [d for d in old if d.get("id") != "FBK-01"]
+    standards = {d["id"]: d for d in standard_decisions(_lib.labels(spec))}
+    spec["decisions"] = [standards["CTL-04"] if d.get("id") == "CTL-04" and
+                         any(word in d.get("decision", "") for word in ("収集", "collect")) else d
+                         for d in spec["decisions"]]
+    present = {d.get("id") for d in spec["decisions"]}
     added = [d for d in standard_decisions(_lib.labels(spec)) if d["id"] not in present]
     spec.setdefault("decisions", []).extend(added)
-    return bool(added)
+    return bool(added) or old != spec["decisions"]
 
 
 def merge_profile(spec: dict) -> bool:
@@ -211,6 +217,15 @@ def main() -> int:
         if not args.dry_run:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(source.read_bytes())
+    for rel in ("assets/feedback.schema.json", "references/feedback.md"):
+        source, target = _lib.FOUNDATION_DIR / rel, skill_dir / rel
+        if rel == "references/feedback.md" and _lib.labels(spec) == "en":
+            source = _lib.TEMPLATES / "feedback.en.md"
+        if not target.exists() or args.update_runtime:
+            created.append(rel)
+            if not args.dry_run:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(source.read_bytes())
     for rel in ("references", "assets", _lib.EXAMPLES_DIR, "dev/fixtures"):
         if not args.dry_run:
             (skill_dir / rel).mkdir(parents=True, exist_ok=True)

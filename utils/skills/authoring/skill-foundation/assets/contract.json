@@ -71,7 +71,13 @@
         "置き場",
         "place"
       ],
-      "default": ".claude/skills"
+      "default": ".claude/skills",
+      "default_by": {
+        "input": "targets",
+        "values": {
+          "codex": ".agents/skills"
+        }
+      }
     },
     {
       "key": "measure",
@@ -96,6 +102,27 @@
         "しない": "skip"
       },
       "default": "ask"
+    },
+    {
+      "key": "eval",
+      "label": "Eval の作成",
+      "impact": "reversible",
+      "type": "enum",
+      "enum": [
+        "make",
+        "skip"
+      ],
+      "aliases": [
+        "評価",
+        "evaluation"
+      ],
+      "enum_aliases": {
+        "作る": "make",
+        "する": "make",
+        "省く": "skip",
+        "しない": "skip"
+      },
+      "default": "make"
     }
   ],
   "outputs": [
@@ -137,7 +164,9 @@
             "OUT-05",
             "STEP-02",
             "STEP-04",
-            "OUT-06"
+            "OUT-06",
+            "STEP-06",
+            "STEP-07"
           ]
         }
       ]
@@ -146,21 +175,6 @@
   "together": [],
   "control": {
     "hooks": true,
-    "protected": [
-      "SKILL.md",
-      "scripts/**",
-      "assets/**",
-      "references/**"
-    ],
-    "tamper_rule": "CTL-02",
-    "scope_rule": "CTL-05",
-    "allow_changes": [
-      "{in:base}/{in:name}/**",
-      ".agents/skills/{in:name}",
-      ".claude/skills/{in:name}",
-      ".claude/settings.json",
-      ".codex/hooks.json"
-    ],
     "max_stop_blocks": 3
   },
   "report": {
@@ -170,11 +184,6 @@
       {
         "run": "python3 {skill}/scripts/report_skill.py {root}/{in:base}/{in:name} --project {root}",
         "timeout": 900
-      },
-      {
-        "run": "python3 {skill}/scripts/report_skill.py {root}/{in:base}/{in:name} --project {root} --seal",
-        "timeout": 900,
-        "stage": "finish"
       },
       {
         "run": "python3 {skill}/scripts/catalog.py --project {root}",

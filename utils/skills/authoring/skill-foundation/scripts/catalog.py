@@ -4,8 +4,8 @@
 一覧（既定 .skill-runs/catalog.html）には、スキルごとの状態の印と「先に見るもの」の件数、ページへのリンクを載せる。
 skill-foundation で作ったスキル（dev/spec.json がある）ごとのページ（一覧の隣の catalog/<名前>.html）には、SKILL.md の
 「2. 手順」と契約から作ったワークフロー図に、独立検証の記録を重ねて載せる。内容はすべてファイルから集計し、AI が図を描く
-余地を残さない。ページの上に見出しの数字と「先に見るもの」を置き、下の記録はタブ（ワークフロー、エージェントの動き、
-収束テスト、ルールと出力の決まり、検査が働くか、最後の実行）で切り替える。同じ名前のスキルが2つの置き場にあれば、2つ目からは
+余地を残さない。ページの上に見出しの数字と「先に見るもの」を置き、下の記録はタブ（Eval 作成、ワークフロー、エージェントの動き、
+収束テスト、ルールと出力の決まり、検査が働くか、最後の実行、hooks 設計）で切り替える。同じ名前のスキルが2つの置き場にあれば、2つ目からは
 置き場のパスをページの名前にする。前に書いたページで、今は無いスキルのものは消す（このスクリプトが書いた印のあるものだけ）。
 書体は Google Fonts（DotGothic16・JetBrains Mono）から読み、読めないときは端末の等幅の書体で描く。
 
@@ -24,7 +24,7 @@ skill-foundation で作ったスキル（dev/spec.json がある）ごとのペ�
               用語を付けて推定と分かるように見せ、機械が数えた事実（手順との照合）と並べる。AI の文の「#番号」は、
               その操作の行へのリンクにする。今の記録を読んだ分析でなければ出さず、そのことを書く
 
-  先に見るもの     違反の検出・hooks の動作・改変チェックの失敗、収束テストで結果が揃わない課題、作業ディレクトリの
+  先に見るもの     違反の検出・hooks の動作の失敗、収束テストで結果が揃わない課題、作業ディレクトリの
                    外に触れた操作、失敗した操作を、重さの順に、対象の行や操作へのリンクを付けて並べる
   ワークフロー図「2. 手順」の番号の行（フェーズ、コマンド、ルールID、終了コードの分岐、「手順Nに戻る」とそのわけ
                    （終了コードの意味はコマンドのスクリプトの説明の「終了コード:」の行から）、
@@ -33,12 +33,24 @@ skill-foundation で作ったスキル（dev/spec.json がある）ごとのペ�
   図に重ねる検証   ルールID ごとの probe.py の成否、収束テストの最後のラウンドで変わったファイルを手順の本文の
                    パスで割り当てた揃い方、チェックポイント（run.py start・check・finish）を独立エージェントが通った回数、
                    最後のラウンドでエージェントが前の手順に戻ったところと人数、記録の操作から読めるそのわけ
+  Eval 作成        dev/eval/eval.json（SKILL.md の手順3）と dev/results/eval-check.json（eval_check.py が書く）。一番左のタブに、
+                   確定した価値 → 振る舞い・判定方法 → 事例と正解の根拠 → 収束テストの題材（dev/evals.json）→ Eval 自体の検証の順に載せる（材料と価値仮説、
+                   ユーザーとの対話は畳んでおく）。事例の判定の結果は、今の Eval を確かめた結果のときだけ出す。
+                   答えを待っている質問（eval.json の questions）があれば作成中の形にし、前の回答の後に足した・直した項目に
+                   新規・更新・既存のラベルを付け、質問を1枚ずつ削って開くカード（削ったカードは戻らない）と、答えをチャット欄に
+                   貼る文にまとめる回答シートを出す。dev/spec.json がまだ無い手順3の途中のスキルは、このタブだけのページにする
   ルールと出力       dev/spec.json の decisions、assets/contract.json の outputs
   独立検証         dev/results/probe-results.json、dev/results/convergence/round-*/report.json と review.json、
                    dev/convergence-report.md の「結論」
+  hooks 設計       Claude Code の hooks のライフサイクル（公式ドキュメント https://code.claude.com/docs/ja/hooks の図）を
+                   HOOK_BOXES の型から組み立て、このスキルが hooks を置くイベントに枠と札を付ける。イベントを押すと、呼ばれる時機、
+                   このスキルの hooks がすること（HOOK_ACTIONS。hook.py の動作を順を追って書いたもの）、イベントの性質（公式の表）、
+                   畳んだ登録の中身（install.py の EVENTS の matcher・タイムアウト・コマンドと、どこに登録されているか）を出す
   エージェントの動き  round-*/traces.json（convergence.py diff・trace が書く）。エージェントごとに、操作を手順に
                    割り当てて時間の流れで描き、操作の内訳、手順の順、失敗した操作、作業ディレクトリの外に触れた操作、
-                   操作の一覧、最終の返答を載せる。印に重ねると、その操作の全文と結果を出す。課題の依頼文の下に、
+                   成果物、操作の一覧、最終の返答を載せる。成果物は、エージェントが作った・変えたファイルを、契約の出力を先頭に開いて
+                   並べる。本文は <課題>/<エージェント>.patch から出し、画像と HTML は records/outputs/ の写し（convergence.py diff が
+                   置く。git に入れないので、収束テストを実行した端末だけにある）を表示する。印に重ねると、その操作の全文と結果を出す。課題の依頼文の下に、
                    作業ディレクトリの外に触れた操作の場所・原因と、独立しているか・測定にもれがないかの判断（決まりは
                    カードに書く）を載せる。fence.py が止めた操作（traces.json の fenced）は、外に触れた操作に数えず、
                    カードに別に載せる。表にはエージェントごとのモデルと推論エフォート（traces.json の model・effort）を載せる
@@ -61,14 +73,18 @@ import datetime
 import difflib
 import html
 import json
+import os
 import re
 import sys
+import urllib.parse
 from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _lib  # noqa: E402
 import _skillrt as rt  # noqa: E402
+import eval_check  # noqa: E402
+import install  # noqa: E402
 import report_skill  # noqa: E402
 
 PLACES = (".claude/skills", ".agents/skills")
@@ -78,7 +94,7 @@ GROUP = {"runtime": "machine", "format": "machine", "validate": "machine", "scri
 METRICS = [("files", "作った・変えたファイルの集合"), ("structure", "共通のファイルの骨格"), ("names", "新しく作った名前")]
 
 ITEM = re.compile(r"^(\d+)\.\s+(.*)$")
-PHASE = re.compile(r"^(フェーズ\s*\d+（[^）]*）|Phase\s+\d+\s*\([^)]*\))\s*[:：]\s*")
+PHASE = re.compile(r"^(フェーズ\s*\d+（[^）]*）|Phase\s+\d+\s*\([^)]*\)|Eval\s*作成|Eval design)\s*[:：]\s*")
 CODE = re.compile(r"`([^`]+)`")
 PLACEHOLDER = re.compile(r"(<[^<>]+>|\{[^{}]+\})")
 IDS_IN_PARENS = re.compile(r"\s*[（(](?:[A-Z]{2,5}-\d{2}[、,\s]*)+[）)]")
@@ -450,21 +466,12 @@ def load_moves(rounds: list[dict], steps: list[dict]) -> dict:
             for action, guess in zip(actions, ai.get("ops", []) if fresh else []):
                 action["ai"] = guess if isinstance(guess, dict) else {}
             runs[rid] = {"runner": run.get("runner", ""), "source": run.get("source", ""), "actions": actions,
-                         "events": run.get("events", []), **{k: run[k] for k in ("model", "effort", "settings") if run.get(k)},
+                         "events": run.get("events", []), "denied": [d for d in run.get("denied", []) if isinstance(d, dict)],
+                         **{k: run[k] for k in ("model", "effort", "settings") if run.get(k)},
                          "analysis": ai if fresh else None, "stale": bool(ai) and not fresh}
         if runs:
             moves[data.get("round")] = runs
     return moves
-
-
-def seal_state(skill_dir: Path) -> tuple[str, str]:
-    if not (skill_dir / _lib.SEAL_REL).is_file():
-        return "none", "合格時の記録が無い"
-    try:
-        findings = rt.seal_findings(skill_dir, rt.load_contract(skill_dir))
-    except (OSError, ValueError):
-        return "bad", "合格時の記録を読めない"
-    return ("ok", "合格時から変わっていない") if not findings else ("bad", f"合格時から {len(findings)} 件変わった")
 
 
 def load_skill(skill_dir: Path, project: Path) -> dict:
@@ -483,23 +490,39 @@ def load_skill(skill_dir: Path, project: Path) -> dict:
     report_text = report_md.read_text(encoding="utf-8") if report_md.is_file() else ""
     state = read_json(project / rt.RUNS_DIRNAME / name / "state.json")
     evals = read_json(skill_dir / "dev/evals.json") or {}
-    seal = read_json(skill_dir / _lib.SEAL_REL)
+    eval_doc = read_json(skill_dir / eval_check.EVAL_REL)
+    eval_doc = eval_doc if isinstance(eval_doc, dict) else None
+    made = eval_doc is not None and not str(eval_doc.get("skip_reason") or "").strip()
     return {"dir": skill_dir, "project": project.resolve().as_posix(), "path": rel_to(skill_dir, project), "spec": spec, "name": name, "contract": contract,
             "tasks": {t["id"]: t for t in evals.get("tasks", []) if isinstance(t, dict) and t.get("id")} if isinstance(evals, dict) else {},
-            "seal_files": len(seal.get("files", {})) if isinstance(seal, dict) else 0,
             "decisions": {d["id"]: d for d in spec.get("decisions", []) if d.get("id") and not d.get("retired")},
             "steps": steps, "probes": probes, "rounds": rounds, "checks": rule_checks(probes, rounds),
-            "files": files, "unmatched": unmatched, "gates": gate_stats(last), "seal": seal_state(skill_dir),
+            "files": files, "unmatched": unmatched, "gates": gate_stats(last),
             "moves": load_moves(rounds, steps),
+            "eval": eval_doc, "eval_result": read_json(skill_dir / eval_check.RESULT_REL), "eval_stale": eval_check.stale(skill_dir) if made else "",
+            "eval_hash": eval_check.eval_hash(skill_dir) if made else "",
+            "eval_rows": {d.get("round"): eval_check.score_rows(report_text, d.get("round")) for d in rounds},
             "conclusion": _lib.section(report_text, "結論") or _lib.section(report_text, "Conclusion"),
             "state": state if isinstance(state, dict) else None, "twins": [],
-            "hooks": {p: report_skill.hook_events(project, p, name) for p in ("claude", "codex")}}
+            "hooks": {p: report_skill.hook_events(project, p, name) for p in ("claude", "codex")},
+            "shipped_hooks": report_skill.shipped_hooks(skill_dir, name)}
+
+
+def load_draft(skill_dir: Path, project: Path) -> dict:
+    """Eval 作成（skill-foundation の手順3）の途中で、まだ dev/spec.json が無いスキル。Eval 作成のタブだけを載せる。"""
+    doc = read_json(skill_dir / eval_check.EVAL_REL)
+    doc = doc if isinstance(doc, dict) else None
+    made = doc is not None and not str(doc.get("skip_reason") or "").strip()
+    return {"dir": skill_dir, "path": rel_to(skill_dir, project), "name": skill_dir.name, "eval": doc, "rounds": [],
+            "eval_result": read_json(skill_dir / eval_check.RESULT_REL), "eval_stale": eval_check.stale(skill_dir) if made else "",
+            "eval_hash": eval_check.eval_hash(skill_dir) if made else ""}
 
 
 def find_skills(project: Path, extra: list[Path]) -> list[Path]:
+    """SKILL.md か、Eval 作成の途中の dev/eval/eval.json があるディレクトリ。"""
     seen, found = set(), []
-    for directory in [d for place in PLACES for d in sorted((project / place).glob("*"))] + extra:
-        if not (directory / "SKILL.md").is_file() or directory.resolve() in seen:
+    for directory in [d for place in PLACES for d in sorted((project / place).glob("*"))] + _lib.plugin_skill_dirs(project) + extra:
+        if not ((directory / "SKILL.md").is_file() or (directory / eval_check.EVAL_REL).is_file()) or directory.resolve() in seen:
             continue
         seen.add(directory.resolve())
         found.append(directory)
@@ -965,7 +988,7 @@ def workflow_svg(skill: dict) -> str:
         top_y = spans[start][0] - 28
         end_y = spans[finish][0] + spans[finish][1] + 10
         region.append(f'<rect x="{CX - 10}" y="{top_y:.1f}" width="{CW + 20}" height="{end_y - top_y:.1f}" rx="10" class="wf-hooks">'
-                      "<title>hooks が働く範囲：編集の前（保護ファイルの停止）、編集の後（出力の検査）、応答を終える前（出力全体の検査）</title></rect>")
+                      "<title>hooks が働く範囲：編集の前（実行記録の直接編集を拒否）、編集の後（出力の検査）、応答を終える前（出力全体の検査）</title></rect>")
         region.append(t(CX + 4, top_y + 18, "hooks が働く範囲（run.py start から finish まで）", "wf-hooks-t"))
     people = len(last_moves(skill))
     right_head = (f"独立検証 R{rnd} の記録（{people} 人）" if people else f"独立検証 R{rnd} の記録") if rnd is not None else "独立検証の記録なし"
@@ -1463,8 +1486,13 @@ def flow_facts(run: dict, steps: list[dict]) -> str:
             ("どの手順にも当たらない操作", f"{marks.count('off')} 件"),
             ("失敗した操作", f"{failed} 件" + (f"（うち {len(redo)} 件は、すぐに同じような操作をし直した）" if redo else "")),
             ("チェックポイント（run.py）", " → ".join(esc(g) for g in gates) or "記録なし")]
+    denied = ""
+    if run.get("denied"):  # 時刻の無い操作。操作の列に入れず、表の下に欄の幅で並べる（長いコマンドは途中で折り返す）
+        denied = ('<h5>許可されなかった操作（時刻なし）</h5><ol style="overflow-wrap:anywhere">' + "".join(
+            f'<li title="{esc(str(d.get("input", "")))}"><code>{esc(str(d.get("tool", "")))} '
+            f'{esc(str(d.get("input", "")).splitlines()[0][:160] if d.get("input") else "")}</code></li>' for d in run["denied"]) + "</ol>")
     return ('<div class="fl-mech"><h4>' + term("match") + "</h4><dl>"
-            + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows) + "</dl></div>")
+            + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows) + f"</dl>{denied}</div>")
 
 
 def ai_flow(run: dict, prefix: str) -> str:
@@ -1522,6 +1550,330 @@ def ops_table(acts: list[dict], prefix: str) -> str:
             f'<th>{term("match")}</th><th>結果</th><th>理由（{term("ai")}）</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
 
 
+ART_IMAGES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+ART_PAGES = {".html", ".htm"}
+ART_LIMIT = 300_000  # 1ファイルに載せる文字数の上限。超えた分は .patch で見る
+ART_GONE = "(削除・バイナリ)"  # convergence.py diff が、本文の無いファイルに書く印
+
+
+def read_patch(path: Path) -> list[tuple[str, str | None]]:
+    """convergence.py diff が書いた <エージェント>.patch を (パス, 本文) に分ける。削除したファイルとバイナリは本文が None。"""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
+    except OSError:
+        return []
+    files: list[tuple[str, list[str]]] = []
+    for line in lines:
+        if line.startswith("=== "):
+            files.append((line[4:], []))
+        elif files:
+            files[-1][1].append(line)
+    out = []
+    for rel, body in files:
+        text = "\n".join(body).rstrip("\n")
+        out.append((rel, None if text == ART_GONE else text))
+    return out
+
+
+def file_url(path: Path, page_dir) -> str:
+    """スキルのページ（.skill-runs/catalog/<名前>.html）から、そのファイルへの相対の URL。"""
+    return urllib.parse.quote(os.path.relpath(path, page_dir).replace(os.sep, "/")) if page_dir else ""
+
+
+def artifacts(skill: dict, rnd, task: str, agent: str) -> str:
+    """エージェントが作った・変えたファイル。契約の出力を先頭に開き、ほかは畳む。画像と HTML は records/outputs/ の写しを表示する。"""
+    rdir = skill["dir"] / f"dev/results/convergence/round-{rnd}"
+    patch = rdir / task / f"{agent}.patch"
+    files = read_patch(patch)
+    if not files:
+        return ""
+    local = rdir / "records" / "outputs" / f"{task}__{agent}"
+    page_dir = skill.get("page_dir")
+    outs = [rt.glob_to_regex(re.sub(r"\{[^}]*\}", "**", o["path"])) for o in skill["contract"].get("outputs", []) if o.get("path")]
+
+    def is_out(rel: str) -> bool:
+        return any(p.match(rel) for p in outs)
+
+    items = []
+    for rel, text in sorted(files, key=lambda f: (not is_out(f[0]), f[0])):
+        ext = Path(rel).suffix.lower()
+        url = file_url(local / rel, page_dir) if (local / rel).is_file() else ""
+        views = []
+        if ext in ART_IMAGES and url:
+            views.append(f'<img src="{esc(url)}" alt="{esc(rel)}" loading="lazy">')
+        elif ext in ART_PAGES and url:
+            views.append(f'<iframe data-src="{esc(url)}" sandbox="allow-scripts" title="{esc(rel)}"></iframe>')  # 見えてから読む（loadFrames）
+        if text is not None and not (ext in ART_IMAGES and url):
+            cut = len(text) > ART_LIMIT
+            body = f'<pre>{esc(text[:ART_LIMIT])}</pre>' + (f'<p class="muted art-note">長いので {ART_LIMIT:,} 文字で切った。続きは .patch で見る。</p>' if cut else "")
+            views.append(f'<details class="art-src"><summary>本文</summary>{body}</details>' if ext in ART_PAGES and url else body)
+        elif text is None and not url:
+            views.append('<p class="muted art-note">削除したファイルか、画像などのバイナリ。この端末に写しが無い（収束テストを実行した端末の'
+                         ' records/outputs/ にある）。</p>')
+        head = (f'<code>{esc(rel)}</code>' + (" " + badge("ok", "契約の出力") if is_out(rel) else "")
+                + (f'<a class="art-open" href="{esc(url)}" target="_blank" rel="noopener">別のタブで開く</a>' if url else ""))
+        items.append(f'<details class="art"{" open" if is_out(rel) else ""}><summary>{head}</summary>{"".join(views)}</details>')
+    count = sum(is_out(rel) for rel, _ in files)
+    return (f'<details class="arts" open><summary>成果物 {len(files)} 件<span class="muted">（契約の出力 {count} 件を先頭に開いた）</span></summary>'
+            f'{"".join(items)}<p class="muted art-note">全文: <a href="{esc(file_url(patch, page_dir))}">{esc(task)}/{esc(agent)}.patch</a></p></details>')
+
+
+# Claude Code の hooks のイベント。公式ドキュメント https://code.claude.com/docs/ja/hooks の表から、（いつ呼ばれるか,
+# 止められるか, 止めたときに起きること（止められないときは hooks の出力の扱い）, matcher で絞り込めるもの）を写した（2026-10-30 に確認）
+HOOK_EVENTS = {
+    "Setup": ("--init-only で起動したときか、-p と --init・--maintenance で起動したとき", False, "終了コードと出力は無視される",
+              "起動したフラグ（init、maintenance）"),
+    "SessionStart": ("セッションを始めたとき・再開したとき", False, "出力はユーザーにだけ見える", "始め方（startup、resume、clear、compact、fork）"),
+    "UserPromptSubmit": ("ユーザーの発言を Claude が処理する前", True, "発言は Claude に届かない", ""),
+    "UserPromptExpansion": ("入力したコマンドがプロンプトに展開されるとき（Claude に届く前）", True, "コマンドは展開されない", "コマンドの名前"),
+    "PreToolUse": ("ツールを呼ぶ前", True, "そのツールは呼ばれない", "ツールの名前（例: Bash、Edit|Write）"),
+    "PermissionRequest": ("ツールの呼び出しに許可の判断が要るとき", False, "終了コードでは止められないが、判定（decision）を返して拒否はできる", "ツールの名前"),
+    "PermissionDenied": ("auto モードがツールの呼び出しを拒否したとき", False, "拒否はもう起きている。retry: true を返すと、やり直してよいと伝えられる",
+                         "ツールの名前"),
+    "PostToolUse": ("ツールの呼び出しが成功した後", False, "ツールはもう動いている。出力は Claude に返る", "ツールの名前"),
+    "PostToolUseFailure": ("ツールの呼び出しが失敗した後", False, "ツールはもう失敗している。出力は Claude に返る", "ツールの名前"),
+    "PostToolBatch": ("並べて呼んだツールがすべて終わり、次にモデルを呼ぶ前", True, "エージェントのループがそこで止まる", ""),
+    "SubagentStart": ("サブエージェントを作ったとき", False, "出力はユーザーにだけ見える", "エージェントの種類"),
+    "SubagentStop": ("サブエージェントが終わるとき", True, "サブエージェントは終わらずに続ける", "エージェントの種類"),
+    "TaskCreated": ("TaskCreate でタスクを作ったとき", True, "タスクは作られなかったことになる", ""),
+    "TaskCompleted": ("タスクを完了にするとき", True, "タスクは完了にならない", ""),
+    "Elicitation": ("MCP サーバーがツールの実行中にユーザーの入力を求めたとき", True, "求めは拒否され、入力の画面は出ない", "MCP サーバーの名前"),
+    "ElicitationResult": ("ユーザーが MCP サーバーの求めに答えた後、答えを送る前", True, "答えは送られず、断ったことになる", "MCP サーバーの名前"),
+    "Stop": ("Claude が応答を終えようとするとき", True, "Claude は応答を終えずに作業を続ける", ""),
+    "StopFailure": ("API のエラーでターンが終わるとき", False, "出力と終了コードは無視される", "エラーの種類"),
+    "TeammateIdle": ("エージェントチームのチームメイトが手すきになろうとするとき", True, "チームメイトは作業を続ける", ""),
+    "PreCompact": ("コンテキストを圧縮する前", True, "圧縮されない", "きっかけ（manual、auto）"),
+    "PostCompact": ("コンテキストを圧縮した後", False, "出力はユーザーにだけ見える", "きっかけ（manual、auto）"),
+    "SessionEnd": ("セッションを終えるとき", False, "出力はユーザーにだけ見える", "終わり方（clear、logout など）"),
+    "Notification": ("Claude Code が通知を送るとき", False, "終了コードと出力は無視される", "通知の種類"),
+    "MessageDisplay": ("アシスタントの文を表示している間", False, "元の文がそのまま表示される", ""),
+    "PreModelSwitch": ("モデルの切り替えを適用する前", True, "モデルは切り替わらない", "切り替え先のモデルの名前"),
+    "PostModelSwitch": ("モデルが変わった後", False, "モデルはもう変わっている", "切り替え先のモデルの名前"),
+    "InstructionsLoaded": ("CLAUDE.md や .claude/rules/*.md を読み込んだとき", False, "終了コードは無視される", "読み込んだわけ"),
+    "ConfigChange": ("セッション中に設定ファイルが変わったとき", True, "変更は反映されない（policy_settings を除く）", "設定の出どころ"),
+    "CwdChanged": ("作業ディレクトリが変わったとき（cd したときなど）", False, "出力はユーザーにだけ見える", ""),
+    "DirectoryAdded": ("セッションの途中でディレクトリを足したとき（/add-dir など）", False, "ディレクトリはもう足されている", "足し方"),
+    "FileChanged": ("見張っているファイルがディスク上で変わったとき", False, "出力はユーザーにだけ見える", "見張るファイルの名前"),
+    "WorktreeCreate": ("worktree を作るとき", True, "worktree は作られない", ""),
+    "WorktreeRemove": ("WorktreeCreate の hooks が作った worktree を消すとき", True, "worktree は消されない", ""),
+}
+# hook.py の動作（pre-tool・post-tool・stop・prompt）を、読む人向けに順を追って書いたもの。{name}・{limit} を埋める。
+# hook.py の動作を変えたら、ここも直す
+HOOK_ACTIONS = {
+    "pre-tool": {
+        "lead": "{name} を実行している間（`run.py start` から `finish` まで）、Claude がファイルを編集しようとするたびに、編集先を確かめる。",
+        "steps": ["編集先が実行記録（`.skill-runs/{name}/` の `state.json`・`report.md`）なら、編集を拒否する",
+                  "指摘・承認の収集記録への直接の編集も拒否する。スキル自身のファイルは編集できる"],
+        "idle": "完了後も指摘・承認の記録を保つ。スキル自身のファイルは編集できる。",
+        "aim": "スキルの微修正を妨げず、実行と指摘・承認の記録を保つ。",
+    },
+    "post-tool": {
+        "lead": "{name} を実行している間、Claude がファイルを編集した直後に、そのファイルを確かめる。",
+        "steps": ["そのファイルが SKILL.md の「5. 出力の契約」の出力でなければ、何もしない",
+                  "出力なら、自動で直せる書式を直してから、契約の検査をする",
+                  "指摘があれば、Claude に返して直させる（編集はもう終わっているので、取り消しはしない）"],
+        "aim": "間違いを、最後にまとめてではなく、書いたその場で直させる。",
+    },
+    "stop": {
+        "lead": "{name} を実行している間、Claude が応答を終えようとするたびに、作った出力をすべて検査する。",
+        "steps": ["指摘が残っていれば、応答を終えさせず、指摘を Claude に返して直させる",
+                  "指摘が無くても、そのままは終えさせず、`run.py finish` を実行して報告するよう伝える",
+                  "{limit} 回止めても終わらなければ、それ以上は止めず、この実行を失敗として記録する",
+                  "完了後と質問待ちでは、提示する成果物の版を指摘収集用に保存する"],
+        "aim": "検査に通らない出力のまま「完了」と返されることを防ぐ。",
+    },
+    "prompt": {
+        "lead": "ユーザーが発言するたびに、{name} が質問の答えを待っているか（`run.py wait` の後か）を確かめる。",
+        "steps": ["待っていれば、待ちを解き、休んでいた検査を再開する",
+                  "提示済みの成果物に届いた発言を原文と版で記録し、指摘かどうかの分類を案内する",
+                  "修正前後の確認画面で承認した版だけを成功例として収集する",
+                  "どちらのときも、発言を止めたり書き換えたりはしない"],
+        "aim": "質問の答えをもらったら、休んでいた検査を自動で再開する（質問している間は、`run.py wait` が検査を休ませている）。",
+        "note": "セッションが記録されている場合、別のセッションの発言は混ぜない。承認は確認画面で受け取る。",
+    },
+}
+HOOK_HOW = {("claude",): "（ユーザーに確認を求める）", ("codex",): "（拒否する）",
+            ("claude", "codex"): "（Claude Code ではユーザーに確認を求め、Codex では拒否する）"}
+
+
+# 公式ドキュメントのライフサイクル図（images/hooks-lifecycle.svg、520×1336。2026-10-30 に確認）の箱を、座標・大きさ・色の種類のまま写した型。
+# (x, y, 幅, 高さ, 種類, [(イベント, 表示名)], 添え書き)。イベントが None の箱は押せない。表示名の \n は改行
+HOOK_BOXES = [
+    (15, 25, 115, 42, "side", [("Setup", "Setup")], "(Opt-in)"),
+    (160, 25, 190, 42, "start", [("SessionStart", "Session Start")], ""),
+    (15, 98, 127, 42, "side", [("UserPromptExpansion", "UserPrompt\nExpansion")], "(slash commands)"),
+    (160, 98, 190, 42, "plain", [("UserPromptSubmit", "UserPromptSubmit")], ""),
+    (160, 210, 190, 42, "loop", [("PreToolUse", "PreToolUse")], ""),
+    (15, 283, 115, 42, "side", [("PermissionDenied", "Permission\nDenied")], "(auto-mode deny)"),
+    (160, 283, 190, 42, "loop", [("PermissionRequest", "PermissionRequest")], ""),
+    (15, 332, 115, 42, "side", [("Elicitation", "Elicitation")], "(MCP input)"),
+    (160, 356, 190, 42, "tool", [(None, "[tool executes]")], ""),
+    (15, 380, 115, 42, "side", [("ElicitationResult", "ElicitationResult")], "(MCP input)"),
+    (110, 429, 290, 42, "loop", [("PostToolUse", "PostToolUse"), ("PostToolUseFailure", "PostToolUseFailure")], ""),
+    (160, 502, 190, 42, "loop", [("PostToolBatch", "PostToolBatch")], ""),
+    (115, 575, 280, 42, "loop", [("SubagentStart", "SubagentStart"), ("SubagentStop", "SubagentStop")], ""),
+    (160, 648, 190, 42, "loop", [("TaskCreated", "TaskCreated")], ""),
+    (160, 721, 190, 42, "loop", [("TaskCompleted", "TaskCompleted")], ""),
+    (160, 810, 190, 42, "stop", [("Stop", "Stop"), ("StopFailure", "StopFailure")], ""),
+    (15, 818, 115, 42, "side", [("Notification", "Notification")], "(Async)"),
+    (15, 872, 115, 42, "side", [("ConfigChange", "ConfigChange")], "(Async)"),
+    (160, 883, 190, 42, "plain", [("TeammateIdle", "TeammateIdle")], ""),
+    (15, 926, 115, 42, "seq", [("PreModelSwitch", "PreModelSwitch")], "(Sequential)"),
+    (160, 956, 190, 42, "plain", [("PreCompact", "PreCompact")], ""),
+    (15, 980, 115, 42, "side", [("PostModelSwitch", "PostModelSwitch")], "(Async)"),
+    (160, 1029, 190, 42, "plain", [("PostCompact", "PostCompact")], ""),
+    (15, 1034, 115, 42, "side", [("WorktreeCreate", "WorktreeCreate")], "(Isolation)"),
+    (15, 1088, 115, 42, "side", [("WorktreeRemove", "WorktreeRemove")], "(Teardown)"),
+    (160, 1102, 190, 42, "plain", [("SessionEnd", "SessionEnd")], ""),
+    (15, 1142, 115, 54, "side", [("CwdChanged", "CwdChanged"), ("FileChanged", "FileChanged"), ("DirectoryAdded", "DirectoryAdded")],
+     "(Env reactive)"),
+    (15, 1215, 115, 42, "side", [("InstructionsLoaded", "InstructionsLoaded")], "(Async)"),
+    (15, 1269, 115, 42, "side", [("MessageDisplay", "MessageDisplay")], "(Display)"),
+]
+HOOK_DOWN = [(67, 88), (140, 174), (252, 273), (325, 346), (398, 419), (471, 492), (544, 565), (617, 638), (690, 711), (763, 800),
+             (852, 873), (925, 946), (998, 1019), (1071, 1092)]  # 同じ図の、x=255 を下に向かう矢印の (始まり, 終わり) の y
+HOOK_SIDE = [(130, 156, 46), (160, 142, 119), (160, 130, 304), (130, 156, 377)]  # 横の点線の矢印の (x1, x2, y)
+HOOK_BACK = [("loop", 742, 410, 231, 7), ("turn", 831, 450, 119, 7), ("resume", 1123, 475, 46, 8)]  # 戻る矢印の (種類, 出る y, 折り返す x, 戻る y, 矢じりの半分の高さ)
+HOOK_COLORS = {  # 同じ図の色の（明るい画面, 暗い画面）。暗い方は hooks-lifecycle-dark.svg から
+    "bg": ("#F9F9F7", "#1A1A1A"), "side-line": ("#B0B0B0", "#757575"), "mid": ("#757575", "#C4C4C4"), "sub": ("#9E9E9E", "#9A9A9A"),
+    "start": ("#B8D8BE", "#336448"), "start-line": ("#8FBF97", "#8FBF97"), "start-ink": ("#2D5A34", "#F5F5F5"),
+    "plain": ("#EDEDEB", "#3C3C3C"), "plain-line": ("#D5D5D0", "#505050"), "ink": ("#1E1E1E", "#F5F5F5"),
+    "turn": ("#4A8DB8", "#4A8DB8"), "turn-ink": ("#4A8DB8", "#7FB8DC"), "loop": ("#D4A27F", "#D4A27F"), "loop-fill": ("#FFF8E1", "#5A4E22"),
+    "tool": ("#6AABD2", "#6AABD2"), "tool-ink": ("#FFFFFF", "#2C2C2C"), "stop": ("#F8D0D0", "#5C3232"), "stop-line": ("#E0A0A0", "#E0A0A0"),
+    "resume": ("#333333", "#E0E0E0"),
+}
+
+
+def hook_lines() -> str:
+    """HOOK_DOWN・HOOK_SIDE・HOOK_BACK と2つの枠から、図の線を SVG で描く（飾り。箱は section_hooks が HTML で重ねる）。"""
+    down = "".join(f'<line x1="255" y1="{a}" x2="255" y2="{b}"/><polygon points="248,{b - 4} 255,{b + 8} 262,{b - 4}"/>' for a, b in HOOK_DOWN)
+    side = "".join(f'<line x1="{a}" y1="{y}" x2="{b}" y2="{y}"/><polygon points="{b - 6 * d},{y - 5} {b + 4 * d},{y} {b - 6 * d},{y + 5}"/>'
+                   for a, b, y in HOOK_SIDE for d in [1 if b > a else -1])
+    back = "".join(f'<g class="k-{k}"><path d="M350 {y0} L{x} {y0} L{x} {y1} L362 {y1}"/><polygon points="362,{y1 - h} 350,{y1} 362,{y1 + h}"/></g>'
+                   for k, y0, x, y1, h in HOOK_BACK)
+    return ('<svg class="hkd-svg" viewBox="0 0 520 1336" aria-hidden="true" focusable="false">'
+            '<rect class="k-turn" x="44" y="88" width="420" height="775" rx="8"/><rect class="k-loop" x="60" y="158" width="380" height="610" rx="8"/>'
+            '<text class="k-turn" x="69" y="785">EACH</text><text class="k-turn" x="69" y="802">TURN</text>'
+            '<text class="k-loop" x="85" y="185">AGENTIC</text><text class="k-loop" x="85" y="202">LOOP</text>'
+            f'<g class="k-down">{down}</g><g class="k-side">{side}</g>{back}'
+            '<text class="k-resume" x="483" y="564" transform="rotate(-90 483 564)">resumed sessions</text></svg>')
+
+
+def hook_design(skill: dict) -> dict:
+    """このスキルが hooks を置くイベント → [(製品, matcher, hook.py の動作, タイムアウトの秒)]。install.py が登録するものと同じ。"""
+    spec = skill["spec"]
+    if not spec.get("control", {}).get("hooks", True):
+        return {}
+    design: dict = {}
+    for platform in [p for p in install.EVENTS if p in spec.get("targets", [])]:
+        for event, matcher, action, timeout in install.EVENTS[platform]:
+            design.setdefault(event, []).append((platform, matcher, action, timeout))
+    return design
+
+
+def hook_missing(skill: dict, design: dict) -> int:
+    """置くはずなのに、プロジェクトにもプラグインにも登録されていない hooks の数。"""
+    return sum(event not in skill["hooks"].get(p, []) and event not in skill["shipped_hooks"].get(p, [])
+               for event, uses in design.items() for p, *_ in uses)
+
+
+def section_hooks(skill: dict) -> str:
+    """hooks 設計のタブ。HOOK_EVENTS の型から公式のライフサイクル図を組み立て、このスキルの hooks を重ねる。"""
+    name = skill["name"]
+    design = hook_design(skill)
+    gid = anchor(name, "hk")
+    first = next((e for e in HOOK_EVENTS if e in design), "SessionStart")
+    control = skill["contract"].get("control", {})
+    limit = str(control.get("max_stop_blocks", 3))
+
+    def attrs(event: str) -> str:
+        return (f'data-hk="{esc(event)}" aria-controls="{gid}-{esc(event)}" aria-pressed="{"true" if event == first else "false"}" '
+                f'title="{esc(HOOK_EVENTS[event][0])}"')
+
+    def box(x: int, y: int, w: int, h: int, kind: str, events: list, sub: str) -> str:
+        style = f"left:{x / 5.2:.3f}%;top:{y / 13.36:.3f}%;width:{w / 5.2:.3f}%;height:{h / 13.36:.3f}%"
+        names = list(dict.fromkeys(report_skill.PRODUCTS[p] for e, _ in events for p, *_ in design.get(e, [])))
+        extra = ((f'<span class="hkd-sub">{esc(sub)}</span>' if sub else "")
+                 + (f'<span class="hkd-pin">{esc("・".join(names))}</span>' if names else ""))
+        small = len(events) > 1 or "\n" in events[0][1]
+        cls = f"hkd-box k-{kind}" + (" multi" if len(events) > 1 else "") + (" small" if small else "") + (" has-used" if names else "")
+        label = {e: esc(text).replace("\n", "<br>") for e, text in events}
+        used = {e: " used" if e in design else "" for e, _ in events}
+        if len(events) > 1:
+            sep = "" if kind == "side" else '<span class="hkd-sep" aria-hidden="true">/</span>'
+            inner = sep.join(f'<button type="button" class="hkd-ev{used[e]}" {attrs(e)}>{label[e]}</button>' for e, _ in events)
+            return f'<div class="{cls}" style="{style}"><span class="hkd-evs">{inner}</span>{extra}</div>'
+        e = events[0][0]
+        if e is None:
+            return f'<div class="{cls}" style="{style}"><span>{label[e]}</span>{extra}</div>'
+        return f'<button type="button" class="{cls} hkd-ev{used[e]}" style="{style}" {attrs(e)}><span>{label[e]}</span>{extra}</button>'
+
+    diagram = f'<div class="hkd-scroll"><div class="hkd">{hook_lines()}{"".join(box(*b) for b in HOOK_BOXES)}</div></div>'
+
+    def where(platform: str, event: str) -> tuple:
+        """登録の状態の（印の種類, 印の文, 説明）。"""
+        if event in skill["hooks"].get(platform, []):
+            return "ok", "登録済み", f"プロジェクトの設定（{report_skill.CONFIGS[platform]}）に書いてある"
+        if event in skill["shipped_hooks"].get(platform, []):
+            return "ok", "プラグインで配布", "プラグインの hooks として配っている。プラグインを入れると働く"
+        return "warn", "未登録", "設定にもプラグインにも無い。install.py --project で登録する"
+
+    def facts(event: str) -> str:
+        _, blocks, effect, matcher = HOOK_EVENTS[event]
+        rows = (("止められるか", f"止められる。止めると、{effect}。" if blocks else f"止められない。{effect}。"),
+                ("絞り込み", f"{matcher}で、呼ぶ場面を絞り込める（matcher）。" if matcher else "絞り込めない。いつも呼ばれる。"))
+        return ('<h5>このイベントの性質（公式ドキュメント）</h5><dl class="hk-facts">'
+                + "".join(f"<div><dt>{k}</dt><dd>{esc(v)}</dd></div>" for k, v in rows) + "</dl>")
+
+    def doing(uses: list) -> str:
+        products = tuple(p for p in install.EVENTS if any(u[0] == p for u in uses))
+        act = HOOK_ACTIONS[uses[0][2]]
+
+        def fill(text: str) -> str:
+            return inline(text.format(name=name, limit=limit, how=HOOK_HOW.get(products, "")))
+
+        steps = "".join(f"<li>{fill(s)}</li>" for s in act["steps"])
+        return (f'<h5>{esc(name)} の hooks がすること</h5><p>{fill(act["lead"])}</p><ol class="hk-steps">{steps}</ol>'
+                + (f'<p>{fill(act["idle"])}</p>' if act.get("idle") and "claude" in products else "")
+                + f'<p class="hk-aim"><b>ねらい</b>{fill(act["aim"])}</p>'
+                + (f'<p class="muted">{fill(act["note"])}</p>' if act.get("note") else ""))
+
+    def registry(event: str, uses: list) -> str:
+        states = [(p, *where(p, event)) for p, *_ in uses]
+        brief = "・".join(f"{report_skill.PRODUCTS[p]}: {short}" for p, _, short, _ in states)
+        regs = "".join(f'<div class="hk-reg"><p class="hk-reg-h"><b>{esc(report_skill.PRODUCTS[p])}</b>{badge(kind, short)}'
+                       f'<span class="muted">{esc(note)}</span></p><dl class="hk-facts">'
+                       f'<div><dt>絞り込み</dt><dd>{f"<code>{esc(m)}</code>" if m else "なし（いつも呼ぶ）"}</dd></div>'
+                       f'<div><dt>時間の上限</dt><dd>{s} 秒</dd></div></dl><pre class="hk-cmd">{esc(install.hook_command(p, name, a))}</pre></div>'
+                       for (p, m, a, s), (_, kind, short, note) in zip(uses, states))
+        warn = any(kind == "warn" for _, kind, _, _ in states)
+        return (f'<details class="hk-regs"{" open" if warn else ""}><summary>登録の中身 <span class="muted">{esc(brief)}</span></summary>'
+                f"{regs}</details>")
+
+    def detail(event: str) -> str:
+        uses = design.get(event, [])
+        body = (f'<p class="hk-when">{esc(HOOK_EVENTS[event][0])}に呼ばれる。</p>'
+                + (doing(uses) + facts(event) + registry(event, uses) if uses else
+                   f'<p class="muted">{esc(name)} は、このイベントに hooks を置いていない。</p>{facts(event)}'))
+        return (f'<div class="hk-detail" id="{gid}-{esc(event)}" data-hk-pane="{esc(event)}"{"" if event == first else " hidden"}>'
+                f'<h4><code>{esc(event)}</code>{" " + badge("ok", "このスキルが使う") if uses else ""}</h4>{body}</div>')
+
+    missing = hook_missing(skill, design)
+    used = "、".join(e for e in HOOK_EVENTS if e in design)
+    state = (f"<p>{esc(name)} は hooks を使わない設定（<code>dev/spec.json</code> の <code>control.hooks</code> が false）。"
+             "検査は <code>run.py check</code> と <code>finish</code> だけで行う。箱を押すと、そのイベントの性質が出る。</p>" if not design else
+             f"<p>{esc(name)} は、太い枠と札の付いた {len(design)} つのイベント（{esc(used)}）に hooks を置いている。札は、置いている製品。"
+             "箱を押すと、右にそのイベントで何が起きるかが出る。</p>"
+             + (f'<p class="warn-line">置くはずの hooks のうち {missing} 件が、まだ登録されていない（設定にもプラグインにも無い）。</p>' if missing else ""))
+    return (f'<div class="card hk" id="{gid}"><div class="card-head"><h3>hooks のライフサイクル</h3>'
+            + (badge("warn", f"未登録 {missing}") if missing else badge("ok", "登録済み") if design else badge("none", "使わない")) + "</div>"
+            '<div class="lead"><p>hooks は、Claude Code や Codex が決まった時機（イベント）に自動で実行するコマンド。'
+            '下の図は、公式ドキュメント（code.claude.com/docs/ja/hooks）にあるイベントの流れを、同じ配置と色で描いたもの。</p>'
+            f'{state}</div>'
+            f'<div class="hk-wrap"><div class="hk-map">{diagram}</div>'
+            f'<div class="hk-panel">{"".join(detail(e) for e in HOOK_EVENTS)}</div></div></div>')
+
+
 def section_movement(skill: dict) -> str:
     if not skill["moves"]:
         return ('<div class="card empty"><p>収束テストの <code>round-*/traces.json</code> が無い。<code>convergence.py diff</code> が書く。'
@@ -1575,7 +1927,7 @@ def section_movement(skill: dict) -> str:
                 logs.append(f'<details class="log" id="{anchor(skill["name"], "log", rnd, rid)}"><summary><span class="sw {color}"></span>'
                             f'<b>{esc(agent)}</b>の操作 {len(acts)} 件{flags}' + (f'<span class="mdl-s">{model}</span>' if model else "")
                             + f'<span class="src">{esc(run["source"])}</span></summary>'
-                            f'<div class="flow">{flow_facts(run, skill["steps"])}{ai_flow(run, prefix)}</div>{ops_table(acts, prefix)}{reply}</details>')
+                            f'<div class="flow">{flow_facts(run, skill["steps"])}{ai_flow(run, prefix)}</div>{artifacts(skill, rnd, task, agent)}{ops_table(acts, prefix)}{reply}</details>')
             agents = "".join(f'<button type="button" class="fk" data-focus="s{i % 6 + 1}" aria-pressed="false">'
                              f'<svg width="26" height="14" viewBox="0 0 26 14" aria-hidden="true">{agent_key(f"s{i % 6 + 1}")}</svg>{esc(agent)}</button>'
                              for i, (agent, _) in enumerate(members))
@@ -1593,8 +1945,8 @@ def section_movement(skill: dict) -> str:
     how = ('<details class="howto"><summary>図の読み方</summary><p>行が手順、横が経過時間。エージェントごとの棒は、その手順にいた時間。'
            'エージェントの名前を押すと、その人の棒と印だけを浮かび上がらせる（もう一度押すと戻る）。'
            'コマンドは SKILL.md に書かれた手順に移す（戻りも含む）。読む・書くは、本文にそのパスがある手順へ、前に進むときだけ移す。'
-           '操作の記録は、Claude Code の Agent ツールの記録、Codex のサブエージェントの記録、codex exec の出力から集めた'
-           '（claude -p で動かしたときは start・check・finish の時刻だけ）。'
+           '操作の記録は、Claude Code の Agent ツールの記録、Codex のサブエージェントの記録、claude -p と codex exec の出力から集めた'
+           '（stream-json を保存する前の版で動かした claude -p は、run.py の start・check・finish などの時刻と、許可されなかった操作だけ）。'
            'モデルと推論エフォートは、Claude Code はサブエージェントの記録か claude -p の出力から、Codex はサブエージェントの記録か、'
            'codex exec のコマンドの -m・-c、無ければ ~/.codex/config.toml から読む（設定から読んだものには「設定から」と付ける）。'
            '棒と点に重ねると、操作の中身が出る。印（スクリプトの実行・失敗・外に触れた操作）は、コマンドの全文、結果、手順、外のパス、'
@@ -1611,15 +1963,12 @@ def section_movement(skill: dict) -> str:
 
 PREFIX_NAMES = {"TRG": "起動", "IN": "入力", "STEP": "手順", "OUT": "出力", "RPT": "報告", "CTL": "制御"}
 GROUP_NAMES = {"machine": "機械が確かめる", "tool": "スクリプト・ひな形", "human": "レビュー・文書だけ"}
-TABS = [("workflow", "ワークフロー"), ("movement", "エージェントの動き"), ("convergence", "収束テスト"),
+TABS = [("eval", "Eval 作成"), ("workflow", "ワークフロー"), ("hooks", "hooks 設計"), ("movement", "エージェントの動き"), ("convergence", "収束テスト"),
         ("decisions", "ルールと出力の決まり"), ("probes", "検査が働くか"), ("state", "最後の実行")]
 # 見せる用語の表。ページの言葉はここから出し、名前に重ねると説明が出る（見せ方の約束 1）
 TERMS = {
-    "seal": ("改変チェック", "検証に合格したときの、SKILL.md・scripts・assets・references の中身の指紋（assets/seal.json）と、"
-                         "今のファイルを見比べる。合格した後に書き換わっていると、次の run.py start が止まる。"
-                         "直して合格し直したら skill_lint.py --final --seal で記録し直す。"),
     "probe": ("違反の見本", "わざとルールを破った見本（dev/probes.json）を、ルールの検査が見つけて止めるかを probe.py で確かめる。"),
-    "wiring": ("hooks の動作", "hooks が製品の設定に登録され、スキルの実行中は働き、実行していないときは何もしないかを probe.py で確かめる。"),
+    "wiring": ("hooks の動作", "hooks が製品の設定に登録され、出力の検査と、完了後の指摘収集が働くかを probe.py で確かめる。"),
     "convergence": ("収束テスト", "これまでの会話を持たない別のエージェント数人に同じ課題を解かせ、作ったものがどれだけ揃うかを 0〜1 で測る。"
                               "基準を満たせば、誰が使っても同じ結果になるとみなす。"),
     "control": ("守らせ方", "ルールを何で守らせるか。実行時に止める・自動で直す・検査で止める は機械が守らせる。"
@@ -1637,6 +1986,11 @@ TERMS = {
     "match": ("手順との照合", "各操作を SKILL.md の手順に機械で当てたもの。コマンドは書かれた手順へ、読む・書くは本文にそのパスがある手順へ当てる。"
                            "✓ 手順どおり、↩ 前の手順に戻った、◇ 途中で別の手順のファイルに触れた、・ どの手順にも当たらない、"
                            "↻ 失敗の直後に同じような操作をし直した。"),
+    "eval": ("Eval", "スキルが実現すべき価値を、外から確かめられる振る舞い・成功と失敗の事例・正解の根拠・判定方法の形にしたもの。"
+                     "ユーザーから聞いた材料で AI が価値仮説を立て、ユーザーが対話で確かめた価値だけを使う。収束テストは「AI ごとに出力が揃うか」を測り、"
+                     "Eval は「出力が価値を満たすか」を判定する。"),
+    "judge": ("判定方法", "事例が成功か失敗かを決めるやり方。code はスクリプトの検査（出力の決まりと同じ書き方）で機械が決め、model は AI が、"
+                       "human は人が、基準の文で決める。model と human の事例は、判定にユーザーが同意した対話を残す。"),
     "ai": ("AI の推定", "エージェント自身の考えは記録に残らない（Codex は暗号化され、Claude Code は空になる）。そこで別の AI が、"
                       "操作の入力・出力・成否と手順を突き合わせて推し量った。本人の理由ではなく、外れることもある。"
                       "当てはまりは、✓ 要る・↷ 寄り道（害は無い）・◌ 無駄・✕ 誤り。"),
@@ -1729,10 +2083,10 @@ def summary(skill: dict) -> dict:
         conv = ("none", "結果なし")
     else:
         conv = ("ok" if ok == len(tasks) else "warn", "満たす" if ok == len(tasks) else "要確認")
-    return {"results": results, "wiring": wiring, "p_fail": p_fail, "w_fail": w_fail, "skip": skip, "tasks": tasks, "ok": ok,
+    return {"eval": eval_state(skill), "results": results, "wiring": wiring, "p_fail": p_fail, "w_fail": w_fail, "skip": skip, "tasks": tasks, "ok": ok,
             "probe": ("none", "結果なし") if not results else ("bad", "失敗あり") if p_fail else ("ok", "成功"),
             "wire": ("none", "結果なし") if not wiring else ("bad", "失敗あり") if w_fail else ("ok", "成功"),
-            "conv": conv, "seal": skill["seal"], "round": skill["rounds"][-1].get("round") if skill["rounds"] else None}
+            "conv": conv, "round": skill["rounds"][-1].get("round") if skill["rounds"] else None}
 
 
 def meter(parts: list[tuple[int, str]]) -> str:
@@ -1756,23 +2110,29 @@ def tiles(skill: dict, sm: dict) -> str:
         return dot_text([(str(a), "dm-on"), (f"/{b}", "dm-dim")]) if b else '<span class="tile-word">—</span>'
 
     results, wiring = sm["results"], sm["wiring"]
-    seal_kind, seal_text = sm["seal"]
-    seal_value = {"ok": "変更なし", "bad": "変更あり", "none": "記録なし"}.get(seal_kind, "—")
     conv_sub = ("理由: " + esc(sm["skip"])) if sm["skip"] else (f"R{esc(sm['round'])} で基準を満たした課題" if sm["tasks"] else "収束テストの記録が無い")
     shown = bool(sm["tasks"]) and not sm["skip"]
+    ev_kind, ev_label = sm["eval"]
+    doc = skill["eval"] or {}
+    ev_cases = [c for c in doc.get("cases", []) if isinstance(c, dict)] if isinstance(doc.get("cases"), list) else []
+    ev_pass = sum(c.get("expect") == "pass" for c in ev_cases)
+    ev_done = skill["eval_result"].get("cases", []) if ev_kind in ("ok", "bad") else []
+    ev_hit = sum(r.get("got") in (r.get("expect"), "agreed") for r in ev_done)
+    ev_values = len(doc.get("values", [])) if isinstance(doc.get("values"), list) else 0
+    ev_sub = ("理由: " + esc(doc.get("skip_reason", ""))) if ev_label == "省いた" else (
+        "dev/eval/eval.json が無い" if ev_kind == "none" else f"確定した価値 {ev_values}・事例 {len(ev_cases)}（成功 {ev_pass}・失敗 {len(ev_cases) - ev_pass}）")
     return '<div class="tiles">' + "".join([
+        tile("eval", "Eval", f'<span class="tile-word">{esc(ev_label)}</span>', ev_sub,
+             {"ok": ("ok", "合格"), "bad": ("bad", "失敗あり"), "warn": ("warn", "要確認")}.get(ev_kind, ("none", "—")),
+             meter([(ev_hit, "good"), (len(ev_done) - ev_hit, "crit")])),
         tile("decisions", "ルール", dot_text([(str(n), "dm-on")]), f"機械が確かめる {machine}・人が守る {n - machine}", None,
              meter([(machine, "acc"), (n - machine, "mute")])),
         tile("probes", "違反の検出", ratio(len(results) - len(sm["p_fail"]), len(results)), "わざと破った見本を検査が止めた数（組み込みの検査を含む）",
              sm["probe"], meter([(len(results) - len(sm["p_fail"]), "good"), (len(sm["p_fail"]), "crit")])),
-        tile("probes", "hooks の動作", ratio(len(wiring) - len(sm["w_fail"]), len(wiring)), "実行中は働き、実行していないときは何もしないか", sm["wire"],
+        tile("probes", "hooks の動作", ratio(len(wiring) - len(sm["w_fail"]), len(wiring)), "出力の検査と、指摘収集が働くか", sm["wire"],
              meter([(len(wiring) - len(sm["w_fail"]), "good"), (len(sm["w_fail"]), "crit")])),
         tile("convergence", "収束テスト", ratio(sm["ok"], len(sm["tasks"])) if shown else '<span class="tile-word">—</span>', conv_sub, sm["conv"],
              meter([(sm["ok"], "good"), (len(sm["tasks"]) - sm["ok"], "warn")]) if shown else meter([])),
-        tile("state", "改変チェック", f'<span class="tile-word">{seal_value}</span>',
-             esc(seal_text) + (f"・見比べたファイル {skill['seal_files']} 件" if skill["seal_files"] else ""),
-             ({"ok": ("ok", "一致"), "bad": ("bad", "要確認"), "none": ("warn", "なし")}.get(seal_kind, ("none", "—"))),
-             meter([(1, {"ok": "good", "bad": "crit"}[seal_kind])] if seal_kind in ("ok", "bad") else [])),
     ]) + "</div>"
 
 
@@ -1793,6 +2153,33 @@ def attention_items(skill: dict, sm: dict) -> list[tuple[str, str, str, str]]:
     文の中の ID・課題・エージェントも、それぞれの行や操作へのリンクにする。"""
     name, items = skill["name"], []
     tabs = dict(TABS)
+    if sm["eval"][1] == "作成中":
+        talk, asks = eval_check.questions(skill["eval"])
+        items.append(("warn", f"Eval を作っている途中（{esc(talk)} の答えが要る質問 {len(asks)} 件）。質問に答え、回答をチャット欄に貼る",
+                      f"{tabs['eval']} › 答えが要る質問", anchor(name, "ev", "questions")))
+    elif sm["eval"][0] == "bad":
+        errors = skill["eval_result"].get("errors", [])
+        items.append(("crit", f"Eval 自体の検証に落ちた（{len(errors)} 件。最初: {esc(errors[0]) if errors else '—'}）。"
+                      "Eval（dev/eval/）を直し、<code>eval_check.py</code> を実行し直す",
+                      f"{tabs['eval']} › Eval 自体の検証", anchor(name, "ev", "check")))
+    elif sm["eval"][0] == "warn":
+        items.append(("warn", f"Eval の検証の結果が古い（{esc(skill['eval_stale'] or '結果を読めない')}）",
+                      f"{tabs['eval']} › Eval 自体の検証", anchor(name, "ev", "check")))
+    elif sm["eval"][1] == "なし":
+        items.append(("info", "Eval（dev/eval/eval.json）が無い。Eval 作成の手順（skill-foundation の手順3）を足す前に作ったスキル",
+                      tabs["eval"], f"skill-{name}-eval"))
+    last = skill["rounds"][-1] if skill["rounds"] and not sm["skip"] else {}
+    if (last.get("eval") or {}).get("hash"):
+        fails = [(t.get("id", ""), agent) for t in last.get("tasks", []) for agent, scores in (t.get("eval") or {}).items()
+                 if any(x.get("result") == "fail" for x in scores.values())]
+        if fails:
+            who = "、".join(f"{esc(tid)}/{esc(agent)}" for tid, agent in fails[:6])
+            items.append(("warn", f"R{esc(last.get('round'))} で Eval に落ちた出力がある（{who}{'…' if len(fails) > 6 else ''}）。"
+                          "出力の誤りか Eval の疑いかを分け、疑いならユーザーとすり合わせて Eval を直す",
+                          f"{tabs['convergence']} › Eval の採点", anchor(name, "evs", last.get("round"))))
+    if skill["eval_hash"] and last and (last.get("eval") or {}).get("hash") != skill["eval_hash"]:
+        items.append(("warn", f"最後のラウンド R{esc(last.get('round'))} を今の Eval で採点していない。次のラウンドで採点する",
+                      f"{tabs['eval']} › 収束テストでの採点", anchor(name, "ev", "final")))
     if sm["p_fail"]:
         shown = sm["p_fail"][:6]
         ids = "、".join(jump(anchor(name, "probe", r.get("id", "")), f'<code>{esc(r.get("id", ""))}</code>') for r in shown)
@@ -1802,13 +2189,6 @@ def attention_items(skill: dict, sm: dict) -> list[tuple[str, str, str, str]]:
         w = sm["w_fail"][0]
         items.append(("crit", f"hooks の動作の確認 {len(sm['w_fail'])} 件が失敗した",
                       f"{tabs['probes']} › hooks の動作 › {esc(w.get('check', ''))}", anchor(name, "wire", w.get("platform", ""), w.get("check", ""))))
-    if sm["seal"][0] == "bad":
-        items.append(("crit", "改変チェック: " + esc(sm["seal"][1]) + "。次の run.py start が止まる"
-                      "（直して合格し直したら <code>skill_lint.py --final --seal</code> で記録し直す）",
-                      f"{tabs['state']} › 改変チェック", anchor(name, "seal")))
-    elif sm["seal"][0] == "none":
-        items.append(("warn", "改変チェックの記録（合格時のファイルの指紋）が無い（<code>skill_lint.py --final --seal</code> で記録する）",
-                      f"{tabs['state']} › 改変チェック", anchor(name, "seal")))
     if skill.get("twins"):
         items.append(("warn", "同じ名前のスキルが別の場所にもある（" + "、".join(f"<code>{esc(p)}</code>" for p in skill["twins"])
                       + "）。中身を確かめて外し、本体の <code>install.py --project .</code> でリンクにする"
@@ -1860,10 +2240,475 @@ def attention(skill: dict, sm: dict) -> str:
     items = attention_items(skill, sm)
     if not items:
         return ('<section class="attn" aria-label="要点"><h3>先に見るもの</h3><ul><li class="good"><span class="pt"></span>'
-                '<div><span class="lvl">問題なし</span>違反の検出・hooks の動作・改変チェック・収束テストに、先に見るべきものは無い。</div></li></ul></section>')
+                '<div><span class="lvl">問題なし</span>Eval・違反の検出・hooks の動作・収束テストに、先に見るべきものは無い。</div></li></ul></section>')
     rows = "".join(f'<li class="{lv}"><span class="pt"></span><div><span class="lvl">{ATTN_LEVELS[lv]}</span>{text}</div>'
                    f'<div class="go">└ {jump(target, where + " へ")}</div></li>' for lv, text, where, target in items)
     return f'<section class="attn" aria-label="要点"><h3>先に見るもの</h3><ul>{rows}</ul></section>'
+
+
+EVAL_CHECKS = ["4種類の材料（利用場面・今の不満や失敗・望む結果・許容できない結果）が、それぞれ1つ以上ある",
+               "利用場面・不満・望む結果が、どれも価値仮説に使われている",
+               "確定した価値が、もとにした仮説と、ユーザーが確かめた対話を持つ",
+               "価値ごとに振る舞いがあり、振る舞いごとに成功と失敗の事例が両方ある",
+               "許容できない結果が、どれも失敗の事例で確かめられている",
+               "判定方法が code の事例は、出力の見本に検査を実際に当て、成功の事例が通り、失敗の事例が落ちる",
+               "判定方法が model・human の事例に、判定にユーザーが同意した対話がある",
+               "答えを待っている質問（questions）が無い"]
+JUDGE_NAMES = {"code": "code（機械が検査で判定）", "model": "model（AI が基準の文で判定）", "human": "human（人が基準の文で判定）"}
+JUDGE_HOW = {"code": "機械の検査で判定する（code）", "model": "AI が基準の文を読んで判定する（model）", "human": "人が基準の文を読んで判定する（human）"}
+
+
+TAG_NAMES = {"new": ("新規", "の回答の後に足した"), "upd": ("更新", "の回答の後に直した"), "keep": ("既存", "の回答の後も変えていない")}
+EV_STAGES = ["材料", "価値仮説", "確定した価値", "振る舞い", "事例", "収束テストの題材"]
+TASK_KINDS = {"typical": "よくある依頼", "default": "入力を書かない依頼（既定値で補う）", "edge": "場合分けの境目の依頼",
+              "holdout": "最後のラウンドだけで使う依頼"}
+EXPECT_NAMES = {"done": "最後まで終える", "aborted": "中断する", "unused": "スキルを使わない"}
+FREE_MARK = '<span class="evq-w">書く</span>'  # 選ぶと、書いて答える欄が出る答え
+NO_TALKS = '<p class="muted">まだ無い。</p>'
+
+
+def eval_list(doc: dict, key: str) -> list[dict]:
+    value = doc.get(key)
+    return [x for x in value if isinstance(x, dict)] if isinstance(value, list) else []
+
+
+def eval_state(skill: dict) -> tuple[str, str]:
+    """Eval の状態の (kind, 名前)。答えを待っている質問があれば作成中。"""
+    doc, result = skill["eval"], skill["eval_result"]
+    if doc is None:
+        return "none", "なし"
+    if str(doc.get("skip_reason") or "").strip():
+        return "none", "省いた"
+    if eval_check.questions(doc)[1]:
+        return "warn", "作成中"
+    if skill["eval_stale"] or not isinstance(result, dict):
+        return "warn", "検証が古い"
+    return ("bad", "検証に落ちた") if result.get("errors") else ("ok", "検証済み")
+
+
+def section_eval(skill: dict, sm: dict) -> str:
+    """Eval 作成のタブ。答えを待っている質問があれば作成中の形（進み具合 → 前の回答で反映したもの → 答えが要る質問 → 対話）、
+    無ければ作成後の形（材料 → 価値仮説 → 確定した価値 → 振る舞い・判定方法 → 事例 → Eval 自体の検証）にする。"""
+    name, doc = skill["name"], skill["eval"]
+    if doc is None:
+        return ('<div class="card empty"><p><code>dev/eval/eval.json</code> が無い。Eval 作成の手順（skill-foundation の手順3）を足す前に'
+                '作ったスキルか、まだ手順3を終えていない。</p></div>')
+    skip = str(doc.get("skip_reason") or "").strip()
+    if skip:
+        return f'<div class="card empty"><p>{badge("none", "作っていない")} 理由: {inline(skip)}</p></div>'
+    talk_now, asks = eval_check.questions(doc)
+    creating = bool(asks)
+
+    def live(es: list[dict]) -> list[dict]:  # 作成中は、ひな形の目印のままの項目を見せない
+        return [e for e in es if _lib.TODO_MARKER not in json.dumps(e, ensure_ascii=False)] if creating else es
+
+    materials = doc.get("materials") if isinstance(doc.get("materials"), dict) else {}
+    groups = [(label, live(eval_list(materials, key))) for key, _, label in eval_check.MATERIALS]
+    talks, hyps, values, behaviors, cases = (live(eval_list(doc, k)) for k in ("dialog", "hypotheses", "values", "behaviors", "cases"))
+    tasks = eval_check.tasks_of(skill["dir"])  # 収束テストの題材。Eval の後にユーザーと確かめる
+    known = {str(e.get("id")) for es in [es for _, es in groups] + [talks, hyps, values, behaviors, cases, tasks] for e in es}
+    before = (skill["eval_result"] or {}).get("before") if isinstance(skill["eval_result"], dict) else None
+    marks, removed = eval_check.changes(doc, before, tasks)
+    since = str(before.get("talk") or "") if marks else ""
+
+    def eid(rid) -> str:
+        return anchor(name, "ev", rid)
+
+    def ref(rid) -> str:
+        code = f'<code class="rid">{esc(rid)}</code>'
+        return jump(eid(rid), code) if str(rid) in known else code
+
+    def refs(value) -> str:
+        got = value if isinstance(value, list) else ([value] if value else [])
+        return "、".join(ref(x) for x in got) or '<span class="muted">—</span>'
+
+    def tag(rid) -> str:  # 前の回答の時の版との違いのラベル
+        kind = marks.get(str(rid), ("", ""))[0]
+        return f'<span class="ev-tag {kind}" title="{esc(since + TAG_NAMES[kind][1])}">{TAG_NAMES[kind][0]}</span>' if kind else ""
+
+    def was(rid) -> str:  # 更新で見せる文が変わったときの、前の文
+        before_text = marks.get(str(rid), ("", ""))[1]
+        return f'<span class="ev-was">前: <del>{esc(before_text)}</del></span>' if before_text else ""
+
+    def row(rid) -> str:
+        return ' class="ev-keep"' if marks.get(str(rid), ("",))[0] == "keep" else ""
+
+    def mark_cell(rid) -> str:
+        return f"<td>{tag(rid)}</td>" if marks else ""
+
+    mark_head = "<th>ラベル</th>" if marks else ""
+
+    def task_place(t: dict) -> str:
+        setup = [str(c) for c in t.get("setup", []) if str(c).strip()] if isinstance(t.get("setup"), list) else []
+        parts = [f'<code>{esc(t["fixture"])}</code> を写したプロジェクト' if t.get("fixture") else "空のプロジェクト"]
+        parts += ["準備: " + "、".join(f"<code>{esc(c)}</code>" for c in setup)] if setup else []
+        parts += ["スキルの名前を付けて呼ぶ"] if t.get("invoke") == "explicit" else []
+        return "<br>".join(parts)
+
+    aims = any(str(t.get("aim") or "").strip() for t in tasks)  # 確かめること（aim）は、書いた題材があるときだけ列にする
+    task_table = ('<div class="scroll"><table><thead><tr>' + mark_head + '<th>題材</th><th>種類</th>' + ("<th>確かめること</th>" if aims else "")
+                  + '<th>依頼文</th><th>試す環境</th><th>期待する結果</th></tr></thead><tbody>'
+                  + "".join(f'<tr id="{eid(t.get("id", ""))}"{row(t.get("id"))}>{mark_cell(t.get("id"))}<td><code class="rid">{esc(t.get("id", ""))}</code></td>'
+                            f'<td>{esc(TASK_KINDS.get(t.get("kind"), t.get("kind") or "—"))}</td>'
+                            + (f'<td>{inline(t.get("aim") or "—")}</td>' if aims else "")
+                            + f'<td>{inline(t.get("prompt", ""))}{was(t.get("id"))}</td>'
+                            f'<td>{task_place(t)}</td><td>{esc(EXPECT_NAMES.get(t.get("expect_status") or "done", t.get("expect_status")))}</td></tr>'
+                            for t in tasks)
+                  + "</tbody></table></div>")
+    legend = ""
+    if marks:
+        counts = Counter(k for k, _ in marks.values())
+        gone = "、".join(f'<code class="rid">{esc(rid)}</code>{esc(text)}' for rid, text in removed)
+        legend = (f'<div class="ev-legend"><span>{esc(since)} の回答の後:</span>'
+                  + "".join(f'<span><span class="ev-tag {k}">{TAG_NAMES[k][0]}</span> {counts[k]}</span>' for k in TAG_NAMES)
+                  + '<label><input type="checkbox" data-only-changed> 新規と更新だけ見る</label></div>'
+                  + (f'<p class="muted ev-gone">{esc(since)} の回答の後に外したもの: {gone}</p>' if gone else ""))
+
+    cols = "".join(f"<div><h4>{esc(label)}</h4><ul class=\"plain\">"
+                   + ("".join(f'<li id="{eid(e.get("id", ""))}"{row(e.get("id"))}>{tag(e.get("id"))}<code class="rid">{esc(e.get("id", ""))}</code>'
+                              f'<span>{inline(e.get("text", ""))}</span>{was(e.get("id"))}</li>' for e in es) or '<li class="muted">無い</li>') + "</ul></div>"
+                   for label, es in groups)
+    confirmed: dict = {}
+    for v in values:
+        for h in v.get("from") if isinstance(v.get("from"), list) else [v.get("from")]:
+            confirmed.setdefault(h, []).append(v.get("id"))
+
+    def outcome(rid) -> str:
+        return badge("ok", "確定") + " " + refs(confirmed[rid]) if rid in confirmed else badge("none", "退けた" if not creating else "確かめ中")
+
+    hyp_table = ('<div class="scroll"><table><thead><tr>' + mark_head + '<th>仮説</th><th>内容</th><th>もとにした材料</th><th>結果</th></tr></thead><tbody>'
+                 + "".join(f'<tr id="{eid(h.get("id", ""))}"{row(h.get("id"))}>{mark_cell(h.get("id"))}<td><code class="rid">{esc(h.get("id", ""))}</code></td>'
+                           f'<td>{inline(h.get("text", ""))}{was(h.get("id"))}</td><td>{refs(h.get("from"))}</td><td>{outcome(h.get("id"))}</td></tr>' for h in hyps)
+                 + "</tbody></table></div>")
+    value_table = ('<div class="scroll"><table><thead><tr>' + mark_head + '<th>価値</th><th>内容</th><th>もとにした仮説</th><th>確かめた対話</th></tr></thead><tbody>'
+                   + "".join(f'<tr id="{eid(v.get("id", ""))}"{row(v.get("id"))}>{mark_cell(v.get("id"))}<td><code class="rid">{esc(v.get("id", ""))}</code></td>'
+                             f'<td>{inline(v.get("text", ""))}{was(v.get("id"))}</td><td>{refs(v.get("from"))}</td><td>{refs(v.get("confirmed_in"))}</td></tr>' for v in values)
+                   + "</tbody></table></div>")
+    talk_items = "".join(f'<div class="ev-talk" id="{eid(x.get("id", ""))}"><code class="rid">{esc(x.get("id", ""))}</code>'
+                         f'<p><b>聞いたこと</b> {inline(x.get("asked", ""))}</p><p><b>答え</b> {inline(x.get("answer", ""))}</p></div>' for x in talks)
+    dialog = (f'<div class="card"><details class="ev-talks"><summary>ユーザーとの対話 <span class="muted">{len(talks)} 件。'
+              f'作った後に見返すときに開く</span></summary>{talk_items or NO_TALKS}</details></div>')
+    passes = sum(c.get("expect") == "pass" for c in cases)
+    counts_now = [sum(len(es) for _, es in groups), len(hyps), len(values), len(behaviors), len(cases), len(tasks)]
+    if creating:
+        at = max([i for i, n in enumerate(counts_now) if n] or [0])
+        chain = "".join((f'<li class="ev-arrow" aria-hidden="true">→</li>' if i else "")
+                        + f'<li class="{"done" if i < at else "now" if i == at else "todo"}"><b>{n if i <= at else "—"}</b>'
+                        + esc(label + ("（確かめ中）" if i == at else "")) + "</li>" for i, (n, label) in enumerate(zip(counts_now, EV_STAGES)))
+        flow = (f'<div class="card"><div class="card-head"><h3>価値から {term("eval")} まで</h3>{badge("warn", "作成中")}</div>'
+                f'<p class="lead">Eval を作っている途中で、今は「{esc(EV_STAGES[at])}」を確かめている。下の「答えが要る質問」に答え、回答をチャット欄に貼ると、'
+                f'AI が Eval に反映して次の段に進む。</p><ol class="ev-chain">{chain}</ol></div>')
+        behavior_rows = "".join(f'<tr id="{eid(b.get("id", ""))}"{row(b.get("id"))}>{mark_cell(b.get("id"))}<td><code class="rid">{esc(b.get("id", ""))}</code></td>'
+                                f'<td>{inline(b.get("text", ""))}{was(b.get("id"))}<div class="muted">{term("judge")}: '
+                                f'{esc(JUDGE_NAMES.get((b.get("judge") or {}).get("type"), "—"))}</div></td><td>{refs(b.get("value"))}</td></tr>' for b in behaviors)
+        case_rows = "".join(f'<tr id="{eid(c.get("id", ""))}"{row(c.get("id"))}>{mark_cell(c.get("id"))}<td><code class="rid">{esc(c.get("id", ""))}</code></td>'
+                            f'<td>{"✓ 成功" if c.get("expect") == "pass" else "✕ 失敗"}</td><td>{inline(c.get("situation", ""))}{was(c.get("id"))}</td>'
+                            f'<td>{refs(c.get("behavior"))}</td></tr>' for c in cases)
+        parts = [f'<h4>価値を見つけた材料</h4><div class="ev-grid">{cols}</div>']
+        if hyps:
+            parts.append(f'<h4 class="ev-sub">価値仮説</h4>{hyp_table}')
+        if values:
+            parts.append(f'<h4 class="ev-sub">確定した価値</h4>{value_table}')
+        if behaviors:
+            parts.append(f'<h4 class="ev-sub">振る舞い</h4><div class="scroll"><table><thead><tr>{mark_head}<th>振る舞い</th><th>内容</th><th>価値</th>'
+                         f'</tr></thead><tbody>{behavior_rows}</tbody></table></div>')
+        if cases:
+            parts.append(f'<h4 class="ev-sub">事例</h4><div class="scroll"><table><thead><tr>{mark_head}<th>事例</th><th>期待</th><th>状況</th><th>振る舞い</th>'
+                         f'</tr></thead><tbody>{case_rows}</tbody></table></div>')
+        if tasks:
+            parts.append(f'<h4 class="ev-sub" id="{eid("tasks")}">収束テストの題材</h4>{task_table}')
+        if marks:
+            shown = (f'<div class="card"><div class="card-head"><h3>前の回答で反映したもの</h3><span class="muted">{esc(since)}</span></div>'
+                     f'<p class="lead">{esc(since)} の回答から、Eval に足した・直したもの。ラベルは回答した時の版との違いで、<b>新規</b>は足したもの、'
+                     f'<b>更新</b>は直したもの（前の文を下に残す）、<b>既存</b>は変えていないもの。</p>{legend}{"".join(parts)}</div>')
+        elif known - {str(x.get("id")) for x in talks}:
+            shown = ('<div class="card"><h3>今の Eval</h3><p class="lead">まだ回答していない。AI が依頼文から書いたもの。</p>'
+                     f'{"".join(parts)}</div>')
+        else:
+            shown = ""
+        return flow + shown + eval_questions(skill, talk_now, asks, refs) + dialog
+    result = skill["eval_result"] if sm["eval"][0] in ("ok", "bad") else {}
+    judged = {r.get("id"): r for r in result.get("cases", [])}
+    scored, score_note, score_round = eval_scores(skill)
+    ng_text = {str(e.get("id")): str(e.get("text", "")) for e in eval_list(materials, "unacceptable")}
+    order = {"bad": 0, "warn": 1, "none": 2, "ok": 3}
+
+    def b_state(bid: str) -> tuple[str, str]:
+        if scored is None:
+            return "none", "採点なし"
+        got = scored.get(bid, Counter())
+        return (("bad", "落ちた出力がある") if got["fail"] else ("warn", "判定待ち") if got["pending"] else
+                ("none", "人が確かめる") if got["human"] else ("none", "確かめられていない") if not got["pass"] else ("ok", "満たした"))
+
+    def v_state(members: list) -> tuple[str, str]:
+        states = [b_state(str(b.get("id"))) for b in members]
+        return min(states, key=lambda s: order[s[0]]) if states else ("none", "振る舞いが無い")
+
+    # 1. 要点: Eval とは何か、今の状態（Eval 自体の検証・収束テストでの採点）
+    chain = [(counts_now[0], "材料"), (len(hyps), "価値仮説"), (len(values), "確定した価値"),
+             (len(behaviors), "振る舞い"), (len(cases), f"事例（成功 {passes}・失敗 {len(cases) - passes}）")]
+    kind, label = sm["eval"]
+    errors = result.get("errors", []) if kind == "bad" else []
+    check_line = (f'{badge("warn", label)} {esc(skill["eval_stale"] or "結果を読めない")}' if kind == "warn" else
+                  f'{badge("bad", label)} {len(errors)} 件の問題がある（{jump(eid("check"), "下の検証")}）' if kind == "bad" else
+                  f'{badge("ok", "すべて満たした")} Eval が出力を正しく判定できる形になっている')
+    if scored is None:
+        score_line = f'{badge("warn" if score_round else "none", "Eval を直した後の採点が無い" if score_round else "採点なし")} {esc(score_note)}'
+    else:
+        states = [(str(b.get("id")), b_state(str(b.get("id")))) for b in behaviors]
+        rest = {}
+        for bid, (k, lab) in states:
+            if k != "ok":
+                rest.setdefault(lab, []).append(ref(bid))
+        score_line = (f'R{esc(score_round)}（最後のラウンド）で、振る舞い {len(states)} つのうち {sum(k == "ok" for _, (k, _) in states)} つを'
+                      '全員の出力が満たした。' + "".join(f"{esc(lab)}: {'、'.join(ids)}。" for lab, ids in rest.items()))
+    labels = (f'<p class="evx-lab">ラベルは、最後に回答した時（{esc(since)}）の版と比べた違い。<b>新規</b>は足したもの、<b>更新</b>は直したもの'
+              f'（前の文を下に残す）、<b>既存</b>は変えていないもの。</p>{legend}' if marks else "")
+    flow = (f'<div class="card"><div class="card-head"><h3>価値から {term("eval")} まで</h3>{badge(*sm["eval"])}</div>'
+            '<p class="lead">Eval は、このスキルの出力が、ユーザーと確かめた価値を満たすかを判定する基準。'
+            '収束テストが「AI ごとに出力が揃うか」を測るのに対し、Eval は「出力が価値を満たすか」を判定する。</p><ol class="ev-chain">'
+            + '<li class="ev-arrow" aria-hidden="true">→</li>'.join(f"<li><b>{n}</b>{esc(lab)}</li>" for n, lab in chain) + "</ol>"
+            f'<ul class="evx-sum"><li><b>Eval 自体の検証</b><span>{check_line}</span></li><li><b>収束テストでの採点</b><span>{score_line}</span></li></ul>'
+            f'{labels}<p class="evx-src">記録: <code>dev/eval/eval.json</code>（skill-foundation の手順3で作る）</p></div>')
+
+    # 2. 確定した価値と、それを確かめる振る舞いの採点
+    def b_line(b: dict) -> str:
+        bid = str(b.get("id", ""))
+        got = scored.get(bid, Counter()) if scored is not None else Counter()
+        nums = "・".join(f"{word} {got[k]}" for k, word in SCORE_WORDS if got[k])
+        tail = f'<span class="muted">出力 {sum(got.values())} 件: {esc(nums)}</span>' if nums else ""
+        return (f'<li><div class="evx-bh">{ref(bid)}{badge(*b_state(bid)) if scored is not None else ""}{tail}</div>'
+                f'<div>{inline(b.get("text", ""))}</div></li>')
+
+    vblocks = []
+    for v in values:
+        vid = str(v.get("id", ""))
+        members = [b for b in behaviors if b.get("value") == v.get("id")]
+        vblocks.append(f'<div class="evx-val" id="{eid(vid)}"{row(vid)}><div class="evx-vh">{tag(vid)}<code class="rid">{esc(vid)}</code>'
+                       f'{badge(*v_state(members)) if scored is not None else ""}</div><p class="evx-vt">{inline(v.get("text", ""))}{was(vid)}</p>'
+                       + (f'<ul class="evx-bl">{"".join(b_line(b) for b in members)}</ul>' if members else
+                          '<p class="muted">この価値を確かめる振る舞いが無い。</p>')
+                       + f'<p class="evx-src">もとにした仮説 {refs(v.get("from"))}・ユーザーが確かめた対話 {refs(v.get("confirmed_in"))}</p></div>')
+    value_card = (f'<div class="card" id="{anchor(name, "ev", "final")}"><h3>確定した価値と、収束テストでの採点</h3>'
+                  '<p class="lead">ユーザーと確かめた価値ごとに、それを外から確かめる振る舞いと、収束テストの最後のラウンドで各エージェントの出力を'
+                  '判定した結果を並べた。'
+                  + ("数は出力の件数で、「対象なし」は判定するファイルが出力に無かったもの（中断する題材など）。落ちたとは数えない。" if scored is not None else "")
+                  + f'振る舞いを押すと、判定方法と事例に移る。ラウンドごとの採点は{jump(f"skill-{name}-convergence", "収束テストのタブ")}にある。</p>'
+                  f'{"".join(vblocks)}</div>')
+
+    # 3. 振る舞いごとの判定方法と事例。同じ状況は1回だけ見せる
+    situations = list(dict.fromkeys(str(c.get("situation") or "") for c in cases))
+    shared = len(situations) == 1 and len(cases) > 1
+    sit_mark = ({s: chr(ord("A") + i) for i, s in enumerate(situations)} if not shared and 1 < len(situations) <= 26
+                and len(situations) < len(cases) else {})
+    situ = (f'<div class="evx-situ"><b>どの事例も、次の状況で作った出力を判定する</b><p>{inline(situations[0])}</p></div>' if shared else
+            '<div class="evx-situ"><b>事例の状況</b><dl>' + "".join(f"<div><dt>状況 {m}</dt><dd>{inline(s)}</dd></div>" for s, m in sit_mark.items())
+            + "</dl></div>" if sit_mark else "")
+
+    def verdict(c: dict) -> str:
+        r = judged.get(c.get("id"))
+        if r is None:
+            return '<span class="muted">結果なし</span>'
+        if r.get("judge") == "code":
+            ok = r.get("got") == c.get("expect")
+            return (badge("ok" if ok else "bad", ("期待どおり" if ok else "期待と違う") + ("（通った）" if r.get("got") == "pass" else "（落ちた）"))
+                    + (f'<div class="muted">{esc(r["detail"])}</div>' if r.get("detail") else ""))
+        return badge("ok", "ユーザーが同意") + " " + refs(c.get("agreed_in")) if r.get("got") == "agreed" else badge("bad", "同意なし")
+
+    def sample(c: dict) -> str:
+        rel = str(c.get("output") or "")
+        path = skill["dir"] / eval_check.EVAL_DIR / rel
+        try:
+            text = path.read_text(encoding="utf-8") if rel and path.is_file() else ""
+        except (OSError, UnicodeDecodeError):
+            text = ""
+        return (f'<details class="out"><summary><code>{esc(rel)}</code></summary><pre>{esc(text)}</pre></details>' if text
+                else f'<div><code>{esc(rel or "—")}</code></div>')
+
+    def case_row(c: dict) -> str:
+        cid, s = str(c.get("id", "")), str(c.get("situation") or "")
+        expect = {"pass": '<span class="yes">✓ 成功の例</span>', "fail": '<span class="no">✕ 失敗の例</span>'}.get(c.get("expect"), esc(c.get("expect", "")))
+        place = "" if shared else f'<p class="muted">状況 {sit_mark[s]}</p>' if sit_mark else f"<p>{inline(s)}</p>"
+        covers = [x for x in (c.get("covers") if isinstance(c.get("covers"), list) else []) if x]
+        guard = "".join(f'<p class="evx-ng">許容できない結果「{inline(ng_text.get(str(x), ""))}」（{ref(x)}）を確かめる</p>' for x in covers)
+        return (f'<tr id="{eid(cid)}"{row(cid)}><td>{tag(cid)}<code class="rid">{esc(cid)}</code><div>{expect}</div></td>'
+                f'<td>{place}{was(cid)}{sample(c)}</td><td>{inline(c.get("reason", ""))}{guard}</td><td>{verdict(c)}</td></tr>')
+
+    def judge_html(judge: dict) -> str:
+        how = JUDGE_HOW.get(judge.get("type"), esc(judge.get("type") or "—"))
+        if judge.get("type") != "code":
+            parts = re.split(r"(成功|失敗)\s*[:：]\s*", str(judge.get("rubric") or ""))
+            body = (f'<p>{inline(parts[0])}</p>' if parts[0].strip() else "") + "".join(
+                f'<p><b class="{"yes" if parts[i] == "成功" else "no"}">{parts[i]}</b> {inline(parts[i + 1])}</p>' for i in range(1, len(parts) - 1, 2))
+            return f'<div class="evx-judge"><p><b>判定のしかた</b>{how}。基準の文:</p>{body}</div>'
+        items = "".join(f"<li>{check_words(c)}</li>" for c in judge.get("checks", []) if isinstance(c, dict)) \
+            if isinstance(judge.get("checks"), list) else ""
+        return f'<div class="evx-judge"><p><b>判定のしかた</b>{how}。出力が次をすべて満たせば成功:</p><ul>{items}</ul></div>'
+
+    vparts = []
+    for v in values:
+        bparts = []
+        for b in [b for b in behaviors if b.get("value") == v.get("id")]:
+            bid = str(b.get("id", ""))
+            judge = b.get("judge") if isinstance(b.get("judge"), dict) else {}
+            rows = "".join(case_row(c) for c in cases if c.get("behavior") == b.get("id"))
+            bparts.append(f'<div class="ev-b" id="{eid(bid)}"><p class="evx-bt">{tag(bid)}<code class="rid">{esc(bid)}</code> {inline(b.get("text", ""))}'
+                          f'{was(bid)}</p>{judge_html(judge)}<div class="scroll"><table class="ev-cases"><thead><tr><th>事例</th>'
+                          f'<th>{"出力の見本" if shared or sit_mark else "状況と出力の見本"}</th><th>なぜ成功・失敗か</th><th>判定の結果</th></tr></thead>'
+                          f'<tbody>{rows}</tbody></table></div></div>')
+        vparts.append(f'<div class="evx-v"><h4><code class="rid">{esc(v.get("id", ""))}</code><span>{inline(v.get("text", ""))}</span></h4>'
+                      + ("".join(bparts) or '<p class="muted">この価値を確かめる振る舞いが無い。</p>') + "</div>")
+    shown = ('<div class="card"><h3>振る舞いの判定方法と事例</h3><p class="lead">振る舞いごとに、どう判定するかと、その判定が正しく働くかを確かめた'
+             '成功と失敗の事例を並べた。「判定の結果」が「期待どおり」なら、その判定方法は成功の例を通し、失敗の例を落とせている。'
+             f'model と human の判定は、機械では当てられないので、ユーザーが判定に同意したかで確かめた。</p>{situ}{"".join(vparts)}</div>')
+
+    # 4. Eval 自体の検証
+    status = (f'<p>{badge("warn", label)} {esc(skill["eval_stale"] or "結果を読めない")}</p>' if kind == "warn" else
+              f'<p>{badge("bad", label)}</p><ul class="plain">' + "".join(f"<li>{esc(e)}</li>" for e in errors) + "</ul>" if kind == "bad" else
+              f'<p>{badge("ok", "すべて満たした")}</p>')
+    check = (f'<div class="card" id="{eid("check")}"><h3>Eval 自体の検証</h3>{status}<p class="lead">Eval が壊れていると、作ったスキルの出力を'
+             '正しく判定できない。そこで受付の前に、次のことを機械で確かめた。</p>'
+             '<ul class="ev-checks">' + "".join(f"<li>{esc(x)}</li>" for x in EVAL_CHECKS) + "</ul>"
+             '<p class="evx-src">記録: <code>dev/results/eval-check.json</code>（eval_check.py が書く）</p></div>')
+
+    # 5. 収束テストの題材
+    task_card = (f'<div class="card" id="{eid("tasks")}"><h3>収束テストの題材</h3><p class="lead">{term("convergence")}で、このスキルの作成に'
+                 '関わっていない AI に解かせる依頼。Eval を確かめた後に、このタブでユーザーと確かめる。「最後のラウンドだけで使う依頼」は、'
+                 'それまでのラウンドで直した手順が初めて見る依頼にも効くかを確かめるために、最後のラウンドまで取っておく。</p>'
+                 + (task_table if tasks else '<p class="muted">まだ無い。Eval を確かめた後に決める。</p>')
+                 + '<p class="evx-src">記録: <code>dev/evals.json</code></p></div>')
+
+    # 6. Eval ができるまで（材料・価値仮説・対話）
+    history = (f'<div class="card"><details class="ev-talks"><summary>Eval ができるまで <span class="muted">材料 {counts_now[0]}・価値仮説 {len(hyps)}・'
+               f'ユーザーとの対話 {len(talks)}。作った後に見返すときに開く</span></summary>'
+               '<p class="lead">価値は、抽象的な目的から直接は決めず、ユーザーから聞いた具体的な材料から見つけた。AI が材料から立てた価値仮説のうち、'
+               'ユーザーが確かめたものだけを確定した価値にした。</p>'
+               f'<h4>価値を見つけた材料</h4><div class="ev-grid">{cols}</div><h4 class="ev-sub">価値仮説</h4>{hyp_table}'
+               f'<h4 class="ev-sub">ユーザーとの対話</h4>{talk_items or NO_TALKS}</details></div>')
+    return flow + value_card + shown + check + task_card + history
+
+
+def eval_questions(skill: dict, talk: str, asks: list[dict], refs) -> str:
+    """答えが要る質問。1枚ずつ削って開くカード（削ったカードは戻らない）と、答えをチャット欄に貼る文を作る回答シート。"""
+    name = skill["name"]
+    cards = []
+    for n, q in enumerate(asks, 1):
+        options = [o for o in q.get("options") if isinstance(o, dict)] if isinstance(q.get("options"), list) else []
+        if options:
+            body = ('<fieldset><legend class="sr">答えを1つ選ぶ</legend>'
+                    + "".join(f'<label class="evq-opt"><input type="radio" name="evq-{esc(name)}-{n}" value="{esc(o.get("key", ""))}" '
+                              f'data-text="{esc(o.get("text", ""))}"{" data-free" if o.get("free") else ""}><span class="k">{esc(o.get("key", ""))}</span>'
+                              f'<span>{inline(o.get("text", ""))}</span>{FREE_MARK if o.get("free") else ""}</label>' for o in options)
+                    + '</fieldset><textarea class="evq-free" placeholder="どう直すか、何が違うかを書く" hidden aria-label="書いて答える"></textarea>')
+        else:
+            body = '<textarea class="evq-free" data-only placeholder="ここに答えを書く" aria-label="答えを書く"></textarea>'
+        why = "<br>".join(x for x in (f'<b>聞く理由</b>{inline(q["why"])}' if str(q.get("why") or "").strip() else "",
+                                      f'<b>関係する項目</b>{refs(q["refs"])}' if q.get("refs") else "") if x)
+        cards.append(f'<article class="evq-q covered" data-n="{n}" data-title="{esc(q.get("title", ""))}"><div class="evq-in">'
+                     f'<header class="evq-head"><span class="qn">Q{n}</span><h4>{inline(q.get("title", ""))}</h4><span class="evq-st"></span></header>'
+                     f'<p class="evq-ask">{inline(q.get("ask", ""))}</p>' + (f'<p class="evq-why">{why}</p>' if why else "")
+                     + f'<form novalidate>{body}<details class="evq-note"><summary>補足を書く（任意）</summary>'
+                     '<textarea class="evq-memo" placeholder="AI に伝えたいことがあれば書く" aria-label="補足"></textarea></details>'
+                     '<div class="evq-act"><button type="submit" class="btn primary" disabled>この答えで決める</button></div></form>'
+                     '<div class="evq-done"><span>答え</span><span class="ans"></span><button type="button" class="btn link" data-evq-edit>直す</button>'
+                     '<p class="evq-extra"></p></div></div></article>')
+    key = f"skill-catalog-eval:{skill['dir'].resolve().as_posix()}:{talk}"
+    return (f'<div class="card" id="{anchor(name, "ev", "questions")}"><div class="card-head"><h3>答えが要る質問</h3><span class="muted">{esc(talk)}</span></div>'
+            '<p class="lead">質問は1つずつ削って開く。削ったカードは元に戻らない。答えると次のカードが削れるようになる。全部答えたら、下の「回答をコピー」で'
+            'チャット欄に貼る。</p>'
+            f'<div class="evq" data-evq="{esc(name)}" data-talk="{esc(talk)}" data-key="{esc(key)}"><div class="evq-prog"></div>'
+            f'<div class="evq-list">{"".join(cards)}</div>'
+            f'<div class="evq-sheet"><div class="evq-row"><span class="evq-cnt">回答 <b>0</b> / {len(asks)}</span><span class="evq-hint"></span>'
+            '<button type="button" class="btn primary" data-evq-copy disabled>回答をコピー</button></div>'
+            '<details><summary>貼る文を見る</summary><pre class="evq-text"></pre></details></div></div></div>')
+
+
+SCORE_WORDS = [("pass", "通過"), ("fail", "落ちた"), ("na", "対象なし"), ("pending", "判定待ち"), ("human", "人が確かめる")]
+SCORE_MARKS = {"pass": ("yes", "✓", "通過"), "fail": ("no", "✕", "落ちた"), "na": ("muted", "—", "対象なし"),
+               "pending": ("muted", "…", "判定待ち"), "human": ("muted", "人", "人が確かめる")}
+
+
+def score_counts(round_data: dict) -> dict:
+    """振る舞いごとの、ラウンドの全エージェントの採点の数。"""
+    counts: dict = {}
+    for t in round_data.get("tasks", []):
+        for scores in (t.get("eval") or {}).values():
+            for bid, x in scores.items():
+                counts.setdefault(bid, Counter())[x.get("result")] += 1
+    return counts
+
+
+def eval_scores(skill: dict) -> tuple:
+    """最後のラウンドを今の Eval で採点した、振る舞いごとの数（Counter）。採点が無いか古いときは None と、そのわけ。（数, わけ, ラウンド）"""
+    scored = [d for d in skill["rounds"] if (d.get("eval") or {}).get("hash")]
+    last = skill["rounds"][-1] if skill["rounds"] else {}
+    if not scored:
+        return None, "まだ収束テストでこの Eval を使って採点していない（skill-foundation の手順10）。", None
+    if (last.get("eval") or {}).get("hash") != skill["eval_hash"]:
+        return None, (f"最後のラウンド R{last.get('round')} は、今の Eval で採点していない"
+                      "（Eval を作るか直した後に、収束テストのラウンドを実行していない）。"), last.get("round")
+    return score_counts(last), "", last.get("round")
+
+
+def check_words(check: dict) -> str:
+    """Eval の code の検査を、読む人の言葉にする。message があればそれを主にし、検査の中身は後ろに小さく添える。"""
+    kind = check.get("type", "")
+    what = next((check[k] for k in ("pattern", "value", "max", "required_keys", "equals", "includes", "schema") if k in check), "")
+    what = what if isinstance(what, str) else json.dumps(what, ensure_ascii=False)
+    low, high = check.get("min", 1), check.get("max")
+    words = {"require": f"次の正規表現に当たる行が {low} つ以上" + (f" {high} つ以下" if high is not None else "") + "ある",
+             "forbid": "次の正規表現に当たる行が無い",
+             "headings": "見出しが次のとおりになっている" if "equals" in check else "次の見出しが、この順で揃っている",
+             "max_lines": f"{check.get('max')} 行以下", "min_lines": f"{check.get('min')} 行以上",
+             "line_length": f"どの行も {check.get('max')} 文字以下", "json_schema": "JSON が次の形に合う",
+             "front_matter": "front matter に次のキーがある"}.get(kind, kind)
+    code = f' <code>{esc(what)}</code>' if kind not in ("max_lines", "min_lines", "line_length") else ""
+    if check.get("message"):
+        return f'{inline(check["message"])}<span class="muted evx-how">（{esc(words)}{code}）</span>'
+    return f"{esc(words)}{code}"
+
+
+def section_eval_scoring(skill: dict) -> str:
+    """収束テストのタブの「Eval の採点」。ラウンドごとに、エージェント × 振る舞いの判定と、締め込みでの分類。"""
+    name = skill["name"]
+    scored = [d for d in skill["rounds"] if (d.get("eval") or {}).get("hash")]
+    if not scored:
+        return ""
+    blocks = []
+    for d in reversed(scored):
+        rnd = d.get("round")
+        bids = sorted({bid for t in d.get("tasks", []) for x in (t.get("eval") or {}).values() for bid in x}, key=eval_check.natural)
+        types = {bid: x.get("type") for t in d.get("tasks", []) for scores in (t.get("eval") or {}).values() for bid, x in scores.items()}
+        rows = []
+        for t in d.get("tasks", []):
+            for agent, scores in (t.get("eval") or {}).items():
+                cells = []
+                for bid in bids:
+                    x = scores.get(bid) or {}
+                    cls, mark, label = SCORE_MARKS.get(x.get("result"), ("muted", "—", "—"))
+                    detail = str(x.get("detail") or "")
+                    cells.append(f'<td title="{esc(detail)}"><span class="{cls}">{mark}</span> <small>{label}</small>'
+                                 + (f'<div class="muted">{esc(detail)}</div>' if x.get("result") == "fail" and detail else "") + "</td>")
+                rows.append(f'<tr><td><span class="tid">{esc(t.get("id", ""))}</span><div class="muted">{esc(agent)}</div></td>{"".join(cells)}</tr>')
+        heads = "".join(f'<th>{jump(anchor(name, "ev", bid), f"<code>{esc(bid)}</code>")}<small>{esc(types.get(bid) or "")}</small></th>' for bid in bids)
+        same = d["eval"]["hash"] == skill["eval_hash"]
+        unchecked = eval_check.unchecked(d)
+        classified = skill["eval_rows"].get(rnd, [])
+        table = ("".join(f'<tr><td>{esc(r[1]) if len(r) > 1 else ""}</td><td><code>{esc(r[2]) if len(r) > 2 else ""}</code></td>'
+                         f'<td>{esc(r[3]) if len(r) > 3 else ""}</td><td>{inline(r[4]) if len(r) > 4 else ""}</td></tr>' for r in classified))
+        blocks.append(f'<div class="ev-round" id="{anchor(name, "evs", rnd)}"><h4>R{esc(rnd)} '
+                      + badge("ok" if same else "none", "今の Eval で採点" if same else "前の Eval で採点") + "</h4>"
+                      f'<div class="scroll"><table class="ev-score"><thead><tr><th>課題・エージェント</th>{heads}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+                      + (f'<p class="muted">全員で「対象なし」だった振る舞い: {"、".join(esc(b) for b in unchecked)}（判定するファイルが出力に無く、'
+                         'この課題では確かめられていない）</p>' if unchecked else "")
+                      + (f'<h5>締め込みでの分類（dev/convergence-report.md の「Eval の採点」）</h5><div class="scroll"><table><thead><tr><th>課題/エージェント</th>'
+                         f'<th>振る舞い</th><th>分類</th><th>対処</th></tr></thead><tbody>{table}</tbody></table></div>' if classified else
+                         '<p class="muted">締め込みでの分類はまだ無い。</p>')
+                      + "</div>")
+    return ('<div class="card"><h3>Eval の採点</h3><p class="lead">各エージェントの出力を Eval（Eval 作成のタブ）で採点した結果。code は convergence.py が'
+            '検査で判定し、model は動きを分析した AI が基準の文で判定した。落ちた判定は、締め込みで出力の誤り（スキルを直す）か Eval の疑い'
+            '（判定がずれている）に分け、分析で見つけた Eval で確かめていない問題は Eval の抜けとする。疑いか抜けがあれば、ユーザーとすり合わせて'
+            f'Eval を直してから次のラウンドに進む。新しいラウンドが上。</p>{"".join(blocks)}</div>')
 
 
 def section_decisions(skill: dict) -> str:
@@ -1956,7 +2801,7 @@ def section_probes(skill: dict, sm: dict) -> str:
         matrix.append(f'<tr><td><code>{esc(check)}</code></td>{"".join(tds)}</tr>')
     heads = "".join(f"<th>{esc(report_skill.PRODUCTS.get(p, p))}</th>" for p in platforms)
     wire_html = (f'<div class="card"><h3>hooks の動作</h3><p class="lead">probe.py が、hooks が製品の設定に登録され、スキルの実行中は働き、'
-                 '実行していないときは何もしないかを、製品ごとに確かめた結果。</p>'
+                 '完了後も指摘収集が働くかを、製品ごとに確かめた結果。</p>'
                  f'<div class="scroll"><table class="wire"><thead><tr><th>検査</th>{heads}</tr></thead><tbody>{"".join(matrix)}</tbody></table></div></div>') if wiring else ""
     big = dot_text([(str(passed), "dm-on"), (f"/{len(results)}", "dm-dim")], pitch=3.6)
     return (f'<div class="card"><div class="card-head"><h3>違反を見つけて止めるか</h3><span class="big">{big}<small>止めた</small></span></div>'
@@ -1991,7 +2836,9 @@ def section_convergence(skill: dict, sm: dict) -> str:
                + (f'<span class="muted">（{esc("、".join(met))}）</span>' if met else "")
                + f'<p>{term("convergence")}は、課題ごとに、独立エージェントが作ったものの揃い方を 0〜1 で測る（1 なら全員が同じ）。'
                f'基準: {METRIC_NAMES["files"]} ≥ {th.get("files", 1.0):g}・{METRIC_NAMES["structure"]} ≥ {th.get("structure", 1.0):g}・'
-               f'{METRIC_NAMES["names"]} ≥ {th.get("names", 0.8):g}。{METRIC_NAMES["content"]}は参考の値で、基準に使わない。</p></div></div>')
+               f'{METRIC_NAMES["names"]} ≥ {th.get("names", 0.8):g}。{METRIC_NAMES["content"]}は参考の値で、基準に使わない。'
+               + ("Eval で採点したラウンドは、Eval に落ちた出力が無いことも基準に入る（下の「Eval の採点」）。" if (last.get("eval") or {}).get("hash") else "")
+               + '</p></div></div>')
     prompts = {tid: str(skill["tasks"].get(tid, {}).get("prompt", "")) for tid in order}
     legend = "".join(f'<button type="button" class="fk" data-focus="s{i % 6 + 1}" aria-pressed="false" title="{esc(prompts[tid])}">'
                      f'<span class="sw s{i % 6 + 1}"></span>{esc(tid)}</button>' for i, tid in enumerate(order))
@@ -2001,21 +2848,27 @@ def section_convergence(skill: dict, sm: dict) -> str:
     for d in reversed(rounds):
         runners = "、".join(d.get("runners", []))
         models = model_list(skill["moves"].get(d.get("round"), {}).values())
-        rows.append(f'<tr class="grp"><th colspan="8">R{esc(d.get("round"))}<span class="muted">{term("runner")} {esc(runners or "—")}'
+        rows.append(f'<tr class="grp"><th colspan="9">R{esc(d.get("round"))}<span class="muted">{term("runner")} {esc(runners or "—")}'
                     + (f"・モデル {models}" if models else "") + "</span></th></tr>")
         for task in d.get("tasks", []):
             status_text = "、".join(sorted({STATUS_NAMES.get(s, s) for s in task.get("status", {}).values()})) or "—"
-            verdict_cell = badge("ok", "揃った") if task.get("converged") else badge("warn", "揃わない")
+            verdict_cell = (badge("ok", "満たす") if task.get("converged") else
+                            badge("warn", "Eval に落ちた") if task.get("variance_ok") and task.get("eval_ok") is False else
+                            badge("warn", "判定待ち") if task.get("variance_ok") and task.get("eval_ok") is None else badge("warn", "揃わない"))
+            got = Counter(x.get("result") for scores in (task.get("eval") or {}).values() for x in scores.values())
+            eval_text = ("—" if not got else f'<span class="no">✕</span> 落ちた {got["fail"]}' if got["fail"] else
+                         f"判定待ち {got['pending']}" if got["pending"] else '<span class="yes">✓</span> 通過')
             rows.append(f'<tr id="{anchor(skill["name"], "conv", d.get("round"), task.get("id", ""))}"><td><span class="tid">{esc(task.get("id", ""))}</span></td>'
                         f'<td class="num">{len(task.get("agents", []))} 人</td>'
                         f'<td>{esc(status_text)}</td>' + metric_cell(task.get("files"), float(th.get("files", 1.0)))
                         + metric_cell(task.get("structure"), float(th.get("structure", 1.0))) + metric_cell(task.get("names"), float(th.get("names", 0.8)))
-                        + f'<td class="num muted">{fmt(task.get("content"))}</td><td>{verdict_cell}</td></tr>')
+                        + f'<td class="num muted">{fmt(task.get("content"))}</td><td>{eval_text}</td><td>{verdict_cell}</td></tr>')
     heads = "".join(f'<th class="num">{METRIC_NAMES[k]}<small>{k}</small></th>' for k in ("files", "structure", "names"))
-    table = ('<div class="card"><h3>ラウンドごとの値</h3><p class="lead">棒の縦線が基準。新しいラウンドが上。「終わり方」はエージェントの実行の結果。</p>'
+    table = ('<div class="card"><h3>ラウンドごとの値</h3><p class="lead">棒の縦線が基準。新しいラウンドが上。「終わり方」はエージェントの実行の結果。'
+             '「Eval」は出力の採点（Eval を作る前のラウンドは —）。</p>'
              '<div class="scroll"><table class="conv"><thead><tr><th>課題</th>'
              f'<th class="num">人数</th><th>終わり方</th>{heads}<th class="num">{METRIC_NAMES["content"]}<small>content・参考</small></th>'
-             f'<th>基準</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></div>')
+             f'<th>Eval</th><th>基準</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></div>')
     extra = []
     samples = last.get("review", {}).get("samples", [])
     if samples:
@@ -2034,26 +2887,20 @@ def section_convergence(skill: dict, sm: dict) -> str:
     conclusion = (f'<div class="card prose"><h3>結論</h3><p class="lead">dev/convergence-report.md の「結論」。</p>{markdown(skill["conclusion"])}</div>'
                   if skill["conclusion"].strip() else "")
     return (verdict + f'<div class="card" data-focus-scope><div class="key focus-key"><span class="muted">課題を押すと、その線だけを浮かび上がらせる</span>{legend}</div>'
-            f'<div class="charts">{charts}</div></div>{table}'
+            f'<div class="charts">{charts}</div></div>{table}{section_eval_scoring(skill)}'
             + (f'<div class="card split">{"".join(extra)}</div>' if extra else "") + conclusion)
 
 
 def section_state(skill: dict) -> str:
     state = skill["state"]
-    seal_kind, seal_text = skill["seal"]
-    mark = badge("ok" if seal_kind == "ok" else "bad" if seal_kind == "bad" else "warn", seal_text)
-    seal = (f'<div class="card" id="{anchor(skill["name"], "seal")}"><h3>{term("seal")}</h3><p>{mark}'
-            + (f' 見比べたファイル {skill["seal_files"]} 件（SKILL.md、scripts、assets、references）' if skill["seal_files"] else "")
-            + '</p><p class="lead">検証に合格したとき（finish が検査に通ったとき）のファイルの指紋（assets/seal.json）と、今のファイルを見比べる。'
-              '合格した後に書き換えると、ここに出て、次の run.py start が止まる。</p></div>')
     if not state:
-        return seal + (f'<div class="card empty"><p>このプロジェクトに実行の記録（<code>{rt.RUNS_DIRNAME}/{esc(skill["name"])}/state.json</code>）が無い。'
+        return (f'<div class="card empty"><p>このプロジェクトに実行の記録（<code>{rt.RUNS_DIRNAME}/{esc(skill["name"])}/state.json</code>）が無い。'
                        'スキルを実行すると、start から finish までの記録がここに出る。</p></div>')
     events = state.get("history", [])[-40:]
     kind = {"done": "ok", "failed": "bad", "aborted": "warn"}.get(state.get("status"), "none")
     items = "".join(f'<li><time>{esc(str(e.get("at", ""))[11:19])}</time><b>{esc(e.get("event", ""))}</b>'
                     + (f'<span class="muted">{esc(e.get("detail", ""))}</span>' if e.get("detail") else "") + "</li>" for e in events)
-    return seal + (f'<div class="card"><h3>最後の実行</h3><p>{badge(kind, "結果: " + STATUS_NAMES.get(state.get("status"), str(state.get("status", "—"))))} '
+    return (f'<div class="card"><h3>最後の実行</h3><p>{badge(kind, "結果: " + STATUS_NAMES.get(state.get("status"), str(state.get("status", "—"))))} '
                    f'開始 {esc(state.get("started_at", "—"))}・終了 {esc(state.get("finished_at", "—"))}</p><ol class="timeline">{items}</ol></div>')
 
 
@@ -2061,7 +2908,9 @@ def section_skill(skill: dict) -> str:
     spec, name = skill["spec"], skill["name"]
     sm = summary(skill)
     products = "、".join(report_skill.PRODUCTS.get(x, x) for x in spec.get("targets", []))
-    hooks = "、".join(f"{report_skill.PRODUCTS[p]} {len(e)}" for p, e in skill["hooks"].items() if e) or "登録なし"
+    hooks = "、".join(f"{report_skill.PRODUCTS[p]} {len(e)}" for p, e in skill["hooks"].items() if e)
+    shipped = "、".join(f"{report_skill.PRODUCTS[p]} {len(e)}" for p, e in skill["shipped_hooks"].items() if e)
+    hooks = "、".join(x for x in (hooks, shipped and f"プラグインで配る（{shipped}）") if x) or "登録なし"
     status = {"building": "作っている途中", "ready": "完成"}.get(spec.get("status"), spec.get("status", "—"))
     mode = {"new": "新しく作った", "retrofit": "既存のスキルに後付けした"}.get(spec.get("mode"), spec.get("mode", "—"))
     meta = [("置き場", f"<code>{esc(skill['path'])}</code>"), ("対象", esc(products)),
@@ -2101,20 +2950,27 @@ def section_skill(skill: dict) -> str:
     diagram = workflow_svg(skill) if skill["steps"] else '<p class="muted">SKILL.md の「2. 手順」に番号の行が無い。</p>'
     movers = last_moves(skill)
     flagged = sum(any(a["outside"] for a in run["actions"]) for run in movers.values())
-    counts = {"workflow": f'{len(skill["steps"])} 手順', "movement": f"{len(movers)} 人" if movers else "",
+    ev_cases = (skill["eval"] or {}).get("cases")
+    asks = eval_check.questions(skill["eval"])[1] if skill["eval"] else []
+    design = hook_design(skill)
+    counts = {"eval": f"質問 {len(asks)}" if asks else f"{len(ev_cases)} 事例" if sm["eval"][1] != "省いた" and isinstance(ev_cases, list) else "",
+              "workflow": f'{len(skill["steps"])} 手順', "hooks": f"{len(design)} イベント" if design else "", "movement": f"{len(movers)} 人" if movers else "",
               "convergence": f"R{sm['round']}" if sm["round"] is not None and not sm["skip"] else "",
               "decisions": str(len(skill["decisions"])), "probes": str(len(sm["results"])) if sm["results"] else "", "state": ""}
-    warn_tabs = {"movement": flagged > 0, "convergence": sm["conv"][0] == "warn", "probes": bool(sm["p_fail"] or sm["w_fail"]),
-                 "state": sm["seal"][0] != "ok"}
+    warn_tabs = {"eval": sm["eval"][0] in ("bad", "warn"), "hooks": hook_missing(skill, design) > 0, "movement": flagged > 0, "convergence": sm["conv"][0] == "warn", "probes": bool(sm["p_fail"] or sm["w_fail"]),
+                 "state": False}
     group = f"tab-{name}"
     tabs = "".join(f'<button type="button" role="tab" data-for="{esc(group)}" data-show="skill-{esc(name)}-{key}" data-hash="">{label}'
-                   + (f'<span class="cnt{" warn" if warn_tabs.get(key) else ""}">{esc(counts[key])}</span>' if counts.get(key) else
+                   + (f'<span class="cnt{" warn" if warn_tabs.get(key) else ""}"{" data-evq-tab" if key == "eval" and asks else ""}>{esc(counts[key])}</span>'
+                      if counts.get(key) else
                       ('<span class="cnt warn">!</span>' if warn_tabs.get(key) else "")) + "</button>" for key, label in TABS)
     panes = {
+        "eval": section_eval(skill, sm),
         "workflow": (f'<div class="card"><p class="lead">SKILL.md の「2. 手順」と出力の決まり（assets/contract.json）から描いた流れ。'
                      '左の番号が手順、右が最後のラウンドの収束テストで、独立エージェント（これまでの会話を持たないエージェント）が残した記録。'
                      f'カードに重ねると本文が出る。</p><div class="scroll">{diagram}</div><div class="key notes">{"".join(notes)}</div>{caption}</div>'
                      f'<details class="card more"><summary>手順の本文（SKILL.md の「2. 手順」）</summary><ol class="steps">{steps_html}</ol></details>'),
+        "hooks": section_hooks(skill),
         "movement": section_movement(skill),
         "convergence": section_convergence(skill, sm),
         "decisions": section_decisions(skill) + section_outputs(skill),
@@ -2146,13 +3002,13 @@ DARK = ("--bg:#191814;--panel:#201f1c;--sunken:#2a2925;--zebra:#24231f;--ink:#ed
         "--accent:#d97757;--accent-ink:#eb9877;--accent-soft:rgba(217,119,87,.15);--on-accent:#1b1a17;"
         "--good:#22b322;--good-ink:#62d062;--good-soft:rgba(34,179,34,.13);--warn:#fab219;--warn-ink:#f6c453;--warn-soft:rgba(250,178,25,.12);"
         "--crit:#e05252;--crit-ink:#f28a8a;--crit-soft:rgba(224,82,82,.15);--on-crit:#ffffff;--shadow:0 10px 30px rgba(0,0,0,.55);"
-        + "".join(f"--s{i}:{c};" for i, c in enumerate(SERIES["dark"], 1)))
+        + "".join(f"--s{i}:{c};" for i, c in enumerate(SERIES["dark"], 1)) + "".join(f"--hk-{k}:{v[1]};" for k, v in HOOK_COLORS.items()))
 LIGHT = ("--bg:#f6f5f1;--panel:#ffffff;--sunken:#efede7;--zebra:#faf9f6;--ink:#1f1e1b;--ink-2:#504d45;--muted:#706c62;"
          "--line:#e4e1d8;--line-2:#cdc9bd;--dot-off:#e6e3da;--grid-dot:rgba(31,30,27,.08);"
          "--accent:#c6613f;--accent-ink:#a84f30;--accent-soft:#f8e7e0;--on-accent:#ffffff;"
          "--good:#0ca30c;--good-ink:#087a08;--good-soft:#e3f4e3;--warn:#fab219;--warn-ink:#875800;--warn-soft:#fdf1d6;"
          "--crit:#d03b3b;--crit-ink:#b02b2b;--crit-soft:#fbe6e6;--on-crit:#ffffff;--shadow:0 8px 26px rgba(31,30,27,.18);"
-         + "".join(f"--s{i}:{c};" for i, c in enumerate(SERIES["light"], 1)))
+         + "".join(f"--s{i}:{c};" for i, c in enumerate(SERIES["light"], 1)) + "".join(f"--hk-{k}:{v[0]};" for k, v in HOOK_COLORS.items()))
 SERIES_CSS = "".join(f".s{i}.mv-bar,.sw.s{i}{{fill:var(--s{i});background:var(--s{i})}}.ch-line.s{i},.mv-link.s{i}{{stroke:var(--s{i})}}"
                      f".ch-dot.s{i}{{fill:var(--s{i})}}" for i in range(1, 7))
 SEGMENTS = "repeating-linear-gradient(90deg,#000 0 5px,transparent 5px 7px)"
@@ -2374,6 +3230,80 @@ table.ops tr.ng td:first-child{box-shadow:inset 3px 0 0 var(--crit)}
 .yes{color:var(--good-ink);font-weight:700}.no{color:var(--crit-ink);font-weight:700}
 details.reply{padding:0 14px 12px}
 details.reply summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--ink-2);padding-top:10px}
+details.arts{padding:0 14px 12px;border-top:1px dashed var(--line-2)}
+.hk-wrap{display:grid;grid-template-columns:minmax(0,600px) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:980px){.hk-wrap{grid-template-columns:minmax(0,1fr)}.hk-map{max-width:600px}}
+.hkd-scroll{overflow-x:auto;padding:12px 8px 6px}
+.hkd{position:relative;container-type:inline-size;min-width:440px;aspect-ratio:520/1336;border-radius:8px;background:var(--hk-bg);
+font-family:system-ui,-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;--u:calc(100cqw / 520)}
+.hkd-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hkd-svg line,.hkd-svg path{fill:none;stroke-width:2}
+.hkd-svg .k-down line{stroke:var(--hk-mid)}.hkd-svg .k-down polygon{fill:var(--hk-mid)}
+.hkd-svg .k-side line{stroke:var(--hk-side-line);stroke-width:1.5;stroke-dasharray:5 3}.hkd-svg .k-side polygon{fill:var(--hk-side-line)}
+.hkd-svg g.k-loop path{stroke:var(--hk-loop)}.hkd-svg g.k-loop polygon{fill:var(--hk-loop)}
+.hkd-svg g.k-turn path{stroke:var(--hk-turn)}.hkd-svg g.k-turn polygon{fill:var(--hk-turn)}
+.hkd-svg g.k-resume path{stroke:var(--hk-resume);stroke-width:2.5;stroke-dasharray:8 5}.hkd-svg g.k-resume polygon{fill:var(--hk-resume)}
+.hkd-svg rect{fill:none;stroke-width:2.5;stroke-dasharray:6 4}.hkd-svg rect.k-turn{stroke:var(--hk-turn)}.hkd-svg rect.k-loop{stroke:var(--hk-loop)}
+.hkd-svg text{font-family:inherit;font-size:14px;font-weight:800;letter-spacing:2px}.hkd-svg text.k-turn{fill:var(--hk-turn-ink)}.hkd-svg text.k-loop{fill:var(--hk-loop)}
+.hkd-svg text.k-resume{fill:var(--hk-mid);font-size:11px;font-weight:400;letter-spacing:0;text-anchor:middle}
+.hkd-box{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(2*var(--u));margin:0;
+padding:0 calc(4*var(--u));border-radius:calc(6*var(--u));font:inherit;font-size:calc(13*var(--u));font-weight:600;line-height:1.15;
+text-align:center;color:var(--hk-ink)}
+button.hkd-box{cursor:pointer}
+.hkd-box.k-start{background:var(--hk-start);border:calc(1*var(--u)) solid var(--hk-start-line);color:var(--hk-start-ink)}
+.hkd-box.k-plain{background:var(--hk-plain);border:calc(1*var(--u)) solid var(--hk-plain-line)}
+.hkd-box.k-loop{background:var(--hk-loop-fill);border:calc(1.5*var(--u)) solid var(--hk-loop)}
+.hkd-box.k-tool{background:var(--hk-tool);border:calc(1*var(--u)) solid var(--hk-turn);color:var(--hk-tool-ink)}
+.hkd-box.k-stop{background:var(--hk-stop);border:calc(1.5*var(--u)) solid var(--hk-stop-line)}
+.hkd-box.k-side{background:var(--hk-bg);border:calc(1.5*var(--u)) dashed var(--hk-side-line);color:var(--hk-mid);font-size:calc(11*var(--u))}
+.hkd-box.k-seq{background:var(--hk-plain);border:calc(1*var(--u)) solid var(--hk-plain-line);font-size:calc(11*var(--u))}
+.hkd-box.k-side.multi{font-size:calc(10*var(--u));gap:0}
+.hkd-sub{font-size:calc(10*var(--u));font-weight:400;color:var(--hk-sub)}
+.hkd-box.k-seq .hkd-sub{color:var(--hk-mid)}
+.hkd-box.small .hkd-sub{font-size:calc(9*var(--u))}
+.hkd-evs{display:flex;align-items:center;justify-content:center;gap:calc(3*var(--u))}
+.k-side .hkd-evs{flex-direction:column;gap:0}
+.hkd-evs .hkd-ev{margin:0;padding:calc(1*var(--u)) calc(3*var(--u));border:0;border-radius:calc(4*var(--u));background:none;color:inherit;font:inherit;cursor:pointer}
+.hkd-box.has-used{box-shadow:0 0 0 calc(2.5*var(--u)) var(--accent)}
+.hkd-evs .hkd-ev.used{background:var(--accent);color:var(--on-accent)}
+.hkd-pin{position:absolute;top:calc(-9*var(--u));right:calc(-6*var(--u));padding:calc(1*var(--u)) calc(6*var(--u));border-radius:999px;
+background:var(--accent);color:var(--on-accent);font-size:calc(8.5*var(--u));font-weight:700;line-height:1.3;white-space:nowrap;pointer-events:none}
+.hkd .hkd-ev:hover{outline:calc(1.5*var(--u)) dashed var(--hk-mid);outline-offset:calc(4*var(--u))}
+.hkd .hkd-ev[aria-pressed="true"]{outline:calc(2*var(--u)) solid var(--hk-ink);outline-offset:calc(4*var(--u))}
+.hkd .hkd-ev:focus-visible{outline:calc(2*var(--u)) solid var(--accent);outline-offset:calc(4*var(--u))}
+.hkd-evs .hkd-ev:hover,.hkd-evs .hkd-ev[aria-pressed="true"],.hkd-evs .hkd-ev:focus-visible{outline-offset:calc(1.5*var(--u))}
+.hk-panel{position:sticky;top:60px;max-height:calc(100vh - 72px);overflow:auto;min-width:0}
+.hk-detail{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)}
+.hk-detail.is-in{animation:pane-in .34s steps(5,end)}
+.hk-detail h4{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;font-size:15px}
+.hk-detail h5{margin:12px 0 4px;font-size:13px;color:var(--ink-2)}
+.hk-detail p{margin:0 0 6px;font-size:13.5px;line-height:1.75}
+.hk-reg{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-2)}
+.hk-when{font-weight:700}
+.hk-steps{margin:2px 0 8px;padding-left:1.7em;font-size:13.5px;line-height:1.7}.hk-steps li{margin:2px 0}
+.hk-detail p.hk-aim{margin:8px 0;padding:6px 10px;border-left:3px solid var(--accent);border-radius:4px;background:var(--sunken)}
+.hk-aim b{margin-right:8px;color:var(--accent-ink)}
+details.hk-regs{margin-top:12px;padding-top:8px;border-top:1px dashed var(--line-2)}
+details.hk-regs summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink-2)}
+details.hk-regs summary .muted{font-weight:400}
+.hk .lead p{margin:0 0 6px}.hk .warn-line{color:var(--warn-ink);font-weight:700}
+.hk-reg-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.hk-reg code{word-break:break-all}
+pre.hk-cmd{margin:4px 0 0;padding:8px 10px;max-height:none;font-size:12px;line-height:1.55;word-break:break-all}
+.hk-facts{display:grid;gap:4px;margin:0 0 10px}
+.hk-facts div{display:grid;grid-template-columns:6.5em minmax(0,1fr);gap:8px}
+.hk-facts dt{font-size:13px;color:var(--muted)}.hk-facts dd{margin:0;font-size:13.5px}
+details.arts>summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--ink-2);padding-top:10px}
+details.arts>summary .muted{font-weight:400;margin-left:6px}
+details.art{margin-top:8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+details.art>summary{cursor:pointer;padding:6px 10px;font-size:13px}
+details.art>summary code{word-break:break-all}
+.art-open{margin-left:10px;font-size:12.5px}
+details.art pre{margin:0;max-height:480px;overflow:auto;border-top:1px solid var(--line)}
+details.art img{display:block;max-width:100%;height:auto;margin:8px auto;background:#fff}
+details.art iframe{display:block;width:100%;height:720px;border:0;border-top:1px solid var(--line);background:#fff;resize:vertical;overflow:auto}
+details.art-src>summary{cursor:pointer;padding:4px 10px;font-size:12.5px;color:var(--ink-2)}
+.art-note{margin:6px 10px;font-size:12.5px}
 .flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:12px;padding:12px 14px;border-top:1px dashed var(--line-2)}
 .fl-mech,.fl-ai{min-width:0;border:1px solid var(--line);border-radius:6px;padding:10px 14px;background:var(--zebra)}
 .fl-ai{border-left:3px solid var(--accent)}.fl-ai.none{border-left-color:var(--line-2)}
@@ -2410,6 +3340,34 @@ pre{white-space:pre-wrap;font:13px/1.65 var(--mono);background:var(--sunken);pad
 .mbar i.hi{background:var(--good)}.mbar i.lo{background:var(--warn)}
 .mbar b{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink)}
 .split{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px}
+.ev-chain{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ev-chain li{display:inline-flex;gap:6px;align-items:baseline;font-size:14px}
+.ev-chain li:not(.ev-arrow){padding:6px 12px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg)}
+.ev-chain b{font:700 18px var(--mono)}.ev-arrow{color:var(--muted)}
+.ev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px 22px}
+.card h4.ev-sub{margin-top:18px}
+.evx-v + .evx-v{margin-top:22px;padding-top:16px;border-top:1px solid var(--line-2)}
+.evx-v > h4{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;margin:0 0 4px;font-size:15px;line-height:1.6}
+.evx-v > h4 span{flex:1 1 24em;max-width:none}
+.evx-sum{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px;font-size:14px}
+.evx-sum li{display:grid;grid-template-columns:10em minmax(0,1fr);gap:10px;align-items:baseline}
+@media (max-width:640px){.evx-sum li{grid-template-columns:minmax(0,1fr);gap:2px}}
+.evx-src{margin:10px 0 0;font-size:12.5px;color:var(--muted)}.evx-lab{margin:12px 0 4px;font-size:13px;color:var(--ink-2)}
+.evx-val{padding:14px 0;border-top:1px dashed var(--line-2)}.evx-val:first-of-type{border-top:0}
+.evx-vh{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.evx-vt{margin:6px 0 8px;font-size:15px;font-weight:700;line-height:1.7}
+.evx-bl{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line-2);display:grid;gap:10px;font-size:14px}
+.evx-bh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:2px}.evx-bh .muted{font-size:12.5px}
+.evx-situ{margin:12px 0 4px;padding:10px 14px;border-left:3px solid var(--accent);border-radius:0 6px 6px 0;background:var(--sunken);font-size:14px}
+.evx-situ p{margin:4px 0 0}.evx-situ dl{margin:6px 0 0;display:grid;gap:6px}.evx-situ dl div{display:grid;grid-template-columns:4.5em minmax(0,1fr);gap:8px}.evx-situ dd{margin:0}
+.evx-bt{font-weight:700;line-height:1.7}
+.evx-judge{margin:6px 0 10px;font-size:13.5px;color:var(--ink-2)}.evx-judge p{margin:2px 0}.evx-judge > p:first-child b{margin-right:8px;color:var(--ink)}
+.evx-judge ul{margin:4px 0 0;padding-left:20px}.evx-judge li{margin:2px 0}.evx-judge b.yes,.evx-judge b.no{margin-right:6px}
+.evx-how{font-size:12.5px}.evx-ng{margin:6px 0 0;font-size:12.5px;color:var(--warn-ink)}
+.ev-b{margin-top:12px;padding:12px 14px;border:1px dashed var(--line-2);border-radius:8px;min-width:0}
+.ev-b > p{margin:0 0 6px}.ev-talk li{display:block}
+.ev-checks{margin:8px 0 0;padding-left:20px;font-size:14px;color:var(--ink-2)}
+table.ev-cases{table-layout:fixed;width:100%}table.ev-cases td{overflow-wrap:anywhere}table.ev-cases td:first-child{white-space:nowrap}table.ev-cases th:first-child{width:8.5em}table.ev-cases th:last-child{width:13.5em}table.ev-cases td p{margin:0 0 4px}
+table.ev-score td{vertical-align:top;min-width:6.5em}table.ev-score td .muted{font-size:.85em;margin-top:.2em}table.ev-score th small{display:block}.ev-round+.ev-round{margin-top:1.4em}.ev-round h4 .st{margin-left:.5em}
 .timeline{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:2px;font-size:14px}
 .timeline li{display:flex;flex-wrap:wrap;gap:4px 14px;padding:6px 0;border-bottom:1px dashed var(--line)}
 .timeline time{color:var(--muted);font-size:13px}
@@ -2534,6 +3492,71 @@ g.is-target .wf-card{animation:card-flash 1.8s ease-out}
 @keyframes row-flash{0%,50%{background-color:var(--accent-soft);box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}100%{box-shadow:none}}
 @keyframes card-flash{0%,25%,50%{stroke:var(--accent);stroke-width:4}12%,37%{stroke-width:1}100%{stroke-width:1}}
 """ + SERIES_CSS + """
+/* Eval 作成: 進み具合、回答の後の違いのラベル、対話の折りたたみ、1枚ずつ削って開く質問のカードと回答シート */
+.ev-chain li.done{border-color:var(--line-2)}
+.ev-chain li.now{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.ev-chain li.todo{border-style:dashed;color:var(--muted)}.ev-chain li.todo b{color:var(--muted)}
+.ev-tag{display:inline-block;font:700 11.5px/1.6 var(--mono);padding:0 7px;border-radius:4px;border:1px solid;white-space:nowrap;margin-right:6px;vertical-align:1px}
+.ev-tag.new{color:var(--good-ink);background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 45%,transparent)}
+.ev-tag.upd{color:var(--warn-ink);background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 60%,transparent)}
+.ev-tag.keep{color:var(--muted);background:var(--sunken);border-color:var(--line-2)}
+.ev-was{display:block;margin-top:2px;font-size:12.5px;color:var(--muted)}ul.plain li .ev-was{flex-basis:100%}
+.ev-was del{text-decoration-color:color-mix(in srgb,var(--warn) 80%,transparent)}
+.ev-legend{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin:4px 0 14px;font-size:13px;color:var(--ink-2)}
+.ev-legend label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}.ev-legend input{accent-color:var(--accent)}
+.ev-gone{font-size:13px;margin:-6px 0 14px}
+.pane.only-changed .ev-keep{display:none}
+details.ev-found{margin-top:18px}details.ev-found > summary .muted,details.ev-talks > summary .muted{font-weight:400;font-size:13px}
+details.ev-talks > summary{cursor:pointer;font-weight:700;font-size:15px}
+.ev-talk{margin:12px 0 0;padding:12px 14px;border-left:3px solid var(--line-2);background:var(--zebra);border-radius:0 6px 6px 0;font-size:14px}
+.ev-talk p{margin:4px 0;white-space:pre-wrap}
+li.is-target{animation:target-flash 1.8s ease-out}
+.btn:disabled{opacity:.45;cursor:not-allowed}.btn:disabled:hover{border-color:var(--line-2);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.btn.primary:hover:not(:disabled){color:var(--on-accent);filter:brightness(1.06)}
+.btn.link{border:0;background:none;padding:0 4px;color:var(--accent-ink);text-decoration:underline dotted;text-underline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.evq-prog{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink-2);margin:0 0 12px}
+.evq-prog i{width:22px;height:6px;border-radius:3px;background:var(--line-2)}.evq-prog i.on{background:var(--good)}.evq-prog i.cur{background:var(--accent)}
+.evq-list{display:grid;gap:14px}
+.evq-q{position:relative;border:1px solid var(--line-2);border-radius:10px;background:var(--panel);overflow:hidden;transition:border-color .3s,box-shadow .3s}
+.evq-in{padding:18px 20px}
+.evq-q.covered .evq-in{height:150px;overflow:hidden}.evq-q.covered.locked .evq-in{height:86px}
+.evq-q.is-current{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.evq-q.done{border-color:color-mix(in srgb,var(--good) 55%,transparent)}
+.evq-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:0 0 6px}
+.evq-head .qn{font:400 20px/1 var(--display);color:var(--accent-ink)}.evq-head h4{margin:0;font-size:15px}
+.evq-ask{margin:4px 0 8px;font-size:15px;line-height:1.85}
+.evq-why{margin:0 0 10px;font-size:13px;color:var(--ink-2)}.evq-why b{color:var(--ink);margin-right:6px}
+.evq-q fieldset{border:0;margin:0;padding:0;display:grid;gap:8px}
+.evq-opt{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line-2);border-radius:7px;cursor:pointer;background:var(--bg);font-size:14.5px}
+.evq-opt:hover{border-color:var(--accent)}.evq-opt input{accent-color:var(--accent);margin:0}.evq-opt .k{font:700 13px var(--mono);color:var(--accent-ink)}
+.evq-opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.evq-w{font-size:12px;color:var(--muted);border:1px dashed var(--line-2);border-radius:4px;padding:0 6px}
+.evq-q textarea{width:100%;min-height:72px;margin-top:8px;padding:9px 11px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;line-height:1.7;resize:vertical}
+.evq-q textarea:focus{outline:none;border-color:var(--accent)}
+.evq-note{margin-top:10px;font-size:13.5px}.evq-note summary{cursor:pointer;color:var(--ink-2)}
+.evq-act{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px}
+.evq-done{display:none;align-items:baseline;flex-wrap:wrap;gap:4px 10px;font-size:14px}.evq-done .ans{font-weight:700}
+.evq-extra{flex-basis:100%;margin:0;color:var(--ink-2);white-space:pre-wrap}
+.evq-q.done:not(.editing) form,.evq-q.done:not(.editing) .evq-ask,.evq-q.done:not(.editing) .evq-why{display:none}
+.evq-q.done:not(.editing) .evq-done{display:flex}
+canvas.evq-scratch{position:absolute;inset:0;width:100%;height:100%;display:block;border-radius:10px;touch-action:none}
+.evq-q.is-current canvas.evq-scratch{cursor:pointer}.evq-q.locked canvas.evq-scratch{cursor:not-allowed}
+canvas.evq-scratch.gone{opacity:0;transition:opacity .38s ease-out}
+.evq-q.is-current.covered:not(.scratching)::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);background-size:250% 100%;animation:evq-sheen 2.6s ease-in-out infinite}
+@keyframes evq-sheen{0%{background-position:120% 0}60%,100%{background-position:-30% 0}}
+.evq-flake{position:absolute;width:5px;height:4px;border-radius:1px;pointer-events:none;animation:evq-fall .8s ease-in forwards}
+@keyframes evq-fall{to{transform:translate(var(--dx),70px) rotate(220deg);opacity:0}}
+.evq-sheet{position:sticky;bottom:14px;z-index:6;margin-top:18px;padding:12px 16px;border:1px solid var(--accent);border-radius:10px;background:var(--panel);box-shadow:var(--shadow)}
+.evq-row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.evq-cnt b{font:400 20px/1 var(--display);color:var(--accent-ink)}.evq-hint{font-size:13px;color:var(--ink-2);flex:1 1 260px}
+.evq-sheet details{margin-top:6px;font-size:13px}.evq-sheet summary{cursor:pointer;color:var(--ink-2)}
+.evq-sheet pre{margin:8px 0 0;padding:10px 12px;max-height:220px;overflow:auto;background:var(--sunken);border-radius:6px;font:13px/1.7 var(--mono);white-space:pre-wrap}
+.evq-sheet.ready{animation:evq-ready .5s cubic-bezier(.3,1.6,.5,1)}@keyframes evq-ready{50%{transform:translateY(-4px)}}
+.evq-toast{position:fixed;left:50%;bottom:28px;z-index:30;transform:translate(-50%,20px);opacity:0;padding:8px 16px;border-radius:6px;background:var(--ink);color:var(--bg);font-size:14px;transition:all .25s;pointer-events:none}
+.evq-toast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-width:640px){.evq-in{padding:16px}}
 @media (max-width:1180px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.charts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){.app{grid-template-columns:minmax(0,1fr)}.rail{position:static;height:auto;border-right:0;border-bottom:1px dashed var(--line-2);
 padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}.nv-sub{display:none}
@@ -2559,7 +3582,15 @@ document.addEventListener('animationend',function(e){if(['tab-pop','squish','pan
 function show(group,id){document.querySelectorAll('[data-pane]').forEach(function(p){if(p.dataset.pane!==group)return;var was=p.hidden;p.hidden=p.id!==id;
 if(ready&&was&&!p.hidden&&!reduce){p.classList.remove('is-in');void p.offsetWidth;p.classList.add('is-in')}});
 document.querySelectorAll('[data-for]').forEach(function(b){if(b.dataset.for!==group)return;var on=b.dataset.show===id;
-b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1})}
+b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1});loadFrames()}
+/* 成果物の HTML は、見えるようになってから読む。畳んだ欄の中で読むと、図を大きさ0で描くことがある */
+function loadFrames(){document.querySelectorAll('iframe[data-src]').forEach(function(f){if(!f.getAttribute('src')&&f.offsetParent!==null&&!f.closest('details:not([open])'))f.setAttribute('src',f.dataset.src)})}
+document.addEventListener('toggle',loadFrames,true);
+/* hooks 設計: イベントを押すと、その詳しい欄だけを出す */
+document.querySelectorAll('[data-hk]').forEach(function(b){b.addEventListener('click',function(){var box=b.closest('.hk');
+box.querySelectorAll('[data-hk]').forEach(function(x){x.setAttribute('aria-pressed',String(x.dataset.hk===b.dataset.hk))});
+box.querySelectorAll('[data-hk-pane]').forEach(function(d){var was=d.hidden;d.hidden=d.dataset.hkPane!==b.dataset.hk;
+if(was&&!d.hidden&&!reduce){d.classList.remove('is-in');void d.offsetWidth;d.classList.add('is-in')}})})});
 var groups=[];
 document.querySelectorAll('[data-for]').forEach(function(b){if(groups.indexOf(b.dataset.for)<0){groups.push(b.dataset.for);show(b.dataset.for,b.dataset.show)}
 b.addEventListener('click',function(){show(b.dataset.for,b.dataset.show);bounce(b);if(b.hasAttribute('data-hash'))history.replaceState(null,'','#'+b.dataset.show)})});
@@ -2645,6 +3676,111 @@ window.addEventListener('resize',place);
 })();
 """
 
+EVAL_SCRIPT = r"""
+/* Eval 作成の質問: 今の質問のカードだけを削って開き（削ったカードは戻らない）、答えを回答シートの貼る文にまとめる */
+(function(){
+var reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches),toastEl=null,toastTimer=0;
+function toast(msg){if(!toastEl){toastEl=document.createElement('div');toastEl.className='evq-toast';toastEl.setAttribute('role','status');toastEl.setAttribute('aria-live','polite');document.body.appendChild(toastEl)}
+toastEl.textContent=msg;toastEl.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(function(){toastEl.classList.remove('on')},2200)}
+function seedOf(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function coin(ctx,x,y,r){var g=ctx.createRadialGradient(x-r/3,y-r/3,r/5,x,y,r);g.addColorStop(0,'#e2a46f');g.addColorStop(1,'#8c4f24');
+ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(90,45,15,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,r-3,0,Math.PI*2);ctx.stroke();
+ctx.fillStyle='#5a2d0f';ctx.font='700 '+Math.round(r*.8)+"px 'JetBrains Mono', monospace";ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('10',x,y+1)}
+document.querySelectorAll('[data-evq]').forEach(function(box){
+var key=box.dataset.key,name=box.dataset.evq,talk=box.dataset.talk,cards=[].slice.call(box.querySelectorAll('.evq-q')),st={scratched:{},answers:{}};
+try{var raw=JSON.parse(localStorage.getItem(key)||'{}');st.scratched=raw.scratched||{};st.answers=raw.answers||{}}catch(e){}
+function save(){try{localStorage.setItem(key,JSON.stringify(st))}catch(e){}}
+function current(){for(var i=0;i<cards.length;i++)if(!st.answers[cards[i].dataset.n])return cards[i].dataset.n;return null}
+function paint(card){var cv=card.querySelector('canvas.evq-scratch');if(!cv||card.classList.contains('scratching'))return;
+var cur=current()===card.dataset.n,n=card.dataset.n,w=card.clientWidth,h=card.clientHeight,dpr=window.devicePixelRatio||1;if(!w||!h)return;
+cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalCompositeOperation='source-over';
+var g=ctx.createLinearGradient(0,0,w,h);
+if(cur){g.addColorStop(0,'#a8a7a1');g.addColorStop(.38,'#dfded8');g.addColorStop(.5,'#f1f0ea');g.addColorStop(.62,'#cfcec7');g.addColorStop(1,'#9c9b94')}
+else{g.addColorStop(0,'#9a9993');g.addColorStop(1,'#b2b1aa')}
+ctx.fillStyle=g;ctx.fillRect(0,0,w,h);var seed=seedOf(key+n),rnd=function(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+for(var i=0;i<w*h/80;i++){ctx.fillStyle=rnd()<.55?'rgba(255,255,255,.32)':'rgba(0,0,0,.07)';ctx.fillRect(rnd()*w,rnd()*h,1+rnd()*1.6,1+rnd()*1.6)}
+ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;for(var x=-h;x<w;x+=12){ctx.beginPath();ctx.moveTo(x,h);ctx.lineTo(x+h,0);ctx.stroke()}
+var top=cur?16:h/2-13;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle=cur?'#3f3e3a':'#55544e';
+ctx.font="400 22px 'DotGothic16', monospace";ctx.fillText('Q'+n,20,top);
+ctx.font="700 12.5px 'JetBrains Mono', 'Hiragino Sans', monospace";if(cur||w>520)ctx.fillText('答えが要る質問',62,top+6);
+var cx=w/2,cy=h/2+6;ctx.textBaseline='middle';
+if(cur){ctx.font="700 17px 'Hiragino Sans', 'Noto Sans JP', sans-serif";var label='クリックして削る',tw=ctx.measureText(label).width,r=17,left=cx-(r*2+12+tw)/2;
+coin(ctx,left+r,cy,r);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#33322e';ctx.font="700 17px 'Hiragino Sans', 'Noto Sans JP', sans-serif";ctx.fillText(label,left+r*2+12,cy)}
+else{ctx.font="14px 'Hiragino Sans', 'Noto Sans JP', sans-serif";ctx.textAlign='right';ctx.fillStyle='#4a4944';ctx.fillText('前の質問に答えると削れる',w-22,h/2)}
+cv.tabIndex=cur?0:-1;cv.setAttribute('aria-label',cur?'Q'+n+' を削って質問を見る':'Q'+n+' は前の質問に答えると削れる');cv.setAttribute('aria-disabled',cur?'false':'true')}
+function flake(card,x,y){if(reduce)return;var f=document.createElement('i');f.className='evq-flake';f.style.left=x+'px';f.style.top=y+'px';
+f.style.setProperty('--dx',(Math.random()*40-20).toFixed(0)+'px');f.style.background=Math.random()<.5?'#b9b8b1':'#8f8e88';card.appendChild(f);setTimeout(function(){f.remove()},820)}
+function expand(card){var inner=card.querySelector('.evq-in'),from=inner.offsetHeight;card.classList.remove('covered');var to=inner.scrollHeight;
+inner.style.height=from+'px';inner.style.overflow='hidden';void inner.offsetHeight;inner.style.transition='height .42s cubic-bezier(.2,.8,.2,1)';inner.style.height=to+'px';
+setTimeout(function(){inner.style.height='';inner.style.transition='';inner.style.overflow=''},460)}
+function openCard(card,focus){card.classList.add('open');card.querySelector('.evq-in').removeAttribute('inert');
+if(focus){var first=card.querySelector('input[type=radio],textarea.evq-free[data-only]');if(first)first.focus({preventScroll:true})}}
+function scratch(card){var n=card.dataset.n;if(st.scratched[n])return;if(current()!==n){toast('前の質問に答えると削れる');return}
+var cv=card.querySelector('canvas.evq-scratch');if(!cv)return;st.scratched[n]=true;save();card.classList.add('scratching');
+var ctx=cv.getContext('2d'),w=card.clientWidth,h=card.clientHeight;
+function finish(){cv.classList.add('gone');expand(card);setTimeout(function(){cv.remove();card.classList.remove('scratching');openCard(card,true)},420)}
+if(reduce){finish();return}
+ctx.globalCompositeOperation='destination-out';ctx.strokeStyle='#000';ctx.lineCap='round';ctx.lineJoin='round';var lw=Math.max(38,Math.min(60,h/5));ctx.lineWidth=lw;
+var rows=Math.ceil(h/(lw*.72))+1,pts=[];
+for(var r=0;r<rows;r++){var y=(r+.5)*h/rows,ltr=r%2===0;for(var s=0;s<=9;s++){var t=s/9,x=ltr?-lw+t*(w+2*lw):w+lw-t*(w+2*lw);pts.push([x+(Math.random()-.5)*lw*.5,y+(Math.random()-.5)*lw*.45])}}
+var dur=Math.min(1500,450+rows*120),start=performance.now(),drawn=0;
+function frame(now){var p=Math.min(1,(now-start)/dur),target=Math.floor((1-Math.pow(1-p,1.5))*(pts.length-1));
+if(target>drawn){ctx.beginPath();ctx.moveTo(pts[drawn][0],pts[drawn][1]);for(var i=drawn+1;i<=target;i++){ctx.lineTo(pts[i][0],pts[i][1]);if(i%2===0)flake(card,Math.max(0,Math.min(w-6,pts[i][0])),pts[i][1])}ctx.stroke();drawn=target}
+if(p<1)requestAnimationFrame(frame);else finish()}
+requestAnimationFrame(frame)}
+function said(a){return a.k?a.k+'. '+a.t:''}
+function fillDone(card){var a=st.answers[card.dataset.n];if(!a)return;card.querySelector('.evq-done .ans').textContent=said(a)||a.free;
+var extra=[a.k?a.free:'',a.note?'補足: '+a.note:''].filter(Boolean).join('\n'),p=card.querySelector('.evq-extra');p.textContent=extra;p.hidden=!extra}
+function sync(){var cur=current();
+cards.forEach(function(card){var n=card.dataset.n,done=!!st.answers[n],scratched=!!st.scratched[n],cv=card.querySelector('canvas.evq-scratch');
+card.classList.toggle('done',done);card.classList.toggle('is-current',n===cur&&!done);card.classList.toggle('locked',!scratched&&n!==cur);
+if(!card.classList.contains('scratching'))card.classList.toggle('covered',!scratched);
+card.querySelector('.evq-st').innerHTML=done?'<span class="st st-ok"><i aria-hidden="true"></i>答えた</span>':n===cur?'<span class="st st-warn"><i aria-hidden="true"></i>今の質問</span>':'';
+if(done)fillDone(card);
+if(!scratched&&!cv){cv=document.createElement('canvas');cv.className='evq-scratch';cv.setAttribute('role','button');card.appendChild(cv);card.querySelector('.evq-in').setAttribute('inert','')}
+if(!scratched)paint(card);else if(!cv)openCard(card,false)});
+box.querySelector('.evq-prog').innerHTML=cards.map(function(c){return '<i class="'+(st.answers[c.dataset.n]?'on':c.dataset.n===cur?'cur':'')+'"></i>'}).join('')+
+'<span>'+Object.keys(st.answers).length+' / '+cards.length+' 答えた</span>';syncSheet()}
+function answerText(){var lines=['Eval 作成の回答（'+name+'、'+talk+'）'];
+cards.forEach(function(card){var a=st.answers[card.dataset.n],head='Q'+card.dataset.n+' '+card.dataset.title+':';
+if(!a){lines.push(head+' （まだ答えていない）');return}
+lines.push(a.k?head+' '+said(a):head);if(a.free)lines.push('  '+a.free.replace(/\n/g,'\n  '));if(a.note)lines.push('  補足: '+a.note.replace(/\n/g,'\n  '))});
+return lines.join('\n')}
+function syncSheet(){var n=Object.keys(st.answers).length,all=n===cards.length,sheet=box.querySelector('.evq-sheet');
+box.querySelector('.evq-cnt b').textContent=n;box.querySelector('.evq-text').textContent=answerText();box.querySelector('[data-evq-copy]').disabled=n===0;
+box.querySelector('.evq-hint').textContent=all?'全部答えた。コピーしてチャット欄に貼る':n?'答えた分だけでもコピーできる。全部答えてから貼るのがよい':'質問に答えると、ここに貼る文ができる';
+var pane=box.closest('[data-pane]'),tab=pane&&document.querySelector('[data-show="'+pane.id+'"] [data-evq-tab]');if(tab)tab.textContent=all?'回答済み':'質問 '+(cards.length-n);
+if(all&&!sheet.dataset.ready){sheet.dataset.ready='1';if(!reduce){sheet.classList.remove('ready');void sheet.offsetWidth;sheet.classList.add('ready')}}}
+function validate(form){var checked=form.querySelector('input[type=radio]:checked'),free=form.querySelector('textarea.evq-free'),only=free.hasAttribute('data-only');
+var need=only||!!(checked&&checked.hasAttribute('data-free'));free.hidden=!need;
+form.querySelector('button[type=submit]').disabled=only?!free.value.trim():!checked||(need&&!free.value.trim())}
+cards.forEach(function(card){var a=st.answers[card.dataset.n],form=card.querySelector('form');if(!a)return;
+var input=a.k&&form.querySelector('input[value="'+a.k+'"]');if(input)input.checked=true;form.querySelector('textarea.evq-free').value=a.free||'';
+form.querySelector('textarea.evq-memo').value=a.note||'';validate(form)});
+box.addEventListener('click',function(e){var cv=e.target.closest('canvas.evq-scratch');if(cv){scratch(cv.closest('.evq-q'));return}
+var edit=e.target.closest('[data-evq-edit]');if(edit){var c=edit.closest('.evq-q');c.classList.add('editing');var f=c.querySelector('input:checked,textarea.evq-free[data-only]');if(f)f.focus();return}
+if(e.target.closest('[data-evq-copy]'))copy(answerText(),e.target.closest('[data-evq-copy]'))});
+box.addEventListener('keydown',function(e){var cv=e.target.closest&&e.target.closest('canvas.evq-scratch');if(cv&&(e.key==='Enter'||e.key===' ')){e.preventDefault();scratch(cv.closest('.evq-q'))}});
+box.addEventListener('change',function(e){var form=e.target.closest('.evq-q form');if(form)validate(form)});
+box.addEventListener('input',function(e){var form=e.target.closest('.evq-q form');if(form)validate(form)});
+box.addEventListener('submit',function(e){var form=e.target.closest('.evq-q form');if(!form)return;e.preventDefault();
+var card=form.closest('.evq-q'),n=card.dataset.n,checked=form.querySelector('input[type=radio]:checked'),free=form.querySelector('textarea.evq-free');
+if(!checked&&!free.hasAttribute('data-only'))return;var was=current()===n;
+st.answers[n]={k:checked?checked.value:'',t:checked?checked.dataset.text:'',free:free.hidden?'':free.value.trim(),note:form.querySelector('textarea.evq-memo').value.trim()};
+save();card.classList.remove('editing');sync();var next=current();
+setTimeout(function(){var to=was&&next?box.querySelector('.evq-q[data-n="'+next+'"]'):!next?box.querySelector('.evq-sheet'):null;
+if(to)to.scrollIntoView({behavior:reduce?'auto':'smooth',block:next?'center':'end'})},150)});
+function copy(text,button){function ok(){button.textContent='コピーした';toast('コピーした。チャット欄に貼る');setTimeout(function(){button.textContent='回答をコピー'},1600)}
+function fallback(){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();
+try{document.execCommand('copy')?ok():toast('コピーできなかった。「貼る文を見る」から選んでコピーする')}catch(err){toast('コピーできなかった。「貼る文を見る」から選んでコピーする')}t.remove()}
+if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(text).then(ok,fallback);else fallback()}
+if(window.ResizeObserver){var ro=new ResizeObserver(function(list){list.forEach(function(x){if(x.target.classList.contains('covered'))paint(x.target)})});cards.forEach(function(c){ro.observe(c)})}
+else window.addEventListener('resize',function(){cards.forEach(paint)});
+sync();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){cards.forEach(paint)})});
+document.addEventListener('change',function(e){if(e.target.matches&&e.target.matches('[data-only-changed]')){var pane=e.target.closest('.pane');if(pane)pane.classList.toggle('only-changed',e.target.checked)}});
+})();
+"""
+
 GENERATOR = '<meta name="generator" content="skill-foundation catalog.py">'  # 書いたページの印。今は無いスキルのページは、印のあるものだけを消す
 
 
@@ -2668,12 +3804,12 @@ def search_text(skill: dict) -> str:
 
 
 def skill_marks(sm: dict) -> str:
-    return (badge(sm["probe"][0], "違反の検出") + badge(sm["conv"][0], "収束テスト")
-            + badge(sm["seal"][0] if sm["seal"][0] != "none" else "warn", "改変チェック"))
+    return badge(sm["eval"][0], "Eval") + badge(sm["probe"][0], "違反の検出") + badge(sm["conv"][0], "収束テスト")
 
 
-def rail(project: Path, entries: list[tuple], others: list[dict], here: str | None, to_pages: str, to_index: str) -> str:
-    """左の一覧。here は開いているページ（一覧なら None）。to_pages・to_index はページ・一覧へのリンクの前に付ける相対パス。"""
+def rail(project: Path, entries: list[tuple], others: list[dict], here: str | None, to_pages: str, to_index: str, drafts: list[tuple] = ()) -> str:
+    """左の一覧。here は開いているページ（一覧なら None）。to_pages・to_index はページ・一覧へのリンクの前に付ける相対パス。
+    drafts は Eval 作成の途中のスキルの (スキル, ページの名前)。"""
     names = Counter(skill["name"] for skill, _, _ in entries)
     nav = []
     for skill, slug, sm in entries:
@@ -2689,6 +3825,10 @@ def rail(project: Path, entries: list[tuple], others: list[dict], here: str | No
     nav_others = "".join(f'<li class="nv-other" data-search="{esc(o["name"].lower())}"><a href="{esc(to_index)}#others">{esc(o["name"])}</a></li>'
                          for o in others)
     others_html = f'<p class="nv-h">skill-foundation で作っていないスキル</p><ul class="nv">{nav_others}</ul>' if others else ""
+    nav_drafts = "".join(f'<li data-search="{esc(d["name"].lower())}"><a class="nv-skill" href="{esc(to_pages + slug)}.html"'
+                         f'{" aria-current=page" if slug == here else ""}><span class="nm">{esc(d["name"])}</span>'
+                         f'<span class="marks">{badge(*eval_state(d))}</span></a></li>' for d, slug in drafts)
+    others_html = (f'<p class="nv-h">Eval を作っている途中</p><ul class="nv">{nav_drafts}</ul>' if drafts else "") + others_html
     home = f'<a class="nv-home" href="{esc(to_index)}">← スキルの一覧</a>' if here else ""
     return (f'<aside class="rail"><div class="brand">{pixel_mark(3)}<span><b>スキルのカタログ</b><span>{esc(project.name)}</span></span></div>'
             '<input id="filter" class="search" type="search" placeholder="名前・目的・ルールID で絞る" aria-label="スキルを絞る">'
@@ -2712,7 +3852,7 @@ def page(title: str, project: Path, when: str, side: str, body: str) -> str:
 <div class="theme" role="group" aria-label="表示の色">{themes}</div></header>
 {body}
 <footer>skill-foundation の scripts/catalog.py が書いた。内容はすべてスキルのファイルと検証の記録から集計している。</footer>
-</div></main></div><script>{SCRIPT}</script></body></html>
+</div></main></div><script>{SCRIPT}{EVAL_SCRIPT}</script></body></html>
 """
 
 
@@ -2726,8 +3866,15 @@ def index_card(skill: dict, slug: str, sm: dict, to_pages: str) -> str:
             f'<span class="at"><b>先に見るもの</b>{attn}</span></a>')
 
 
-def render_index(project: Path, when: str, entries: list[tuple], others: list[dict], broken: list[tuple[str, str]], to_pages: str) -> str:
+def render_index(project: Path, when: str, entries: list[tuple], others: list[dict], broken: list[tuple[str, str]], to_pages: str,
+                 drafts: list[tuple] = ()) -> str:
     cards = "".join(index_card(skill, slug, sm, to_pages) for skill, slug, sm in entries)
+    draft_cards = "".join(f'<a class="card sk-card" href="{esc(to_pages + slug)}.html" data-search="{esc(d["name"].lower())}">'
+                          f'<span class="nm">{esc(d["name"])}</span><span class="pl"><code>{esc(d["path"])}</code></span>'
+                          f'<span class="marks">{badge(*eval_state(d))}</span></a>' for d, slug in drafts)
+    drafts_html = (f'<section class="idx" id="drafts"><h2>Eval を作っているスキル</h2><p class="muted">skill-foundation の手順3（Eval 作成）の途中で、'
+                   f'dev/spec.json がまだ無い。カードを押すと、答えが要る質問のあるページを開く。</p><div class="idx-grid">{draft_cards}</div></section>'
+                   if drafts else "")
     skills_html = (f'<section class="idx" id="skills"><h2>skill-foundation で作ったスキル</h2>'
                    f'<p class="muted">スキルごとのページに、ワークフロー図と独立検証の記録を載せる。カードを押すとページを開く。</p>'
                    f'<div class="idx-grid">{cards}</div></section>' if entries else
@@ -2739,13 +3886,33 @@ def render_index(project: Path, when: str, entries: list[tuple], others: list[di
                    if others else "")
     broken_items = "".join(f"<li><code>{esc(n)}</code>: {esc(why)}</li>" for n, why in broken)
     broken_html = f'<section class="card" id="broken"><h3>読めなかったスキル</h3><ul>{broken_items}</ul></section>' if broken else ""
-    side = rail(project, entries, others, None, to_pages, "")
-    return page("スキルのカタログ", project, when, side, skills_html + broken_html + others_html)
+    side = rail(project, entries, others, None, to_pages, "", drafts)
+    return page("スキルのカタログ", project, when, side, drafts_html + skills_html + broken_html + others_html)
 
 
-def render_skill_page(project: Path, when: str, entries: list[tuple], others: list[dict], skill: dict, slug: str, to_index: str) -> str:
-    side = rail(project, entries, others, slug, "", to_index)
-    return page(f"{skill['name']} | スキルのカタログ", project, when, side, section_skill(skill))
+def render_skill_page(project: Path, when: str, entries: list[tuple], others: list[dict], skill: dict, slug: str, to_index: str,
+                      drafts: list[tuple] = ()) -> str:
+    side = rail(project, entries, others, slug, "", to_index, drafts)
+    body = section_draft(skill) if "spec" not in skill else section_skill(skill)
+    return page(f"{skill['name']} | スキルのカタログ", project, when, side, body)
+
+
+def section_draft(skill: dict) -> str:
+    """Eval 作成の途中のスキルの欄。Eval 作成のタブだけを載せる。"""
+    name, sm = skill["name"], {"eval": eval_state(skill)}
+    asks = eval_check.questions(skill["eval"])[1] if skill["eval"] else []
+    count = f'<span class="cnt warn" data-evq-tab>質問 {len(asks)}</span>' if asks else ""
+    return f"""
+<section class="skill" id="skill-{esc(name)}">
+  <header class="sk-head">
+    <p class="eyebrow">Eval を作っているスキル</p>
+    <h2>{esc(name)}</h2>
+    <p class="sk-purpose">skill-foundation の手順3（Eval 作成）の途中。dev/spec.json を書くと、ワークフロー図や検証の記録のタブも載る。</p>
+    <dl class="meta"><div><dt>置き場</dt><dd><code>{esc(skill["path"])}</code></dd></div></dl>
+  </header>
+  <div class="tabs" role="tablist" aria-label="{esc(name)} の記録"><button type="button" role="tab" data-for="tab-{esc(name)}" data-show="skill-{esc(name)}-eval" data-hash="">Eval 作成{count}</button></div>
+  <div class="pane" id="skill-{esc(name)}-eval" data-pane="tab-{esc(name)}" role="tabpanel" aria-label="Eval 作成">{section_eval(skill, sm)}</div>
+</section>"""
 
 
 def main() -> int:
@@ -2763,11 +3930,12 @@ def main() -> int:
         print(f"--out は .html で終わるパスにしてください: {out}", file=sys.stderr)
         return 2
     pages = out.with_suffix("")  # catalog.html なら catalog/
-    skills, others, broken = [], [], []
+    skills, others, broken, drafts = [], [], [], []
     for directory in find_skills(project, [Path(p).resolve() for p in args.skill]):
-        if (directory / _lib.SPEC_REL).is_file():
+        if (directory / _lib.SPEC_REL).is_file() or (directory / eval_check.EVAL_REL).is_file():
             try:
-                skills.append(load_skill(directory, project))
+                (skills if (directory / _lib.SPEC_REL).is_file() else drafts).append(
+                    (load_skill if (directory / _lib.SPEC_REL).is_file() else load_draft)(directory, project))
             except Exception as exc:  # 1つのスキルが読めなくても、ほかのスキルのカタログは書く
                 broken.append((directory.name, f"{type(exc).__name__}: {exc}"))
             continue
@@ -2775,16 +3943,22 @@ def main() -> int:
         others.append({"name": (fm or {}).get("name") or directory.name, "path": rel_to(directory, project),
                        "description": (fm or {}).get("description", "")})
     skills.sort(key=lambda s: s["name"])
+    drafts.sort(key=lambda s: s["name"])
     others.sort(key=lambda o: o["name"])
     places: dict[str, list[str]] = {}
     for item in skills + others:  # Codex 用の置き場に複製を置くと、同じスキルが2つ載る
         places.setdefault(item["name"], []).append(item["path"])
     for skill in skills:
         skill["twins"] = [p for p in places[skill["name"]] if p != skill["path"]]
-    entries = list(zip(skills, page_slugs(skills), [summary(s) for s in skills]))
+    slugs = page_slugs(skills + drafts)
+    for skill in skills:
+        skill["page_dir"] = pages
+    entries = list(zip(skills, slugs, [summary(s) for s in skills]))
+    draft_entries = list(zip(drafts, slugs[len(skills):]))
     when = rt.now()
-    files = {pages / f"{slug}.html": render_skill_page(project, when, entries, others, skill, slug, f"../{out.name}") for skill, slug, _ in entries}
-    files[out] = render_index(project, when, entries, others, broken, f"{pages.name}/")
+    files = {pages / f"{slug}.html": render_skill_page(project, when, entries, others, skill, slug, f"../{out.name}", draft_entries)
+             for skill, slug in [(s, g) for s, g, _ in entries] + draft_entries}
+    files[out] = render_index(project, when, entries, others, broken, f"{pages.name}/", draft_entries)
     removed = []
     try:
         pages.mkdir(parents=True, exist_ok=True)
@@ -2803,6 +3977,9 @@ def main() -> int:
     if entries:
         listed = "、".join(f"`{skill['name']}`（`{rel_to(pages / (slug + '.html'), project)}`）" for skill, slug, _ in entries)
         lines.append(f"- スキル {len(entries)} 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: {listed}")
+    if draft_entries:
+        listed = "、".join(f"`{d['name']}`（`{rel_to(pages / (slug + '.html'), project)}`）" for d, slug in draft_entries)
+        lines.append(f"- Eval を作っている途中のスキル {len(draft_entries)} 個は、Eval 作成のタブだけのページに書いた: {listed}")
     if others:
         other_names = "、".join(f"`{o['name']}`" for o in others)
         lines.append(f"- skill-foundation の形でないスキル {len(others)} 個（{other_names}）は、一覧に名前と説明だけを載せた")

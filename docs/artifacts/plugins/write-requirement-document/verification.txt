@@ -1,0 +1,37 @@
+write-requirement-document plugin: PASS
+
+同梱見本の実行検証。新しい要件定義書をAIで作成した結果ではありません。
+
+Checks:
+PASS {"check": "codex: relocated ZIP, manifest and complete runtime", "status": "passed", "distribution_files": 49, "runtime_files": 44, "archive_sha256": "2f5ca6e4220a5507e93dcc59a6501f99bb2170298cb824b88333cab730aa8c86"}
+PASS {"check": "codex: configured hooks and fixture check/finish without standalone placement", "status": "passed", "events": ["PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit"], "state_edit": "deny", "malformed_source": "block", "broken_html": "check rejected", "fixture": "bundled completed example; no newly authored requirements", "standalone_directories_created": 0}
+PASS {"check": "codex: core check/finish without hooks or collector scripts", "status": "passed", "collection_available": false}
+PASS {"check": "codex: hook-only capture, first delivery and synthetic revision", "status": "passed", "core_state_changed_by_capture": false, "before_retained": true, "revision_saved": true, "real_approvals": 0, "case_status": "pending", "unapproved_export": "rejected", "scope": "synthetic; no real user approval or model convergence"}
+PASS {"check": "claude-code: relocated ZIP, manifest and complete runtime", "status": "passed", "distribution_files": 49, "runtime_files": 44, "archive_sha256": "20ad574bd5053a7325396f51d28ce17b1613573fe012067cb7072115615c0ed1"}
+PASS {"check": "claude-code: configured hooks and fixture check/finish without standalone placement", "status": "passed", "events": ["PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit"], "state_edit": "deny", "malformed_source": "block", "broken_html": "check rejected", "fixture": "bundled completed example; no newly authored requirements", "standalone_directories_created": 0}
+PASS {"check": "claude-code: core check/finish without hooks or collector scripts", "status": "passed", "collection_available": false}
+PASS {"check": "claude-code: hook-only capture, first delivery and synthetic revision", "status": "passed", "core_state_changed_by_capture": false, "before_retained": true, "revision_saved": true, "real_approvals": 0, "case_status": "pending", "unapproved_export": "rejected", "scope": "synthetic; no real user approval or model convergence"}
+PASS {"check": "plugin-owned unit tests", "status": "passed", "count": 7}
+PASS {"check": "Claude CLI manifest validation", "status": "passed", "model_sessions": 0}
+PASS {"check": "canonical sources unchanged", "status": "passed", "plugin_files": 10, "skill_files": 44}
+
+Commands recorded: 74
+
+Not verified:
+Real user approval through the review UI
+Independent model Eval and convergence runs
+Automatic hooks from real product sessions
+Codex trust UI
+Installation and activation
+New AI-authored requirements
+PNG rendering and browser visual inspection
+
+Redactions:
+repository absolute path -> <repository>
+temporary workdir -> <workdir>
+user home -> <user-home>
+local Python executable path -> python3
+
+Reproduction:
+Run verify_plugin.py with --repo-root, a new --workdir outside the repository, and --output.
+The complete repository and its plugin-owned tests are required. No installation or model session is started.

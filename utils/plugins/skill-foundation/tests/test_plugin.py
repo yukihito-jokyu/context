@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -51,12 +52,16 @@ class PluginTest(unittest.TestCase):
                               input=json.dumps({"cwd": str(project), **event}), text=True, cwd=project,
                               capture_output=True, env=env)
 
-    def test_complete_core_is_byte_identical_and_sealed(self):
+    def test_complete_core_is_byte_identical_and_usable(self):
         for build in self.builds.values():
             self.assertEqual(files(build / "runtime/skill-foundation"), self.before)
             self.assertFalse(any(p.is_symlink() for p in build.rglob("*")))
-            result = subprocess.run([sys.executable, str(build / "runtime/skill-foundation/scripts/skill_lint.py"),
-                                     str(build / "runtime/skill-foundation"), "--final"], capture_output=True, text=True)
+            runtime = build / "runtime/skill-foundation"
+            self.assertFalse((runtime / "assets/seal.json").exists())
+            # The distributed creator has no dev/spec.json. Exercise its packaged
+            # example instead, including Eval, settings, probes and final checks.
+            result = subprocess.run([sys.executable, str(runtime / "scripts/selftest.py")],
+                                    capture_output=True, text=True, timeout=180)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_existing_output_is_not_overwritten(self):
@@ -75,17 +80,24 @@ class PluginTest(unittest.TestCase):
                 result = self.hook(self.builds[agent], platform, action, event, project)
                 self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
 
-    def test_active_protection_stop_and_resume(self):
+    def test_edits_are_allowed_while_output_checks_and_resume_work(self):
         for agent, platform in [("codex", "codex"), ("claude-code", "claude")]:
             project = self.workspace("active-" + agent)
-            build = self.builds[agent]
+            build = self.root / ("editable-" + agent)
+            shutil.copytree(self.builds[agent], build)
+            skill = build / "runtime/skill-foundation"
+            (skill / "assets/seal.json").write_text('{"files":{"SKILL.md":"legacy"}}')
+            entry = skill / "SKILL.md"
+            entry.write_text(entry.read_text() + "\n")
             start = self.run_core(build, project, "start", "--set", "name=write-sample", "--set", "measure=skip", "文章を書くスキルを作る")
             self.assertEqual(start.returncode, 0, start.stdout + start.stderr)
             path = str(build / "runtime/skill-foundation/SKILL.md")
             event = {"tool_name": "apply_patch", "tool_input": {"input": "*** Begin Patch\n*** Update File: " + path + "\n*** End Patch"}} if platform == "codex" else {"tool_name": "Write", "tool_input": {"file_path": path, "content": "changed"}}
             result = self.hook(build, platform, "pre-tool", event, project)
-            decision = json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"]
-            self.assertEqual(decision, "deny" if platform == "codex" else "ask")
+            self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
+            entry.write_text(entry.read_text() + "\n")
+            restarted = self.run_core(build, project, "start", "--restart", "--set", "name=write-sample", "--set", "measure=skip", "文章を書くスキルを作る")
+            self.assertEqual(restarted.returncode, 0, restarted.stdout + restarted.stderr)
             blocked = self.hook(build, platform, "stop", {}, project)
             self.assertEqual(json.loads(blocked.stdout).get("decision"), "block")
             waiting = self.run_core(build, project, "wait", "--question", "確認してください")
@@ -125,6 +137,9 @@ class PluginTest(unittest.TestCase):
         assembled = subprocess.run([sys.executable, str(core / "selftest.py"), "--build", str(project)], capture_output=True, text=True)
         self.assertEqual(assembled.returncode, 0, assembled.stdout + assembled.stderr)
         skill = project / ".claude/skills/write-commit-message"
+        evaluated = subprocess.run([sys.executable, str(core / "eval_check.py"), str(skill)],
+                                   cwd=project, capture_output=True, text=True)
+        self.assertEqual(evaluated.returncode, 0, evaluated.stdout + evaluated.stderr)
         result = subprocess.run([sys.executable, str(build / "scripts/convergence.py"), "prepare", str(skill), "--round", "1",
                                  "--runners", "subagent", "--agents", "1", "--workdir", str(project / "work")],
                                 cwd=project, capture_output=True, text=True)

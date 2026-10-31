@@ -7,8 +7,8 @@
 （--mode copy なら複製）。どちらにも無ければ、両方をリンクにする。
 
 hooks（スキルの contract.json の control.hooks が true のとき）:
-  Claude Code: .claude/settings.json の PreToolUse・PostToolUse（Edit|Write|MultiEdit|NotebookEdit）、Stop、UserPromptSubmit
-  Codex      : .codex/hooks.json の PreToolUse・PostToolUse（apply_patch）、Stop、UserPromptSubmit
+  Claude Code: .claude/settings.json の PreToolUse・PostToolUse（全ツール。編集時の検査は編集ツールだけ）、Stop、UserPromptSubmit
+  Codex      : .codex/hooks.json の PreToolUse・PostToolUse（全ツール。編集時の検査は apply_patch だけ）、Stop、UserPromptSubmit
 既にある設定は残し、このスキルの項目だけを足す（同じ項目があれば何もしない）。Codex は、足した hooks を
 利用者が `/hooks` で信頼するまで実行しない。
 
@@ -35,10 +35,10 @@ import _skillrt as rt  # noqa: E402
 PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}
 CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
 EVENTS = {
-    "claude": [("PreToolUse", "Edit|Write|MultiEdit|NotebookEdit", "pre-tool", 30),
-               ("PostToolUse", "Edit|Write|MultiEdit|NotebookEdit", "post-tool", 120),
+    "claude": [("PreToolUse", None, "pre-tool", 30),
+               ("PostToolUse", None, "post-tool", 120),
                ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
-    "codex": [("PreToolUse", "apply_patch", "pre-tool", 30), ("PostToolUse", "apply_patch", "post-tool", 120),
+    "codex": [("PreToolUse", None, "pre-tool", 30), ("PostToolUse", None, "post-tool", 120),
               ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
 }
 

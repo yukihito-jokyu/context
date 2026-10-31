@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Build skill-foundation without changing its sealed canonical source."""
+"""Build skill-foundation without changing its canonical source."""
 import argparse
 import json
 from pathlib import Path
 import shutil
-import sys
 
 
 def main():
@@ -18,10 +17,6 @@ def main():
     output = args.output.resolve()
     if output.exists() or output.is_relative_to(plugin) or output.is_relative_to(skill):
         parser.error("Choose a new output directory outside the canonical sources")
-    sys.path.insert(0, str(skill / "scripts"))
-    import _skillrt as rt
-    if rt.seal_findings(skill, rt.load_contract(skill)):
-        parser.error("The canonical skill does not match assets/seal.json")
     manifest = json.loads((plugin / args.agent / "plugin.json").read_text(encoding="utf-8"))
     if (manifest["name"], manifest["version"]) != (definition["name"], definition["version"]):
         parser.error("Bundle and manifest identity do not match")
@@ -34,7 +29,7 @@ def main():
     shutil.copyfile(plugin / args.agent / "hooks.json", output / "hooks/hooks.json")
     shutil.copytree(plugin / "scripts", output / "scripts", ignore=ignore)
     shutil.copytree(skill, output / "runtime/skill-foundation", ignore=ignore)
-    # The entry owns only plugin integration. The complete sealed skill stays byte-identical.
+    # The entry owns only plugin integration. The complete skill stays byte-identical.
     entry = output / "skills/skill-foundation/SKILL.md"
     entry.parent.mkdir(parents=True)
     frontmatter = (skill / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1]
