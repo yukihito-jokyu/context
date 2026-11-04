@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 """Claude Code と Codex の hooks から呼ばれ、実行中のスキルの出力を検査する。skill-foundation の共通ランタイム。
 
-出力の検査は status: active のときに働く。成果物の保存とユーザーの指摘・承認の収集は完了後も働く。
-スキル自身のファイルは編集でき、変更後に特別な手続きは不要。
+出力の検査（check）は、このスキルの実行記録（.skill-runs/<name>/state.json）が status: active のときだけ働き、
+実行していないセッションでは何もしない（入力側＝ユーザーの操作は妨げない。縛るのは AI の出力だけ）。スキル自身の
+ファイルと hooks の設定は、実行中も止めない（CTL-04）。
 
-  pre-tool   編集の前: 実行記録への直接の編集を止める
+  pre-tool   編集の前: 実行記録（state.json・report.md）への直接の編集を止める
   post-tool  編集の後: 契約の出力に当たるファイルを format で直し、検査し、指摘を AI に返す
   stop       応答を終える前: 出力全体を検査し、通っていなければ終わらせずに直させる（回数に上限あり）
-  prompt     ユーザーの発言: 指摘と承認の原文を保存し、質問待ちを解く。発言を止めたり書き換えたりしない
+  prompt     ユーザーの発言: 質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない
 
-製品ごとの違い（stdin の形、編集ツールの名前、返し方）はここで吸収する。
-  Claude Code: 編集は Edit/Write/MultiEdit/NotebookEdit の tool_input.file_path。止めるのは permissionDecision
-  Codex      : 編集は apply_patch の tool_input.command（パッチ本文）。ask は使えないので deny
+利用中の指摘の収集（feedback）は、追加機能として feedback.py に任せる（references/feedback.md）。契約の
+control.feedback が false か、--no-feedback を付けて登録したときは行わない。収集が失敗しても検査は止めない。
+  pre-tool   収集記録（.skill-feedback/）への直接の編集を止める
+  stop       完了で、提示した成果物とスキルの版を保存する
+  prompt     提示した後の発言の原文を記録し、分類の方法を additionalContext で AI に伝える
+
+製品ごとの違い（stdin の形、編集ツールの名前）はここで吸収する。止めるときはどちらも permissionDecision: deny。
+  Claude Code: 編集は Edit/Write/MultiEdit/NotebookEdit の tool_input.file_path
+  Codex      : 編集は apply_patch の tool_input.command（パッチ本文）
 
 使い方（設定ファイルから呼ぶ）:
-  python3 <skill>/scripts/hook.py --platform claude|codex pre-tool|post-tool|stop|prompt
+  python3 <skill>/scripts/hook.py --platform claude|codex [--no-check] [--no-feedback] pre-tool|post-tool|stop|prompt
 """
 
 from __future__ import annotations
@@ -75,26 +82,25 @@ def relative(path: Path, base: Path) -> str | None:
         return None
 
 
+def deny(reason: str) -> int:
+    rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                               "permissionDecisionReason": reason}}, ensure_ascii=False))
+    return 0
+
+
 def feedback(reason: str) -> int:
     rt.emit(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
     return 0
 
 
-def pre_tool(event: dict, platform: str, root: Path, state: dict, contract: dict) -> int:
+def pre_tool(event: dict, root: Path, state: dict) -> int:
+    """実行記録への直接の編集だけを止める。スキル自身のファイルの編集は止めない（CTL-04）。"""
     name = state["skill"]
     for path in edited_paths(event, Path(event.get("cwd") or root)):
         in_root = relative(path, root)
-        if in_root is not None and in_root.startswith(f".skill-feedback/{name}/"):
-            rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
-                                "permissionDecisionReason": "指摘・承認の記録は feedback.py が管理します。直接編集しないでください。"}},
-                               ensure_ascii=False))
-            return 0
         if in_root is not None and in_root.startswith(rt.run_rel(name) + "/") and \
                 Path(in_root).name in ("state.json", "report.md"):
-            rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
-                                                       "permissionDecisionReason": f"{in_root} は run.py だけが書きます。手で編集しないでください。"}},
-                               ensure_ascii=False))
-            return 0
+            return deny(f"{in_root} は run.py だけが書きます。手で編集しないでください。")
     return 0
 
 
@@ -112,7 +118,8 @@ def post_tool(event: dict, root: Path, state: dict, contract: dict) -> int:
     if not findings and not fixes:
         return 0
     lines = [rt.format_fix(f) for f in fixes] + [f["message"] if f.get("raw") else rt.format_finding(f) for f in findings]
-    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください" if findings else
+    head = (f"{state['skill']} の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください"
+            "（検査や契約を変えて通さない）" if findings else
             f"{state['skill']} の出力を契約の format で自動で直しました。編集を続ける前にファイルを読み直してください")
     return feedback(head + ":\n" + "\n".join(lines))
 
@@ -147,27 +154,21 @@ def stop(event: dict, root: Path, state: dict, contract: dict) -> int:
     return feedback(reason)
 
 
-def collect(action: str, event: dict, platform: str, root: Path, state: dict, contract: dict) -> tuple[bool, str]:
-    """The optional collector cannot prevent normal output checks or completion."""
+def collect(action: str, event: dict, root: Path, contract: dict, state: dict | None, platform: str,
+            paths: list[Path] | None = None) -> str | None:
+    """利用中の指摘の収集（feedback.py の追加機能）。どんな失敗でも本来の検査と完了を止めない。"""
     try:
-        import feedback as fb
-        extension = dict(state)
-        if not fb.bind_session(root, extension, event):
-            return False, ""
-        if action == "prompt":
-            return True, fb.observe_prompt(root, extension, contract, event, platform)
-        if action == "stop" and state.get("status") in ("done", "waiting", "aborted", "failed"):
-            fb.presented(root, extension, contract, validation="passed" if state["status"] == "done" else "unchecked")
-        if action in ("pre-tool", "post-tool") and event.get("tool_name") not in EDIT_TOOLS:
-            return True, fb.activation_context(root, extension)
-    except Exception as exc:
-        print(f"Feedback collection skipped: {exc}", file=sys.stderr)
-    return True, ""
+        import feedback
+        return feedback.on_hook(action, event, root, contract, state, platform, paths)
+    except Exception:  # noqa: BLE001 収集は追加機能なので、失敗は捨てる
+        return None
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--platform", choices=["claude", "codex"])
+    parser.add_argument("--no-check", action="store_true", help="出力の検査をしない（収集だけ）")
+    parser.add_argument("--no-feedback", action="store_true", help="利用中の指摘を集めない")
     parser.add_argument("event", choices=["pre-tool", "post-tool", "stop", "prompt"])
     args = parser.parse_args()
     event = read_event()
@@ -180,13 +181,18 @@ def main() -> int:
         return 0  # 契約が読めないときは何もしない（hooks の失敗で利用者の作業を止めない）
     name = contract.get("skill") or rt.SKILL_DIR.name
     state = rt.load_state(root, name)
-    if state is None:
-        return 0
-    matched, context = collect(args.event, event, platform, root, state, contract)
-    if not matched:
-        return 0
+    check = not args.no_check
+    gather = not args.no_feedback and contract.get("control", {}).get("feedback", True) is not False
+    enforcing = check and state is not None and state.get("status") in rt.ENFORCING
+    if args.event == "pre-tool":
+        if gather:
+            reason = collect("pre-tool", event, root, contract, state, platform, edited_paths(event, Path(event.get("cwd") or root)))
+            if reason:
+                return deny(reason)
+        return pre_tool(event, root, state) if enforcing else 0
     if args.event == "prompt":
-        if state.get("status") == "waiting":
+        context = collect("prompt", event, root, contract, state, platform) if gather else None
+        if state is not None and state.get("status") == "waiting":
             state["status"] = "active"
             rt.log_event(state, "resume", "user-prompt")
             rt.save_state(root, state)
@@ -194,19 +200,11 @@ def main() -> int:
             rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": context}},
                                ensure_ascii=False))
         return 0
-    if context:
-        event_name = "PreToolUse" if args.event == "pre-tool" else "PostToolUse"
-        rt.emit(json.dumps({"hookSpecificOutput": {"hookEventName": event_name, "additionalContext": context}}, ensure_ascii=False))
-    if args.event == "pre-tool" and state.get("status") in ("done", "waiting"):
-        # Feedback records stay owned by the collector after the generation run ends.
-        return pre_tool(event, platform, root, state, contract)
-    if state.get("status") not in rt.ENFORCING:
-        return 0
-    if args.event == "pre-tool":
-        return pre_tool(event, platform, root, state, contract)
     if args.event == "post-tool":
-        return post_tool(event, root, state, contract)
-    return stop(event, root, state, contract)
+        return post_tool(event, root, state, contract) if enforcing else 0
+    if gather:
+        collect("stop", event, root, contract, state, platform)
+    return stop(event, root, state, contract) if enforcing else 0
 
 
 if __name__ == "__main__":

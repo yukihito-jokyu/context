@@ -12,11 +12,9 @@ baseline  見本の出力で check と finish が通る
 成功  IN-02-r1  レビューの見本が機械の検査を通る（終了コード 0。通らないなら review でなく validate にする）
 成功  OUT-03-r1  レビューの見本が機械の検査を通る（終了コード 0。通らないなら review でなく validate にする）
 成功  CTL-01-builtin  出力が無いと finish が落ちる（終了コード 1）
-成功  CTL-04-builtin-start-after-edit  スキルの変更後も古い seal が残っていても start できる（終了コード 0）
-成功  CTL-04-builtin-check-after-edit  実行中にスキルを変更しても出力の check が通る（終了コード 0）
-成功  CTL-04-builtin-finish-after-edit  変更後に restart と finish が通る（終了コード 0）
-成功  CTL-04-builtin-hooks-claude  hooks の設定を変更しても出力の check が通る（終了コード 0）
-成功  CTL-04-builtin-hooks-codex  hooks の設定を変更しても出力の check が通る（終了コード 0）
+成功  CTL-01-builtin-edited  SKILL.md と契約を変えた後も start・check・finish が通る（終了コード start 0、check 0、finish 0）
+成功  CTL-01-builtin-edited-probe  スキル自身を変えた後も、違反例 OUT-01-a は check で落ちる（終了コード 1）
+成功  RPT-01-builtin-contract  前の実行の後に契約を変えると、止めずに報告の「検証」に出す（終了コード 0）
 成功  RPT-01-builtin-notes  notes.md が箇条書きでないと check が落ちる（終了コード 1）
 成功  RPT-01-builtin-abort  abort が中断の本文を出し、次の start が前の中断を記録に残す
 成功  CTL-03-builtin-ask  聞くべき入力が無いと start が止まる（終了コード 3）
@@ -24,19 +22,23 @@ baseline  見本の出力で check と finish が通る
 成功  hooks の動作 claude matcher  matcher が編集ツール Write に当たる
 成功  hooks の動作 claude inactive  実行していないセッションでは何もしない（CTL-04）
 成功  hooks の動作 claude post-tool  OUT-02-a の出力を編集した後に指摘を返す
-成功  hooks の動作 claude prompt  ユーザーの発言は止めず、収集の案内だけを返す（CTL-04）
+成功  hooks の動作 claude prompt  ユーザーの発言は止めない（CTL-04）
 成功  hooks の動作 claude stop  finish の前に応答を終えようとすると差し戻す
 成功  hooks の動作 claude wait  wait 中は応答の終了を止めない（CTL-03）
-成功  hooks の動作 claude pre-tool  実行中もスキル自身のファイルを編集できる
-成功  hooks の動作 claude pre-tool-inactive  実行していないときもスキルを編集できる
+成功  hooks の動作 claude pre-tool-skill  スキル自身（SKILL.md）の編集の前は止めない（結果 何もしない。CTL-04）
+成功  hooks の動作 claude pre-tool  実行記録（state.json）の編集の前に拒否する（結果 deny。CTL-04）
+成功  hooks の動作 claude feedback-prompt  完了の後の発言を記録し、分類の方法を返す（発言は止めない）
+成功  hooks の動作 claude feedback-pre-tool  利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）
 成功  hooks の動作 codex registered  .codex/hooks.json に4つの hook がある
 成功  hooks の動作 codex matcher  matcher が編集ツール apply_patch に当たる
 成功  hooks の動作 codex inactive  実行していないセッションでは何もしない（CTL-04）
 成功  hooks の動作 codex post-tool  OUT-02-a の出力を編集した後に指摘を返す
-成功  hooks の動作 codex prompt  ユーザーの発言は止めず、収集の案内だけを返す（CTL-04）
+成功  hooks の動作 codex prompt  ユーザーの発言は止めない（CTL-04）
 成功  hooks の動作 codex stop  finish の前に応答を終えようとすると差し戻す
 成功  hooks の動作 codex wait  wait 中は応答の終了を止めない（CTL-03）
-成功  hooks の動作 codex pre-tool  実行中もスキル自身のファイルを編集できる
-成功  hooks の動作 codex pre-tool-inactive  実行していないときもスキルを編集できる
+成功  hooks の動作 codex pre-tool-skill  スキル自身（SKILL.md）の編集の前は止めない（結果 何もしない。CTL-04）
+成功  hooks の動作 codex pre-tool  実行記録（state.json）の編集の前に拒否する（結果 deny。CTL-04）
+成功  hooks の動作 codex feedback-prompt  完了の後の発言を記録し、分類の方法を返す（発言は止めない）
+成功  hooks の動作 codex feedback-pre-tool  利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）
 
-probe 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件
+probe 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件

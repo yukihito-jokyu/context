@@ -6,6 +6,8 @@ AI はスキルの手順の最初に start、出力を書いたら check、最�
 
   start   入力を正規化（表記ゆれ・全角・未知のキーを受け入れ、既定値で補う）し、実行記録を作る。依頼に無い入力は、
           settings/user-setting.yaml → settings/skill-setting.yaml → --guess → 契約の既定値の順に補う。
+          前の実行が終えたときの契約のハッシュを引き継ぐ。finish と abort は今の契約と比べ、変わっていれば報告の
+          「検証」に出す（止めない）
   check   契約（assets/contract.json）の format で出力を直してから検査する。--file でファイル1つだけ
   finish  検査に通れば実行を終え、報告の本文を出す。通らなければ指摘を出して終わらない
   wait    ユーザーへの質問を待つ間、hooks の強制を止める（返答の後に resume）
@@ -27,7 +29,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -112,19 +113,19 @@ def cmd_start(args, contract: dict, name: str) -> int:
         return 3
     state = {
         "runtime": rt.RUNTIME_VERSION, "skill": name, "status": "active", "started_at": rt.now(),
-        "run_id": uuid.uuid4().hex,
         "root": str(root), "skill_dir": str(rt.SKILL_DIR), "input": normalized["values"],
         "defaulted": normalized["defaulted"], "default_from": normalized["default_from"],
         "warnings": normalized["warnings"], "extra": normalized["extra"],
         "text": normalized["text"], "baseline": rt.snapshot(root, contract, name, normalized["values"]),
+        "contract": (existing or {}).get("contract") or rt.contract_hash(),  # 前の実行が終えたときの契約と比べる
         "stop_blocks": 0, "history": [], "restarts": 0, "previous": [],
     }
     if existing and existing.get("status") in ("active", "waiting"):
-        # 出力の比較基準と実行履歴は、最初の start から引き継ぐ
-        for key in ("started_at", "stop_blocks", "history", "previous", "run_id"):
+        # restart しても、最初の start の出力の基準・履歴・前の契約との比較を引き継ぐ（報告の「検証」に残す）
+        for key in ("started_at", "contract", "stop_blocks", "history", "previous"):
             if key in existing:
                 state[key] = existing[key]
-        state["baseline"] = existing.get("baseline", {})
+        state["baseline"] = {**state["baseline"], **existing.get("baseline", {})}
         state["restarts"] = existing.get("restarts", 0) + 1
     else:
         if existing and existing.get("status") in ("aborted", "failed"):
@@ -198,8 +199,9 @@ REPORT = {
            "notes_head": "補足",
            "notes": "最終の返答は、次の本文をそのまま使う。前後に文を足さず、要約しない。",
            "aborted": "{name}: 中断（理由: {reason}）", "not_checked": "- 中断したため、検証していない",
-           "restarts": "- `run.py start --restart`: {n} 回（実行履歴は最初の start から引き継いだ）",
+           "restarts": "- `run.py start --restart`: {n} 回（出力の基準と履歴は最初の start から引き継いだ）",
            "previous": "- 前の実行: {status}（理由: {reason}）",
+           "contract_changed": "- 前の実行の後に契約（`assets/contract.json`）が変わった（検査を緩める変更でないかを確かめる）",
            "formatted": "- 自動で直した（format）: {items}",
            "from": {"user": "ユーザーの設定 settings/user-setting.yaml", "skill": "スキルの設定 settings/skill-setting.yaml",
                     "guess": "依頼文からの推定", "derived": "{input} から決まる既定値", "default": "既定値"}},
@@ -208,8 +210,9 @@ REPORT = {
            "notes_head": "Notes",
            "notes": "Reply with the text below unchanged. Do not add text before or after it, and do not summarize it.",
            "aborted": "{name}: aborted (reason: {reason})", "not_checked": "- Not checked because the run was aborted",
-           "restarts": "- `run.py start --restart`: {n} time(s) (run history was carried over from the first start)",
+           "restarts": "- `run.py start --restart`: {n} time(s) (the output baseline and history were carried over from the first start)",
            "previous": "- Previous run: {status} (reason: {reason})",
+           "contract_changed": "- The contract (`assets/contract.json`) changed since the previous run (confirm it does not loosen the checks)",
            "formatted": "- Fixed automatically (format): {items}",
            "from": {"user": "user setting settings/user-setting.yaml", "skill": "skill setting settings/skill-setting.yaml",
                     "guess": "guessed from the request", "derived": "default from {input}", "default": "default"}},
@@ -225,6 +228,14 @@ def changed_outputs(root: Path, state: dict, contract: dict) -> dict:
     values, baseline = state.get("input", {}), state.get("baseline", {})
     return {out["id"]: [rel for rel in rt.iter_glob(root, rt.expand(out["path"], state["skill"], values))
                         if baseline.get(rel) != rt.sha256(root / rel)] for out in contract.get("outputs", [])}
+
+
+def note_contract(state: dict) -> None:
+    """前の実行が終えたとき（無ければこの実行の start）から契約が変わったかを記録し、次の実行の比べる元を今の契約にする。
+    スキル自身の変更は止めないので、検査を緩める変更に気づけるよう報告の「検証」に出す。"""
+    current = rt.contract_hash()
+    state["contract_changed"] = state.get("contract") not in (None, current)
+    state["contract"] = current
 
 
 def render_report(state: dict, contract: dict, changed: dict, sections: list[str], notes: list[str],
@@ -255,6 +266,8 @@ def render_report(state: dict, contract: dict, changed: dict, sections: list[str
         lines.append(t["restarts"].replace("{n}", str(state["restarts"])))
     for prev in state.get("previous", []):
         lines.append(t["previous"].replace("{status}", prev["status"]).replace("{reason}", prev["reason"]))
+    if state.get("contract_changed"):
+        lines.append(t["contract_changed"])
     lines += ["", f"## {t['notes_head']}", ""] + (notes or [t["none"]])
     return "\n".join(lines) + "\n"
 
@@ -278,6 +291,7 @@ def cmd_finish(args, contract: dict, name: str) -> int:
         print_findings(findings)
         rt.emit(f"finish: 指摘 {len(findings)} 件。直してから、もう一度 finish を実行してください")
         return 1
+    note_contract(state)
     report = render_report(state, contract, changed, sections, rt.read_notes(root, name))
     include = contract.get("report", {}).get("include_output")
     body = ""
@@ -306,6 +320,7 @@ def cmd_set_status(args, contract: dict, name: str, status: str, detail: str) ->
         state["abort_reason"] = detail
         state["finished_at"] = rt.now()
         state["outputs"] = changed_outputs(root, state, contract)
+        note_contract(state)
     if status == "waiting":
         state["question"] = detail
     rt.log_event(state, status, detail)

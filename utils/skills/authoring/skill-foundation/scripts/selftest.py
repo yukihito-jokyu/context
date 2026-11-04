@@ -38,6 +38,23 @@
      「## Eval の採点」の表に無いか、Eval の疑いの後に Eval を直していないと、次のラウンドの prepare が止めること。最後の
      ラウンドで終えるなら、直さずに「結論」に残せること）も確かめる
 
+ 10. feedback_selftest.py で、利用中の指摘の収集（hooks の追加機能）を合成データだけで確かめる
+ 11. 承認済み2件・承認待ち1件の合成データの記録から、feedback.py export と feedback_eval.py が承認済み2件だけの候補を作り、
+     正本のスキルと Eval を変えず、questions の4つの確認事項に答えるまで eval_check.py が止めること。答えた後の
+     convergence.py prepare が、入力の値と入力ファイルを再現し、エージェントのプロンプトと作業ディレクトリに指摘の文と
+     修正前・修正版のファイルを置かないことと、入力ファイルの置き先が範囲の外なら止まることを確かめる（references/eval.md の9章）
+ 12. hooks の方針（STEP-08）を、見本の写しで確かめる。質問を書くと skill_lint.py --phase 0 が受付へ進ませず、カタログの
+     「hooks 設計」タブに質問のカードが出ること。「使わない」と答えると init_skill.py が control.hooks を false にし、hooks を
+     一切登録せずに probe.py と skill_lint.py --final --project に通ること。control を方針と食い違わせると skill_lint.py が
+     止めること。「Codex だけ・指摘は集めない」と答えると、Codex にだけ収集を外した hooks を登録すること。聞けずに設定の値で
+     決めると、報告にそう載ること
+ 13. setup.py（hooks の登録とユーザーの設定を選んで行う）を、疑似端末（pty）で操作して確かめる。TTY が無いと画面を開かず
+     終了コード2で止まること。番号の画面・矢印キーの画面・端末の種類が分からないときの番号の画面で、選ぶだけで hooks を
+     登録でき、「戻る」でメニューに戻り、「中止」ではどのファイルも変わらないこと。プラグインの hooks が有効なら注意を出すこと。
+     skill-foundation の写しでは、ユーザーの設定を選んで作り、範囲外の数をその場で弾き、load_settings の検査に通り、
+     convergence.py prepare が「ユーザーの設定」の値として使うこと。非対話モードで同じ結果を作れ、上書きの前に .bak を残し、
+     候補に無い値を止めること
+
 skill-foundation のスクリプトやひな形を変えたら、これを実行してから使う。
 
 --build <ディレクトリ> を付けると、検証せずに見本をそのディレクトリ（プロジェクト）に組み立てるだけにする。
@@ -53,11 +70,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -66,7 +85,7 @@ import _lib  # noqa: E402
 
 EXAMPLES = _lib.FOUNDATION_DIR / "assets" / "example"
 SCRIPTS = _lib.FOUNDATION_DIR / "scripts"
-DEV_FILES = ["spec.json", "probes.json", "evals.json", "research.md"]
+DEV_FILES = ["spec.json", "probes.json", "evals.json", "research.md", "hooks-plan.json"]
 # カタログに見せない、作る側の呼び名と、意味のすぐ通らない語（catalog.py の「見せ方の約束」1）。言い換えは catalog.py の TERMS
 BANNED_WORDS = ["封印", "答えの決め方", "観測", "書き直す", "関門", "柵", "配線", "揺れ", "担保", "所要"]
 # 文書でも使わない語。目的語のある「ルールの文を書き直す」などは普通の言い方なので、文書では止めない
@@ -145,7 +164,7 @@ def sample_round(skill: Path) -> None:
     _lib.write_json(rdir / "report.json", {"round": 1, "runners": ["subagent"], "thresholds": {"files": 1.0, "structure": 1.0, "names": 0.8},
                                            "eval": {"hash": eval_check.eval_hash(skill), "dialog": len(eval_check.load(skill)[0]["dialog"])}, "tasks": [
         {"id": "T1-typical", "agents": ["subagent-1", "subagent-2"], "expect_status": "done", "status": {"subagent-1": "done", "subagent-2": "done"},
-         "files": 1.0, "structure": 1.0, "names": 1.0, "content": 0.9, "by_runner": {}, "check": {}, "fence_changed": {}, "excerpts": [],
+         "files": 1.0, "structure": 1.0, "names": 1.0, "content": 0.9, "by_runner": {}, "check": {}, "tampered": {}, "excerpts": [],
          "check_failures": {}, "converged": False, "variance_ok": True, "eval_ok": None,
          "eval": {f"subagent-{i}": {"behavior-3": dict(pending)} for i in (1, 2)},
          "changed_files": {"subagent-1": [out], "subagent-2": [out]}, "partial_files": [], "messages": {}}]})
@@ -235,7 +254,7 @@ def check_catalog(skill: Path, project: Path, out: Path) -> bool:
     if "成果物 2 件" not in text or "契約の出力" not in text or \
             not re.search(r'<img src="[^"]*records/outputs/T1-typical__subagent-1/\.api-flow/chart\.png"', text):
         problems.append("エージェントの動きのタブに、成果物（契約の出力と、records/outputs の写しの画像）が無い")
-    if not re.search(r'class="[^"]*hkd-ev used"[^>]*data-hk="PreToolUse"', text):
+    if not re.search(r'class="[^"]*hkd-ev used"[^>]*data-hk="PreToolUse"', text) or "<code>Edit|Write|MultiEdit|NotebookEdit</code>" not in text:
         problems.append("hooks 設計のタブに、このスキルが hooks を置くイベント（PreToolUse と matcher）が無い")
     if set(re.findall(r' data-hk="(\w+)"', text)) != set(re.findall(r'data-hk-pane="(\w+)"', text)):
         problems.append("hooks 設計の図の箱と、押したときに出す詳しい欄が揃っていない")
@@ -303,6 +322,96 @@ def check_eval_questions(skill: Path, project: Path, out: Path) -> bool:
         for path, text in saved.items():
             path.write_text(text, encoding="utf-8")
     print(f"{'成功' if not problems else '失敗'}  Eval 作成の質問をカタログで答え、回答を記録する")
+    for problem in problems:
+        print(f"    {problem}")
+    return not problems
+
+
+HOOKS_ANSWER = ("hooks の方針の回答（{name}、{talk}）\nQ1 出力の検査に hooks を使うか: {q1}\nQ2 どの製品に登録するか: {q2}\n"
+                "Q3 利用中の指摘を集めるか: {q3}\nQ4 hooks をどこに登録するか: {q4}\n")
+HOOKS_SKIPPED = "（Q1 で B を選んだので聞かない）"
+HOOK_CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
+
+
+def hooks_plan_problems(skill: Path, temp: Path) -> list[str]:
+    py, problems = sys.executable, []
+    project = temp / "hooks-proj"
+    copy = project / ".claude/skills" / skill.name
+    shutil.copytree(skill, copy, symlinks=True)
+    plan = [py, str(SCRIPTS / "hooks_plan.py"), str(copy)]
+    lint = [py, str(SCRIPTS / "skill_lint.py"), str(copy)]
+    install = [py, str(copy / "scripts/install.py"), "--project", str(project)]
+
+    def answer(talk: str, q1: str, q2: str = HOOKS_SKIPPED, q3: str = HOOKS_SKIPPED, q4: str = HOOKS_SKIPPED) -> tuple[int, str]:
+        text = HOOKS_ANSWER.format(name=skill.name, talk=talk, q1=q1, q2=q2, q3=q3, q4=q4)
+        return _lib.run(plan + ["--answer", "-"], project, stdin=text)
+
+    def control() -> dict:
+        _lib.run([py, str(SCRIPTS / "init_skill.py"), "--dir", str(copy)], project)
+        return _lib.load_spec(copy).get("control", {})
+
+    def commands(platform: str) -> list[str]:  # 登録された、このスキルの hook のコマンド
+        path = project / HOOK_CONFIGS[platform]
+        data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+        return [h.get("command", "") for groups in data.get("hooks", {}).values() for g in groups for h in g.get("hooks", [])
+                if f"/{skill.name}/scripts/hook.py" in h.get("command", "")]
+
+    code, text = _lib.run(plan + ["--ask", "--targets", "claude,codex", "--default", "all"], project)
+    code0, text0 = _lib.run(lint + ["--phase", "0"], project)
+    if code != 0 or code0 == 0 or "答えを待っている質問" not in text0:
+        problems.append(f"質問を書いた後に、skill_lint.py --phase 0 が受付へ進ませる（--ask {code}、--phase 0 {code0}）")
+    _lib.run([py, str(SCRIPTS / "catalog.py"), "--project", str(project), "--out", str(temp / "hooks.html")], project)
+    page = temp / "hooks" / f"{skill.name}.html"
+    html = page.read_text(encoding="utf-8") if page.is_file() else ""
+    if (html.count('class="evq-q covered"') != 4 or 'data-head="hooks の方針の回答"' not in html or 'type="checkbox"' not in html
+            or 'data-when="1:A"' not in html or '<span class="evq-def">今の設定</span>' not in html):
+        problems.append("カタログの hooks 設計のタブに、4枚の質問のカード（複数選択、前の答えで聞かない質問、今の設定の印）が無い")
+    code, text = answer("talk-2", "A. 使う")
+    if code == 0 or "Q2 に答えていません" not in text:
+        problems.append("答えていない質問のある回答を、hooks_plan.py --answer が受け付けた")
+    code, text = answer("talk-2", "B. 使わない")
+    code0, _ = _lib.run(lint + ["--phase", "0"], project)
+    now = control()
+    if code != 0 or code0 != 0 or now.get("hooks") is not False or "hook_targets" in now:
+        problems.append(f"「使わない」の回答から、init_skill.py が control.hooks を false にしていない（--answer {code}、control {now}）")
+    elif not make_ready(copy):
+        problems.append("「使わない」と答えたスキルが probe.py に通らない")
+    else:
+        _lib.run(install, project)
+        code, text = _lib.run(lint + ["--final", "--project", str(project)], project, timeout=600)
+        if commands("claude") or commands("codex") or code != 0:
+            problems.append(f"「使わない」と答えたスキルが hooks を登録したか、skill_lint.py --final --project に通らない\n" + _lib.tail(text, 5))
+    spec = _lib.load_spec(copy)
+    spec["control"]["hooks"] = True
+    _lib.write_json(copy / _lib.SPEC_REL, spec)
+    code, text = _lib.run(lint + ["--phase", "1"], project)
+    if code == 0 or "hooks の方針" not in text:
+        problems.append("hooks の方針と食い違う control を、skill_lint.py が止めない")
+    _lib.run(plan + ["--ask", "--targets", "claude,codex", "--default", "check"], project)
+    code, text = answer("talk-3", "A. 使う", "B. Codex", "B. 集めない", "A. プロジェクトの設定")
+    now = control()
+    _lib.run(install, project)
+    probed = step("probe.py（Codex だけ・指摘を集めない）", [py, str(SCRIPTS / "probe.py"), str(copy)], project)
+    final, text = _lib.run(lint + ["--final", "--project", str(project)], project, timeout=600)
+    codex = commands("codex")
+    if (now.get("hook_targets") != ["codex"] or now.get("feedback") is not False or commands("claude") or len(codex) != 4
+            or not all("--no-feedback" in c for c in codex) or not probed or final != 0):
+        problems.append(f"「Codex だけ・指摘を集めない」と答えたスキルの hooks が、Codex だけに収集を外して登録されていないか、"
+                        f"検査に通らない（control {now}、Codex の登録 {len(codex)} 件）\n" + _lib.tail(text, 5))
+    _lib.run(plan + ["--decide", "all", "--by", "setting", "--targets", "claude,codex"], project)
+    code, text = _lib.run([py, str(SCRIPTS / "report_skill.py"), str(copy), "--project", str(project)], project, timeout=600)
+    if "ユーザーに聞けなかったので、入力 hooks の値 `all` で決めた" not in text:
+        problems.append("聞けずに設定の値で決めた方針が、報告に載らない")
+    return problems
+
+
+def check_hooks_plan(skill: Path, temp: Path) -> bool:
+    """hooks の方針（STEP-08）: 質問があると skill_lint.py --phase 0 が止め、カタログが「hooks 設計」タブに複数選択と前の答えで
+    聞かない質問のカードを出し、貼られた回答から決めた方針を init_skill.py が control に写すか。「使わない」と答えたスキルが
+    hooks を一切登録せずに probe.py と skill_lint.py --final --project に通り、「Codex だけ・指摘は集めない」と答えたスキルが
+    Codex にだけ収集を外した hooks を登録し、聞けないときは設定の値で決めて報告に載せるか。"""
+    problems = hooks_plan_problems(skill, temp)
+    print(f"{'成功' if not problems else '失敗'}  hooks の方針を聞いて決め、決めたとおりにだけ hooks を登録する")
     for problem in problems:
         print(f"    {problem}")
     return not problems
@@ -567,10 +676,40 @@ def check_eval_scoring(skill: Path, temp: Path) -> bool:
     asks = _lib.load_json(asks_path) if asks_path.is_file() else {}
     if list(asks) != ["behavior-3"] or "ABC-12" not in asks["behavior-3"].get("text", ""):
         problems.append("model の判定を分析役に頼む中身（<課題>/<エージェント>.eval.json）が無い")
-    print(f"{'成功' if not problems else '失敗'}  diff が各エージェントの出力を Eval で採点する")
+    problems += check_breakdown(t1, out)
+    print(f"{'成功' if not problems else '失敗'}  diff が各エージェントの出力を Eval で採点し、指標の内訳と満たさない理由を書く")
     for problem in problems:
         print(f"    {problem}")
     return not problems
+
+
+def check_breakdown(task: dict, out: Path) -> list[str]:
+    """diff が書いた指標の内訳（breakdown）と満たさない理由（verdict.failed）。内訳の平均が値とずれたら例外にすることも確かめる。"""
+    import convergence
+    problems = []
+    parts = task.get("breakdown") or {}
+    agents = len(task.get("agents", []))
+    if len(parts.get("files", {}).get("pairs", [])) != agents * (agents - 1) // 2 or "names" not in parts:
+        problems.append(f"report.json に組ごとの内訳（breakdown.files.pairs・names.pairs）が無い: {list(parts)}")
+    failed = {c.get("cond") for c in (task.get("verdict") or {}).get("failed", [])}
+    if "eval" not in failed:
+        problems.append(f"Eval に落ちた課題の verdict.failed に eval が無い: {failed}")
+    text = (out / "report.md").read_text(encoding="utf-8") if (out / "report.md").is_file() else ""
+    for words in ("### 基準を満たさない理由", "### 指標の内訳", "files = 2人ずつの組ごとの Jaccard 係数", "参考値で、基準には使わない"):
+        if words not in text:
+            problems.append(f"report.md に「{words}」が無い")
+    if parts:
+        values = {k: task[k] for k in ("files", "structure", "names", "content")}
+        try:
+            convergence.check_breakdown({**values, "files": (values["files"] or 0) + 0.5}, parts)
+            problems.append("指標の値と内訳がずれても、check_breakdown が例外にしない")
+        except RuntimeError:
+            pass
+        try:
+            convergence.check_breakdown(values, parts)
+        except RuntimeError as exc:
+            problems.append(f"diff が書いた指標の値と内訳が一致しない: {exc}")
+    return problems
 
 
 def check_skip(skill: Path, temp: Path) -> bool:
@@ -590,6 +729,136 @@ def check_skip(skill: Path, temp: Path) -> bool:
     return ok
 
 
+FB_MARKS = {"quote": "QUOTE-MARK", "before": "BEFORE-MARK", "after": "AFTER-MARK"}  # 漏れを探す目印（指摘ごとに番号を付ける）
+
+
+def feedback_store(project: Path, skill: Path) -> None:
+    """承認済み2件（c-0001、c-0002）と承認待ち1件（c-0003）の、合成データの記録を project/.skill-feedback/ に作る。"""
+    import feedback as fb
+    name, out_rel, at = skill.name, f".skill-runs/{skill.name}/out/commit-message.txt", "2026-11-04T10:00:00+09:00"
+    store = {**fb.new_store(name), "synthetic": True}
+    version = fb.skill_version(project, name, skill)
+
+    def delivery(text: str, trigger: str, request: str, ticket: str, inputs: list | None = None) -> str:
+        (project / out_rel).parent.mkdir(parents=True, exist_ok=True)
+        (project / out_rel).write_text(text, encoding="utf-8")
+        d = {"id": fb.next_id(store["deliveries"], "d"), "at": at, "trigger": trigger, "platform": "claude", "session": "s1",
+             "marker": f"{len(store['deliveries'])}", "run": at, "request": request, "input": {"ticket": ticket}, "extra": {},
+             "input_files": inputs or [], "files": [fb.file_entry(project, name, out_rel, "commit-message")], "skill": version,
+             "contract": 1}
+        store["deliveries"].append(d)
+        return d["id"]
+
+    for n, (ticket, approved) in enumerate([("ABC-12", True), ("XYZ-7", True), ("OPS-3", False)], 1):
+        (project / "src").mkdir(exist_ok=True)
+        (project / "src/util.py").write_text(f"def add(a, b):\n    return a + b  # {n}\n", encoding="utf-8")
+        entry = fb.file_entry(project, name, "src/util.py")
+        inputs = [{"path": entry["path"], "sha256": entry["sha256"], "size": entry["size"], "at": at}]
+        request = f"{ticket} のコミットメッセージを書いて"
+        before = delivery(f"{ticket} feat: 足し算 {FB_MARKS['before']}-{n}\n", "finish", request, ticket, inputs)
+        after = delivery(f"{ticket} 足し算の関数を直す {FB_MARKS['after']}-{n}\n", "revision", request, ticket)
+        mid, cid = fb.next_id(store["messages"], "m"), fb.next_id(store["cases"], "c")
+        quote = f"{FB_MARKS['quote']}-{n} feat: を付けないで"
+        store["messages"].append({"id": mid, "at": at, "kind": "prompt", "platform": "claude", "session": "s1", "text": quote,
+                                  "delivered": before, "class": "feedback", "reason": None, "case": cid})
+        case = {"id": cid, "status": "open", "opened_at": at, "session": "s1",
+                "issue": {"messages": [mid], "quotes": [quote], "summary": "接頭辞の feat: を付けない"},
+                "before": before, "revisions": [after], "after": None, "approval": None}
+        if approved:
+            aid = fb.next_id(store["messages"], "m")
+            store["messages"].append({"id": aid, "at": at, "kind": "approval", "platform": "review", "session": None,
+                                      "text": "これでよい", "delivered": after, "class": "approval", "reason": None, "case": cid})
+            case.update({"status": "approved", "after": after, "approval": {
+                "at": at, "delivery": after, "comment": "これでよい", "via": "review", "origin": "http://127.0.0.1:1",
+                "user_agent": "selftest", "token": "0" * 16, "message": aid, "synthetic": True}})
+        store["cases"].append(case)
+    fb.save(project, store)
+
+
+def tree_files(directory: Path) -> dict[str, bytes]:
+    return {p.relative_to(directory).as_posix(): p.read_bytes() for p in sorted(directory.rglob("*")) if p.is_file()}
+
+
+def feedback_eval_problems(skill: Path, temp: Path) -> list[str]:
+    py, problems = sys.executable, []
+    project, dataset, work = temp / "fb-proj", temp / "fb-dataset", temp / "fb-work"
+    feedback_store(project, skill)
+    code, out = _lib.run([py, str(skill / "scripts/feedback.py"), "validate", "--root", str(project)], project)
+    if code != 0:
+        return [f"合成データの記録が feedback.py validate に通らない: {_lib.tail(out, 5)}"]
+    code, out = _lib.run([py, str(skill / "scripts/feedback.py"), "export", "--root", str(project), "--out", str(dataset)], project)
+    data = json.loads((dataset / "dataset.json").read_text(encoding="utf-8")) if code == 0 else {}
+    if [c["id"] for c in data.get("cases", [])] != ["c-0001", "c-0002"]:
+        return [f"feedback.py export が承認済みの2件だけを取り出さない（終了コード {code}）: {_lib.tail(out, 5)}"]
+    if any(f"{FB_MARKS['after']}-3".encode() in b for b in tree_files(dataset).values()):
+        problems.append("承認待ちの修正版が取り出したものに入る")
+    before = tree_files(skill)
+    code, out = _lib.run([py, str(SCRIPTS / "feedback_eval.py"), "--dataset", str(dataset), "--skill", str(skill),
+                          "--out", str(work)], temp)
+    if code != 0:
+        return problems + [f"feedback_eval.py が失敗した（終了コード {code}）: {_lib.tail(out, 5)}"]
+    if tree_files(skill) != before:
+        problems.append("候補を作ると、正本のスキルか既存の dev/eval/eval.json が変わる")
+    candidate = json.loads((work / "candidate.json").read_text(encoding="utf-8"))
+    copy = work / candidate["copy"]
+    doc = json.loads((copy / "dev/eval/eval.json").read_text(encoding="utf-8"))
+    titles = [q["title"] for q in doc.get("questions", {}).get("items", [])]
+    if candidate["status"] != "awaiting-user" or titles != ["一般化の範囲", "成功と失敗の判定", "判定するファイル", "足りない入力条件"]:
+        problems.append(f"候補の状態か questions の確認事項が違う（{candidate['status']}、{titles}）")
+    if [x["case"] for x in candidate["cases"]] != ["c-0001", "c-0002"]:
+        problems.append(f"候補が承認済みの2件だけから作られていない（{[x['case'] for x in candidate['cases']]}）")
+    code, out = _lib.run([py, str(SCRIPTS / "eval_check.py"), str(copy)], temp)
+    if code == 0 or "答えを待っている質問" not in out:
+        problems.append(f"答える前に eval_check.py が先へ進ませる（終了コード {code}）")
+    answer = "\n".join([f"Eval 作成の回答（{copy.name}、{doc['questions']['talk']}）", "Q1 一般化の範囲: B 同じ種類の依頼すべて",
+                        "Q2 成功と失敗の判定: A 同意する", "Q3 判定するファイル: A よい", "Q4 足りない入力条件: A 無い"])
+    code, out = _lib.run([py, str(SCRIPTS / "eval_check.py"), str(copy), "--answer", "-"], temp, stdin=answer)
+    code, out = _lib.run([py, str(SCRIPTS / "eval_check.py"), str(copy)], temp)
+    if code != 0:
+        return problems + [f"答えた後の候補が eval_check.py に通らない: {_lib.tail(out, 8)}"]
+    tasks = [x["task"] for x in candidate["cases"]]
+    prepare = [py, str(SCRIPTS / "convergence.py"), "prepare", str(copy), "--round", "1", "--only-tasks", ",".join(tasks),
+               "--agents", "1", "--runners", "subagent", "--agents-dir", str(temp / "agents")]
+    code, out = _lib.run(prepare + ["--workdir", str(temp / "fb-conv")], temp)
+    if code != 0:
+        return problems + [f"候補の課題で convergence.py prepare が失敗した: {_lib.tail(out, 8)}"]
+    plan = json.loads((temp / "fb-conv/round-1/plan.json").read_text(encoding="utf-8"))
+    leaks = sorted({f"{mark}-{n}" for mark in FB_MARKS.values() for n in (1, 2, 3)
+                    for blob in [json.dumps(plan, ensure_ascii=False).encode(), *tree_files(temp / "fb-conv").values()]
+                    if f"{mark}-{n}".encode() in blob})
+    if leaks:
+        problems.append(f"エージェントのプロンプトか作業ディレクトリに、指摘の文か修正前・修正版のファイルがある（{'、'.join(leaks)}）")
+    lab = Path(plan["runs"][0]["dir"])
+    settings = lab / plan["place"] / copy.name / "settings/user-setting.yaml"
+    util = lab / "src/util.py"
+    if not util.is_file() or "# 1" not in util.read_text(encoding="utf-8"):
+        problems.append("保存した入力ファイル（src/util.py）が課題の作業ディレクトリに再現されない")
+    if not settings.is_file() or 'ticket: "ABC-12"' not in settings.read_text(encoding="utf-8"):
+        problems.append("入力の値（ticket）が、置いたスキルのユーザーの設定に再現されない")
+    tasks_path = copy / "dev/evals.json"
+    original = tasks_path.read_text(encoding="utf-8")
+    for to in ("../outside.py", ".git/hooks/pre-commit", ".skill-feedback/x", "/tmp/abs.py"):
+        doc = json.loads(original)
+        for task in doc["tasks"]:
+            if task["id"] == tasks[0]:
+                task["feedback_inputs"][0]["to"] = to
+        tasks_path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+        code, out = _lib.run(prepare + ["--workdir", str(temp / "fb-conv-bad")], temp)
+        if code == 0 or "置き先" not in out or (temp / "fb-conv-bad").exists():
+            problems.append(f"入力ファイルの置き先が {to} でも、prepare が止まらない（終了コード {code}）")
+    tasks_path.write_text(original, encoding="utf-8")
+    return problems
+
+
+def check_feedback_eval(skill: Path, temp: Path) -> bool:
+    """利用中の指摘から Eval と収束テストの候補を作る（feedback.py export・feedback_eval.py・convergence.py prepare）。"""
+    problems = feedback_eval_problems(skill, temp)
+    print(f"{'成功' if not problems else '失敗'}  承認済みの指摘から、正本を変えずに Eval と収束テストの候補を作り、答えを漏らさずに再現する")
+    for problem in problems:
+        print(f"    - {problem}")
+    return not problems
+
+
 FENCE_CASES = [  # (一時プロジェクトの runner, 道具, 入力, 期待)。{lab} は自分、{other} はほかのエージェントの一時プロジェクト
     ("subagent", "Bash", {"command": "ls"}, "deny"),
     ("subagent", "Bash", {"command": "cd {lab} && ls"}, "rewrite"),
@@ -601,6 +870,164 @@ FENCE_CASES = [  # (一時プロジェクトの runner, 道具, 入力, 期待)�
     ("claude", "Bash", {"command": "cat ~/.gitconfig"}, "deny"),
     ("codex", "apply_patch", {"command": "*** Begin Patch\n*** Add File: ../x.txt\n+x\n*** End Patch"}, "deny"),
 ]
+
+
+def tty_session(command: list[str], cwd: Path, keys: list[str], env: dict) -> tuple[int | None, str]:
+    """command を疑似端末（40 行 × 110 桁）で動かし、keys を1つずつ送る（POSIX だけ）。終了コードと、端末に出た文字。"""
+    import fcntl
+    import pty
+    import select
+    import struct
+    import termios
+    master, slave = pty.openpty()
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 110, 0, 0))
+    proc = subprocess.Popen(command, stdin=slave, stdout=slave, stderr=slave, cwd=cwd, env=env, start_new_session=True)
+    os.close(slave)
+    out = bytearray()
+
+    def drain(quiet: float) -> None:
+        end = time.time() + quiet
+        while time.time() < end:
+            ready, _, _ = select.select([master], [], [], max(0.0, end - time.time()))
+            try:
+                data = os.read(master, 65536) if ready else b""
+            except OSError:
+                data = b""
+            if not data:
+                return
+            out.extend(data)
+            end = time.time() + quiet
+
+    drain(1.5)
+    for key in keys:
+        os.write(master, key.encode())
+        drain(0.4)
+    try:
+        code = proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        code = None
+    drain(0.2)
+    os.close(master)
+    return code, out.decode("utf-8", "replace")
+
+
+def setup_problems(skill: Path, temp: Path) -> list[str]:
+    import _skillrt as rt
+    import install
+    py, problems = sys.executable, []
+    home, project = temp / "setup-home", temp / "setup-proj"
+    (home / ".claude").mkdir(parents=True)
+    (home / ".claude/settings.json").write_text(json.dumps({"enabledPlugins": {f"{skill.name}@selftest": True}}), encoding="utf-8")
+    env = {**os.environ, "HOME": str(home), "CLAUDE_CONFIG_DIR": str(home / ".claude"), "CODEX_HOME": str(home / ".codex"),
+           "TERM": "xterm-256color"}
+    env.setdefault("LC_CTYPE", "UTF-8" if sys.platform == "darwin" else "C.UTF-8")  # 画面の日本語を UTF-8 で出す
+    copy = project / ".claude/skills" / skill.name
+    shutil.copytree(skill, copy, symlinks=True, ignore=shutil.ignore_patterns("results", "__pycache__", ".skill-runs"))
+    _lib.git_init(project)
+    setup = [py, str(copy / "scripts/setup.py")]
+
+    def configs() -> dict:
+        return {rel: (project / rel).read_bytes() if (project / rel).is_file() else None for rel in install.CONFIGS.values()}
+
+    def hooked() -> dict:
+        return {p: install.registered(project, p, skill.name) for p in install.CONFIGS}
+
+    code, text = _lib.run(setup, project, env=env, stdin="")
+    if code != 2 or "--hooks" not in text or "--status" not in text:
+        problems.append(f"TTY が無いのに、終了コード2で引数の案内を出さない（終了コード {code}）")
+    code, text = _lib.run(setup + ["--hooks", "claude", "--features", "check"], project, env=env)
+    if code != 0 or "PreToolUse" not in text or any(configs().values()):
+        problems.append(f"--yes の無い非対話モードが、差分を見せるだけにならない（終了コード {code}）")
+    code, text = _lib.run(setup + ["--status"], project, env=env)
+    if f"{skill.name}@selftest" not in text:
+        problems.append("--status が、有効なプラグインの hooks を出さない")
+    # 番号の画面: メニュー → hooks → 製品（両方）→ 機能（両方）→ プロジェクトの設定 → 書く
+    code, text = tty_session(setup + ["--plain"], project, ["1\n", "3\n", "3\n", "1\n", "1\n"], env)
+    if hooked() != {"claude": {"check", "feedback"}, "codex": {"check", "feedback"}} or "問題 0 件" not in text:
+        problems.append(f"番号の画面で、両方の製品に hooks を登録できない（終了コード {code}、登録 {hooked()}）")
+    if "二重に動きます" not in text:
+        problems.append("プラグインの hooks が有効なのに、製品の画面に注意が出ない")
+    before = configs()
+    # 矢印キーの画面: Codex を外して確認まで進み、「中止」
+    code, text = tty_session(setup, project, ["\r", "k", " ", "j", "\r", "\r", "\r", "q"], env)
+    if configs() != before or "中止しました" not in text:
+        problems.append(f"矢印キーの画面の「中止」で、ファイルが変わったか、中止を伝えない（終了コード {code}）")
+    # 矢印キーの画面: 製品の画面で「戻る」→ メニュー → Codex を外して書く
+    code, text = tty_session(setup, project, ["\r", "b", "\r", "k", " ", "j", "\r", "\r", "\r", "\r"], env)
+    if hooked() != {"claude": {"check", "feedback"}, "codex": None}:
+        problems.append(f"矢印キーの画面で「戻る」の後に選び直して書けない（終了コード {code}、登録 {hooked()}）")
+    # 端末の種類が分からないときは番号の画面: メニュー → hooks → 製品（Codex を足す）→ 機能（収集を外す）→ 書く
+    code, text = tty_session(setup, project, ["1\n", "2\n", "3\n", "2\n", "3\n", "1\n", "1\n"], {**env, "TERM": "selftest-unknown"})
+    if hooked() != {"claude": {"check"}, "codex": {"check"}}:
+        problems.append(f"端末の種類が分からないとき、番号の画面で選べない（終了コード {code}、登録 {hooked()}）")
+    # 作ったスキルの設定: 選べない入力も書いてあれば残し、上書きの前に .bak を残す
+    user = copy / rt.SETTINGS_FILES[0][1]
+    user.parent.mkdir(exist_ok=True)
+    user.write_text("inputs:\n  ticket: abc-1\n", encoding="utf-8")
+    code, text = tty_session(setup, project, ["j", "\r", "\r", "\r"], env)
+    backup = copy / rt.SETTINGS_BACKUP_REL
+    if not backup.is_file() or (rt.load_yaml(user) or {}).get("inputs", {}).get("ticket") != "abc-1":
+        problems.append(f"作ったスキルのユーザーの設定を書くとき、.bak を残さないか、書いてあった入力を消した（終了コード {code}）")
+    code, text = _lib.run([py, str(SCRIPTS / "skill_lint.py"), str(copy), "--phase", "3"], project)
+    if "settings/" in text:
+        problems.append("setup.py が残した .bak を、skill_lint.py が置けないファイルとして止める")
+
+    # skill-foundation の写し: ユーザーの設定を矢印キーで選んで作る（範囲外の数は弾く）
+    lab = temp / "setup-sf" / "skill-foundation"
+    shutil.copytree(_lib.FOUNDATION_DIR, lab, ignore=shutil.ignore_patterns("dev", "__pycache__", "user-setting.yaml*"))
+    sf_setup, sf_user = [py, str(lab / "scripts/setup.py"), "--project", str(project)], lab / rt.SETTINGS_FILES[0][1]
+    keys = ["j", "\r", *["j"] * 6, "\r", "\r", "0", "\r", "\x7f", "2", "\r",  # agents: 0 は弾かれ、2 にする
+            *["j"] * 7, "\r", "j", "\r",  # model.subagent: 候補の sonnet
+            *["k"] * 11, "\r", "j", "\r",  # measure: run
+            "k", "k", "\r", "k", " ", "j", "\r",  # targets: codex を外す
+            *["j"] * 22, "\r", "\r"]  # 書く前の確認 → 書く
+    code, text = tty_session(sf_setup, project, keys, env)
+    data = rt.load_yaml(sf_user) if sf_user.is_file() else {}
+    got = (dig_value(data, "inputs", "measure"), dig_value(data, "inputs", "targets"), dig_value(data, "convergence", "agents"),
+           dig_value(data, "convergence", "model", "subagent"))
+    if got != ("run", ["claude"], 2, "sonnet"):
+        problems.append(f"矢印キーの画面で、ユーザーの設定を選んで作れない（終了コード {code}、値 {got}）")
+    if "1 以上の整数にしてください" not in text:
+        problems.append("範囲外の数（agents に 0）を、入力の時点で弾かない")
+    if rt.check_settings(lab):
+        problems.append(f"setup.py が書いたユーザーの設定が、load_settings の検査に通らない: {rt.check_settings(lab)}")
+    code, text = _lib.run([py, str(lab / "scripts/convergence.py"), "prepare", str(skill), "--round", "1", "--runners", "subagent",
+                           "--workdir", str(temp / "setup-conv"), "--agents-dir", str(temp / "setup-agents")], temp, timeout=300, env=env)
+    if "model.subagent = sonnet（ユーザーの設定 settings/user-setting.yaml）" not in text:
+        problems.append(f"convergence.py prepare が、setup.py で作ったユーザーの設定を使わない（終了コード {code}）")
+    # 非対話モード: 同じ形で書け、上書きの前に .bak を残し、候補に無い値を止める
+    previous = sf_user.read_text(encoding="utf-8")
+    code, text = _lib.run(sf_setup + ["--set", "convergence.agents=3", "--set", "inputs.targets=claude,codex", "--yes"], project, env=env)
+    data = rt.load_yaml(sf_user)
+    if code != 0 or (lab / rt.SETTINGS_BACKUP_REL).read_text(encoding="utf-8") != previous \
+            or (dig_value(data, "convergence", "agents"), dig_value(data, "inputs", "targets")) != (3, ["claude", "codex"]):
+        problems.append(f"非対話モードで、ユーザーの設定を書けないか、.bak を残さない（終了コード {code}）")
+    for bad in ("inputs.measure=always", "inputs.targets=gemini", "convergence.thresholds.files=1.5", "inputs.base=x"):
+        written = sf_user.read_bytes()
+        code, _ = _lib.run(sf_setup + ["--set", bad, "--yes"], project, env=env)
+        if code != 2 or sf_user.read_bytes() != written:
+            problems.append(f"非対話モードが、使えない値 {bad} を止めない（終了コード {code}）")
+    return problems
+
+
+def dig_value(data, *keys):
+    for key in keys:
+        data = data.get(key) if isinstance(data, dict) else None
+    return data
+
+
+def check_setup(skill: Path, temp: Path) -> bool:
+    try:
+        import pty  # noqa: F401
+    except ImportError:
+        print("成功  setup.py（疑似端末が無い環境なので、画面の操作は確かめていない）")
+        return True
+    problems = setup_problems(skill, temp)
+    print(f"{'成功' if not problems else '失敗'}  setup.py（画面と引数で hooks の登録とユーザーの設定を選んで行う、戻る・中止、書く前の差分、.bak）")
+    for problem in problems:
+        print(f"    {problem}")
+    return not problems
 
 
 def check_settings(skill: Path, project: Path) -> bool:
@@ -647,8 +1074,8 @@ def check_settings(skill: Path, project: Path) -> bool:
         (folder / "user-setting.yaml").write_text(
             "inputs:\n  tiket: abc-1 # 書き方の説明\nconvergence:\n  agents: 0\n", encoding="utf-8")
         code, text = _lib.run([py, str(SCRIPTS / "skill_lint.py"), str(skill), "--phase", "3"], project)
-        if code == 0 or "`tiket`" not in text or "convergence.agents" not in text:
-            problems.append(f"設定の知らない入力と、種類に合わない収束テストの値を、skill_lint.py が見つけない（終了コード {code}）")
+        if code == 0 or "`tiket`" not in text or "`convergence`" not in text:
+            problems.append(f"設定の知らない入力と、作ったスキルに無い収束テストの欄を、skill_lint.py が見つけない（終了コード {code}）")
     finally:
         shutil.rmtree(folder, ignore_errors=True)
     saved = _lib.setting_files
@@ -704,13 +1131,25 @@ def check_fence(temp: Path) -> bool:
 
 
 def check_untouched(temp: Path) -> bool:
-    """スキルにも hooks にも手を付けていないエージェントを、diff が失格にしないか（作業ディレクトリの複製で確かめる）。"""
+    """スキル自身を変えたエージェントを diff が失格にせず、fence.py の登録を外したエージェントだけを失格にするか
+    （作業ディレクトリの複製で確かめる）。"""
     import convergence  # noqa: E402
     plan = _lib.load_json(temp / "conv/round-1/plan.json")
-    spec = _lib.load_spec(Path(plan["skill"]))
-    problems = [f"{run['id']}: {e}" for run in plan["runs"]
-                for e in convergence.fence_changes(run, plan)]
-    print(f"{'成功' if not problems else '失敗'}  手を付けていないエージェントを失格にしない")
+    problems = [f"{run['id']}: {e}" for run in plan["runs"] for e in convergence.tampered(run, plan)]
+    run = next(r for r in plan["runs"] if r.get("runner") in convergence.FENCE_CONFIGS)
+    skill_md = Path(run["dir"]) / plan["place"] / plan["name"] / "SKILL.md"
+    config = Path(run["dir"]) / convergence.FENCE_CONFIGS[run["runner"]][0]
+    saved_md, saved_config = skill_md.read_bytes(), config.read_bytes()
+    try:
+        skill_md.write_bytes(saved_md + b"\n")
+        problems += [f"スキル自身を変えたエージェントを失格にした: {e}" for e in convergence.tampered(run, plan)]
+        config.write_text("{}\n", encoding="utf-8")
+        if not convergence.tampered(run, plan):
+            problems.append("fence.py の登録を外したエージェントを失格にしなかった")
+    finally:
+        skill_md.write_bytes(saved_md)
+        config.write_bytes(saved_config)
+    print(f"{'成功' if not problems else '失敗'}  スキル自身を変えても失格にせず、fence.py の登録を外したら失格にする")
     for problem in problems[:3]:
         print(f"    {problem}")
     return not problems
@@ -829,7 +1268,7 @@ def check_codex_trace(temp: Path) -> bool:
 def check_places(skill: Path, project: Path, out: Path) -> bool:
     """もう一方の置き場の複製を、install.py --check が問題にし、skill_lint.py が本体の場所を見分け、カタログが要確認に出すか。"""
     import skill_lint  # noqa: E402
-    install = [sys.executable, str(skill / "scripts/install.py"), "--project", str(project)]
+    install = [sys.executable, str(skill / "scripts/install.py"), "--project", str(project), "--no-hooks"]
     twin = project / ".agents/skills" / skill.name
     _lib.run(install, project)
     problems = [] if twin.is_symlink() and _lib.run(install + ["--check"], project)[0] == 0 else ["リンクで置いても install.py --check が通らない"]
@@ -860,68 +1299,6 @@ def check_places(skill: Path, project: Path, out: Path) -> bool:
         problems.append("置き場自体がリンクのとき、skill_lint.py が本体の場所を見分けない")
     if f".agents/skills/{skill.name}/**" not in rt.path_aliases(linked.resolve(), f".claude/skills/{skill.name}/**"):
         problems.append("置き場自体がリンクのとき、出力の照合が実体のパスを許さない")
-    # Context Repository の共有正本は動かさず、対象製品の置き場からリンクする
-    places = {"claude": ".claude/skills", "codex": ".agents/skills"}
-    for targets in (["codex"], ["claude"], ["claude", "codex"], ["codex", "claude"]):
-        label = ",".join(targets)
-        shared = project.parent / ("shared-" + "-".join(targets))
-        body = shared / "utils/skills/documentation" / skill.name
-        shutil.copytree(skill, body, symlinks=True)
-        spec = {**_lib.load_spec(body), "targets": targets}
-        setup = [sys.executable, str(body / "scripts/install.py"), "--project", str(shared), "--targets", label]
-        if _lib.run(setup, shared)[0] or skill_lint.place_problem(body, spec, shared):
-            problems.append(f"共有正本への正しいリンクを skill_lint.py が通さない（{label}）")
-        report = skill_lint.Report()
-        skill_lint.check_final(body, spec, report, shared)
-        if any(rule == "OUT-01" for rule, _ in report.errors):
-            problems.append(f"共有正本のリンクと hooks が揃っても最終の配置検査が通らない（{label}）")
-        for target in targets:
-            link = shared / places[target] / skill.name
-            saved = link.readlink()
-            link.unlink()
-            if not skill_lint.place_problem(body, spec, shared):
-                problems.append(f"共有正本へのリンクが無くても通る（{label}: {target}）")
-            wrong = shared / "other" / skill.name
-            wrong.mkdir(parents=True, exist_ok=True)
-            (wrong / "SKILL.md").write_text("別のスキル", encoding="utf-8")
-            link.symlink_to(wrong, target_is_directory=True)
-            if not skill_lint.place_problem(body, spec, shared):
-                problems.append(f"共有正本と異なるリンクでも通る（{label}: {target}）")
-            link.unlink()
-            shutil.copytree(body, link, symlinks=True)
-            if not skill_lint.place_problem(body, spec, shared):
-                problems.append(f"共有正本へのリンクを複製に変えても通る（{label}: {target}）")
-            shutil.rmtree(link)
-            link.symlink_to(saved, target_is_directory=True)
-        config = shared / (".codex/hooks.json" if targets[0] == "codex" else ".claude/settings.json")
-        saved_config = config.read_text(encoding="utf-8")
-        data = json.loads(saved_config)
-        data["hooks"].pop("Stop")
-        _lib.write_json(config, data)
-        report = skill_lint.Report()
-        skill_lint.check_final(body, spec, report, shared)
-        if not any(rule == "OUT-01" and "hook がありません" in message for rule, message in report.errors):
-            problems.append(f"共有正本の hooks の欠落を最終検査が問題にしない（{label}）")
-        config.write_text(saved_config, encoding="utf-8")
-        arbitrary = shared / "arbitrary" / skill.name
-        arbitrary.parent.mkdir()
-        body.rename(arbitrary)
-        for target in targets:
-            link = shared / places[target] / skill.name
-            link.unlink()
-            link.symlink_to(arbitrary, target_is_directory=True)
-        if not skill_lint.place_problem(arbitrary, spec, shared):
-            problems.append(f"utils/skills 以外の任意の本体をリンクだけで通す（{label}）")
-        external = project.parent / ("external-" + "-".join(targets)) / skill.name
-        external.parent.mkdir()
-        arbitrary.rename(external)
-        body.symlink_to(external, target_is_directory=True)
-        for target in targets:
-            link = shared / places[target] / skill.name
-            link.unlink()
-            link.symlink_to(body, target_is_directory=True)
-        if not skill_lint.place_problem(body, spec, shared):
-            problems.append(f"utils/skills 内のリンクからプロジェクト外の本体まで通す（{label}）")
     # 本体をプラグイン（plugins/<プラグイン>/skills/<name>）に置き、置き場には置かないプロジェクト
     shipped = project.parent / "shipped"
     plugin = shipped / "plugins/kit"
@@ -936,15 +1313,10 @@ def check_places(skill: Path, project: Path, out: Path) -> bool:
         problems.append("本体がプラグインにあり置き場に無いとき、skill_lint.py かカタログが本体を見分けない")
     if _lib.plugin_hook_events(plugin, "claude", skill.name) != sorted(_lib.HOOK_EVENTS) or _lib.plugin_hook_events(plugin, "codex", skill.name):
         problems.append("プラグインが配る hooks を、製品ごとに読み分けない")
-    nested = project.parent / "shared-plugin"
-    nested_plugin = nested / "utils/skills/kit"
-    shutil.copytree(plugin, nested_plugin, symlinks=True)
-    if skill_lint.place_problem(nested_plugin / "skills" / skill.name, spec, nested):
-        problems.append("utils/skills 配下のプラグインの既存配置を、共有正本へのリンク欠落として拒否する")
     shutil.copytree(body, shipped / ".agents/skills" / skill.name)
     if not skill_lint.place_problem(body, spec, shipped.resolve()):
         problems.append("プラグインの本体と別に置き場に複製があるとき、skill_lint.py が問題にしない")
-    print(f"{'成功' if not problems else '失敗'}  置き場の検査（リンク、複製、本体の場所、置き場自体のリンク、共有正本と hooks、プラグイン、カタログ）")
+    print(f"{'成功' if not problems else '失敗'}  置き場の検査（リンク、複製、本体の場所、置き場自体のリンク、プラグイン、カタログ）")
     for problem in problems:
         print(f"    {problem}")
     return not problems
@@ -980,6 +1352,8 @@ def main() -> int:
             results.append(step("eval_check.py", [py, str(scripts / "eval_check.py"), str(skill)], temp))
             results.append(check_catalog(skill, temp / "proj", temp / "catalog.html"))
             results.append(check_eval_questions(skill, temp / "proj", temp / "catalog.html"))
+            results.append(check_hooks_plan(skill, temp))
+            results.append(check_setup(skill, temp))
             results.append(check_settings(skill, temp / "proj"))
             results.append(step("convergence.py prepare（全課題）",
                                 [py, str(scripts / "convergence.py"), "prepare", str(skill), "--round", "1",
@@ -992,8 +1366,8 @@ def main() -> int:
             results.append(results[-5] and check_eval_scoring(skill, temp))
             results.append(check_places(skill, temp / "proj", temp / "twins.html"))
             results.append(check_analysis(skill, temp / "proj", temp))
-            results.append(step("feedback_selftest.py（合成イベントによる収集・承認・Eval 接続）",
-                                [py, str(scripts / "feedback_selftest.py")], temp))
+            results.append(check_feedback_eval(skill, temp))
+        results.append(step("feedback_selftest.py（利用中の指摘の収集）", [py, str(scripts / "feedback_selftest.py")], temp))
         failed = results.count(False)
         print(f"\n自己テスト: {len(results)} 段階中 失敗 {failed} 件")
         return 1 if failed else 0

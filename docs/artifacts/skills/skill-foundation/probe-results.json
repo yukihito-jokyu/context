@@ -1,5 +1,5 @@
 {
-  "hash": "a97dd59d87fcbc1ffc7d44ef0a49ee12a84546318fbca9ce92dfc1962f1b22bd",
+  "hash": "9fe9fd2d77f3d329d514f274f54fcaaae68da63cbda162547b310cee524b6297",
   "results": [
     {
       "id": "RPT-01-builtin",
@@ -106,42 +106,26 @@
       "others": []
     },
     {
-      "id": "CTL-04-builtin-start-after-edit",
-      "rule": "CTL-04",
+      "id": "CTL-01-builtin-edited",
+      "rule": "CTL-01",
       "passed": true,
-      "detail": "スキルの変更後も古い seal が残っていても start できる（終了コード 0）",
+      "detail": "SKILL.md と契約を変えた後も start・check・finish が通る（終了コード start 0、check 0、finish 0）",
       "output_tail": "",
       "others": []
     },
     {
-      "id": "CTL-04-builtin-check-after-edit",
-      "rule": "CTL-04",
+      "id": "CTL-01-builtin-edited-probe",
+      "rule": "CTL-01",
       "passed": true,
-      "detail": "実行中にスキルを変更しても出力の check が通る（終了コード 0）",
+      "detail": "スキル自身を変えた後も、違反例 OUT-01-a は check で落ちる（終了コード 1）",
       "output_tail": "",
       "others": []
     },
     {
-      "id": "CTL-04-builtin-finish-after-edit",
-      "rule": "CTL-04",
+      "id": "RPT-01-builtin-contract",
+      "rule": "RPT-01",
       "passed": true,
-      "detail": "変更後に restart と finish が通る（終了コード 0）",
-      "output_tail": "",
-      "others": []
-    },
-    {
-      "id": "CTL-04-builtin-hooks-claude",
-      "rule": "CTL-04",
-      "passed": true,
-      "detail": "hooks の設定を変更しても出力の check が通る（終了コード 0）",
-      "output_tail": "",
-      "others": []
-    },
-    {
-      "id": "CTL-04-builtin-hooks-codex",
-      "rule": "CTL-04",
-      "passed": true,
-      "detail": "hooks の設定を変更しても出力の check が通る（終了コード 0）",
+      "detail": "前の実行の後に契約を変えると、止めずに報告の「検証」に出す（終了コード 0）",
       "output_tail": "",
       "others": []
     },
@@ -199,7 +183,7 @@
       "platform": "claude",
       "check": "prompt",
       "passed": true,
-      "detail": "ユーザーの発言は止めず、収集の案内だけを返す（CTL-04）"
+      "detail": "ユーザーの発言は止めない（CTL-04）"
     },
     {
       "platform": "claude",
@@ -215,15 +199,27 @@
     },
     {
       "platform": "claude",
-      "check": "pre-tool",
+      "check": "pre-tool-skill",
       "passed": true,
-      "detail": "実行中もスキル自身のファイルを編集できる"
+      "detail": "スキル自身（SKILL.md）の編集の前は止めない（結果 何もしない。CTL-04）"
     },
     {
       "platform": "claude",
-      "check": "pre-tool-inactive",
+      "check": "pre-tool",
       "passed": true,
-      "detail": "実行していないときもスキルを編集できる"
+      "detail": "実行記録（state.json）の編集の前に拒否する（結果 deny。CTL-04）"
+    },
+    {
+      "platform": "claude",
+      "check": "feedback-prompt",
+      "passed": true,
+      "detail": "完了の後の発言を記録し、分類の方法を返す（発言は止めない）"
+    },
+    {
+      "platform": "claude",
+      "check": "feedback-pre-tool",
+      "passed": true,
+      "detail": "利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）"
     },
     {
       "platform": "codex",
@@ -253,7 +249,7 @@
       "platform": "codex",
       "check": "prompt",
       "passed": true,
-      "detail": "ユーザーの発言は止めず、収集の案内だけを返す（CTL-04）"
+      "detail": "ユーザーの発言は止めない（CTL-04）"
     },
     {
       "platform": "codex",
@@ -269,15 +265,27 @@
     },
     {
       "platform": "codex",
-      "check": "pre-tool",
+      "check": "pre-tool-skill",
       "passed": true,
-      "detail": "実行中もスキル自身のファイルを編集できる"
+      "detail": "スキル自身（SKILL.md）の編集の前は止めない（結果 何もしない。CTL-04）"
     },
     {
       "platform": "codex",
-      "check": "pre-tool-inactive",
+      "check": "pre-tool",
       "passed": true,
-      "detail": "実行していないときもスキルを編集できる"
+      "detail": "実行記録（state.json）の編集の前に拒否する（結果 deny。CTL-04）"
+    },
+    {
+      "platform": "codex",
+      "check": "feedback-prompt",
+      "passed": true,
+      "detail": "完了の後の発言を記録し、分類の方法を返す（発言は止めない）"
+    },
+    {
+      "platform": "codex",
+      "check": "feedback-pre-tool",
+      "passed": true,
+      "detail": "利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）"
     }
   ]
 }

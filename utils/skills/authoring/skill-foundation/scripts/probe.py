@@ -12,12 +12,16 @@
              create の中身は content か、from に書いたスキルの見本 assets/examples/<ファイル>）。
              fixed を持つ probe（段 format）は、check が通り、出力が expect に一致し、files の1つ目に fixed が残らない
   review   : dev/probes.json の reviews の見本は、機械の検査（check）を通る（通らないなら review でなく validate にする）
-  標準     : 出力が無いと finish が落ちる（CTL-01）。スキル自身のファイルや hooks を変更しても、
-             start・check・finish は変更を理由に拒否しない。古い seal が残っていても同じである。
-             wait 中は stop が止めない（CTL-03）。実行していないと hooks は何もしない（CTL-04）。
-             finish と abort の報告、notes.md の形を確かめる（RPT-01）。
-  hooks の動作: targets ごとに、登録・matcher・出力の編集後の検査・終了前の検査・wait を確かめる。
-             スキル自身のファイルは実行中も実行していないときも編集できる。
+  標準     : 出力が無いと finish が落ちる・スキル自身（SKILL.md と契約）を変えた後も start・check・finish が通り、
+             違反例は変わらず check で落ちる（CTL-01）、wait 中は stop が止めない（CTL-03）、実行していないと hooks は
+             何もしない・発言は止めない・スキル自身の編集は止めない（CTL-04）、finish が報告の本文を出し、
+             notes.md が箇条書きでないと check が落ちる、abort が中断の本文を出し、次の start が前の中断を残す・
+             前の実行の後に契約を変えると報告の「検証」に出る（RPT-01）
+  hooks の動作: targets のうち hooks を登録する製品（契約の control.hook_targets。無ければ全部）ごとに、登録した hooks の
+             コマンドを製品の形の入力で実行し、編集の後・終える前に AI を止める
+             出力が出て、実行記録（state.json）の編集の前に拒否が出る。スキル自身（SKILL.md）の編集の前は何もしない（CTL-04）。
+             契約の control.feedback が false でなければ、完了の後の発言を記録して分類の方法を返し、利用中の指摘の記録
+             （.skill-feedback/）の編集の前に拒否が出ることも確かめる（references/feedback.md）
 結果は dev/results/probe-results.json に書く（skill_lint.py --final が読む）。--only のときは書かない。
 
 使い方:
@@ -50,6 +54,7 @@ EDIT_EVENT = {
 EDIT_TOOL = {"claude": "Write", "codex": "apply_patch"}
 PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}
 CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
+FEEDBACK_REL = ".skill-feedback"  # feedback.py の DIRNAME と同じ
 
 
 class Lab:
@@ -296,45 +301,44 @@ def main() -> int:
             lab.start()
             code, out = lab.run_py("finish")
             record("CTL-01-builtin", "CTL-01", code == 1, f"出力が無いと finish が落ちる（終了コード {code}）", out)
-            skill_md = lab.skill / "SKILL.md"
-            original = skill_md.read_bytes()
-            marker = lab.skill / "assets/seal.json"
-            marker.write_text('{"files": {"SKILL.md": "legacy"}}', encoding="utf-8")
-            try:
-                skill_md.write_bytes(original + b"\n")
-                code, out = lab.start()
-                record("CTL-04-builtin-start-after-edit", "CTL-04", code == 0,
-                       f"スキルの変更後も古い seal が残っていても start できる（終了コード {code}）", out)
-                undo = lab.baseline()
-                skill_md.write_bytes(original + b"\n\n")
-                code, out = lab.run_py("check")
-                record("CTL-04-builtin-check-after-edit", "CTL-04", code == 0,
-                       f"実行中にスキルを変更しても出力の check が通る（終了コード {code}）", out)
-                lab.start("--restart", fresh=False)
-                code, out = lab.run_py("finish")
-                record("CTL-04-builtin-finish-after-edit", "CTL-04", code == 0,
-                       f"変更後に restart と finish が通る（終了コード {code}）", out)
-                lab.revert(undo)
-            finally:
-                skill_md.write_bytes(original)
-                marker.unlink(missing_ok=True)
-
-            hooks_on = contract.get("control", {}).get("hooks", True)
-            for platform in spec.get("targets", []) if hooks_on else []:
-                config = lab.root / CONFIGS[platform]
+            # スキル自身（SKILL.md と契約）は実行の前にも途中にも直せる。直しても出力の検査は変わらず働く（CTL-01、CTL-04）
+            skill_md, contract_json = lab.skill / "SKILL.md", lab.skill / rt.CONTRACT_REL
+            original, original_contract = skill_md.read_bytes(), contract_json.read_bytes()
+            edited_contract = json.dumps({**contract, "x-probe": "edited"}, ensure_ascii=False, indent=2).encode("utf-8") + b"\n"
+            skill_md.write_bytes(original + b"\n")
+            contract_json.write_bytes(edited_contract)
+            start_code, start_out = lab.start()
+            undo = lab.baseline()
+            skill_md.write_bytes(original + b"\n\n")  # 実行の途中にも直す
+            code, out = lab.run_py("check")
+            finish_code, finish_out = lab.run_py("finish")
+            lab.revert(undo)
+            record("CTL-01-builtin-edited", "CTL-01", start_code == 0 and code == 0 and finish_code == 0,
+                   f"SKILL.md と契約を変えた後も start・check・finish が通る（終了コード start {start_code}、check {code}、"
+                   f"finish {finish_code}）", start_out + "\n" + out + "\n" + finish_out)
+            failing = next((p for p in probes if p.get("fixed") is None and any(r["id"] == p["id"] and r["passed"] for r in results)), None)
+            if failing:
                 lab.start()
                 undo = lab.baseline()
-                saved = config.read_bytes()
-                data = json.loads(saved)
-                for groups in data.get("hooks", {}).values():
-                    for group in groups:
-                        group["hooks"] = [h for h in group.get("hooks", []) if f"/{lab.name}/scripts/hook.py" not in h.get("command", "")]
-                config.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                undo += lab.apply(failing.get("files", []))
                 code, out = lab.run_py("check")
-                config.write_bytes(saved)
-                record(f"CTL-04-builtin-hooks-{platform}", "CTL-04", code == 0,
-                       f"hooks の設定を変更しても出力の check が通る（終了コード {code}）", out)
                 lab.revert(undo)
+                record("CTL-01-builtin-edited-probe", "CTL-01", code == 1 and re.search(failing.get("expect", "^$"), out) is not None,
+                       f"スキル自身を変えた後も、違反例 {failing['id']} は check で落ちる（終了コード {code}）", out)
+            skill_md.write_bytes(original)
+            contract_json.write_bytes(original_contract)
+
+            lab.start()
+            lab.run_py("abort", "--reason", "probe-contract")
+            contract_json.write_bytes(edited_contract)
+            lab.start(fresh=False)
+            undo = lab.baseline()
+            code, out = lab.run_py("finish")
+            contract_json.write_bytes(original_contract)
+            lab.revert(undo)
+            shown = re.search(r"^- (前の実行の後に契約|The contract \(`assets/contract\.json`\) changed)", out, re.M)
+            record("RPT-01-builtin-contract", "RPT-01", code == 0 and shown is not None,
+                   f"前の実行の後に契約を変えると、止めずに報告の「検証」に出す（終了コード {code}）", out)
 
             lab.start()
             undo = lab.baseline()
@@ -358,7 +362,9 @@ def main() -> int:
                 code, out = lab.run_py("start")
                 record("CTL-03-builtin-ask", "CTL-03", code == 3, f"聞くべき入力が無いと start が止まる（終了コード {code}）", out)
 
-            for platform in spec.get("targets", []) if hooks_on else []:
+            hooks_on = contract.get("control", {}).get("hooks", True)
+            hooked = contract.get("control", {}).get("hook_targets", spec.get("targets", []))  # hooks の方針で選んだ製品
+            for platform in [p for p in spec.get("targets", []) if p in hooked] if hooks_on else []:
                 commands = lab.hook_commands(platform)
                 missing = [e for e in ("PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit") if e not in commands]
 
@@ -401,8 +407,7 @@ def main() -> int:
                 undo = lab.baseline()
                 code, out = lab.hook(platform, commands["UserPromptSubmit"][0],
                                      {"cwd": str(lab.root), "hook_event_name": "UserPromptSubmit", "prompt": "どんな書き方でも"})
-                wire("prompt", code == 0 and decision_of(out).get("decision") != "block",
-                     "ユーザーの発言は止めず、収集の案内だけを返す（CTL-04）", out)
+                wire("prompt", code == 0 and not out.strip(), "ユーザーの発言は止めない（CTL-04）", out)
                 code, out = lab.hook(platform, commands["Stop"][0],
                                      {"cwd": str(lab.root), "hook_event_name": "Stop", "stop_hook_active": False})
                 wire("stop", decision_of(out).get("decision") == "block", "finish の前に応答を終えようとすると差し戻す", out)
@@ -410,20 +415,33 @@ def main() -> int:
                 code, out = lab.hook(platform, commands["Stop"][0], {"cwd": str(lab.root), "hook_event_name": "Stop"})
                 wire("wait", code == 0 and decision_of(out).get("decision") != "block", "wait 中は応答の終了を止めない（CTL-03）", out)
                 lab.run_py("resume")
-                place = lab.root / PLACES[platform] / lab.name / "SKILL.md"
-                rel_place = place.relative_to(lab.root).as_posix()
-                event = ({"cwd": str(lab.root), "hook_event_name": "PreToolUse", "tool_name": "Edit",
-                          "tool_input": {"file_path": str(place)}} if platform == "claude" else
-                         {"cwd": str(lab.root), "hook_event_name": "PreToolUse", "turn_id": "probe", "tool_name": "apply_patch",
-                          "tool_input": {"command": f"*** Begin Patch\n*** Update File: {rel_place}\n@@\n*** End Patch\n"}})
-                code, out = lab.hook(platform, commands["PreToolUse"][0], event)
-                got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
-                wire("pre-tool", code == 0 and got is None, "実行中もスキル自身のファイルを編集できる", out)
+                for check, rel, wanted, what in (
+                        ("pre-tool-skill", f"{PLACES[platform]}/{lab.name}/SKILL.md", None, "スキル自身（SKILL.md）の編集の前は止めない"),
+                        ("pre-tool", f"{rt.run_rel(lab.name)}/state.json", "deny", "実行記録（state.json）の編集の前に拒否する")):
+                    event = {**EDIT_EVENT[platform](lab.root, rel), "hook_event_name": "PreToolUse"}
+                    code, out = lab.hook(platform, commands["PreToolUse"][0], event)
+                    got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
+                    wire(check, code == 0 and got == wanted, f"{what}（結果 {got or '何もしない'}。CTL-04）", out)
                 lab.revert(undo)
-                lab.run_py("abort", "--reason", "probe-edit")
-                code, out = lab.hook(platform, commands["PreToolUse"][0], event)
-                got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
-                wire("pre-tool-inactive", code == 0 and got is None, "実行していないときもスキルを編集できる", out)
+                if contract.get("control", {}).get("feedback", True) is not False:
+                    # 利用中の指摘の収集（hooks の追加機能。references/feedback.md）。完了の後の発言を記録して分類を頼み、記録の編集を拒否する
+                    lab.start()
+                    undo = lab.baseline()
+                    lab.run_py("finish")
+                    session = f"probe-{platform}"
+                    lab.hook(platform, commands["Stop"][0], {"cwd": str(lab.root), "hook_event_name": "Stop", "session_id": session})
+                    code, out = lab.hook(platform, commands["UserPromptSubmit"][0],
+                                         {"cwd": str(lab.root), "hook_event_name": "UserPromptSubmit", "session_id": session,
+                                          "prompt": "ここが違う"})
+                    context = decision_of(out).get("hookSpecificOutput", {}).get("additionalContext", "")
+                    wire("feedback-prompt", code == 0 and "feedback --event" in context and decision_of(out).get("decision") != "block",
+                         "完了の後の発言を記録し、分類の方法を返す（発言は止めない）", out)
+                    rel = f"{FEEDBACK_REL}/{lab.name}/feedback.json"
+                    code, out = lab.hook(platform, commands["PreToolUse"][0], {**EDIT_EVENT[platform](lab.root, rel), "hook_event_name": "PreToolUse"})
+                    got = decision_of(out).get("hookSpecificOutput", {}).get("permissionDecision")
+                    wire("feedback-pre-tool", code == 0 and got == "deny", f"利用中の指摘の記録（{FEEDBACK_REL}/）の編集の前に拒否する（結果 {got or '何もしない'}）", out)
+                    shutil.rmtree(lab.root / FEEDBACK_REL, ignore_errors=True)
+                    lab.revert(undo)
     finally:
         lab.close()
 

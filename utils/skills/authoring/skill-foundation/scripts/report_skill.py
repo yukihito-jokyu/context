@@ -4,12 +4,14 @@
 run.py finish が契約の report.sections から呼び、出力をそのまま報告の本文に入れる。AI が要約を書く余地を
 残さないため、内容はすべて作ったスキルのファイルとプロジェクトの状態から集計する。
 
-  ## 作ったスキル          dev/spec.json（名前、目的、置き場、起動、入力、出力）
+  ## 作ったスキル          dev/spec.json（名前、目的、置き場、起動、入力、出力）と dev/hooks-plan.json（hooks の方針と決め方）
   ## ルールと守らせ方        dev/spec.json の decisions と excluded_axes
   ## 作ったスキルの検証    skill_lint.py --final の結果、dev/results/probe-results.json
   ## 収束テスト            dev/results/convergence/round-*/report.json と dev/convergence-report.md の「結論」
   ## 確かめていないこと    上の結果と設定から決まる注意
   ## プロジェクトに置いたもの  スキルの本体、リンク、hooks の登録（ファイルを読んで確かめる）
+
+終了コード: 0 出力した、2 スキルのディレクトリか dev/spec.json が無い
 
 使い方:
   python3 report_skill.py <作ったスキルのディレクトリ> --project <プロジェクトのルート>
@@ -26,6 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _lib  # noqa: E402
+import hooks_plan  # noqa: E402
 
 CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
 PRODUCTS = {"claude": "Claude Code", "codex": "Codex"}
@@ -51,6 +54,11 @@ def section_skill(spec: dict, skill_dir: Path, project: Path) -> list[str]:
         lines.append(f"- Codex の置き場: `.agents/skills/{name}`（本体へのリンク）")
     products = "、".join(PRODUCTS[t] for t in spec.get("targets", []) if t in PRODUCTS)
     lines.append(f"- 対象の製品: {products}")
+    plan = (hooks_plan.load(skill_dir)[0] or {}).get("plan")
+    if isinstance(plan, dict) and not hooks_plan.plan_problems(plan):
+        how = {"user": f"ユーザーが答えた（{plan.get('talk', '')}）", "request": f"依頼の指定 `{plan.get('value', '')}` で決めた",
+               "setting": f"ユーザーに聞けなかったので、入力 hooks の値 `{plan.get('value', '')}` で決めた"}[plan["by"]]
+        lines.append(f"- hooks の方針: {'、'.join(f'{k} {v}' for k, v, _ in hooks_plan.describe(plan))}（{how}）")
     lines.append(f"- 言語: {LANGUAGES.get(spec.get('language'), spec.get('language'))}")
     invoke = []
     if "claude" in spec.get("targets", []):
@@ -155,17 +163,17 @@ def section_convergence(spec: dict, skill_dir: Path) -> tuple[list[str], list[st
     if not data:
         lines.append("結果が無い。")
         return lines, ["収束テストの結果が無い"]
-    lines += ["| ラウンド | 課題 | エージェント | status | files | structure | names | check | 基準 |", "|---|---|---|---|---|---|---|---|---|"]
+    lines += ["| ラウンド | 課題 | エージェント | status | files | structure | names | check | 基準 | 満たさない理由 |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
     for report in data:
         for task in report.get("tasks", []):
             status = "、".join(sorted(set(task.get("status", {}).values()))) or "—"
             checks = task.get("check", {})
             check = "—" if not checks else ("全員通過" if all(v == 0 for v in checks.values()) else "失敗あり")
             verdict = "満たす" if task.get("converged") else "満たさない"
-            if task.get("fence_changed"):
-                verdict += f"（作業範囲の制限を外した: {'、'.join(task['fence_changed'])}）"
+            why = "—" if task.get("converged") else (_lib.verdict_text(_lib.task_failed(task, report.get("thresholds") or {})) or "—")
             lines.append(f"| {report['round']} | {task.get('id')} | {agents_text(task.get('agents', []))} | {status} | "
-                         f"{fmt(task.get('files'))} | {fmt(task.get('structure'))} | {fmt(task.get('names'))} | {check} | {verdict} |")
+                         f"{fmt(task.get('files'))} | {fmt(task.get('structure'))} | {fmt(task.get('names'))} | {check} | {verdict} | {why} |")
     last = data[-1]
     tasks = last.get("tasks", [])
     left = [t.get("id") for t in tasks if not t.get("converged")]
@@ -229,10 +237,14 @@ def section_unverified(spec: dict, skill_dir: Path, project: Path, warnings: lis
     plugin = _lib.plugin_root(skill_dir)
     if hooks_on and plugin is not None:
         items.append(f"hooks はプラグイン `{plugin.name}` で配るため、利用者がプラグインを入れた環境でだけ動く（入れていなければ `run.py check` と `finish` だけで検査される）")
-    if hooks_on and "codex" in spec.get("targets", []):
+    if hooks_on and "codex" in spec.get("control", {}).get("hook_targets", spec.get("targets", [])):
         items.append("Codex の hooks は、Codex の `/hooks` で信頼するまで動かない（それまでは `run.py check` と `finish` だけで検査される）")
     if not hooks_on:
         items.append("hooks を使わない設定のため、編集の直後と応答を終える前の検査は働かない")
+    plan = (hooks_plan.load(skill_dir)[0] or {}).get("plan")
+    if isinstance(plan, dict) and plan.get("by") == "setting":
+        items.append(f"hooks の方針はユーザーに確かめていない（入力 hooks の値 `{plan.get('value', '')}` で決めた。変えるときは "
+                     "hooks_plan.py --ask で聞き直す）")
     items += [f"skill_lint.py の警告: {w}" for w in warnings if "convergence.skip_reason" not in w]
     return ["## 確かめていないこと", ""] + ([f"- {i}" for i in items] or ["- なし"])
 

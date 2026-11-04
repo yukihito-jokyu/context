@@ -7,15 +7,23 @@
 （--mode copy なら複製）。どちらにも無ければ、両方をリンクにする。
 
 hooks（スキルの contract.json の control.hooks が true のとき）:
-  Claude Code: .claude/settings.json の PreToolUse・PostToolUse（全ツール。編集時の検査は編集ツールだけ）、Stop、UserPromptSubmit
-  Codex      : .codex/hooks.json の PreToolUse・PostToolUse（全ツール。編集時の検査は apply_patch だけ）、Stop、UserPromptSubmit
+  Claude Code: .claude/settings.json の PreToolUse・PostToolUse（Edit|Write|MultiEdit|NotebookEdit）、Stop、UserPromptSubmit
+  Codex      : .codex/hooks.json の PreToolUse・PostToolUse（apply_patch）、Stop、UserPromptSubmit
 既にある設定は残し、このスキルの項目だけを足す（同じ項目があれば何もしない）。Codex は、足した hooks を
 利用者が `/hooks` で信頼するまで実行しない。
 
+機能（--features。既定は check,feedback）: check は出力の検査、feedback は利用中の指摘の収集（feedback.py）。
+両方なら上の4つ、feedback だけなら PostToolUse を除く3つを登録する。契約の control.feedback が false なら
+feedback は登録しない。既定の登録の文字列は機能を足す前と同じなので、Codex の信頼はそのまま使える。
+
 --targets を省くと、契約（assets/contract.json）の targets、つまり作るときに決めた対象の製品だけに置く。
+hooks は、そのうち契約の control.hook_targets（作るときに hooks の方針で選んだ製品。無ければ全部）にだけ登録する。
+
+選んで登録するとき（書く前に差分を見せる）は setup.py を使う。setup.py は、ここの登録の処理をそのまま使う。
 
 使い方:
   python3 <skill>/scripts/install.py --project <ルート> [--targets claude,codex] [--mode link|copy] [--no-hooks]
+                                    [--no-feedback | --features check,feedback]
   python3 <skill>/scripts/install.py --project <ルート> --check       # 置き場所と hooks が揃っているか（もう一方の置き場が本体へのリンクかも。--mode copy なら複製でよい）
   python3 <skill>/scripts/install.py --project <ルート> --uninstall   # このスキルの置き場所と hooks を外す
 """
@@ -35,20 +43,24 @@ import _skillrt as rt  # noqa: E402
 PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}
 CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
 EVENTS = {
-    "claude": [("PreToolUse", None, "pre-tool", 30),
-               ("PostToolUse", None, "post-tool", 120),
+    "claude": [("PreToolUse", "Edit|Write|MultiEdit|NotebookEdit", "pre-tool", 30),
+               ("PostToolUse", "Edit|Write|MultiEdit|NotebookEdit", "post-tool", 120),
                ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
-    "codex": [("PreToolUse", None, "pre-tool", 30), ("PostToolUse", None, "post-tool", 120),
+    "codex": [("PreToolUse", "apply_patch", "pre-tool", 30), ("PostToolUse", "apply_patch", "post-tool", 120),
               ("Stop", None, "stop", 300), ("UserPromptSubmit", None, "prompt", 10)],
 }
+FEATURES = ["check", "feedback"]  # 出力の検査、利用中の指摘の収集
+CHECK_ONLY = {"post-tool"}  # 収集だけのときは登録しないイベント
 
 
-def hook_command(platform: str, name: str, event: str) -> str:
+def hook_command(platform: str, name: str, event: str, features: set[str] | None = None) -> str:
     if platform == "claude":
         base = f'"$CLAUDE_PROJECT_DIR/{PLACES["claude"]}/{name}/scripts/hook.py"'
     else:  # Codex には CLAUDE_PROJECT_DIR が無い。hook はセッションの作業ディレクトリで動く
         base = f'"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/{PLACES["codex"]}/{name}/scripts/hook.py"'
-    return f"python3 {base} --platform {platform} {event}"
+    features = set(FEATURES) if features is None else features
+    flags = "".join(f" --no-{f}" for f in FEATURES if f not in features)
+    return f"python3 {base} --platform {platform}{flags} {event}"
 
 
 def is_ours(handler: dict, name: str) -> bool:
@@ -66,10 +78,13 @@ def load_config(path: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def wanted_entries(platform: str, name: str) -> list[tuple[str, dict]]:
+def wanted_entries(platform: str, name: str, features: set[str] | None = None) -> list[tuple[str, dict]]:
+    features = set(FEATURES) if features is None else features
     entries = []
     for event, matcher, action, timeout in EVENTS[platform]:
-        group = {"hooks": [{"type": "command", "command": hook_command(platform, name, action), "timeout": timeout}]}
+        if not features or ("check" not in features and action in CHECK_ONLY):
+            continue
+        group = {"hooks": [{"type": "command", "command": hook_command(platform, name, action, features), "timeout": timeout}]}
         if matcher:
             group = {"matcher": matcher, **group}
         entries.append((event, group))
@@ -81,13 +96,33 @@ def has_entry(groups: list, group: dict) -> bool:
                for g in groups if isinstance(g, dict))
 
 
-def apply_hooks(root: Path, platform: str, name: str, remove: bool, dry: bool) -> list[str]:
-    path = root / CONFIGS[platform]
-    data = load_config(path)
+def registered(root: Path, platform: str, name: str) -> set[str] | None:
+    """設定ファイルに今登録されている、このスキルの機能（登録の文字列の --no-<機能> から読む）。登録が無ければ None。"""
+    found = None
+    for groups in load_config(root / CONFIGS[platform]).get("hooks", {}).values():
+        for group in groups if isinstance(groups, list) else []:
+            for handler in group.get("hooks", []) if isinstance(group, dict) else []:
+                if is_ours(handler, name):
+                    found = (found or set()) | {f for f in FEATURES if f"--no-{f}" not in str(handler.get("command", ""))}
+    return found
+
+
+def config_text(data: dict) -> str:
+    return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+
+
+def plan_hooks(root: Path, platform: str, name: str, remove: bool, features: set[str] | None = None) -> tuple[dict, list[str]]:
+    """登録した後の設定ファイルの中身と、変わること。ファイルには書かない（setup.py が書く前の差分に使う）。"""
+    data = load_config(root / CONFIGS[platform])
     hooks = data.setdefault("hooks", {})
     changes = []
-    if remove:
+    wanted = wanted_entries(platform, name, features)
+    if remove or len(wanted) < len(EVENTS[platform]):
+        # 外すとき、または機能を減らしたときは、要らなくなったイベントから自分の項目を外す
+        keep = set() if remove else {event for event, _ in wanted}
         for event, groups in list(hooks.items()):
+            if event in keep:
+                continue
             kept = []
             for group in groups if isinstance(groups, list) else []:
                 handlers = [h for h in group.get("hooks", []) if not is_ours(h, name)]
@@ -99,8 +134,8 @@ def apply_hooks(root: Path, platform: str, name: str, remove: bool, dry: bool) -
                 hooks[event] = kept
             else:
                 hooks.pop(event)
-    else:
-        for event, group in wanted_entries(platform, name):
+    if not remove:
+        for event, group in wanted:
             groups = hooks.setdefault(event, [])
             if not has_entry(groups, group):
                 # 古い形の自分の項目は外してから足す（Codex の信頼は配列の位置に結び付くため、他人の項目は動かさない）
@@ -109,11 +144,17 @@ def apply_hooks(root: Path, platform: str, name: str, remove: bool, dry: bool) -
                 groups[:] = [g for g in groups if g.get("hooks")]
                 groups.append(group)
                 changes.append(f"{CONFIGS[platform]}: {event} に {name} の hook を足す")
+    if not hooks:
+        data.pop("hooks", None)
+    return data, changes
+
+
+def apply_hooks(root: Path, platform: str, name: str, remove: bool, dry: bool, features: set[str] | None = None) -> list[str]:
+    data, changes = plan_hooks(root, platform, name, remove, features)
     if changes and not dry:
-        if not hooks:
-            data.pop("hooks", None)
+        path = root / CONFIGS[platform]
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        path.write_text(config_text(data), encoding="utf-8")
     return changes
 
 
@@ -155,7 +196,8 @@ def place(root: Path, platform: str, name: str, mode: str, remove: bool, dry: bo
     return changes
 
 
-def check(root: Path, platforms: list[str], name: str, hooks_on: bool, mode: str) -> list[str]:
+def check(root: Path, platforms: list[str], name: str, hooks_on: bool, mode: str, features: set[str] | None = None,
+          hooked: list[str] | None = None) -> list[str]:
     problems, body = [], rt.SKILL_DIR
     for platform in platforms:
         target = root / PLACES[platform] / name
@@ -166,9 +208,9 @@ def check(root: Path, platforms: list[str], name: str, hooks_on: bool, mode: str
             where = body.relative_to(root).as_posix() if body.is_relative_to(root) else body.as_posix()
             problems.append(f"{target.relative_to(root)} が{what}です（本体は {where}）。中身を確かめて外し、本体の install.py を実行し直す"
                             + ("" if target.is_symlink() else "。複製で置いたなら --mode copy を付けて確かめる"))
-        if hooks_on:
+        if hooks_on and (hooked is None or platform in hooked):
             data = load_config(root / CONFIGS[platform])
-            for event, group in wanted_entries(platform, name):
+            for event, group in wanted_entries(platform, name, features):
                 if not has_entry(data.get("hooks", {}).get(event, []), group):
                     problems.append(f"{CONFIGS[platform]} の {event} に {name} の hook がありません")
     return problems
@@ -179,7 +221,9 @@ def main() -> int:
     parser.add_argument("--project", required=True, help="プロジェクトのルート")
     parser.add_argument("--targets", help="カンマ区切り（claude、codex）。省くと契約の targets（作るときに決めた対象の製品）")
     parser.add_argument("--mode", choices=["link", "copy"], default="link")
-    parser.add_argument("--no-hooks", action="store_true", help="hooks を登録しない")
+    parser.add_argument("--no-hooks", action="store_true", help="hooks を登録しない（収集も含めて何も登録しない）")
+    parser.add_argument("--no-feedback", action="store_true", help="利用中の指摘の収集を外す（出力の検査だけ）")
+    parser.add_argument("--features", help="カンマ区切り（check、feedback）。既定は両方")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--uninstall", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -194,9 +238,16 @@ def main() -> int:
     if unknown:
         rt.emit(f"ERROR 未知の targets: {unknown}（claude、codex のどれか）", sys.stderr)
         return 2
-    hooks_on = contract.get("control", {}).get("hooks", True) and not args.no_hooks
+    features = set(FEATURES) if not args.features else {f.strip() for f in args.features.split(",") if f.strip()}
+    if features - set(FEATURES):
+        rt.emit(f"ERROR 未知の features: {sorted(features - set(FEATURES))}（{'、'.join(FEATURES)} のどれか）", sys.stderr)
+        return 2
+    if args.no_feedback or contract.get("control", {}).get("feedback", True) is False:
+        features.discard("feedback")
+    hooks_on = contract.get("control", {}).get("hooks", True) and not args.no_hooks and bool(features)
+    hooked = contract.get("control", {}).get("hook_targets", platforms)
     if args.check:
-        problems = check(root, platforms, name, hooks_on, args.mode)
+        problems = check(root, platforms, name, hooks_on, args.mode, features, hooked)
         for problem in problems:
             rt.emit(f"ERROR {problem}")
         rt.emit(f"install --check: 問題 {len(problems)} 件")
@@ -204,12 +255,12 @@ def main() -> int:
     changes = []
     for platform in platforms:
         changes += place(root, platform, name, args.mode, args.uninstall, args.dry_run)
-        if hooks_on or args.uninstall:
-            changes += apply_hooks(root, platform, name, args.uninstall, args.dry_run)
+        if (hooks_on and platform in hooked) or args.uninstall:
+            changes += apply_hooks(root, platform, name, args.uninstall, args.dry_run, features)
     for change in changes:
         rt.emit(("予定  " if args.dry_run else "") + change)
     rt.emit(f"install: 変更 {len(changes)} 件")
-    if "codex" in platforms and hooks_on and not args.uninstall and any(".codex/hooks.json" in c for c in changes):
+    if "codex" in platforms and "codex" in hooked and hooks_on and not args.uninstall and any(".codex/hooks.json" in c for c in changes):
         rt.emit("注意: Codex は、足した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。"
                 "信頼するまでは run.py の check と finish だけで検査される")
     return 0

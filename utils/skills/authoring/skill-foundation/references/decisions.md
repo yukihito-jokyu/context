@@ -65,10 +65,10 @@
   my-skill-creator を呼び出して SKILL.md の下書きを作らせる
   ```
 
-## STEP-01 手順3の Eval 作成とフェーズ0〜7を順に進め、生成と検査はスクリプトに任せ、一緒に変えるファイルを揃える
+## STEP-01 手順3の Eval 作成、手順4の hooks の方針、フェーズ0〜7を順に進め、生成と検査はスクリプトに任せ、一緒に変えるファイルを揃える
 
 - 軸: P1, P3, O7
-- ルール: SKILL.md の「2. 手順」を番号の順に行う（手順3の Eval 作成の後に、フェーズ0〜7）。骨組みは `init_skill.py`、生成部分は `render_skill.py` で作り、手で書かない。`dev/spec.json` を変えたら、同じ変更の中で `render_skill.py` を実行し、ルールID を変えたなら `dev/probes.json` の違反例と `dev/research.md` の「使ったルール」も合わせる（一緒に変えるファイルの組）。各フェーズの終わりに `skill_lint.py` を実行し、エラーが0件になってから次のフェーズに進む。
+- ルール: SKILL.md の「2. 手順」を番号の順に行う（手順3の Eval 作成と手順4の hooks の方針の後に、フェーズ0〜7）。骨組みは `init_skill.py`、生成部分は `render_skill.py` で作り、手で書かない。`dev/spec.json` を変えたら、同じ変更の中で `render_skill.py` を実行し、ルールID を変えたなら `dev/probes.json` の違反例と `dev/research.md` の「使ったルール」も合わせる（一緒に変えるファイルの組）。各フェーズの終わりに `skill_lint.py` を実行し、エラーが0件になってから次のフェーズに進む。
 - 理由: フェーズを飛ばしたり、生成部分を手で書いたり、spec だけを変えたりすると、spec と SKILL.md・違反例・調査の記録が食い違い、読む AI ごとに従う内容が変わる。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: script, validate: scripts/init_skill.py、scripts/render_skill.py、scripts/skill_lint.py。契約の command 検査が、finish の前に `skill_lint.py --final --project` を実行する
@@ -117,7 +117,7 @@
 - ルール: 使うコマンドは `python3`（skill-foundation の `scripts/` と、作るスキルの `scripts/`）、`git`、収束テストの runner だけにする。パッケージを追加で入れない。収束テストの runner は次の表で決める。`convergence.py prepare` は、`--runners` が無ければ、作るスキルの spec の `convergence.runners`、`settings/user-setting.yaml`、`settings/skill-setting.yaml` の順に、null でない最初の値を使う。エージェントのモデルと推論エフォートも同じ順の `convergence.model`・`convergence.effort` に従い、prepare が runner の起動コマンドに足す（runner `subagent` は、`convergence.py prompts` が示す値で Agent ツールを起動する）。
 - 理由: 道具が AI ごとに違うと、生成物の形と検査の結果が変わる。追加のパッケージは利用者の環境に残る。runner を AI が選ぶと、同じスキルでも測り方が実行ごとに変わる。
 - 決め方: 道具・スクリプト・入力を増やさない答え
-- 守らせ方: doc: SKILL.md の手順10と references/convergence-test.md の3章
+- 守らせ方: doc: SKILL.md の手順11と references/convergence-test.md の3章
 - 機械化しない理由: 痕跡が残らない：実行したコマンドと入れたパッケージは、作ったスキルのファイルに残らない
 
 場合分け:
@@ -143,7 +143,7 @@
 ## STEP-04 検査に落ちたら作るスキルの側を直し、残ったばらつきは結論に書く
 
 - 軸: P5
-- ルール: `skill_lint.py` か `probe.py` が失敗したら、作るスキルの `dev/spec.json`、`scripts/`、SKILL.md の「2. 手順」を直してやり直す。収束テストの各ラウンドでは、`convergence.py analysis-collect` が書く `analysis.md` の指摘を、基準を満たした課題のものも記録で確かめ、V1〜V8 か推定違いに分類して、`dev/convergence-report.md` の「## 動きの指摘」の表に書いてから次のラウンドへ進む。収束テストがラウンドの上限（`convergence.py prepare` が示す `max_rounds`。STEP-03 と同じ順で決まる）で基準を満たさなかったら、`run.py wait --question` を実行してから、残った課題ごとにばらつきの分類（V1〜V8）を示し、ラウンドを足して続けるかを聞く。続けるなら、作るスキルの spec の `convergence.max_rounds` に今の上限より1つ大きい値を書いて締め込む。続けないなら、残った課題の ID、分類、残した理由を `dev/convergence-report.md` の「結論」に1課題1行で書く。
+- ルール: `skill_lint.py` か `probe.py` が失敗したら、作るスキルの `dev/spec.json`、`scripts/`、SKILL.md の「2. 手順」を直してやり直す。skill-foundation のファイルは変えない。収束テストの各ラウンドでは、`convergence.py analysis-collect` が書く `analysis.md` の指摘を、基準を満たした課題のものも記録で確かめ、V1〜V8 か推定違いに分類して、`dev/convergence-report.md` の「## 動きの指摘」の表に書いてから次のラウンドへ進む。収束テストがラウンドの上限（`convergence.py prepare` が示す `max_rounds`。STEP-03 と同じ順で決まる）で基準を満たさなかったら、`run.py wait --question` を実行してから、残った課題ごとにばらつきの分類（V1〜V8）を示し、ラウンドを足して続けるかを聞く。続けるなら、作るスキルの spec の `convergence.max_rounds` に今の上限より1つ大きい値を書いて締め込む。続けないなら、残った課題の ID、分類、残した理由を `dev/convergence-report.md` の「結論」に1課題1行で書く。
 - 理由: 検査や skill-foundation を緩めて通すと、検査が無いのと同じになる。ラウンドを足し続けるかを AI が決めると、費用と作るスキルの重さが AI ごとに変わる。残ったばらつきを書かないと、利用者が限界を知らずに使う。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: validate, doc: `skill_lint.py --final` が、基準を満たさない課題が「結論」に書かれているかと、AI の分析に指摘のあるエージェントが「## 動きの指摘」の表にあるかを確かめる。次のラウンドの `convergence.py prepare` も、前のラウンドの表が揃うまで止まる
@@ -158,14 +158,15 @@
   上限のラウンドで基準を満たさないまま、聞かずに結論に「おおむね収束した」と書く
   ```
 
-## STEP-05 廃止
+## STEP-05 検査に通った作ったスキルは、finish が合格時の指紋を記録する（廃止）
 
-- 廃止（ID は再利用しない）: ユーザーによる微修正を妨げる変更制限と変更後の特別な検査手順を廃止した。
+- 軸: P3
+- 廃止の理由（ID は再利用しない）: ユーザーによる微修正を妨げるため
 
 ## STEP-06 受付の前に、ユーザーと確かめた価値から Eval を作り、Eval 自体を検証し、収束テストの題材を確かめる
 
 - 軸: P1, P2, O8
-- ルール: SKILL.md の手順3では、受付の前に Eval を作る。作るかは次の表で決める。作るときは references/eval.md の順に、材料（利用場面、今の不満や失敗、望む結果、許容できない結果）から価値仮説を立て、ユーザーとの対話で確定した価値を、外から確かめられる振る舞い、成功と失敗の事例、正解の根拠、判定方法に落として `<base>/<name>/dev/eval/eval.json` に書く。ユーザーに聞くことは eval.json の `questions` に書き、カタログの「Eval 作成」タブで答えてもらい、チャット欄に貼られた回答を `eval_check.py --answer` で `dialog` に記録する。Eval を作り、入力 `measure` が `skip` でなければ、続けて収束テストの題材（`<base>/<name>/dev/evals.json`）の案を書き、同じ聞き方でユーザーと確かめる。作らないときは `skip_reason` だけを書く。`skip_reason` は Eval の検査を止める記法なので、書いてよいのは表で作らないことになったときだけである。どちらのときも `eval_check.py` のエラーを0件にしてから受付に進む。
+- ルール: SKILL.md の手順3では、受付の前に Eval を作る。作るかは次の表で決める。作るときは references/eval.md の順に、材料（利用場面、今の不満や失敗、望む結果、許容できない結果）から価値仮説を立て、ユーザーとの対話で確定した価値を、外から確かめられる振る舞い、成功と失敗の事例、正解の根拠、判定方法に落として `<base>/<name>/dev/eval/eval.json` に書く。ユーザーに聞くことは eval.json の `questions` に書き、カタログの「Eval 作成」タブで答えてもらい、チャット欄に貼られた回答を `eval_check.py --answer` で `dialog` に記録する。Eval を作り、入力 `measure` が `skip` でなければ、続けて収束テストの題材（`<base>/<name>/dev/evals.json`）の案を書き、同じ聞き方でユーザーと確かめる。作らないときは `skip_reason` だけを書く。`skip_reason` は Eval の検査を止める記法なので、書いてよいのは表で作らないことになったときだけである。どちらのときも `eval_check.py` のエラーを0件にしてから次の手順（hooks の方針）に進む。
 - 理由: 価値を確かめずにルールを決めると、誰が使っても同じ出力になっても、その出力がユーザーの役に立つとは限らない。価値を AI だけで決めると、AI の思い込みが正しさの基準になる。Eval 自体を検証しないと、何でも通す判定方法や、許容できない結果を見逃す事例が残る。収束テストの題材をユーザーが知らないまま測ると、揃った結果が、ユーザーの使い方でも揃うのかが分からない。
 - 決め方: 依頼の指定
 - 守らせ方: script, validate, doc: scripts/eval_check.py が Eval 自体を検証し、結果を dev/results/eval-check.json に書く。答えを待っている質問（questions）があるあいだは、そのことを指摘して止める。`--answer` が貼られた回答を言い換えずに dialog に記録する。scripts/catalog.py が、質問を「Eval 作成」タブに1枚ずつ削って開くカードで出し、回答をチャット欄に貼る文にまとめる。収束テストの題材は、同じタブに最後の回答の時の版との違いのラベルを付けて載せる（合意した後に変えても止めない）。`skill_lint.py --final` が、今の Eval が eval_check.py の検査に通っていることか、`skip_reason` を求める
@@ -217,6 +218,34 @@
 
   ```text
   Eval に落ちた出力を見て、判定が厳しすぎると AI だけで決め、Eval の検査を緩めて次のラウンドに進む
+  ```
+
+## STEP-08 受付の前に、作るスキルの hooks の方針をユーザーに聞いて決め、spec の control に写す
+
+- 軸: P1, P2
+- ルール: SKILL.md の手順4では、手順3の Eval 作成の後、受付の前に、作るスキルの hooks の方針（出力の検査に hooks を使うか、登録する製品、利用中の指摘を集めるか、登録先）を決め、`<base>/<name>/dev/hooks-plan.json` に記録する。Eval を省いたときも行う。決め方は次の表に従う。聞くときは、`hooks_plan.py --ask` が書いた質問にカタログの「hooks 設計」タブで答えてもらい、チャット欄に貼られた回答を言い換えずに `hooks_plan.py --answer` で記録する。決めた方針は、受付の後に `init_skill.py` が spec の `control`（`hooks`、`feedback`、`hook_targets`、`hook_via`）に写すので、`control` のこの4つを手で変えない。`skill_lint.py --phase 0` のエラーを0件にしてから受付に進む。
+- 理由: hooks は `.claude/settings.json`・`.codex/hooks.json` に書かれ、プロジェクトでの作業全体に効く。聞かずに登録すると、hooks を使いたくないプロジェクトにも登録され、Codex の `/hooks` の信頼のような製品ごとの事情も、利用者が知らないまま進む。決めた方針と spec が食い違うと、登録される hooks が AI ごとに変わる。
+- 決め方: 依頼の指定
+- 守らせ方: script, validate, doc: scripts/hooks_plan.py が質問を assets/templates/hooks-plan.example.json から作り、貼られた回答を dialog に記録して方針を決める。scripts/catalog.py が、質問を「hooks 設計」タブに削って開くカードで出す。`skill_lint.py --phase 0` が、方針が無いことと答えを待っている質問を止め、フェーズ1以降は方針と spec の control が合わないことを止める。scripts/init_skill.py が方針を control に写す
+- 分けた理由: Eval の作成（STEP-06）とは決めることと記録するファイルが違い、片方だけ破られうる。Eval を省いても hooks の方針は決めるので、STEP-06 を守っても STEP-08 を飛ばせる
+
+場合分け:
+
+| 状況 | 決め方 |
+|---|---|
+| 依頼に入力 `hooks` の指定がある（start の出力で、`hooks` が補った値に無い） | 聞かずに、その値で決める（`hooks_plan.py --decide <値> --by request`） |
+| ユーザーに質問できない（依頼文だけで動く独立エージェントとして実行している） | 聞かずに、start が補った `hooks` の値で決める（`hooks_plan.py --decide <値> --by setting`）。値は報告の「既定値で決めた値」に載る |
+| 上のどれでもない | 聞く。`hooks_plan.py --ask --default <hooks の値>` の後に `run.py wait --question` を実行する（CTL-03） |
+
+- 良い例:
+
+  ```text
+  `hooks_plan.py --ask` の質問にカタログで答えてもらい、貼られた回答を `--answer` で記録してから、`skill_lint.py --phase 0` を通して受付に進む
+  ```
+- 悪い例:
+
+  ```text
+  ユーザーに聞かずに `dev/spec.json` の `control.hooks` を true のままにして受付に進む
   ```
 
 ## OUT-01 作るスキルは対象の製品から決めた置き場に1つ置く
@@ -401,9 +430,10 @@
   出力を書いた直後に「完了しました」と返答する
   ```
 
-## CTL-02 廃止
+## CTL-02 実行中はスキル自身のファイルを変えない（廃止）
 
-- 廃止（ID は再利用しない）: ユーザーによる微修正を妨げる変更制限と変更後の特別な検査手順を廃止した。
+- 軸: C2
+- 廃止の理由（ID は再利用しない）: ユーザーによる微修正を妨げるため
 
 ## CTL-03 質問は start の前に済ませる
 
@@ -423,11 +453,11 @@
   出力を半分書いたところで、形式をユーザーに尋ねる
   ```
 
-## CTL-04 hooks で出力を検査する
+## CTL-04 検査の hooks は出力の検査と実行記録の保護だけに使い、入力とスキルの変更を止めない
 
 - 軸: C4
-- ルール: hooks は実行中（status: active）に、編集の後と応答を終える前に出力を検査する。実行記録への直接の編集は拒否する。ユーザーの発言を止めたり書き換えたりしない。hooks が無くても run.py check と finish で同じ出力の検査を行う。
-- 理由: スキルの微修正を妨げず、出力の検証結果と実行記録を揃える。
+- ルール: 出力の検査の hooks は、このスキルの実行中（status: active）に、編集の後と応答を終える前に出力を検査することと、実行記録（`.skill-runs/<name>/state.json`・`report.md`）への編集ツールでの直接の編集を拒否することの2つだけを行う。実行していないときは何もしない。スキル自身のファイルと hooks の設定の変更、ユーザーの発言を止めたり書き換えたりしない。hooks が無い環境でも、`run.py check` と `finish` が同じ出力の検査をする。
+- 理由: 縛る対象は AI の出力であり、ユーザーの入力やスキルの微修正ではない。このスキルを使っていないセッションの邪魔をしない。実行記録を AI が直接書き換えると、検査の基準と報告が信用できなくなる。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: runtime: scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する
 - 良い例:

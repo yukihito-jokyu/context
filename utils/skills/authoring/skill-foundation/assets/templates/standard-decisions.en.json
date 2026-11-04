@@ -25,8 +25,8 @@
     "axes": [
       "C2"
     ],
-    "title": "Restrictions on editing the skill",
-    "retired": "Removed edit restrictions and resealing to allow user-requested changes."
+    "title": "Do not change the skill's own files during a run",
+    "retired": "It got in the way of small fixes by the user"
   },
   {
     "id": "CTL-03",
@@ -55,9 +55,9 @@
     "axes": [
       "C4"
     ],
-    "title": "Use hooks for output checks",
-    "decision": "Hooks check outputs after edits and before ending a turn while status is active. Reject direct edits to run records. Never block or rewrite user messages. Without hooks, run.py check and finish perform the same output checks.",
-    "reason": "Allow small skill changes while keeping output validation and run records consistent.",
+    "title": "Use the check hooks only to check outputs and protect the run record, never to block input or changes to the skill",
+    "decision": "While this skill is running (status: active), the output-check hooks do only two things: check outputs after an edit and before the turn ends, and deny direct edits to the run record (`.skill-runs/<name>/state.json`, `report.md`) with edit tools. When it is not running, they do nothing. They never block changes to the skill's own files or hook settings, and never block or rewrite what the user says. Without hooks, `run.py check` and `finish` perform the same output checks.",
+    "reason": "What is constrained is the AI's output, not the user's input or small fixes to the skill, and sessions that do not use this skill are left alone. If the AI rewrites the run record directly, the check baseline and the report can no longer be trusted.",
     "basis": "machine",
     "control": [
       "runtime"

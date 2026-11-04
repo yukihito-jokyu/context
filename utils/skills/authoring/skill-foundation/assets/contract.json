@@ -27,6 +27,10 @@
       "label": "対象の製品",
       "impact": "reversible",
       "type": "list",
+      "enum": [
+        "claude",
+        "codex"
+      ],
       "aliases": [
         "対象",
         "製品",
@@ -123,6 +127,29 @@
         "しない": "skip"
       },
       "default": "make"
+    },
+    {
+      "key": "hooks",
+      "label": "hooks の方針",
+      "impact": "reversible",
+      "type": "enum",
+      "enum": [
+        "all",
+        "check",
+        "none"
+      ],
+      "aliases": [
+        "hook",
+        "フック"
+      ],
+      "enum_aliases": {
+        "検査と収集": "all",
+        "使う": "all",
+        "検査だけ": "check",
+        "使わない": "none",
+        "しない": "none"
+      },
+      "default": "all"
     }
   ],
   "outputs": [
@@ -166,7 +193,8 @@
             "STEP-04",
             "OUT-06",
             "STEP-06",
-            "STEP-07"
+            "STEP-07",
+            "STEP-08"
           ]
         }
       ]
@@ -175,7 +203,8 @@
   "together": [],
   "control": {
     "hooks": true,
-    "max_stop_blocks": 3
+    "max_stop_blocks": 3,
+    "feedback": true
   },
   "report": {
     "include_output": null,

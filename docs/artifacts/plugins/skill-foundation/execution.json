@@ -1,39 +1,39 @@
 {
   "name": "skill-foundation",
   "kind": "plugin",
-  "executed_at": "2026-10-31T04:32:34.787Z",
+  "executed_at": "2026-11-04T15:11:57.566845+00:00",
   "runner": {
     "kind": "subagent",
-    "agent_id": "/root/rebuild_hook_only_foundation",
-    "task": "AGENTS.mdとskill-authoring/references/docs-examples.mdが要求する、修正後Skillの実行・公開成果物の全再生成を担当してください。対象の正本 utils/skills/authoring/skill-foundation と plugin utils/plugins/skill-foundation は0.4.1で凍結、親のselftest17段階、feedback_selftest16件、plugin専用7件に合格済みです。今回の変更: SKILL.md・生成ルール/チェックリスト/contractから指摘収集の責務を除去（FBK-01は廃止して標準から外す）。run.pyはcollectorをimport/呼出せず、通常run_idだけ生成。収集はhooksだけが実行、指示はadditionalContextだけが注入。収集状態は.skill-feedback内部に置きcore stateを汚さない。全ツールへのPre/Post hook登録で開始直後の案内を注入し、検査は従来の編集ツールだけ。--no-hooks/製品側無効化可。collector欠落/保存故障でも本来の完了可。Stopが提示成果物を記録。共通schema/承認UI/Export/Eval準備は維持。日本語英語の生成プロンプト非汚染、hooksなし本体、故障分離を含む16回帰テストがあります。\n\n書込担当 docs/artifacts/skills/skill-foundation/ と docs/artifacts/plugins/skill-foundation/、関連ガイド例欄のみ（examples:syncで同期）。親の新規非例欄の説明は保持。正本/ユーザー設定/他Skill成果物は編集しない。親は並行してwrite-requirement-documentの別正本とpluginへこの共通スクリプトを反映しますが、このfoundation正本は変更しません。\n\n既存のreproduce_skill.pyとverify_plugin.py等の再現コードを一時場所へ保存するのは可。旧出力は再利用しない。node scripts/reset-example.mjs skill-foundationでSkill成果物全削除、plugin成果物も全削除してから、新規OS一時場所で現在のSkillを読み実際に同梱write-commit-message題材へ適用。公開可能な隔離題材のみ、投稿/コミット/インストール/実モデル起動はしない。実ユーザー承認/Evalの価値確認は捏造せず公開作例では省略を指定。\n\n旧reproduce_skill.pyはcontract.feedback.requiredをassertし、finishでdeliveryが保存されると仮定しているため更新が必要。新たに契約/生成SKILL/decisionsにfeedback責務なし、共通6 runtime/schema/reference同梱、4hooks登録、hook未実行時start/check/finishで記録なし、Stop直接実行で初めて提示版を保存することを確認してください。先にcoreのみで使い、その後Stopを直接発火すれば両方確認可です。SKILLにreference/feedback.mdをリンクしないのは意図した設計で、lintも専用例外に修正済み。\n\nplugin旧verifierのfeedbackテスト件数12は16へ更新（assertも）。両配布物をビルド・移動・zip・展開・source byte照合・同梱selftest17/feedback16・専用7tests・設定4hooks直接実行・編集後check/restart/finish・収束prepare/fence・Claude manifest検証を実行。localhost合成テストはrequire_escalated可。実ユーザーの承認ボタン/APIは操作しない。合成testだけ許可。\n\nexecution.jsonにsourceManifest/verifyArtifacts、実際のあなたのcanonical名とtask全文、実入力/実コマンド/検証/未実施を記録。公開の個人パスや環境版は適切にマスクし、ZIP内の正本byteは変更しない。依存する配布物の記録には今回のsource hashを使う。親でdocs/build/testsをまとめます。子でexamples:sync/check、対象manifest整合、privacy、diffcheckを実行し、揃ったら親に連絡してください。正本にバグがあれば勝手に修正せず報告してください。"
+    "agent_id": "/root/rebuild_plugin_example",
+    "task": "PR #104のCI修正として、現在の正本を変更せずにCodex・Claude Code両方のplugin配布物を全再生成し、隔離環境で移動・ZIP・展開・正本一致・自己テスト20段階・専用7テスト・hooks直接実行・収束準備・微修正後の再開と出力更新後の完了・manifestを検証し、公開記録とガイド例節を更新する。"
   },
-  "summary": "0.4.1の正本から両製品向けpluginを生成し、hooksだけに収集を置く設計を含む隔離検証を実行した。",
-  "stage": "両配布物の生成・移動・展開・直接hooks・単体動作の分離検証に合格（実ユーザー承認と独立AI収束は未実施）",
+  "summary": "現在の正本から両製品向けpluginを新しく生成し、hooksの設定・指摘収集・確認画面・収束準備と再開後の出力検査を隔離環境で検証した。",
+  "stage": "両配布物の生成・移動・展開・直接hooks・単体動作の検証に合格。restart後は生成出力を更新して完了（実ユーザー承認と独立AI収束は未実施）",
   "input": "input.md",
   "text_output": "verification.txt",
   "validation": "validation.json",
   "reproduction": "verify_plugin.py",
   "checks": [
-    "{\"check\":\"codex: feedback collection, review UI and Eval replay regression\",\"status\":\"passed\",\"selftest_stages\":17,\"synthetic_feedback_tests\":16,\"real_user_approvals\":0,\"feedback_schema_version\":1}",
-    "{\"check\":\"codex: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":74,\"runtime_files\":68,\"archive_sha256\":\"749c19688f5f3f5f77f3849b71e9a6b0cd7e40abb30f0a8d91b4678d252e2fd9\"}",
+    "{\"check\":\"codex: feedback collection, review UI and Eval replay regression\",\"status\":\"passed\",\"selftest_stages\":20,\"synthetic_feedback_failures\":0,\"real_user_approvals\":0,\"feedback_schema_version\":1}",
+    "{\"check\":\"codex: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":79,\"runtime_files\":73,\"archive_sha256\":\"62d88b17af7feb1575bc2c172b72f1e5c41091df7f8ce6d5e768440d3a9574f2\"}",
     "{\"check\":\"codex: configured hook commands directly executed\",\"status\":\"passed\",\"events\":[\"PreToolUse\",\"PostToolUse\",\"Stop\",\"UserPromptSubmit\"],\"skill_edit_output\":\"\",\"direct_run_record_edit_decision\":\"deny\",\"legacy_seal_ignored\":true,\"restart_after_edit\":true,\"post_tool_decision\":\"block\",\"stop_decision\":\"block\",\"wait_stop_output\":\"\",\"resumed_status\":\"active\"}",
     "{\"check\":\"codex: convergence prepare/prompts\",\"status\":\"passed\",\"project_agent_directories\":0,\"tester_type\":\"skill-foundation:skill-foundation-tester\",\"independent_ai_sessions\":0}",
-    "{\"check\":\"codex: changed skill can check, restart and finish\",\"status\":\"passed\",\"stale_legacy_seal_ignored\":true,\"output_checks_preserved\":true}",
-    "{\"check\":\"claude-code: feedback collection, review UI and Eval replay regression\",\"status\":\"passed\",\"selftest_stages\":17,\"synthetic_feedback_tests\":16,\"real_user_approvals\":0,\"feedback_schema_version\":1}",
-    "{\"check\":\"claude-code: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":75,\"runtime_files\":68,\"archive_sha256\":\"457beafd57504154d7a280082c92073921cb86dda038c57e9fa7ca7c8cdd41ba\"}",
+    "{\"check\":\"codex: changed skill can check and restart; finish requires updated output\",\"status\":\"passed\",\"stale_legacy_seal_ignored\":true,\"output_checks_preserved\":true,\"finish_without_output_update_exit\":1,\"finish_without_output_update_rule\":\"OUT-01\",\"output_updated_after_restart\":true,\"finish_after_output_update_exit\":0}",
+    "{\"check\":\"claude-code: feedback collection, review UI and Eval replay regression\",\"status\":\"passed\",\"selftest_stages\":20,\"synthetic_feedback_failures\":0,\"real_user_approvals\":0,\"feedback_schema_version\":1}",
+    "{\"check\":\"claude-code: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":80,\"runtime_files\":73,\"archive_sha256\":\"679a48014ca069b680c1e223257cb34c323a52b08d60d6ff84615217402f5b01\"}",
     "{\"check\":\"claude-code: configured hook commands directly executed\",\"status\":\"passed\",\"events\":[\"PreToolUse\",\"PostToolUse\",\"Stop\",\"UserPromptSubmit\"],\"skill_edit_output\":\"\",\"direct_run_record_edit_decision\":\"deny\",\"legacy_seal_ignored\":true,\"restart_after_edit\":true,\"post_tool_decision\":\"block\",\"stop_decision\":\"block\",\"wait_stop_output\":\"\",\"resumed_status\":\"active\"}",
     "{\"check\":\"Claude namespaced tester fence\",\"status\":\"passed\",\"allowed_inside\":true,\"denied_outside\":true,\"unrelated_agent_transparent\":true}",
     "{\"check\":\"claude-code: convergence prepare/prompts\",\"status\":\"passed\",\"project_agent_directories\":0,\"tester_type\":\"skill-foundation:skill-foundation-tester\",\"independent_ai_sessions\":0}",
-    "{\"check\":\"claude-code: changed skill can check, restart and finish\",\"status\":\"passed\",\"stale_legacy_seal_ignored\":true,\"output_checks_preserved\":true}",
+    "{\"check\":\"claude-code: changed skill can check and restart; finish requires updated output\",\"status\":\"passed\",\"stale_legacy_seal_ignored\":true,\"output_checks_preserved\":true,\"finish_without_output_update_exit\":1,\"finish_without_output_update_rule\":\"OUT-01\",\"output_updated_after_restart\":true,\"finish_after_output_update_exit\":0}",
     "{\"check\":\"plugin-owned unit tests\",\"status\":\"passed\",\"count\":7}",
     "{\"check\":\"Claude Code CLI manifest validation\",\"status\":\"passed\",\"model_sessions\":0,\"isolated_config_directory\":true}",
-    "{\"check\":\"canonical sources unchanged\",\"status\":\"passed\",\"plugin_files\":12,\"skill_files\":68}"
+    "{\"check\":\"canonical sources unchanged\",\"status\":\"passed\",\"plugin_files\":12,\"skill_files\":73}"
   ],
   "validation_check_count": 14,
-  "executed_command_count": 59,
+  "executed_command_count": 65,
   "distribution_files": {
-    "codex": 74,
-    "claude-code": 75
+    "codex": 79,
+    "claude-code": 80
   },
   "unverified": [
     "Automatic hooks from a real product session",
@@ -113,7 +113,7 @@
       "source_files": [
         {
           "file": "SKILL.md",
-          "sha256": "bc6fc70e9facc01f4399826f50867dd09f56b61b360c34c212844f6a36af4f72"
+          "sha256": "fe2c5cf47646cf773bdd5f11509ac8cf6c781b79c5bffd532223742d2d623e8a"
         },
         {
           "file": "assets/agents/skill-foundation-tester.md",
@@ -121,7 +121,7 @@
         },
         {
           "file": "assets/contract.json",
-          "sha256": "e47c43859713e7671f0bf3870277324008af404339853a2adc930b2ce54065f1"
+          "sha256": "a254679e509307eac6b18628389db65b76dc8a1f93be19dbbdb693e07c1aa02c"
         },
         {
           "file": "assets/example/write-commit-message/eval/cases/good.txt",
@@ -172,16 +172,20 @@
           "sha256": "ba1a531f581d2e6094e978ed6f7aca7a8d92eeb62c6e7ad73ee692f7f18bc772"
         },
         {
+          "file": "assets/example/write-commit-message/hooks-plan.json",
+          "sha256": "16487f423221cb4a9704318ffa2c9201ee8f28eb9b178d43a8543b97ede827f9"
+        },
+        {
           "file": "assets/example/write-commit-message/probes.json",
           "sha256": "e42059deb65ef6936193b8266fa4bb54f14645b00bfac7ee8359c82a9ccfa918"
         },
         {
           "file": "assets/example/write-commit-message/procedure.md",
-          "sha256": "6c14e9b93c7b78fa6d406b1d311847b19888d8bff1acf53c7c60c35043d00d16"
+          "sha256": "2bc60e5df5942927491f7365fbc2da8a58cc615a20c3210a44ac6f6aadd70a47"
         },
         {
           "file": "assets/example/write-commit-message/research.md",
-          "sha256": "f3f219546473470cffc12f1e09daa8aa431783d2cb63fafa65880a23451a8277"
+          "sha256": "57dfed3c5b381ba9645b1dcbbff926e61e70557013ffee8c52e4f0f567a4dda7"
         },
         {
           "file": "assets/example/write-commit-message/scripts/check_body.py",
@@ -193,11 +197,15 @@
         },
         {
           "file": "assets/example/write-commit-message/spec.json",
-          "sha256": "30251fdcec3a5d6503f834932968270f54452a6d0b3e5600a78baa2b8e694bd3"
+          "sha256": "1d58cd8737e39aca47f5ad66751c87c221f9d516d5d0221973a26d6d8a16cf2a"
         },
         {
           "file": "assets/feedback.schema.json",
-          "sha256": "ddbfcc9168b2ac491f84d438f4def7b6b8f107ae37e4a7ac449c31e53f4efd44"
+          "sha256": "de0d8c1716864c92be2508501b0ba88201f784ebe08481a6f1996eed3feb00ce"
+        },
+        {
+          "file": "assets/settings.schema.json",
+          "sha256": "7aa49ff4483ccc0f3362e3f21196d4afce2b5c4e221e57623954fd1dfabaae23"
         },
         {
           "file": "assets/skill-profiles.json",
@@ -205,15 +213,15 @@
         },
         {
           "file": "assets/templates/SKILL.en.md.tmpl",
-          "sha256": "76a1dd90940d34b2dca6e98c29c8d7a4a8c133858e07afce43da39bbe2cc354e"
+          "sha256": "542bbc98c3eb9fd2b9145b4e3d914384d5615ed457e16664bb1b79567aafd7a5"
         },
         {
           "file": "assets/templates/SKILL.ja.md.tmpl",
-          "sha256": "fc7a797fa4106df40ff30c74f5d4ff552ed4100b8f4d632a7a896190e899eef6"
+          "sha256": "250ce5741ac3a53c90526aee6a33c08a12c653c909b93cf10a8286c622cd0bde"
         },
         {
           "file": "assets/templates/convergence-report.md.tmpl",
-          "sha256": "14b7a1941e5d43258762d7f52874a9683a8dd58b5ec8352b9536296c5bae14fe"
+          "sha256": "1c5b1af4c253b09d4e7827eb4c87ae1ebf140a5a2c964fcc968d0bd4fd5c159c"
         },
         {
           "file": "assets/templates/eval.example.json",
@@ -225,7 +233,11 @@
         },
         {
           "file": "assets/templates/feedback.en.md",
-          "sha256": "0a7a6085be2821206d7fa5f5f15ee9fb3ca414b98eb6cb182ddf24e89c3369c1"
+          "sha256": "472c17dd7d77ae6f1f88518f8049ac56950d2dd658588b9b8cdd2fcfe7447b6d"
+        },
+        {
+          "file": "assets/templates/hooks-plan.example.json",
+          "sha256": "6f27668837069f4195ac1ef8d885eb19a356ba9dc488c548da921c2092b3b752"
         },
         {
           "file": "assets/templates/probes.example.json",
@@ -237,47 +249,47 @@
         },
         {
           "file": "assets/templates/spec.example.json",
-          "sha256": "56a0bc14396668b2ea7f2205036430b3d9b635bfbc2e638d71437ffe57066324"
+          "sha256": "e57afe04d03639e28ed2a50fbd410870d2c49f7fdefc45aa847e0498dc6db51f"
         },
         {
           "file": "assets/templates/standard-decisions.en.json",
-          "sha256": "d6ec97a78708b38e1a63375aa48708f414a5b313642030666ec5d9b8333835d4"
+          "sha256": "a1e140d8b0fb21ede946a9ce9d9536b435c9cb33be59fe3c7231381666845298"
         },
         {
           "file": "assets/templates/standard-decisions.ja.json",
-          "sha256": "e6e4f745b43ca3ef71e0896720627c417ac5e5b798f049d20f075c189e257866"
+          "sha256": "4cb347d0dbb5155006814e7855cb91cf07bee60609248f9ba2992a474a3dac64"
         },
         {
           "file": "assets/templates/user-setting.example.yaml",
-          "sha256": "8fb9c7059d1b46340278dde15fced98fb8b5bfb089a01ed2f2d15ddbcd1cad2c"
+          "sha256": "1fad817a677a65832392a8ff078a75590f2f325f495d3559b3ae85b4cbe47443"
         },
         {
           "file": "references/control-ladder.md",
-          "sha256": "d90c0b3070a4871c1a34341f00e7d39d877d9f709b8a66851a078bda7182fd51"
+          "sha256": "9a879655dd6a510fac0d719287a08c6f5860a28ca403ab502943026abf7f3101"
         },
         {
           "file": "references/convergence-test.md",
-          "sha256": "863940f6d8aa2a03b7578a922fef2a91e03b401ce09e52c57359e0d153bf7cb5"
+          "sha256": "b8cf7192bcfa02415c52253fbec83025971a58fd26e19f0128e04aea811633c3"
         },
         {
           "file": "references/decisions.md",
-          "sha256": "be9df8764e526f1529df0a2989b6774b68e1374d0faacf47003100461dc67f2e"
+          "sha256": "121b7b103ac944afa93db869ed172833b925050bb6378ac5298a642fa9f9e304"
         },
         {
           "file": "references/eval.md",
-          "sha256": "9aa5b363c122c63f734279d2bfc424754e999c69719d15301b7f5858aa53ebcb"
+          "sha256": "1913e00fab6fd6e78b4a27b587333747107823f6ecebfce3f83a79489e472bb4"
         },
         {
           "file": "references/feedback.md",
-          "sha256": "45ca2e70dc2bfccc35b6f571c2868dac163fdda63539b029a26605f22add0a80"
+          "sha256": "c0c3ba45121616f0e62ecf5c0c2d49bf5c3752b7865719e6767a0b31b7644254"
         },
         {
           "file": "references/intake.md",
-          "sha256": "9844bd7d2936b67a48ab1be794c7dd52784a549b672937c007516d9870bbf9c2"
+          "sha256": "ea55aa60aeea8bfef2335a0b3d3cc64b23b4393dd8c0ce20201cd984a4993c62"
         },
         {
           "file": "references/platforms.md",
-          "sha256": "2889b935e55f3f36c9545e805e08f4857a3d17653dbc60f8a8c6029bf4c664fe"
+          "sha256": "b043c01e020ac68a7bc4c5667f5491a0cf815f69fd569c6d5606be1062ae697c"
         },
         {
           "file": "references/research.md",
@@ -285,7 +297,7 @@
         },
         {
           "file": "references/runtime.md",
-          "sha256": "0ad4c913886287b8ed9687ba4c9041801693f1a0cfdac95b44341972a763b11b"
+          "sha256": "9c6d840cf437ee98ab7f3683eaa9a43cf57c27f5c2e9ba8625b132e8bb0aa6de"
         },
         {
           "file": "references/skill-profiles.md",
@@ -293,7 +305,7 @@
         },
         {
           "file": "references/variance-axes.md",
-          "sha256": "79060c699df0b23738570906aab3a75949d73c26f975b7fbc971c38a4280a328"
+          "sha256": "d66638c805dd4b116d6bd96e24ced40a7e1923ee934e37cb2408bdd43353c3a6"
         },
         {
           "file": "references/writing.md",
@@ -301,19 +313,19 @@
         },
         {
           "file": "scripts/_lib.py",
-          "sha256": "632d1c3c22981932ce3d2fc30dd60c375e6a91c9dc29ac29a17ad7598e68db25"
+          "sha256": "a1245b9590354a91c67fb23a58fc8342bb315873ef569412412af50dbcdb8ea9"
         },
         {
           "file": "scripts/_skillrt.py",
-          "sha256": "5ff2580d36726675268ce9f205abe4c1e323bbba837c60a5b7580ad22b218cda"
+          "sha256": "848df510046402a2e7a5b74c963667e1af395dae928b827ff35225e5484d2b4d"
         },
         {
           "file": "scripts/catalog.py",
-          "sha256": "9930656e850ebbc96335ef225c303e16f27e36e15361d8384fa3a89cc3304e61"
+          "sha256": "3105187345f5ed7c517df96bf46e15ea005e80555ef0372aa48fd46f46ca26bd"
         },
         {
           "file": "scripts/convergence.py",
-          "sha256": "ae4ff3f6a493b026688884ec985f7112cdf6abf594bcce17c458e1fb0623b417"
+          "sha256": "3cc36c66388a88d09be5764fbd45c310e6435ea5fb7beaebd0bd2f22ab1ce86b"
         },
         {
           "file": "scripts/eval_check.py",
@@ -321,19 +333,19 @@
         },
         {
           "file": "scripts/feedback.py",
-          "sha256": "2750618bb0a62af5a2c871892d7c53ea495b534312677637578a439875a610c0"
+          "sha256": "f32b92300998e02cab6be6e1c237663856e69609df5ecd2a76bdd9389c3044af"
         },
         {
           "file": "scripts/feedback_eval.py",
-          "sha256": "a9e5bb531f8effe0e1c3eab4970aa355777352169074f3cb4bf429d7944291aa"
+          "sha256": "4b220a2e3493c34e1cbe29798654d9d9f4384a24df13ea09dddec0d2ad3518ee"
         },
         {
           "file": "scripts/feedback_review.py",
-          "sha256": "46a96d56525d75b8f47598a644098d66bddc347727bc370e769ce154236e3086"
+          "sha256": "35a8e39ce4e48aa6da0b2e54ff0210d8d09434937910686ce630c203e46797af"
         },
         {
           "file": "scripts/feedback_selftest.py",
-          "sha256": "423fb4ddd47d9ae49128865739f103de51ab2b738a51c5dfbafeb25b1b6c32eb"
+          "sha256": "7c4d3f2ed56a67c099135c1e0e2d686ba3c0c39121f75885561fd1ac04abdbe8"
         },
         {
           "file": "scripts/fence.py",
@@ -341,50 +353,58 @@
         },
         {
           "file": "scripts/hook.py",
-          "sha256": "dfdd0575e8f1652b5716d5d22fe5a846b1f1d1bc39e21a47bcea60f4b4b81749"
+          "sha256": "c7ea73ddb9ac90de55ac3d1f13bdf27bc042d91837a2f7f2c132277ccac9b253"
+        },
+        {
+          "file": "scripts/hooks_plan.py",
+          "sha256": "661696f0d5752a180236c3d4c44be0ced19d4c96313bb79d77fa3ca6673d2e2a"
         },
         {
           "file": "scripts/init_skill.py",
-          "sha256": "ffbb31802a7e08fbc50d9533f4c789390e154c5c6fd27933f411980fa2483b97"
+          "sha256": "e62e78ae7169895aa7591cecda15b81db2b72ec2c2c874f157376e2fc34efb55"
         },
         {
           "file": "scripts/install.py",
-          "sha256": "979456e2b80fd8c6df58929d7e0952d172017911eb343bd100a6c0ab7b0de04b"
+          "sha256": "cd72d87b3cfe3f6497278a394b1bdbc34fccfc74b0f736243abacfef6a91a887"
         },
         {
           "file": "scripts/probe.py",
-          "sha256": "5763e6d47d8553ee4658ab19fff39ef6257c28d9c8dc1550dab6198e15797670"
+          "sha256": "d1f77ba92decc8e75695c717f76e276fb86c8b788af15e819885af27c3ee4629"
         },
         {
           "file": "scripts/render_skill.py",
-          "sha256": "1411c6ff61ff0ef7b824a2deff82ffb50b0b64ebb7040aff3d3516812f4cd000"
+          "sha256": "4550aa82015ecb3ae712197576cdcff2f592f993ba4a3eb122eab12293338238"
         },
         {
           "file": "scripts/report_skill.py",
-          "sha256": "e7e3ac31e697326bfc1959f471fecbac44ca0295d2cf7abd95559dbe23c58a2a"
+          "sha256": "8a8bcd958a436f0f2fffdf8c4c00cfbfec95e26eb45792c845b62e679df21ea0"
         },
         {
           "file": "scripts/run.py",
-          "sha256": "8f3dce4ffedb74a5f827134ddf1b39629f75e84fe47a3ad5bf4bb31c2dd924e1"
+          "sha256": "cb5c8283155d4edec2295eb8a6dc241f853c4051fd012f1a342d76d5a845b2b0"
         },
         {
           "file": "scripts/selftest.py",
-          "sha256": "c515f89752b04ea7594fc0bbee25540554fcc1820b5b6215c91961bf39a2574f"
+          "sha256": "3685e86a004c4fb8f967126f9f74a3dcc7f75ee09df58d165d853c2f84c05ca9"
+        },
+        {
+          "file": "scripts/setup.py",
+          "sha256": "92ffdb9440932df44ae7a1e2a6c750116fb1a3dc1a94dc6dda461c64831b5a68"
         },
         {
           "file": "scripts/skill_lint.py",
-          "sha256": "28d4e42351ce434443fa0dc629336f5e51c317d27a48f2a9266da86458410581"
+          "sha256": "d3d47a24354df433b24ffd51edb08b0390c3171140688f910bf9fe123ff720cf"
         },
         {
           "file": "settings/skill-setting.yaml",
-          "sha256": "cfa87361be9d65727eda233c3ac78b2ffcbd5d7a4061c058184f129757f832cf"
+          "sha256": "c2cd29b310364570925fdc6915613372774bc23bec182489f4deafced0b2f837"
         },
         {
           "file": "settings/user-setting.yaml",
           "sha256": "f76e514f41bd6c0932d7901c82a1d874882a104ed75479899c27f63e42f5834a"
         }
       ],
-      "source_sha256": "2ce0c576743dc66d1c773b6ffdfa9023ff09e0c426efd9a2cebf13edd545a43f"
+      "source_sha256": "055566b08a0a1b40dfa5b8e64d35997a83961a1832cb99e9607acdb68274bd49"
     }
   ],
   "source_unchanged": {
@@ -397,10 +417,11 @@
     "user home absolute path → <user-home>",
     "system temporary path → <system-temp>"
   ],
+  "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. After an output is created and the run restarted, finish is first verified to reject the unchanged output with OUT-01; a validation note is then added to the generated SKILL.md and check/finish are verified to succeed. Canonical sources and user settings remain byte-identical.",
   "artifacts": [
     {
       "file": "input.md",
-      "sha256": "2f55719e6b2860209e7f58fe52be11ba098c3f29b93a59bbd61abcd52efab0b3"
+      "sha256": "f57ae9c947de42104cb85ffbd655eda9cad85f626a114bece821e8b10ad85eee"
     },
     {
       "file": "manifest-validation.log",
@@ -408,27 +429,27 @@
     },
     {
       "file": "skill-foundation-claude-code.zip",
-      "sha256": "457beafd57504154d7a280082c92073921cb86dda038c57e9fa7ca7c8cdd41ba"
+      "sha256": "679a48014ca069b680c1e223257cb34c323a52b08d60d6ff84615217402f5b01"
     },
     {
       "file": "skill-foundation-codex.zip",
-      "sha256": "749c19688f5f3f5f77f3849b71e9a6b0cd7e40abb30f0a8d91b4678d252e2fd9"
+      "sha256": "62d88b17af7feb1575bc2c172b72f1e5c41091df7f8ce6d5e768440d3a9574f2"
     },
     {
       "file": "unit-tests.log",
-      "sha256": "a0b4f471eaad9f063baeefad6e455d344e1bfabdf29250ebc9f5a967dadd08b3"
+      "sha256": "c71761f7ed420808ab0def6dbd50ce9a2ec17ff4fcd5bde6ffe8e8cad664f6ac"
     },
     {
       "file": "validation.json",
-      "sha256": "3ce847af3007d3443b1e07a31ae3fd54a170025e1ecef344fc8e52337d2f91ff"
+      "sha256": "dee14afe1319e63110f54a6f538cb74422be44ec908e471fab37b65bbaaaa76a"
     },
     {
       "file": "verification.txt",
-      "sha256": "cdbaf8fae6861849534cc51fce0e56f6779e68bb9c715048bf1cba870c269ef4"
+      "sha256": "33128583edee0d6a2725613428af0178f46b24210ff33f413b55de08b11b90a9"
     },
     {
       "file": "verify_plugin.py",
-      "sha256": "25f6585729cb7663bb2367f9bb8ad567a80f1ac1d13f672ce87dc31398cda01c"
+      "sha256": "322d03afa8f2c5f2eff9cf108b34cc87ddd4f7d6df0ac34eaa48ecd86852c234"
     }
   ]
 }

@@ -22,32 +22,29 @@ skill-foundation はこの違いを次のように吸収する。
 - SKILL.md の中では、スキルのディレクトリを `<skill>`（SKILL.md があるディレクトリ）と書き、製品の変数を使わない
 - 両方に対応するときは、本体を `.claude/skills/<name>` に置き、`.agents/skills/<name>` を相対シンボリックリンクにする（`install.py`）
 
-Context Repository のように共通スキルを正本管理する場合は、本体をプロジェクト内の `utils/skills/.../<name>/` に保持し、`install.py` で対象製品すべての標準の置き場を本体への相対シンボリックリンクにする。`skill_lint.py --final --project` は、本体の実体がプロジェクト内の `utils/skills/` 配下にあり、各置き場のリンクが同じ本体へ解決されるとき、この配置も認める。リンクが無い、複製や異なる場所を指している、本体がプロジェクト外や `utils/skills/` 以外にある場合は、この共有正本の配置として認めない。hooks は通常配置と同じく `install.py --check` で検査する。
-
 ## 2. hooks
 
-hooks は、AI がファイルを編集した後、応答を終える前、実行記録を編集する前に、`scripts/hook.py` を実行する仕組みである。製品ごとの入力と出力の形の違いは、`hook.py --platform claude|codex` が吸収する。
+hooks は、AI がファイルを編集する前と後、応答を終える前、ユーザーが発言したときに、`scripts/hook.py` を実行する仕組みである。製品ごとの入力と出力の形の違いは、`hook.py --platform claude|codex` が吸収する。
 
 | 項目 | Claude Code | Codex |
 |---|---|---|
 | 設定ファイル | `.claude/settings.json` | `.codex/hooks.json` |
 | 使うイベント | PreToolUse、PostToolUse、Stop、UserPromptSubmit | 同じ |
 | ファイル編集のツール | `Edit`、`Write`、`MultiEdit`、`NotebookEdit`（`tool_input.file_path`） | `apply_patch`（`tool_input.command` のパッチ本文の `*** Add File:`、`*** Update File:`、`*** Delete File:`、`*** Move to:` の行） |
-| 実行記録・指摘と承認の記録への直接の編集 | `permissionDecision: "deny"` | 同じ |
-| スキル自身のファイルの編集 | 実行中も実行していないときも止めない | 同じ |
+| 編集の前に止める（実行記録と収集の記録だけ） | `permissionDecision: "deny"` | 同じ |
 | 編集の後と終える前の差し戻し | `{"decision": "block", "reason": ...}` | 同じ。Stop の `reason` は新しいユーザーの指示として扱われる |
 | Stop の出力 | JSON か空 | JSON でなければならない |
+| 発言に情報を足す（収集の案内） | UserPromptSubmit の `hookSpecificOutput.additionalContext` | 同じ |
+| セッションの区別（収集） | 入力の `session_id` | 同じ |
 | 差し戻しの回数 | `hook.py` が `state.json` の `stop_blocks` で数える（製品の仕組みに頼らない） | 同じ |
 | プロジェクトのルート | `$CLAUDE_PROJECT_DIR` | 変数が無いので `git rev-parse --show-toplevel` か `pwd` を使う |
 | 実行の条件 | 設定を読めば実行する | `/hooks` で利用者が信頼するまで実行しない。プロジェクト自体が未信頼だと `.codex/` を読まない |
 
-Codex の信頼は、hooks の宣言（コマンドの文字列）から計算する。呼び出すスクリプトの中身を変えても信頼は外れない。`install.py` は宣言を毎回同じ文字列で書くので、一度信頼すればスキルを作り直しても信頼し直す必要は無い。
+Codex の信頼は、hooks の宣言（コマンドの文字列）から計算する。呼び出すスクリプトの中身を変えても信頼は外れない。`install.py` は宣言を毎回同じ文字列で書くので、一度信頼すればスキルを作り直しても信頼し直す必要は無い。利用中の指摘の収集（[feedback.md](feedback.md)）は既定の文字列のまま働くので、収集が入っても信頼し直さなくてよい。`--no-feedback` や `--features` で機能を外すと、文字列に `--no-feedback` か `--no-check` が付くので、信頼し直す。
 
 `install.py` は既存の設定を残し、このスキルの項目だけを足す。同じ項目が既にあれば何もしない。`--uninstall` で自分の項目だけを外す。
 
-作ったスキルをプラグインで配るときは、本体を `<プラグイン>/skills/<name>/` に移し、プロジェクトの置き場（`.claude/skills`、`.agents/skills`）には置かない。hooks もプロジェクトに登録せず、プラグインに書く。Claude Code は `hooks/hooks.json`（`${CLAUDE_PLUGIN_ROOT}` で本体を指す）、Codex は `.codex-plugin/plugin.json` の `hooks`（`${PLUGIN_ROOT}`）に、上の4つのイベントで `hook.py --platform claude|codex` を呼ぶ項目を書く。`skill_lint.py --final --project` は、この形のときは置き場に本体と別のものが無いことと、プラグインの hooks を確かめる。`catalog.py` は、プロジェクトのマーケットプレイス（`.claude-plugin/marketplace.json`、`.agents/plugins/marketplace.json`）に載るプラグインのスキルも載せる。スキルと hooks は、利用者がプラグインを入れたときだけ使える。
-
-成果物への指摘は UserPromptSubmit の `prompt` から記録する。修正前後の確認画面で承認した版だけを共通形式へ確定する。両製品とも [feedback.md](feedback.md) に従う。
+作ったスキルをプラグインで配るとき（SKILL.md の手順4で、hooks の登録先を「プラグインで配る」と決め、spec の `control.hook_via` が `plugin`）は、本体を `<プラグイン>/skills/<name>/` に移し、プロジェクトの置き場（`.claude/skills`、`.agents/skills`）には置かない。hooks もプロジェクトに登録せず、プラグインに書く。Claude Code は `hooks/hooks.json`（`${CLAUDE_PLUGIN_ROOT}` で本体を指す）、Codex は `.codex-plugin/plugin.json` の `hooks`（`${PLUGIN_ROOT}`）に、上の4つのイベントで `hook.py --platform claude|codex` を呼ぶ項目を書く（`control.hook_targets` の製品だけ）。`skill_lint.py --final --project` は、この形のときは置き場に本体と別のものが無いことと、プラグインの hooks を確かめ、`control.hook_via` と本体の置き場が合わなければ止める。`catalog.py` は、プロジェクトのマーケットプレイス（`.claude-plugin/marketplace.json`、`.agents/plugins/marketplace.json`）に載るプラグインのスキルも載せる。スキルと hooks は、利用者がプラグインを入れたときだけ使える。
 
 ## 3. 収束テストの起動方法
 

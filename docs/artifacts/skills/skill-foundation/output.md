@@ -9,6 +9,7 @@ skill-foundation: 完了（検証に合格）
 - 本体の置き場: `.claude/skills/write-commit-message`
 - Codex の置き場: `.agents/skills/write-commit-message`（本体へのリンク）
 - 対象の製品: Claude Code、Codex
+- hooks の方針: 出力の検査 使う、登録する製品 Claude Code・Codex、利用中の指摘 集める、登録先 プロジェクトの設定（依頼の指定 `all` で決めた）
 - 言語: 日本語（ja）
 - 起動: 依頼の内容から自動で選ばれる。明示は `/write-commit-message`（Claude Code）、`$write-commit-message`（Codex）
 - 入力: `ticket`（チケットID。start の前に聞く）
@@ -39,7 +40,7 @@ skill-foundation: 完了（検証に合格）
 | 検証 | 結果 |
 |---|---|
 | `skill_lint.py --final` | エラー 0 件、警告 2 件 |
-| `probe.py` | 違反例 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件（Claude Code、Codex） |
+| `probe.py` | 違反例 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件（Claude Code、Codex） |
 
 ## 収束テスト
 
@@ -53,7 +54,7 @@ skill-foundation: 完了（検証に合格）
 
 ## プロジェクトに置いたもの
 
-- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 26 個）
+- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 28 個）
 - `.agents/skills/write-commit-message`: 本体へのリンク
 - `.claude/settings.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
 - `.codex/hooks.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）

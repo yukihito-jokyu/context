@@ -1,20 +1,20 @@
 skill-foundation plugin: PASS
 
 Checks:
-PASS {"check": "codex: feedback collection, review UI and Eval replay regression", "status": "passed", "selftest_stages": 17, "synthetic_feedback_tests": 16, "real_user_approvals": 0, "feedback_schema_version": 1}
-PASS {"check": "codex: relocation, zip, extraction, runtime, manifest, thin entry, hooks", "status": "passed", "distribution_files": 74, "runtime_files": 68, "archive_sha256": "749c19688f5f3f5f77f3849b71e9a6b0cd7e40abb30f0a8d91b4678d252e2fd9"}
+PASS {"check": "codex: feedback collection, review UI and Eval replay regression", "status": "passed", "selftest_stages": 20, "synthetic_feedback_failures": 0, "real_user_approvals": 0, "feedback_schema_version": 1}
+PASS {"check": "codex: relocation, zip, extraction, runtime, manifest, thin entry, hooks", "status": "passed", "distribution_files": 79, "runtime_files": 73, "archive_sha256": "62d88b17af7feb1575bc2c172b72f1e5c41091df7f8ce6d5e768440d3a9574f2"}
 PASS {"check": "codex: configured hook commands directly executed", "status": "passed", "events": ["PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit"], "skill_edit_output": "", "direct_run_record_edit_decision": "deny", "legacy_seal_ignored": true, "restart_after_edit": true, "post_tool_decision": "block", "stop_decision": "block", "wait_stop_output": "", "resumed_status": "active"}
 PASS {"check": "codex: convergence prepare/prompts", "status": "passed", "project_agent_directories": 0, "tester_type": "skill-foundation:skill-foundation-tester", "independent_ai_sessions": 0}
-PASS {"check": "codex: changed skill can check, restart and finish", "status": "passed", "stale_legacy_seal_ignored": true, "output_checks_preserved": true}
-PASS {"check": "claude-code: feedback collection, review UI and Eval replay regression", "status": "passed", "selftest_stages": 17, "synthetic_feedback_tests": 16, "real_user_approvals": 0, "feedback_schema_version": 1}
-PASS {"check": "claude-code: relocation, zip, extraction, runtime, manifest, thin entry, hooks", "status": "passed", "distribution_files": 75, "runtime_files": 68, "archive_sha256": "457beafd57504154d7a280082c92073921cb86dda038c57e9fa7ca7c8cdd41ba"}
+PASS {"check": "codex: changed skill can check and restart; finish requires updated output", "status": "passed", "stale_legacy_seal_ignored": true, "output_checks_preserved": true, "finish_without_output_update_exit": 1, "finish_without_output_update_rule": "OUT-01", "output_updated_after_restart": true, "finish_after_output_update_exit": 0}
+PASS {"check": "claude-code: feedback collection, review UI and Eval replay regression", "status": "passed", "selftest_stages": 20, "synthetic_feedback_failures": 0, "real_user_approvals": 0, "feedback_schema_version": 1}
+PASS {"check": "claude-code: relocation, zip, extraction, runtime, manifest, thin entry, hooks", "status": "passed", "distribution_files": 80, "runtime_files": 73, "archive_sha256": "679a48014ca069b680c1e223257cb34c323a52b08d60d6ff84615217402f5b01"}
 PASS {"check": "claude-code: configured hook commands directly executed", "status": "passed", "events": ["PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit"], "skill_edit_output": "", "direct_run_record_edit_decision": "deny", "legacy_seal_ignored": true, "restart_after_edit": true, "post_tool_decision": "block", "stop_decision": "block", "wait_stop_output": "", "resumed_status": "active"}
 PASS {"check": "Claude namespaced tester fence", "status": "passed", "allowed_inside": true, "denied_outside": true, "unrelated_agent_transparent": true}
 PASS {"check": "claude-code: convergence prepare/prompts", "status": "passed", "project_agent_directories": 0, "tester_type": "skill-foundation:skill-foundation-tester", "independent_ai_sessions": 0}
-PASS {"check": "claude-code: changed skill can check, restart and finish", "status": "passed", "stale_legacy_seal_ignored": true, "output_checks_preserved": true}
+PASS {"check": "claude-code: changed skill can check and restart; finish requires updated output", "status": "passed", "stale_legacy_seal_ignored": true, "output_checks_preserved": true, "finish_without_output_update_exit": 1, "finish_without_output_update_rule": "OUT-01", "output_updated_after_restart": true, "finish_after_output_update_exit": 0}
 PASS {"check": "plugin-owned unit tests", "status": "passed", "count": 7}
 PASS {"check": "Claude Code CLI manifest validation", "status": "passed", "model_sessions": 0, "isolated_config_directory": true}
-PASS {"check": "canonical sources unchanged", "status": "passed", "plugin_files": 12, "skill_files": 68}
+PASS {"check": "canonical sources unchanged", "status": "passed", "plugin_files": 12, "skill_files": 73}
 
 Commands executed:
 
@@ -35,7 +35,7 @@ exit: 0
 stdout:
 成功  init_skill.py（終了コード 0）
 
-    12 件作成、3 件は既存のため変更なし、0 件は差分あり
+    13 件作成、3 件は既存のため変更なし、0 件は差分あり
     次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
 成功  SKILL.md の「2. 手順」に procedure.md を入れる
 成功  render_skill.py --check（終了コード 0）
@@ -43,47 +43,62 @@ stdout:
 成功  skill_lint.py --phase 5（終了コード 0）
     [phase 5] write-commit-message: ルール 17 件、出力 1 件、エラー 0 件、警告 0 件
 成功  probe.py（終了コード 0）
-    成功  hooks の動作 codex pre-tool-inactive  実行していないときもスキルを編集できる
+    成功  hooks の動作 codex feedback-pre-tool  利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）
 
-    probe 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件
+    probe 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件
 成功  eval_check.py（終了コード 0）
     [eval] write-commit-message: 事例 7 件（判定が期待どおり・同意あり 7 件）、エラー 0 件
 成功  catalog.py（終了コード 0）
 
-    - `<workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/catalog.html` に一覧を書いた。ブラウザで開いて見る
-    - スキル 1 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/catalog/write-commit-message.html`）
+    - `<workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/catalog.html` に一覧を書いた。ブラウザで開いて見る
+    - スキル 1 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/catalog/write-commit-message.html`）
 成功  カタログの図（SVG 22 個）
 成功  Eval 作成の質問をカタログで答え、回答を記録する
+成功  eval_check.py（終了コード 0）
+    [eval] write-commit-message: 事例 7 件（判定が期待どおり・同意あり 7 件）、エラー 0 件
+成功  render_skill.py（終了コード 0）
+    render: 0 件を書き換えました
+成功  probe.py（終了コード 0）
+    成功  CTL-03-builtin-ask  聞くべき入力が無いと start が止まる（終了コード 3）
+
+    probe 19 件中 失敗 0 件／hooks の動作 0 件中 失敗 0 件
+成功  probe.py（Codex だけ・指摘を集めない）（終了コード 0）
+    成功  hooks の動作 codex pre-tool  実行記録（state.json）の編集の前に拒否する（結果 deny。CTL-04）
+
+    probe 19 件中 失敗 0 件／hooks の動作 9 件中 失敗 0 件
+成功  hooks の方針を聞いて決め、決めたとおりにだけ hooks を登録する
+成功  setup.py（画面と引数で hooks の登録とユーザーの設定を選んで行う、戻る・中止、書く前の差分、.bak）
 成功  設定（settings/）の YAML、順と出どころ、設定の検査、モデルと推論エフォートの受け渡し
 成功  convergence.py prepare（全課題）（終了コード 0）
       effort.subagent = medium（ユーザーの設定 settings/user-setting.yaml）
-    専用のエージェント型を置きました: <workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/agents/skill-foundation-tester.md。Claude Code は、セッションを始めた後に作った agents/ を読まないので、再起動してから prompts のエージェントを起動してください
-    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/conv --round 1
-成功  手を付けていないエージェントを失格にしない
+    専用のエージェント型を置きました: <workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/agents/skill-foundation-tester.md。Claude Code は、セッションを始めた後に作った agents/ を読まないので、再起動してから prompts のエージェントを起動してください
+    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/conv --round 1
+成功  スキル自身を変えても失格にせず、fence.py の登録を外したら失格にする
 成功  収束テストを省くと書いたとき、prepare が止まる（終了コード 2）
 成功  作業ディレクトリの外への操作の停止（fence.py、9 例）
 成功  convergence.py trace（Codex の記録）（終了コード 0）
     - T3-edge/codex-1: 操作 0 件（記録が見つからない）、実行の記録 0 件
     - T3-edge/subagent-1: 操作 0 件（記録が見つからない）、実行の記録 0 件
-    動き: <workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/trace/traces.json
+    動き: <workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/trace/traces.json
 成功  Codex と Claude Code の記録から操作の列を作る（subagent 3 件、codex 2 件）
-成功  diff が各エージェントの出力を Eval で採点する
-成功  置き場の検査（リンク、複製、本体の場所、置き場自体のリンク、共有正本と hooks、プラグイン、カタログ）
+成功  diff が各エージェントの出力を Eval で採点し、指標の内訳と満たさない理由を書く
+成功  置き場の検査（リンク、複製、本体の場所、置き場自体のリンク、プラグイン、カタログ）
 成功  convergence.py analysis-prepare（終了コード 0）
     分析 2 件（エージェント1人の記録ごとに1件。runner subagent、model gpt-6.1-sol、effort high）
-    専用のエージェント型: <workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/agents/skill-foundation-tester.md（変更なし）
-    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/analysis --round 1 --kind analysis の後に analysis-collect --workdir <workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/analysis --round 1
+    専用のエージェント型: <workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/agents/skill-foundation-tester.md（変更なし）
+    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/analysis --round 1 --kind analysis の後に analysis-collect --workdir <workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/analysis --round 1
 成功  catalog.py（AI の分析つき）（終了コード 0）
 
-    - `<workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/analysis.html` に一覧を書いた。ブラウザで開いて見る
-    - スキル 2 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/analysis/write-commit-message.html`）、`write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-qe8z6ziw/analysis/agents-skills-write-commit-message.html`）
+    - `<workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/analysis.html` に一覧を書いた。ブラウザで開いて見る
+    - スキル 2 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/analysis/write-commit-message.html`）、`write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-hjatfprf/analysis/agents-skills-write-commit-message.html`）
 成功  エージェントの動きの AI の分析（準備・取り込み・カタログ・締め込みの記録・検査・Codex）
-成功  feedback_selftest.py（合成イベントによる収集・承認・Eval 接続）（終了コード 0）
-    Ran 16 tests in 6.681s
+成功  承認済みの指摘から、正本を変えずに Eval と収束テストの候補を作り、答えを漏らさずに再現する
+成功  feedback_selftest.py（利用中の指摘の収集）（終了コード 0）
+    成功  SKILL.md とルールの表の収集の指示を、行ごとに指摘する
 
-    OK
+    収集の自己テスト: 失敗 0 件
 
-自己テスト: 17 段階中 失敗 0 件
+自己テスト: 20 段階中 失敗 0 件
 
 stderr:
 
@@ -147,6 +162,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "make"（ユーザーの設定 settings/user-setting.yaml）
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-sample/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -177,6 +193,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "make"（ユーザーの設定 settings/user-setting.yaml）
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-sample/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -199,7 +216,7 @@ command: "python3 \"${PLUGIN_ROOT}/scripts/hook.py\" --platform codex post-tool"
 cwd: <workdir>/project-codex
 exit: 0
 stdout:
-{"decision": "block", "reason": "skill-foundation の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください:\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）"}
+{"decision": "block", "reason": "skill-foundation の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください（検査や契約を変えて通さない）:\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）"}
 
 stderr:
 
@@ -249,7 +266,7 @@ exit: 0
 stdout:
 成功  init_skill.py（終了コード 0）
 
-    12 件作成、3 件は既存のため変更なし、0 件は差分あり
+    13 件作成、3 件は既存のため変更なし、0 件は差分あり
     次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
 成功  SKILL.md の「2. 手順」に procedure.md を入れる
 
@@ -326,6 +343,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "skip"
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-commit-message/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -340,7 +358,7 @@ exit: 0
 stdout:
 成功  init_skill.py（終了コード 0）
 
-    12 件作成、3 件は既存のため変更なし、0 件は差分あり
+    13 件作成、3 件は既存のため変更なし、0 件は差分あり
     次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
 成功  SKILL.md の「2. 手順」に procedure.md を入れる
 成功  eval_check.py（終了コード 0）
@@ -348,9 +366,9 @@ stdout:
 成功  render_skill.py（終了コード 0）
     render: 0 件を書き換えました
 成功  probe.py（終了コード 0）
-    成功  hooks の動作 codex pre-tool-inactive  実行していないときもスキルを編集できる
+    成功  hooks の動作 codex feedback-pre-tool  利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）
 
-    probe 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件
+    probe 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件
 
 stderr:
 
@@ -400,6 +418,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "skip"
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-commit-message/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -407,7 +426,38 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
 stderr:
 
 
-codex: edited runtime finish
+codex: finish without updating output after restart is rejected
+command: ["python3", "<workdir>/editable path with spaces/codex/runtime/skill-foundation/scripts/run.py", "finish"]
+cwd: <workdir>/editable-finish-codex
+exit: 1
+stdout:
+OUT-01 .claude/skills/write-commit-message/SKILL.md 出力 skill-entry（作ったスキルの SKILL.md）を 1 件以上作ってください（今 0 件）
+finish: 指摘 1 件。直してから、もう一度 finish を実行してください
+
+stderr:
+
+
+codex: update generated output after restart
+command: ["python3", "-c", "from pathlib import Path; import sys; p = Path(sys.argv[1]); p.write_text(p.read_text() + '\\n<!-- 検証用の出力を restart 後に更新した -->\\n')", "<workdir>/editable-finish-codex/.claude/skills/write-commit-message/SKILL.md"]
+cwd: <workdir>/editable-finish-codex
+exit: 0
+stdout:
+
+stderr:
+
+
+codex: check updated output after restart
+command: ["python3", "<workdir>/editable path with spaces/codex/runtime/skill-foundation/scripts/run.py", "check"]
+cwd: <workdir>/editable-finish-codex
+exit: 0
+stdout:
+出力 skill-entry: .claude/skills/write-commit-message/SKILL.md
+check: 指摘 0 件
+
+stderr:
+
+
+codex: edited runtime finish after updating output
 command: ["python3", "<workdir>/editable path with spaces/codex/runtime/skill-foundation/scripts/run.py", "finish"]
 cwd: <workdir>/editable-finish-codex
 exit: 0
@@ -425,6 +475,7 @@ skill-foundation: 完了（検証に合格）
 - 本体の置き場: `.claude/skills/write-commit-message`
 - Codex の置き場: `.agents/skills/write-commit-message`（本体へのリンク）
 - 対象の製品: Claude Code、Codex
+- hooks の方針: 出力の検査 使う、登録する製品 Claude Code・Codex、利用中の指摘 集める、登録先 プロジェクトの設定（ユーザーが答えた（talk-1））
 - 言語: 日本語（ja）
 - 起動: 依頼の内容から自動で選ばれる。明示は `/write-commit-message`（Claude Code）、`$write-commit-message`（Codex）
 - 入力: `ticket`（チケットID。start の前に聞く）
@@ -455,7 +506,7 @@ skill-foundation: 完了（検証に合格）
 | 検証 | 結果 |
 |---|---|
 | `skill_lint.py --final` | エラー 0 件、警告 1 件 |
-| `probe.py` | 違反例 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件（Claude Code、Codex） |
+| `probe.py` | 違反例 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件（Claude Code、Codex） |
 
 ## 収束テスト
 
@@ -468,7 +519,7 @@ skill-foundation: 完了（検証に合格）
 
 ## プロジェクトに置いたもの
 
-- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 31 個）
+- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 33 個）
 - `.agents/skills/write-commit-message`: 本体へのリンク
 - `.claude/settings.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
 - `.codex/hooks.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
@@ -486,6 +537,7 @@ skill-foundation: 完了（検証に合格）
 
 - 言語（language）: "ja"（ユーザーの設定 settings/user-setting.yaml）
 - 本体の置き場（base）: ".claude/skills"（既定値）
+- hooks の方針（hooks）: "all"（スキルの設定 settings/skill-setting.yaml）
 
 ## 入力で読めなかった値
 
@@ -494,7 +546,7 @@ skill-foundation: 完了（検証に合格）
 ## 検証
 
 - `run.py finish`: 指摘 0 件
-- `run.py start --restart`: 1 回（実行履歴は最初の start から引き継いだ）
+- `run.py start --restart`: 1 回（出力の基準と履歴は最初の start から引き継いだ）
 
 ## 補足
 
@@ -520,7 +572,7 @@ exit: 0
 stdout:
 成功  init_skill.py（終了コード 0）
 
-    12 件作成、3 件は既存のため変更なし、0 件は差分あり
+    13 件作成、3 件は既存のため変更なし、0 件は差分あり
     次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
 成功  SKILL.md の「2. 手順」に procedure.md を入れる
 成功  render_skill.py --check（終了コード 0）
@@ -528,47 +580,62 @@ stdout:
 成功  skill_lint.py --phase 5（終了コード 0）
     [phase 5] write-commit-message: ルール 17 件、出力 1 件、エラー 0 件、警告 0 件
 成功  probe.py（終了コード 0）
-    成功  hooks の動作 codex pre-tool-inactive  実行していないときもスキルを編集できる
+    成功  hooks の動作 codex feedback-pre-tool  利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）
 
-    probe 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件
+    probe 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件
 成功  eval_check.py（終了コード 0）
     [eval] write-commit-message: 事例 7 件（判定が期待どおり・同意あり 7 件）、エラー 0 件
 成功  catalog.py（終了コード 0）
 
-    - `<workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/catalog.html` に一覧を書いた。ブラウザで開いて見る
-    - スキル 1 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/catalog/write-commit-message.html`）
+    - `<workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/catalog.html` に一覧を書いた。ブラウザで開いて見る
+    - スキル 1 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/catalog/write-commit-message.html`）
 成功  カタログの図（SVG 22 個）
 成功  Eval 作成の質問をカタログで答え、回答を記録する
+成功  eval_check.py（終了コード 0）
+    [eval] write-commit-message: 事例 7 件（判定が期待どおり・同意あり 7 件）、エラー 0 件
+成功  render_skill.py（終了コード 0）
+    render: 0 件を書き換えました
+成功  probe.py（終了コード 0）
+    成功  CTL-03-builtin-ask  聞くべき入力が無いと start が止まる（終了コード 3）
+
+    probe 19 件中 失敗 0 件／hooks の動作 0 件中 失敗 0 件
+成功  probe.py（Codex だけ・指摘を集めない）（終了コード 0）
+    成功  hooks の動作 codex pre-tool  実行記録（state.json）の編集の前に拒否する（結果 deny。CTL-04）
+
+    probe 19 件中 失敗 0 件／hooks の動作 9 件中 失敗 0 件
+成功  hooks の方針を聞いて決め、決めたとおりにだけ hooks を登録する
+成功  setup.py（画面と引数で hooks の登録とユーザーの設定を選んで行う、戻る・中止、書く前の差分、.bak）
 成功  設定（settings/）の YAML、順と出どころ、設定の検査、モデルと推論エフォートの受け渡し
 成功  convergence.py prepare（全課題）（終了コード 0）
       effort.subagent = medium（ユーザーの設定 settings/user-setting.yaml）
-    専用のエージェント型を置きました: <workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/agents/skill-foundation-tester.md。Claude Code は、セッションを始めた後に作った agents/ を読まないので、再起動してから prompts のエージェントを起動してください
-    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/conv --round 1
-成功  手を付けていないエージェントを失格にしない
+    専用のエージェント型を置きました: <workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/agents/skill-foundation-tester.md。Claude Code は、セッションを始めた後に作った agents/ を読まないので、再起動してから prompts のエージェントを起動してください
+    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/conv --round 1
+成功  スキル自身を変えても失格にせず、fence.py の登録を外したら失格にする
 成功  収束テストを省くと書いたとき、prepare が止まる（終了コード 2）
 成功  作業ディレクトリの外への操作の停止（fence.py、9 例）
 成功  convergence.py trace（Codex の記録）（終了コード 0）
     - T3-edge/codex-1: 操作 0 件（記録が見つからない）、実行の記録 0 件
     - T3-edge/subagent-1: 操作 0 件（記録が見つからない）、実行の記録 0 件
-    動き: <workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/trace/traces.json
+    動き: <workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/trace/traces.json
 成功  Codex と Claude Code の記録から操作の列を作る（subagent 3 件、codex 2 件）
-成功  diff が各エージェントの出力を Eval で採点する
-成功  置き場の検査（リンク、複製、本体の場所、置き場自体のリンク、共有正本と hooks、プラグイン、カタログ）
+成功  diff が各エージェントの出力を Eval で採点し、指標の内訳と満たさない理由を書く
+成功  置き場の検査（リンク、複製、本体の場所、置き場自体のリンク、プラグイン、カタログ）
 成功  convergence.py analysis-prepare（終了コード 0）
     分析 2 件（エージェント1人の記録ごとに1件。runner subagent、model gpt-6.1-sol、effort high）
-    専用のエージェント型: <workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/agents/skill-foundation-tester.md（変更なし）
-    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/analysis --round 1 --kind analysis の後に analysis-collect --workdir <workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/analysis --round 1
+    専用のエージェント型: <workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/agents/skill-foundation-tester.md（変更なし）
+    次: python3 convergence.py prompts --workdir <workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/analysis --round 1 --kind analysis の後に analysis-collect --workdir <workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/analysis --round 1
 成功  catalog.py（AI の分析つき）（終了コード 0）
 
-    - `<workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/analysis.html` に一覧を書いた。ブラウザで開いて見る
-    - スキル 2 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/analysis/write-commit-message.html`）、`write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-amsbpet0/analysis/agents-skills-write-commit-message.html`）
+    - `<workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/analysis.html` に一覧を書いた。ブラウザで開いて見る
+    - スキル 2 個のワークフロー図と独立検証の記録は、スキルごとのページに書いた: `write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/analysis/write-commit-message.html`）、`write-commit-message`（`<workdir>/unit-test-temp/skill-foundation-selftest-2oht4dxo/analysis/agents-skills-write-commit-message.html`）
 成功  エージェントの動きの AI の分析（準備・取り込み・カタログ・締め込みの記録・検査・Codex）
-成功  feedback_selftest.py（合成イベントによる収集・承認・Eval 接続）（終了コード 0）
-    Ran 16 tests in 6.424s
+成功  承認済みの指摘から、正本を変えずに Eval と収束テストの候補を作り、答えを漏らさずに再現する
+成功  feedback_selftest.py（利用中の指摘の収集）（終了コード 0）
+    成功  SKILL.md とルールの表の収集の指示を、行ごとに指摘する
 
-    OK
+    収集の自己テスト: 失敗 0 件
 
-自己テスト: 17 段階中 失敗 0 件
+自己テスト: 20 段階中 失敗 0 件
 
 stderr:
 
@@ -632,6 +699,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "make"（ユーザーの設定 settings/user-setting.yaml）
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-sample/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -662,6 +730,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "make"（ユーザーの設定 settings/user-setting.yaml）
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-sample/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -684,7 +753,7 @@ command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude po
 cwd: <workdir>/project-claude-code
 exit: 0
 stdout:
-{"decision": "block", "reason": "skill-foundation の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください:\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）"}
+{"decision": "block", "reason": "skill-foundation の出力の契約に合っていません。ルールIDを SKILL.md の「4. ルール」で引いて直してください（検査や契約を変えて通さない）:\nOUT-02 .claude/skills/write-sample/SKILL.md:1 先頭に --- で囲んだ front matter が必要です\nOUT-02 .claude/skills/write-sample/SKILL.md /^\\d+\\. .*run\\.py finish/ が 1 回以上 必要です（今 0 回）（「2. 手順」に `run.py finish` を実行する番号付きの行を残す。編集の直後に検査する）"}
 
 stderr:
 
@@ -751,7 +820,6 @@ command: "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.py\" --platform claude pr
 cwd: <workdir>/project-claude-code
 exit: 0
 stdout:
-{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "指摘収集hooksが有効です。再現に必要な入力ファイルを使うときは、変更する前に `python3 '<workdir>/editable path with spaces/claude-code/runtime/skill-foundation/scripts/feedback.py' context --file <入力ファイル>` で内容を保存してください。成果物への指摘の分類と修正前後の確認画面は、後続のhooksの案内に従ってください。収集は追加機能です。収集処理の失敗や承認待ちを理由に、スキル本来の成果物の作成を止めないでください。詳しい操作方法は <workdir>/editable path with spaces/claude-code/runtime/skill-foundation/references/feedback.md にあります。"}}
 
 stderr:
 
@@ -763,7 +831,7 @@ exit: 0
 stdout:
 成功  init_skill.py（終了コード 0）
 
-    12 件作成、3 件は既存のため変更なし、0 件は差分あり
+    13 件作成、3 件は既存のため変更なし、0 件は差分あり
     次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
 成功  SKILL.md の「2. 手順」に procedure.md を入れる
 
@@ -840,6 +908,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "skip"
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-commit-message/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -854,7 +923,7 @@ exit: 0
 stdout:
 成功  init_skill.py（終了コード 0）
 
-    12 件作成、3 件は既存のため変更なし、0 件は差分あり
+    13 件作成、3 件は既存のため変更なし、0 件は差分あり
     次: フェーズ2（調査）。dev/research.md に出典付きで書く。各フェーズで TODO(skill-foundation) を埋め、最後に skill_lint.py --final で残りが無いことを確かめる
 成功  SKILL.md の「2. 手順」に procedure.md を入れる
 成功  eval_check.py（終了コード 0）
@@ -862,9 +931,9 @@ stdout:
 成功  render_skill.py（終了コード 0）
     render: 0 件を書き換えました
 成功  probe.py（終了コード 0）
-    成功  hooks の動作 codex pre-tool-inactive  実行していないときもスキルを編集できる
+    成功  hooks の動作 codex feedback-pre-tool  利用中の指摘の記録（.skill-feedback/）の編集の前に拒否する（結果 deny）
 
-    probe 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件
+    probe 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件
 
 stderr:
 
@@ -914,6 +983,7 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
   本体の置き場（base）= ".claude/skills"（既定値）
   収束テストの実行（measure）= "skip"
   Eval の作成（eval）= "skip"
+  hooks の方針（hooks）= "all"（スキルの設定 settings/skill-setting.yaml）
 作る出力:
   skill-entry 作ったスキルの SKILL.md: .claude/skills/write-commit-message/SKILL.md（1〜1 件）
 次: SKILL.md の手順に従って出力を書く。書いたら check、最後に finish を実行する
@@ -921,7 +991,38 @@ skill-foundation を始めました。実行記録: .skill-runs/skill-foundation
 stderr:
 
 
-claude-code: edited runtime finish
+claude-code: finish without updating output after restart is rejected
+command: ["python3", "<workdir>/editable path with spaces/claude-code/runtime/skill-foundation/scripts/run.py", "finish"]
+cwd: <workdir>/editable-finish-claude-code
+exit: 1
+stdout:
+OUT-01 .claude/skills/write-commit-message/SKILL.md 出力 skill-entry（作ったスキルの SKILL.md）を 1 件以上作ってください（今 0 件）
+finish: 指摘 1 件。直してから、もう一度 finish を実行してください
+
+stderr:
+
+
+claude-code: update generated output after restart
+command: ["python3", "-c", "from pathlib import Path; import sys; p = Path(sys.argv[1]); p.write_text(p.read_text() + '\\n<!-- 検証用の出力を restart 後に更新した -->\\n')", "<workdir>/editable-finish-claude-code/.claude/skills/write-commit-message/SKILL.md"]
+cwd: <workdir>/editable-finish-claude-code
+exit: 0
+stdout:
+
+stderr:
+
+
+claude-code: check updated output after restart
+command: ["python3", "<workdir>/editable path with spaces/claude-code/runtime/skill-foundation/scripts/run.py", "check"]
+cwd: <workdir>/editable-finish-claude-code
+exit: 0
+stdout:
+出力 skill-entry: .claude/skills/write-commit-message/SKILL.md
+check: 指摘 0 件
+
+stderr:
+
+
+claude-code: edited runtime finish after updating output
 command: ["python3", "<workdir>/editable path with spaces/claude-code/runtime/skill-foundation/scripts/run.py", "finish"]
 cwd: <workdir>/editable-finish-claude-code
 exit: 0
@@ -939,6 +1040,7 @@ skill-foundation: 完了（検証に合格）
 - 本体の置き場: `.claude/skills/write-commit-message`
 - Codex の置き場: `.agents/skills/write-commit-message`（本体へのリンク）
 - 対象の製品: Claude Code、Codex
+- hooks の方針: 出力の検査 使う、登録する製品 Claude Code・Codex、利用中の指摘 集める、登録先 プロジェクトの設定（ユーザーが答えた（talk-1））
 - 言語: 日本語（ja）
 - 起動: 依頼の内容から自動で選ばれる。明示は `/write-commit-message`（Claude Code）、`$write-commit-message`（Codex）
 - 入力: `ticket`（チケットID。start の前に聞く）
@@ -969,7 +1071,7 @@ skill-foundation: 完了（検証に合格）
 | 検証 | 結果 |
 |---|---|
 | `skill_lint.py --final` | エラー 0 件、警告 1 件 |
-| `probe.py` | 違反例 21 件中 失敗 0 件／hooks の動作 18 件中 失敗 0 件（Claude Code、Codex） |
+| `probe.py` | 違反例 19 件中 失敗 0 件／hooks の動作 22 件中 失敗 0 件（Claude Code、Codex） |
 
 ## 収束テスト
 
@@ -982,7 +1084,7 @@ skill-foundation: 完了（検証に合格）
 
 ## プロジェクトに置いたもの
 
-- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 31 個）
+- `.claude/skills/write-commit-message/`: スキルの本体（ファイル 33 個）
 - `.agents/skills/write-commit-message`: 本体へのリンク
 - `.claude/settings.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
 - `.codex/hooks.json`: `write-commit-message` の hooks を 4 つ登録（PostToolUse、PreToolUse、Stop、UserPromptSubmit）
@@ -1000,6 +1102,7 @@ skill-foundation: 完了（検証に合格）
 
 - 言語（language）: "ja"（ユーザーの設定 settings/user-setting.yaml）
 - 本体の置き場（base）: ".claude/skills"（既定値）
+- hooks の方針（hooks）: "all"（スキルの設定 settings/skill-setting.yaml）
 
 ## 入力で読めなかった値
 
@@ -1008,7 +1111,7 @@ skill-foundation: 完了（検証に合格）
 ## 検証
 
 - `run.py finish`: 指摘 0 件
-- `run.py start --restart`: 1 回（実行履歴は最初の start から引き継いだ）
+- `run.py start --restart`: 1 回（出力の基準と履歴は最初の start から引き継いだ）
 
 ## 補足
 
@@ -1033,7 +1136,7 @@ test_subagent_prepare_uses_packaged_agent (test_plugin.PluginTest.test_subagent_
 test_tester_is_fenced_but_other_agents_are_not (test_plugin.PluginTest.test_tester_is_fenced_but_other_agents_are_not) ... ok
 
 ----------------------------------------------------------------------
-Ran 7 tests in 43.916s
+Ran 7 tests in 154.486s
 
 OK
 
@@ -1051,7 +1154,7 @@ stderr:
 
 
 Reproduction input adjustment:
-All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. Canonical sources and user settings remain byte-identical.
+All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. After an output is created and the run restarted, finish is first verified to reject the unchanged output with OUT-01; a validation note is then added to the generated SKILL.md and check/finish are verified to succeed. Canonical sources and user settings remain byte-identical.
 
 Not verified:
 Automatic hooks from a real product session

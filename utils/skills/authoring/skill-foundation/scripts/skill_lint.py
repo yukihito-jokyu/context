@@ -2,7 +2,8 @@
 """skill-foundation で作ったスキルを検査する。誰が作っても同じ形になっていることを、機械で確かめる。
 
 検査はフェーズに合わせて増える。--phase を省くと、spec の status が ready なら --final、building なら 5。
-  1: ディレクトリの形、ファイル名、spec の受付の項目、ランタイムが skill-foundation の版と同一
+  0: hooks の方針（dev/hooks-plan.json）が決まっている（答えを待っている質問が無い）。受付の前に実行するので、dev/spec.json が無くても動く
+  1: ディレクトリの形、ファイル名、spec の受付の項目、ランタイムが skill-foundation の版と同一、hooks の方針と spec の control が合う
   3: 1 に加えてルール（ID・番号・軸・必須項目・あいまいな語・場合分け）、軸の網羅、標準のルール、入力
   4: 3 に加えて出力の契約、検査とルールの対応、見本（assets/examples/）、スクリプトの --help、生成物が最新、
      Eval の振る舞いの判定するファイルの場所（target）
@@ -13,7 +14,7 @@
   --gate : status が building ならフェーズ1だけ、ready なら --final（hooks から呼ぶ）
 
 使い方:
-  python3 skill_lint.py <スキルのディレクトリ> [--phase 1|3|4|5] [--final] [--gate] [--project <ルート>]
+  python3 skill_lint.py <スキルのディレクトリ> [--phase 0|1|3|4|5] [--final] [--gate] [--project <ルート>]
   --project: --final のとき、そのプロジェクトに置き場所と hooks が揃っているかも調べる
 """
 
@@ -31,6 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _lib  # noqa: E402
 import _skillrt as rt  # noqa: E402
+import hooks_plan  # noqa: E402
 import init_skill  # noqa: E402
 import render_skill  # noqa: E402
 
@@ -80,7 +82,7 @@ def check_structure(skill_dir: Path, spec: dict, r: Report) -> None:
     for entry in sorted(p.name for p in skill_dir.iterdir()):
         if entry not in TOP_LEVEL:
             r.error(entry, f"スキルの直下に置けるのは {sorted(TOP_LEVEL - {'.DS_Store'})} だけです", rule="OUT-02")
-    required = ["SKILL.md", "assets/contract.json", "assets/feedback.schema.json", "references/feedback.md", "references/decisions.md", "dev/research.md", "dev/evals.json",
+    required = ["SKILL.md", "assets/contract.json", "references/decisions.md", "dev/research.md", "dev/evals.json",
                 "dev/probes.json", "dev/convergence-report.md", *[f"scripts/{s}" for s in _lib.RUNTIME_FILES]]
     for rel in required:
         if not (skill_dir / rel).is_file():
@@ -96,6 +98,13 @@ def check_structure(skill_dir: Path, spec: dict, r: Report) -> None:
         if mine.is_file() and theirs.is_file() and mine.read_bytes() != theirs.read_bytes() and mine.resolve() != theirs.resolve():
             r.error(f"scripts/{script}", "ランタイムが skill-foundation の版と違います。スキルごとに書き換えない"
                                          "（init_skill.py --update-runtime で戻す）", rule="OUT-02")
+    for rel in _lib.RUNTIME_ASSETS:
+        mine, theirs = skill_dir / rel, _lib.runtime_asset_source(rel, _lib.labels(spec))
+        if not mine.is_file():
+            r.error(rel, "ありません。共通ランタイムの資料なので init_skill.py --update-runtime で写す", rule="OUT-02")
+        elif mine.read_bytes() != theirs.read_bytes() and mine.resolve() != theirs.resolve():
+            r.error(rel, "共通ランタイムの資料が skill-foundation の版と違います。スキルごとに書き換えない"
+                         "（init_skill.py --update-runtime で戻す）", rule="OUT-02")
     for rel in _lib.iter_files(skill_dir):
         parts = rel.split("/")
         if parts[0] == "scripts" and len(parts) == 2 and not re.fullmatch(r"[a-z0-9_]+\.(py|sh)|_skillrt\.py", parts[1]):
@@ -104,6 +113,10 @@ def check_structure(skill_dir: Path, spec: dict, r: Report) -> None:
             r.error(rel, "references/ のファイル名は kebab-case の .md にしてください", rule="OUT-02")
         if parts[0] == "references" and len(parts) > 2:
             r.error(rel, "references/ は1階層にしてください（SKILL.md から直接リンクする）", rule="OUT-02")
+    plan, _ = hooks_plan.load(skill_dir)
+    for gap in hooks_plan.spec_gaps(plan, spec):
+        r.error("dev/spec.json control", f"{gap}。方針は init_skill.py が写すので、control を手で変えない。方針を変えるなら"
+                                         " hooks_plan.py --ask で聞き直してから init_skill.py を実行する", rule="STEP-08")
 
 
 # ---------------------------------------------------------------- フェーズ3
@@ -366,15 +379,16 @@ def check_inputs(spec: dict, r: Report) -> None:
 
 
 def check_settings(skill_dir: Path, spec: dict, r: Report) -> None:
-    """settings/ の設定（OUT-02）。置けるのはユーザーの設定とスキルの設定の2つで、inputs は入力の key と type に合わせる。"""
+    """settings/ の設定（OUT-02）。置けるのはユーザーの設定とスキルの設定の2つ（と setup.py が残す写し）で、
+    inputs は入力の key と type に、ほかの欄は assets/settings.schema.json の定義に合わせる。"""
     folder = skill_dir / "settings"
     if not folder.is_dir():
         return
-    allowed = {Path(rel).name for _, rel in rt.SETTINGS_FILES}
+    allowed = {Path(rel).name for _, rel in rt.SETTINGS_FILES} | {Path(rt.SETTINGS_BACKUP_REL).name}
     for entry in sorted(p.name for p in folder.iterdir()):
         if entry not in allowed | {".DS_Store"}:
             r.error(f"settings/{entry}", f"settings/ に置けるのは {sorted(allowed)} だけです", rule="OUT-02")
-    specs = {i.get("key"): i for i in spec.get("inputs", [])}
+    sections = rt.settings_schema(skill_dir)
     for _, rel in rt.SETTINGS_FILES:
         if not (skill_dir / rel).is_file():
             continue
@@ -383,20 +397,7 @@ def check_settings(skill_dir: Path, spec: dict, r: Report) -> None:
         except ValueError as exc:
             r.error(rel, f"YAML として読めません: {exc}", rule="OUT-02")
             continue
-        if not isinstance(data, dict) or not isinstance(data.get("inputs", {}), dict):
-            r.error(rel, "`inputs:` の下に `<入力の key>: <値か null>` を並べた形にしてください", rule="OUT-02")
-            continue
-        for key in sorted(set(data) - {"inputs", "convergence"}):
-            r.error(rel, f"`{key}` は設定の項目にありません（inputs と convergence だけ）", rule="OUT-02")
-        for key, value in data.get("inputs", {}).items():
-            if key not in specs:
-                r.error(rel, f"inputs の `{key}` が dev/spec.json の inputs にありません", rule="OUT-02")
-            elif value is not None:
-                try:
-                    rt.convert(value, specs[key])
-                except ValueError as exc:
-                    r.error(rel, f"inputs の `{key}` が入力の type に合いません: {exc}", rule="OUT-02")
-        for problem in _lib.convergence_problems(data["convergence"]) if "convergence" in data else []:
+        for problem in rt.settings_problems(data, spec.get("inputs", []), sections):
             r.error(rel, problem, rule="OUT-02")
 
 
@@ -421,13 +422,22 @@ def check_contract(skill_dir: Path, spec: dict, r: Report) -> None:
         r.error("dev/spec.json outputs", "出力が1つもありません。返答だけのスキルでも、返答の本文を `{run}/out/` のファイルに書かせて検査する")
     if "allow_changes" in spec.get("control", {}):
         r.error("dev/spec.json control.allow_changes", "契約の外の変更は検査しなくなったので、allow_changes を消してください")
+    if "protected" in spec.get("control", {}):
+        r.error("dev/spec.json control.protected", "スキル自身のファイルは守らなくなったので、protected を消してください"
+                                                   "（init_skill.py が消す）")
+    for key in ("hooks", "feedback"):
+        if key in spec.get("control", {}) and not isinstance(spec["control"][key], bool):
+            r.error(f"dev/spec.json control.{key}", "true か false にしてください")
+    hooked = spec.get("control", {}).get("hook_targets", spec.get("targets", []))
+    if not isinstance(hooked, list) or any(t not in spec.get("targets", []) for t in hooked):
+        r.error("dev/spec.json control.hook_targets", "hooks を登録する製品は、targets の製品の一覧にしてください")
+    if spec.get("control", {}).get("hook_via", "project") not in hooks_plan.VIAS:
+        r.error("dev/spec.json control.hook_via", f"{' か '.join(hooks_plan.VIAS)} にしてください")
     ids = set()
     obj = spec.get("name", "").split("-", 1)[1] if "-" in spec.get("name", "") else ""
     for out in outputs:
         oid = out.get("id", "")
         where = f"output {oid or '(id なし)'}"
-        if out.get("binary") and any(c.get("type") != "command" for c in out.get("checks", []) + out.get("format", [])):
-            r.error(where, "binary の出力の checks・format は command にしてください")
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", oid):
             r.error(where, "id は kebab-case にしてください")
         if len(outputs) == 1 and obj and not _lib.is_foundation(skill_dir):
@@ -454,6 +464,12 @@ def check_contract(skill_dir: Path, spec: dict, r: Report) -> None:
                 re.compile(out["name_pattern"])
             except re.error as exc:
                 r.error(where, f"name_pattern が正規表現として不正です: {exc}")
+        if "binary" in out and not isinstance(out["binary"], bool):
+            r.error(where, "binary は true か false にしてください")
+        if out.get("binary"):
+            for kind in [c.get("type") for c in out.get("checks", [])] + [f.get("type") for f in out.get("format", [])]:
+                if kind != "command":
+                    r.error(where, f"binary の出力は文字列として読まないので、checks と format は type が command のものだけにしてください（今: {kind}）")
         count = out.get("count", {})
         if any(not isinstance(v, int) for v in count.values()):
             r.error(where, "count の min・max は整数にしてください")
@@ -695,6 +711,19 @@ def check_scripts(skill_dir: Path, decisions: dict, r: Report) -> None:
 
 # ---------------------------------------------------------------- フェーズ5
 
+def check_collect(skill_dir: Path, r: Report) -> None:
+    """利用中の指摘の収集は hooks の追加機能なので、SKILL.md とルールの表（decisions.md）に1行も書かない（references/feedback.md の2章）。"""
+    for rel in ("SKILL.md", "references/decisions.md"):
+        path = skill_dir / rel
+        if not path.is_file():
+            continue
+        for no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            hit = [m for m in _lib.COLLECT_MARKS if m in line]
+            if hit:
+                r.error(f"{rel} {no} 行目", f"利用中の指摘の収集（{'、'.join(hit)}）を書いています。収集は hooks の追加機能で、"
+                                            "AI への案内は hooks の additionalContext だけから伝える。スキルの手順とルールには書かない", rule="OUT-02")
+
+
 def check_entry(skill_dir: Path, spec: dict, r: Report) -> None:
     path = skill_dir / "SKILL.md"
     text = path.read_text(encoding="utf-8")
@@ -772,9 +801,8 @@ def check_entry(skill_dir: Path, spec: dict, r: Report) -> None:
         elif target.startswith("references/") and target.count("/") > 1:
             r.error("SKILL.md", f"リンク先 {target} は references/ の直下に置いてください", rule="OUT-02")
     for ref in sorted((skill_dir / "references").glob("*.md")):
-        if ref.name == "feedback.md":
-            continue  # Hook-only guidance must not become a core skill prompt dependency.
-        if f"references/{ref.name}" not in text:
+        # 収集の資料は hooks の案内から読むので、SKILL.md からは参照させない（check_collect）
+        if f"references/{ref.name}" not in text and f"references/{ref.name}" not in _lib.RUNTIME_ASSETS:
             r.warn(f"references/{ref.name}", "SKILL.md からリンクされていません（読まれない）")
 
 
@@ -782,22 +810,15 @@ def check_entry(skill_dir: Path, spec: dict, r: Report) -> None:
 
 def place_problem(skill_dir: Path, spec: dict, project: Path) -> str:
     """本体が OUT-01 の表の置き場（codex だけなら .agents/skills、ほかは .claude/skills）に無ければ、その指摘。
-    プロジェクト内の utils/skills/ にある共有正本は、対象製品の置き場がすべて本体へのリンクならよい。
     プラグインで配る本体（プロジェクトの中の <プラグイン>/skills/<name>）は、置き場に無くてよい。置き場にあるなら本体へのリンクにする。"""
     targets = spec.get("targets", [])
     base = ".agents/skills" if set(targets) == {"codex"} else ".claude/skills"
     name = spec.get("name", skill_dir.name)
     home = project / base / name
-    body, shared = skill_dir.resolve(), project.resolve() / "utils/skills"
-    plugin = _lib.plugin_root(skill_dir)
-    places = {"claude": ".claude/skills", "codex": ".agents/skills"}
-    if plugin is None and body != shared and body.is_relative_to(shared) and targets and set(targets) <= places.keys():
-        lacking = [f"{places[target]}/{name}" for target in targets if (project / places[target] / name).resolve() != body]
-        return (f"共有正本 {body.relative_to(project.resolve()).as_posix()} を使うには、{'、'.join(lacking)} を本体へのリンクにしてください。"
-                "本体の install.py --project を実行し直してください") if lacking else ""
     if skill_dir.resolve() == (project / base).resolve() / home.name:  # 置き場自体がリンクでもよい（.claude/skills → .agents/skills）
         return ""
     where = skill_dir.relative_to(project).as_posix() if skill_dir.is_relative_to(project) else skill_dir.as_posix()
+    plugin = _lib.plugin_root(skill_dir)
     if plugin is not None and plugin.is_relative_to(project.resolve()):
         others = {(project / p / name).resolve(): f"{p}/{name}" for p in (".agents/skills", ".claude/skills")
                   if ((project / p / name).exists() or (project / p / name).is_symlink()) and (project / p / name).resolve() != skill_dir.resolve()}
@@ -887,7 +908,7 @@ def check_final(skill_dir: Path, spec: dict, r: Report, project: Path | None) ->
                 r.warn(f"dev/results/probe-results.json {x['id']}", f"別のルール {', '.join(x['others'])} の指摘も出ています。"
                                                                    "1つの違反例は1つのルールだけを破るようにしてください（control-ladder.md の7章）")
         platforms = {w.get("platform") for w in results.get("wiring", []) if w.get("passed")}
-        for target in spec.get("targets", []):
+        for target in spec.get("control", {}).get("hook_targets", spec.get("targets", [])):
             if spec.get("control", {}).get("hooks", True) and target not in platforms:
                 r.error("dev/results/probe-results.json", f"{target} の hooks の動作の確認が成功していません")
         if any(not w.get("passed") for w in results.get("wiring", [])):
@@ -973,8 +994,13 @@ def check_final(skill_dir: Path, spec: dict, r: Report, project: Path | None) ->
             r.error("install", problem, rule="OUT-01")
         name, plugin = spec.get("name", skill_dir.name), _lib.plugin_root(skill_dir)
         hooks_on = spec.get("control", {}).get("hooks", True)
+        via = spec.get("control", {}).get("hook_via")
+        if hooks_on and via is not None and (via == "plugin") != (plugin is not None):
+            r.error("install", "hooks の方針では、hooks を" + ("プラグインで配ると決めたのに、本体がプラグインの skills/ の下にありません" if via == "plugin"
+                               else "プロジェクトの設定に登録すると決めたのに、本体がプラグインの中にあります")
+                    + "（references/platforms.md の2章）", rule="STEP-08")
         if plugin is not None and plugin.is_relative_to(project.resolve()):  # 置き場は place_problem で確かめ、hooks はプラグインで配る
-            for platform in spec.get("targets", []) if hooks_on else []:
+            for platform in spec.get("control", {}).get("hook_targets", spec.get("targets", [])) if hooks_on else []:
                 lacking = [e for e in _lib.HOOK_EVENTS if e not in _lib.plugin_hook_events(plugin, platform, name)]
                 if lacking:
                     r.error("install", f"プラグイン {plugin.name} が {platform} に配る hooks に、{name} の {'、'.join(lacking)} がありません"
@@ -990,7 +1016,7 @@ def check_final(skill_dir: Path, spec: dict, r: Report, project: Path | None) ->
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dir", help="スキルのディレクトリ")
-    parser.add_argument("--phase", type=int, choices=[1, 3, 4, 5])
+    parser.add_argument("--phase", type=int, choices=[0, 1, 3, 4, 5])
     parser.add_argument("--final", action="store_true")
     parser.add_argument("--gate", action="store_true", help="status が building ならフェーズ1、ready なら --final")
     parser.add_argument("--project", help="--final のとき、置き場所と hooks も調べるプロジェクトのルート")
@@ -998,6 +1024,12 @@ def main() -> int:
     args = parser.parse_args()
 
     skill_dir = Path(args.dir).resolve()
+    if args.phase == 0:  # 受付の前なので、spec はまだ無い
+        errors = hooks_plan.problems(skill_dir)
+        for error in errors:
+            print(f"{args.rule or 'ERROR'} {error}")
+        print(f"[phase 0] {skill_dir.name}: hooks の方針 {'未決' if errors else '決定'}、エラー {len(errors)} 件")
+        return 1 if errors else 0
     if not (skill_dir / _lib.SPEC_REL).is_file():
         _lib.fail(f"{skill_dir / _lib.SPEC_REL} がありません")
     spec = _lib.load_spec(skill_dir)
@@ -1020,6 +1052,7 @@ def main() -> int:
         check_probes(skill_dir, spec, r)
     if phase >= 5 and (skill_dir / "SKILL.md").is_file():
         check_entry(skill_dir, spec, r)
+        check_collect(skill_dir, r)
     if final:
         check_final(skill_dir, spec, r, Path(args.project).resolve() if args.project else None)
     for warning in r.warnings:

@@ -19,18 +19,21 @@
 | 項目 | 書くこと |
 |---|---|
 | `id` | 課題の ID |
-| `kind` | `typical`（最もよくある依頼）、`default`（既定値で補う入力を書かない依頼）、`edge`（場合分けの境目に当たる依頼）、`holdout`（上と違う種類の依頼。最後のラウンドまで使わない） |
+| `kind` | `typical`（最もよくある依頼）、`default`（既定値で補う入力を書かない依頼）、`edge`（場合分けの境目に当たる依頼）、`holdout`（上と違う種類の依頼。最後のラウンドまで使わない）、`feedback`（利用中に指摘を受けた依頼。`feedback_eval.py` が作る。[eval.md](eval.md) の9章） |
 | `prompt` | ユーザーが実際に書く依頼文。聞くべき入力は依頼文に含める（独立エージェントは質問に答えてもらえない） |
 | `aim` | この題材で確かめること（1文）。カタログの題材の表に出る。独立エージェントには渡さない |
 | `fixture`、`setup` | 一時プロジェクトの元にするディレクトリと、準備のコマンド。fixture を写し、スキルを置き、git の初回コミットを作ってから `setup` を実行する。`setup` で `git commit` はしない（[control-ladder.md](control-ladder.md) の7章） |
 | `invoke` | `explicit` なら、依頼文の前に Claude Code は `/<name>`、Codex は `$<name>` を付ける。省けば付けない（自動の起動も測る） |
 | `expect_status` | 全員がこの status になることを期待する。既定は `done`。対象外の依頼なら `aborted` か `unused`（start しない） |
+| `input` | 入力の値（任意）。`prepare` が、置いたスキルの `settings/user-setting.yaml` の `inputs` に書き、依頼に無い値を start がそこから補う。利用中の指摘を受けたときの入力を再現するために使う |
+| `feedback_inputs` | 入力ファイル（任意）。`from` に `dev/feedback-inputs/` の下のファイル、`to` に作業ディレクトリでの置き先を書く。`prepare` が git の初回コミットの前に置く。置き先が作業ディレクトリの外か、`.git`・`.claude`・`.codex`・`.agents`・`.skill-runs`・`.skill-feedback` の下なら、`prepare` は何も作らずに止まる |
 
 課題は次の規則で作る。`skill_lint.py --final` が確かめる。
 
 - holdout 以外を3つ以上、holdout を1つ以上作る
 - `fixture` は `dev/fixtures/basic` の1つだけにし、課題ごとの違い（ファイルの追加、ステージする変更）は `setup` のコマンドで作る。`dev/fixtures/` の下に `basic` のほかのディレクトリやスクリプトを置かない。fixture の数と名前が作る AI ごとに分かれないようにするためである
 - `prompt` に、スキルの名前、ルールID（`OUT-02` の形）、`scripts/`、`run.py`、`SKILL.md` を書かない。ユーザーはこれらを知らずに依頼する。書くと、スキルが自分で起動するか、手順を自分で読み取れるかを測れない
+- 独立エージェントに渡すのは `prompt` だけで、スキルの `dev/`（Eval、指摘、修正版）は一時プロジェクトに置かない。`kind` が `feedback` の課題も同じで、指摘の文・修正版・評価の基準を、プロンプトにも作業ディレクトリにも置かない。答えを見せると、出力が揃っても、スキルで直ったのかが分からないからである。`feedback` の課題だけに合わせて直さないよう、ほかの種類の課題も一緒に測る
 - `invoke: explicit` は、`triggers.implicit` が `false` のスキルだけに使う。`implicit` が `false` のスキルでは、`expect_status` が `done` の課題に `invoke: explicit` を付ける（付けないと Claude Code ではスキルが起動しない）
 
 ## 2. 実行するか（入力 `measure`）
@@ -126,7 +129,7 @@ runner `subagent` には、`claude` や `codex` と比べて次の限界があ�
 - 止める操作: 作業ディレクトリの外のパス（道具のパスと、Bash のコマンドに出る `/…`・`~`・`$HOME`・外へ出る `..`）と、ほかのエージェントの作業ディレクトリ。runner `subagent` では、`cd <作業ディレクトリ> && ` で始まらない Bash、path の無い Glob・Grep、Skill の道具も止める（どれも呼び出し元のプロジェクトで動く）
 - 通す操作: システムのパス（`/usr`・`/bin`・`/dev` など）と、Claude Code が長い出力を逃がした tool-results
 - 止めた理由はエージェントに返り、エージェントは作業ディレクトリの中でやり直せる。止めた操作は `.skill-runs/_fence/log.jsonl` に残り、`diff`・`trace` が `traces.json` の操作に `fenced` の印を付ける。カタログは、止めた操作を外に触れた操作に数えず、カードに別に載せる
-- `.skill-runs/_fence/` は、`diff` の変わったファイルに数えない。runner `claude`・`codex` で fence.py の登録が外されたら、作業ディレクトリの制限が働かないため、その課題は基準を満たさない
+- `.skill-runs/_fence/` は、`diff` の変わったファイルに数えない。runner `claude`・`codex` で fence.py の登録が外されたら、そのエージェントを失格にし、その課題は基準を満たさない
 - 判定に失敗したときも止める（Codex は hook が失敗すると操作を進めるため）
 - fence.py にも抜けがある。スクリプトの中で開くファイルはコマンドの文字列に出ないので見えない。書き込みは `TMPDIR` と Codex のサンドボックスで抑えるが、読み取りは抑えられない。抜けた操作は、カタログの「作業ディレクトリの外に触れた操作」のカードで確かめる
 
@@ -179,11 +182,43 @@ python3 <skill>/scripts/convergence.py analysis-collect --workdir <作業場所>
 
 - status が全員 `expect_status` と同じ
 - check が全員通過
-- 独立エージェントの作業ディレクトリ制限（fence.py）の登録を外していない。スキル自身のファイルや出力検査用 hooks の設定を変更したことだけで失格にはしない。
+- 作業ディレクトリの外への操作を止める仕組み（fence.py）の登録を外したエージェントがいない。いれば失格にし、`report.md` の「作業ディレクトリの外への操作を止める仕組み（fence.py）の登録を外したエージェント（失格）」に載せる。外への操作を止めないまま得た結果は、ほかのエージェントと同じ条件で測れていないからである。スキル自身のファイルや hooks の登録を変えただけでは失格にしない（スキル自身は使いながら直せるものにした。CTL-02 の廃止）
 - files と structure が `thresholds.files`・`thresholds.structure`（スキルの設定は 1.0）以上、names が `thresholds.names`（スキルの設定は 0.8）以上。基準は3章の順で決まり、`prepare` が `plan.json` に残した値で比べる。names は、出力に識別子が無い課題（新しい名前が誰にも無い）では 1.0 になる
 - Eval を作ったなら、Eval に落ちた出力が無く、model の判定待ちが無い（`report.md` の「Eval」の列。eval.md の7章）。全員が同じ誤りをしても、ばらつきの指標だけでは基準を満たしてしまうからである
 
 レビューの見本は、検出率が 1.0（全員が見つける）なら基準を満たす。満たさない見本は、課題と同じく5章で分類して締め込む（多くは V2：チェックリストの書き方があいまい、か V3：機械で守らせる段に上げられる）。
+
+### 指標の計算の例
+
+エージェントが2人（A と B）で、次の3つのファイルを作ったとする。
+
+| ファイル | A | B |
+|---|---|---|
+| `out/plan.md` | 作った。行の並びは「H1 B T B L L」（見出し、空行、文、空行、箇条書き2行） | 作った。行の並びは「H1 B T B L L L」（箇条書きが3行） |
+| `out/config.json` | 作った。`{"name": "x", "retry": 3}` | 作った。`{"name": "y", "retry": 5}` |
+| `out/notes.txt` | 作った | 作らない |
+
+- files: 2人とも作ったのは2つ、どちらかが作ったのは3つなので、2 ÷ 3 = 0.667。組が1つなので、これがそのまま値になる
+- structure: 2人とも作った2つのファイルを比べる。`out/config.json` はキーの道筋と型（`$.name:str`、`$.retry:int`）が同じなので 1。`out/plan.md` は行の並びが違う（B の箇条書きが1行多い）ので 0。平均は (1 + 0) ÷ 2 = 0.5
+- names: 作業の前からプロジェクトにあった語を除いた名前が、A は `retry_limit`、`name`、`retry`、`cache_dir`（`out/notes.txt` の中）、B は `retry_limit`、`name`、`retry` だったとする。2人ともは3つ、どちらかは4つなので、3 ÷ 4 = 0.75。片方だけのファイルの名前も数えるので、files の違いは names も下げる
+- content: 2人とも作った2つのファイルの、空行を除いた行の並びの類似度の平均。値の違い（`3` と `5`）で下がるが、基準には使わない
+
+組が増えると（3人なら3組）、files と names は組ごとの値の平均、structure と content は組とファイルの組み合わせごとの値の平均になる。
+
+### 数値の根拠の見方
+
+`convergence.py diff` は、指標の値と別に、組ごと・ファイルごとの内訳を数える。内訳の平均が指標の値と一致しなければ、例外で止まる。
+
+| 知りたいこと | 見る場所 |
+|---|---|
+| どの条件で基準を満たさなかったか | `report.md` の課題ごとの「基準を満たさない理由」（値と基準の表）。`report.json` の `verdict.failed`。最終報告の「満たさない理由」の列 |
+| 各指標の計算のしかた | `report.md` の課題ごとの「指標の内訳」の冒頭 |
+| files の根拠 | 「指標の内訳」の files の表（組ごとの値と、片方だけが作った・変えたファイル）。`report.json` の `breakdown.files.pairs` |
+| structure の根拠 | 骨格が違うファイルの表と、骨格の差分（10ファイル、1ファイル30行まで）。`report.json` の `breakdown.structure.items`（`skeleton_a`・`skeleton_b`。長い骨格は先頭だけで、元の字数を `skeleton_a_chars` に残す） |
+| names の根拠 | 組ごとの値、2人ともの数、どちらかの数、片方だけの名前（先頭20件）。`report.json` の `breakdown.names.pairs`（片方だけの名前は200件まで、件数は `only_a_count` に残す） |
+| content の値 | ファイルごとの類似度。`report.json` の `breakdown.content.items` |
+
+カタログの「収束テスト」タブでも、指標の値を押すと、その課題・指標の内訳が開く。
 
 比べるファイルから外すものは、spec の `convergence.ignore`（glob の配列。既定は空）に書く。外してよいのは、実行ごとに必ず中身が変わるファイル（日時を含むログなど）だけである。外したら、その理由を `dev/convergence-report.md` の「条件」に書く。ばらついているファイルを外して基準を満たしたことにしない。
 
@@ -244,7 +279,7 @@ python3 <skill>/scripts/convergence.py analysis-collect --workdir <作業場所>
 
 | ラウンド | エージェントと操作 | 指摘 | 分類 | 対処 |
 |---|---|---|---|---|
-| 1 | T1-typical/subagent-1 #64、T2-default/subagent-1 #55 | 手順7の検査が、手順8で書く違反例を先に求め、手順7と8を行き来した | V2 | 手順7に、検査の前に違反例の ID を書くと足した |
+| 1 | T1-typical/subagent-1 #64、T2-default/subagent-1 #55 | 手順8の検査が、手順9で書く違反例を先に求め、手順8と9を行き来した | V2 | 手順8に、検査の前に違反例の ID を書くと足した |
 
 Eval の採点の分類は、「## Eval の採点」の節に同じ形の表で書く（eval.md の7章）。
 
