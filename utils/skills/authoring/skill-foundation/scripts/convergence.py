@@ -8,7 +8,12 @@
                  最初の値に決め、出どころを表示して plan.json の settings に残す。
                  課題ごとに、作業の前からある名前（英字の識別子）を記録する（names の指標に使う）。
                  ラウンド2からは、前のラウンドの AI の分析と、それを締め込みで分類した記録（convergence-report.md の
-                 「## 動きの指摘」）が揃っていないと止まる
+                 「## 動きの指摘」）が揃っていないと止まる。
+                 課題に input（入力の値）があれば、置いたスキルの settings/user-setting.yaml の inputs に書き、依頼に無い値を
+                 start がそこから補うようにする。feedback_inputs（dev/feedback-inputs/ の入力ファイルと置き先）があれば、
+                 git の初回コミットの前に置く。置き先が作業ディレクトリの外か、.git・.claude・.codex・.agents・.skill-runs・
+                 .skill-feedback の下なら、何も作らずに止まる。エージェントに渡すのは課題の prompt（元の依頼）だけで、
+                 dev/（Eval・指摘・修正版）は置かない（references/eval.md の9章）
   prompts        runner subagent の実行ごとに、Agent ツールに渡すプロンプトと、最終の返答の保存先を出す
   run            plan の各プロジェクトで runner（claude -p / codex exec）を実行し、結果を _results/ に保存する。
                  runner claude の --output-format stream-json と runner codex の --json の出力は、行に届いた時刻を付けて
@@ -16,7 +21,9 @@
                  保存された最終の返答を集める
   diff           課題ごとにプロジェクト同士を比べ、指標とレポート（report.json / report.md / *.patch）を書く。
                  エージェントが作った・変えたファイルの写しを records/outputs/<課題>__<エージェント>/ に置く（catalog.py が見せる）。
-                 独立エージェントの作業ディレクトリ制限（fence.py）の登録を外した課題は基準を満たさない。
+                 作業ディレクトリの外への操作を止める仕組み（fence.py）の登録を外したエージェントがいる課題は基準を満たさない。
+                 指標ごとに、組・ファイルごとの内訳（report.json の breakdown）と、満たさなかった条件（verdict.failed）を書く。
+                 内訳の平均が指標の値と一致しなければ、例外で止まる（指標の値は内訳と別に計算する）。
                  Eval（dev/eval/eval.json）があれば、各エージェントの出力を採点する（STEP-07）。code の判定はここで当て、
                  model の判定は分析役に頼む（判定する中身を <課題>/<エージェント>.eval.json に書く）。Eval に落ちた出力が
                  ある課題も基準を満たさない
@@ -60,7 +67,8 @@ model・effort を示す）:
 作業ディレクトリの外への操作の停止（fence.py）: prepare が各一時プロジェクトに印（.skill-runs/_fence/）を置き、runner claude・codex は
 一時プロジェクトの設定に、runner subagent は専用のエージェント型（--agents-dir、既定はこのスキルの置き場の .claude/agents/）の
 frontmatter に、fence.py を PreToolUse の hook として登録する。run は TMPDIR を .skill-runs/_fence/tmp に向ける。
-止めた操作は diff・trace が traces.json の操作に印（fenced）を付ける。.skill-runs/_fence/ は変わったファイルに数えない
+止めた操作は diff・trace が traces.json の操作に印（fenced）を付ける。.skill-runs/_fence/ は変わったファイルに数えない。
+利用中の指摘の記録（.skill-feedback/。完了の hook が一時プロジェクトにも作る）も数えない
 
 例:
   python3 convergence.py prepare <スキル> --round 1 [--runners subagent]
@@ -135,15 +143,21 @@ REVIEW_ASK = {
           "write its ID and the reason as `<ID> <reason>`, one per line. If every item is met, write only \"no findings\". "
           "Do not change any file.",
 }
-SKIP = {".git", "__pycache__", "node_modules", ".venv", ".skill-feedback"}
+SKIP = {".git", "__pycache__", "node_modules", ".venv"}
 MAX_BYTES = 1_000_000
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*")
 FENCE = Path(__file__).resolve().parent / "fence.py"
 FENCE_REL = ".skill-runs/_fence"  # fence.py の FENCE_REL と同じ
+FEEDBACK_REL = ".skill-feedback"  # feedback.py の DIRNAME と同じ。利用中の指摘の記録で、エージェントの出力ではない
+FEEDBACK_INPUTS_REL = "dev/feedback-inputs"  # feedback_eval.py が置く、指摘を受けたときの入力ファイル
+BLOCKED_INPUTS = {".git", ".claude", ".codex", ".agents", ".skill-runs", FEEDBACK_REL}  # 入力ファイルを置かせない場所
 FENCE_CONFIGS = {"claude": (".claude/settings.json", ["*"]), "codex": (".codex/hooks.json", ["Bash", "apply_patch"])}
 FENCED = re.compile(r"\[skill-foundation (?:の fence\.py|fence|の柵)\]")  # fence.py が止める理由の先頭に付ける目印（「の柵」は前の版の記録）
 TESTER = "skill-foundation-tester"
 USED_SKILL = "used-SKILL.md"  # ラウンドでエージェントが読んだ SKILL.md の写し（dev/results/convergence/round-<R>/。分析が手順と比べる）
+NAMES_CUT = 200  # report.json の内訳に残す、片方だけの名前の数（件数は別に残す）
+SKELETON_CUT = 4000  # report.json の内訳に残す骨格の字数
+SHOWN = {"items": 20, "mismatch": 10, "lines": 30}  # report.md に載せる、組ごとの片方だけの項目・骨格が違うファイル・骨格の差分の行の上限
 
 
 def default_runner(runner: str) -> list[str]:
@@ -320,18 +334,54 @@ def snapshot(directory: Path) -> dict[str, str]:
 
 # ---------------------------------------------------------------- prepare
 
-def recorded_inputs(skill_dir: Path, task: dict) -> list[tuple[Path, str]]:
-    """Only replay captured input files, never the feedback or expected outputs."""
-    result = []
-    for item in task.get("input_files", []):
-        source = (skill_dir / item["source"]).resolve()
-        relative = Path(item["path"])
-        if (not source.is_relative_to((skill_dir / "dev/feedback-inputs").resolve()) or not source.is_file()
-                or relative.is_absolute() or ".." in relative.parts or not relative.parts
-                or relative.parts[0] in {".git", ".claude", ".agents", ".codex", ".skill-runs", ".skill-feedback"}):
-            _lib.fail(f"課題 {task.get('id')} の input_files が入力ファイルの範囲を外れています")
-        result.append((source, relative.as_posix()))
-    return result
+def task_input_problems(skill_dir: Path, task: dict) -> list[str]:
+    """課題の input（入力の値）と feedback_inputs（入力ファイルと置き先）の誤り。"""
+    tid, found = task.get("id"), []
+    values = task.get("input", {})
+    if not isinstance(values, dict) or any(
+            isinstance(v, dict) or (isinstance(v, list) and any(isinstance(x, (dict, list)) for x in v)) for v in values.values()):
+        found.append(f"課題 {tid} の input は、キーと値（文字列・数・真偽・それらの一覧）のオブジェクトにしてください")
+    base = (skill_dir / FEEDBACK_INPUTS_REL).resolve()
+    entries = task.get("feedback_inputs", [])
+    for i, entry in enumerate(entries if isinstance(entries, list) else [None]):
+        where = f"課題 {tid} の feedback_inputs[{i}]"
+        if not isinstance(entry, dict) or not entry.get("from") or not entry.get("to"):
+            found.append(f"{where} に from と to を書いてください")
+            continue
+        src = (skill_dir / str(entry["from"])).resolve()
+        if not src.is_relative_to(base) or not src.is_file():
+            found.append(f"{where} の from（{entry['from']}）は、{FEEDBACK_INPUTS_REL}/ の下にあるファイルにしてください")
+        to = Path(str(entry["to"]))
+        if to.is_absolute() or ".." in to.parts or not to.parts:
+            found.append(f"{where} の置き先（{entry['to']}）が作業ディレクトリの外を指します")
+        elif to.parts[0].lower() in BLOCKED_INPUTS:
+            found.append(f"{where} の置き先（{entry['to']}）が {to.parts[0]} の下です。git・スキルの置き場・hooks の設定・"
+                         "実行と収集の記録には、入力ファイルを置かない")
+    return found
+
+
+def input_settings(values: dict) -> str:
+    """課題の入力の値を、ユーザーの設定（settings/user-setting.yaml）の inputs の形にする。依頼に無い値は start がここから補う。"""
+    lines = ["# convergence.py prepare が課題の input から書いた（利用中の指摘を受けたときの入力の値を再現する）", "inputs:"]
+    for key, value in values.items():
+        text = ("[" + ", ".join(json.dumps(v, ensure_ascii=False) for v in value) + "]" if isinstance(value, list)
+                else json.dumps(value, ensure_ascii=False))
+        lines.append(f"  {key}: {text}")
+    return "\n".join(lines) + "\n"
+
+
+def place_inputs(skill_dir: Path, task: dict, target: Path, installed: Path) -> None:
+    """課題の入力の値と入力ファイルを、課題の作業ディレクトリに置く（task_input_problems で確かめた後）。"""
+    if task.get("input"):
+        settings = installed / rt.SETTINGS_FILES[0][1]
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(input_settings(task["input"]), encoding="utf-8")
+    for entry in task.get("feedback_inputs", []):
+        dest = target / entry["to"]
+        if not dest.parent.resolve().is_relative_to(target.resolve()):  # fixture のリンクで外に出るとき
+            _lib.fail(f"課題 {task.get('id')} の置き先（{entry['to']}）が作業ディレクトリの外を指します")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(skill_dir / entry["from"], dest)
 
 
 def cmd_prepare(args) -> int:
@@ -351,9 +401,11 @@ def cmd_prepare(args) -> int:
     if not tasks:
         _lib.fail("課題が0件です")
     for task in tasks:
-        recorded_inputs(skill_dir, task)
         if _lib.TODO_MARKER in task.get("prompt", ""):
             _lib.fail(f"課題 {task.get('id')} の prompt がひな形のままです")
+    wrong = [p for task in tasks for p in task_input_problems(skill_dir, task)]
+    if wrong:
+        _lib.fail("課題の入力の再現に誤りがあるので、準備しません\n" + "\n".join(f"- {p}" for p in wrong))
     if eval_check.scoring(skill_dir) is not None:  # 各エージェントの出力を Eval で採点する（STEP-07）
         errors, stale = eval_check.check(skill_dir)[0], eval_check.stale(skill_dir)
         lacking = eval_check.missing_targets(skill_dir)
@@ -395,12 +447,6 @@ def cmd_prepare(args) -> int:
                     shutil.copytree(skill_dir / task["fixture"], target)
                 else:
                     target.mkdir(parents=True)
-                for source, relative in recorded_inputs(skill_dir, task):
-                    destination = target / relative
-                    if not destination.resolve().is_relative_to(target.resolve()):
-                        _lib.fail("入力ファイルの配置先が作業ディレクトリを外れています")
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(source, destination)
                 # スキルと hooks と fence.py を置いてから git の初回コミットを作る（エージェントの git status に出さない）
                 installed = target / place / spec["name"]
                 installed.parent.mkdir(parents=True, exist_ok=True)
@@ -410,16 +456,15 @@ def cmd_prepare(args) -> int:
                 if code != 0:
                     _lib.fail(f"install.py が失敗しました: {_lib.tail(out, 5)}")
                 register_fence(target, runner)
+                place_inputs(skill_dir, task, target, installed)
                 _lib.git_init(target)
                 for command in task.get("setup", []):
                     code, out = _lib.run(command, target)
                     if code != 0:
                         _lib.fail(f"{task['id']} の setup `{command}` が失敗しました: {_lib.tail(out, 5)}")
                 prompt = task["prompt"]
-                if task.get("input_values"):
-                    prompt += "\n\n入力: " + json.dumps(task["input_values"], ensure_ascii=False)
                 if runner == "subagent":
-                    prompt = subagent_prompt(spec, {**task, "prompt": prompt}, target, installed)
+                    prompt = subagent_prompt(spec, task, target, installed)
                 elif task.get("invoke") == "explicit":
                     prompt = INVOKE[runner].replace("{name}", spec["name"]) + prompt
                 runs.append({"id": run_id, "task": task["id"], "runner": runner, "dir": str(target), "prompt": prompt,
@@ -575,7 +620,7 @@ def cmd_review_score(args) -> int:
             extra[label] = sorted(found - {sample["rule"]})
             now = snapshot(Path(run["dir"]))
             changed[label] = sorted(rel for rel in set(run["baseline"]) | set(now)
-                                    if run["baseline"].get(rel) != now.get(rel) and not rel.startswith(".skill-runs/"))
+                                    if run["baseline"].get(rel) != now.get(rel) and not rel.startswith((".skill-runs/", FEEDBACK_REL + "/")))
         rate = round(sum(detected.values()) / len(detected), 3) if detected else 0.0
         result["samples"].append({"id": sample["id"], "rule": sample["rule"], "rate": rate, "detected": detected,
                                   "extra": extra, "agree": len({tuple(sorted(v)) for v in found_sets.values()}) <= 1,
@@ -849,8 +894,9 @@ def mean(values: list[float]) -> float | None:
     return round(sum(values) / len(values), 3) if values else None
 
 
-def fence_changes(run: dict, plan: dict) -> list[str]:
-    """独立エージェントの作業ディレクトリ制限を外した証拠だけを返す。"""
+def tampered(run: dict, plan: dict) -> list[str]:
+    """作業ディレクトリの外への操作を止める仕組み（fence.py）の登録を外したエージェントの証拠。スキル自身のファイルや
+    hooks の登録の変更は、スキルの微修正と同じく失格にしない（変えたファイルは揃い方の指標に数える）。"""
     found = []
     if plan.get("fence") and run.get("runner") in FENCE_CONFIGS:
         rel = FENCE_CONFIGS[run["runner"]][0]
@@ -866,17 +912,31 @@ def changed_files(run: dict, name: str, ignore: list[str], now: dict[str, str]) 
     skip = {f".skill-runs/{name}/state.json", ".skill-runs/.gitignore", _lib.CATALOG_REL}  # カタログはほかの出力から作る図
     result = {}
     for rel in sorted(set(base) | set(now)):
-        if (base.get(rel) == now.get(rel) or rel in skip or rel.startswith((FENCE_REL + "/", _lib.CATALOG_PAGES_REL + "/"))
+        if (base.get(rel) == now.get(rel) or rel in skip
+                or rel.startswith((FENCE_REL + "/", FEEDBACK_REL + "/", _lib.CATALOG_PAGES_REL + "/"))
                 or rt.matches_any(rel, ignore)):
             continue
         result[rel] = decode(directory / rel) if rel in now else None
     return result
 
 
+def similarity(ta: str | None, tb: str | None) -> float | None:
+    """空行を除いた行の並びの類似度（content）。どちらかがバイナリか削除なら None。"""
+    if ta is None or tb is None:
+        return None
+    la = [l.rstrip() for l in ta.splitlines() if l.strip()]
+    lb = [l.rstrip() for l in tb.splitlines() if l.strip()]
+    return difflib.SequenceMatcher(None, la, lb, autojunk=False).ratio()
+
+
+def new_names(names: list[str], contents: dict, vocab: set[str] | None) -> dict[str, set[str]]:
+    return {n: set().union(*(identifiers(t) for t in contents[n].values())) - (vocab or set()) for n in names}
+
+
 def metrics(names: list[str], changes: dict, contents: dict, vocab: set[str] | None = None) -> dict:
     pairs = list(itertools.combinations(names, 2))
     files = mean([jaccard(set(changes[a]), set(changes[b])) for a, b in pairs]) if pairs else 1.0
-    new = {n: set().union(*(identifiers(t) for t in contents[n].values())) - (vocab or set()) for n in names}
+    new = new_names(names, contents, vocab)
     named = mean([jaccard(new[a], new[b]) for a, b in pairs]) if pairs else 1.0
     structure, content = [], []
     for a, b in pairs:
@@ -884,12 +944,55 @@ def metrics(names: list[str], changes: dict, contents: dict, vocab: set[str] | N
         for rel in common:
             ta, tb = contents[a].get(rel), contents[b].get(rel)
             structure.append(1.0 if skeleton(rel, ta) == skeleton(rel, tb) else 0.0)
-            if ta is not None and tb is not None:
-                la = [l.rstrip() for l in ta.splitlines() if l.strip()]
-                lb = [l.rstrip() for l in tb.splitlines() if l.strip()]
-                content.append(difflib.SequenceMatcher(None, la, lb, autojunk=False).ratio())
+            ratio = similarity(ta, tb)
+            if ratio is not None:
+                content.append(ratio)
     return {"files": files, "structure": mean(structure) if structure else (1.0 if files == 1.0 else 0.0),
-            "names": named, "content": mean(content), "new_names": {n: sorted(new[n])[:40] for n in names}}
+            "names": named, "content": mean(content)}
+
+
+def cut(key: str, text: str) -> dict:
+    """長い骨格は先頭だけを残し、元の字数を <key>_chars に残す（切ったことを示す）。"""
+    return {key: text} if len(text) <= SKELETON_CUT else {key: text[:SKELETON_CUT], f"{key}_chars": len(text)}
+
+
+def breakdown(names: list[str], changes: dict, contents: dict, vocab: set[str] | None = None) -> dict:
+    """指標の内訳（report.json の breakdown）。metrics() とは別に組ごと・ファイルごとに数え、check_breakdown() で突き合わせる。"""
+    new = new_names(names, contents, vocab)
+    files, structure, named, content = [], [], [], []
+    for a, b in itertools.combinations(names, 2):
+        fa, fb, na, nb = set(changes[a]), set(changes[b]), new[a], new[b]
+        files.append({"a": a, "b": b, "value": jaccard(fa, fb), "common": sorted(fa & fb), "only_a": sorted(fa - fb), "only_b": sorted(fb - fa)})
+        named.append({"a": a, "b": b, "value": jaccard(na, nb), "common_count": len(na & nb), "union_count": len(na | nb),
+                      "only_a_count": len(na - nb), "only_b_count": len(nb - na),
+                      "only_a": sorted(na - nb)[:NAMES_CUT], "only_b": sorted(nb - na)[:NAMES_CUT]})
+        for rel in sorted(fa & fb):
+            ta, tb = contents[a].get(rel), contents[b].get(rel)
+            sa, sb = skeleton(rel, ta), skeleton(rel, tb)
+            structure.append({"a": a, "b": b, "path": rel, "match": sa == sb, **cut("skeleton_a", sa), **cut("skeleton_b", sb)})
+            content.append({"a": a, "b": b, "path": rel, "ratio": similarity(ta, tb)})
+    return {"files": {"pairs": files}, "structure": {"items": structure}, "names": {"pairs": named}, "content": {"items": content}}
+
+
+def check_breakdown(values: dict, parts: dict) -> None:
+    """内訳の組ごと・ファイルごとの値の平均が、表の指標の値と一致するかを確かめる。ずれたら例外にする。"""
+    pairs, items = parts["files"]["pairs"], parts["structure"]["items"]
+    files = mean([p["value"] for p in pairs]) if pairs else 1.0
+    want = {"files": files, "names": mean([p["value"] for p in parts["names"]["pairs"]]) if pairs else 1.0,
+            "structure": mean([1.0 if i["match"] else 0.0 for i in items]) if items else (1.0 if files == 1.0 else 0.0),
+            "content": mean([i["ratio"] for i in parts["content"]["items"] if i["ratio"] is not None])}
+    wrong = [f"{key}（表 {values[key]}、内訳の平均 {value}）" for key, value in want.items() if values[key] != value]
+    if wrong:
+        raise RuntimeError("指標の値と内訳が一致しません: " + "、".join(wrong))
+
+
+def set_verdict(task: dict, thresholds: dict) -> None:
+    """満たさなかった条件を verdict.failed に書く。基準の判定（converged）と食い違えば例外にする。"""
+    failed = _lib.verdict_failed(task, thresholds)
+    if bool(failed) == bool(task["converged"]):
+        raise RuntimeError(f"{task['id']}: 基準の判定（converged {task['converged']}）と、満たさなかった条件"
+                           f"（{_lib.verdict_text(failed) or 'なし'}）が食い違います")
+    task["verdict"] = {"failed": failed}
 
 
 def eval_asks(project: Path, scores: dict) -> dict:
@@ -926,7 +1029,7 @@ def cmd_diff(args) -> int:
             names.append(label)
             now = snapshot(Path(run["dir"]))
             found = changed_files(run, name, ignore, now)
-            evidence = fence_changes(run, plan)
+            evidence = tampered(run, plan)
             if evidence:
                 broken[label] = evidence
             changes[label] = set(found)
@@ -965,7 +1068,7 @@ def cmd_diff(args) -> int:
         for runner in plan["runners"]:
             group = [n for n in names if n.startswith(runner + "-")]
             if len(group) >= 2:
-                by_runner[runner] = {k: v for k, v in metrics(group, changes, contents, vocab).items() if k != "new_names"}
+                by_runner[runner] = metrics(group, changes, contents, vocab)
         check_ok = all(c["exit"] == 0 for c in checks.values())
         variance_ok = (set(statuses.values()) == {expected} and check_ok and not broken
                        and overall["files"] >= thresholds["files"] and overall["structure"] >= thresholds["structure"]
@@ -982,13 +1085,17 @@ def cmd_diff(args) -> int:
                     excerpts.append({"path": rel, "pair": [a, b],
                                      "diff": list(difflib.unified_diff(ta.splitlines(), tb.splitlines(), f"{a}/{rel}",
                                                                        f"{b}/{rel}", lineterm=""))[:60]})
-        report["tasks"].append({"id": tid, "agents": names, "expect_status": expected, "status": statuses, **overall, "by_runner": by_runner,
-                                "check": {n: c["exit"] for n, c in checks.items()}, "converged": converged,
-                                "variance_ok": variance_ok, "eval": grades, "eval_ok": eval_ok,
-                                "fence_changed": broken, "events": events,
-                                "changed_files": {n: sorted(changes[n]) for n in names}, "partial_files": partial,
-                                "excerpts": excerpts, "check_failures": {n: c["tail"] for n, c in checks.items() if c["exit"]},
-                                "messages": {n: messages[n][-1500:] for n in names}})
+        parts = breakdown(names, changes, contents, vocab)
+        check_breakdown(overall, parts)
+        task = {"id": tid, "agents": names, "expect_status": expected, "status": statuses, **overall, "by_runner": by_runner,
+                "check": {n: c["exit"] for n, c in checks.items()}, "converged": converged,
+                "variance_ok": variance_ok, "eval": grades, "eval_ok": eval_ok,
+                "tampered": broken, "events": events,
+                "changed_files": {n: sorted(changes[n]) for n in names}, "partial_files": partial,
+                "excerpts": excerpts, "check_failures": {n: c["tail"] for n, c in checks.items() if c["exit"]},
+                "messages": {n: messages[n][-1500:] for n in names}, "breakdown": parts}
+        set_verdict(task, thresholds)
+        report["tasks"].append(task)
     _lib.write_json(out / "report.json", report)
     (out / "report.md").write_text(render_report(report), encoding="utf-8")
     lost = [line for line in write_traces(plan, rdir, out) if "（記録が見つからない）" in line]
@@ -1871,6 +1978,7 @@ def merge_eval(out: Path, analyses: dict) -> dict:
         if grades:
             t["eval_ok"] = eval_check.task_ok(grades)
             t["converged"] = bool(t.get("variance_ok", t.get("converged"))) and t["eval_ok"] is True
+            set_verdict(t, report["thresholds"])
     _lib.write_json(path, report)
     (out / "report.md").write_text(render_report(report), encoding="utf-8")
     return report
@@ -1908,16 +2016,105 @@ def summary(report: dict) -> str:
         check = "—" if not t["check"] else ("全員通過" if all(v == 0 for v in t["check"].values()) else "失敗あり")
         runner = "、".join(f"{k} {fmt(v['files'])}" for k, v in t["by_runner"].items()) or "—"
         lines.append(f"| {t['id']} | {status} | {fmt(t['files'])} | {fmt(t['structure'])} | {fmt(t.get('names'))} | {fmt(t['content'])} | "
-                     f"{check} | {runner} | {eval_cell(t)} | {'満たす' if t['converged'] else '満たさない'} |")
+                     f"{check} | {runner} | {eval_cell(t)} | {verdict_cell(t, report['thresholds'])} |")
     return "\n".join(lines)
+
+
+def verdict_cell(task: dict, thresholds: dict) -> str:
+    failed = _lib.task_failed(task, thresholds)
+    return "満たす" if task["converged"] else "満たさない（" + "・".join(_lib.VERDICT_CONDS.get(c["cond"], c["cond"]) for c in failed) + "）"
+
+
+FORMULAS = [
+    "files = 2人ずつの組ごとの Jaccard 係数（2人とも作った・変えたファイルの数 ÷ どちらかが作った・変えたファイルの数）の平均",
+    "structure = 2人ずつの組で、2人とも作った・変えたファイルごとに、骨格が一致すれば 1、違えば 0 とした値の平均。"
+    "骨格は、JSON ならキーの道筋と型、ほかは行の種類の並び。共通のファイルが1つも無ければ、files が 1.0 なら 1.0、ほかは 0.0",
+    "names = 2人ずつの組ごとの Jaccard 係数（2人とも新しく作った名前の数 ÷ どちらかが新しく作った名前の数）の平均。"
+    "名前は、作った・変えたファイルにある英字で始まる3〜40文字の語から、作業の前からプロジェクトにあった語を除いたもの",
+    "content = 2人とも作った・変えたファイルごとの、空行を除いた行の並びの類似度（0〜1）の平均。参考値で、基準には使わない",
+]
+KINDS = ("骨格の記号: H1〜H6 見出し、L 箇条書き、N 番号付きの行、| 表の行、> 引用、F コードの囲い、C コードの中、B 空行、T 文。"
+         "1行に1つで、差分の @@ の数字が行番号。JSON は `$.キー[]:型` の道筋（配列は `[]:要素数`）")
+
+
+def listed(words: list[str], total: int) -> str:
+    shown = words[:SHOWN["items"]]
+    return (", ".join(f"`{w}`" for w in shown) or "なし") + (f"（ほか {total - len(shown)} 件）" if total > len(shown) else "")
+
+
+def skeleton_diff(item: dict) -> list[str]:
+    """骨格の違いを差分の行にする（1ファイル SHOWN["lines"] 行まで）。"""
+    split = (lambda s: s.split("\n")) if item["path"].endswith(".json") else (lambda s: s.split(" "))
+    lines = list(difflib.unified_diff(split(item["skeleton_a"]), split(item["skeleton_b"]), item["a"], item["b"], n=1, lineterm=""))
+    cut = [f"…（{side} の骨格は {item[key]} 字のうち先頭 {SKELETON_CUT} 字だけを比べた）"
+           for side, key in ((item["a"], "skeleton_a_chars"), (item["b"], "skeleton_b_chars")) if key in item]
+    more = [f"…（ほか {len(lines) - SHOWN['lines']} 行。report.json の breakdown.structure を見る）"] if len(lines) > SHOWN["lines"] else []
+    return lines[:SHOWN["lines"]] + more + cut
+
+
+def render_breakdown(task: dict, thresholds: dict) -> list[str]:
+    """課題の「基準を満たさない理由」と「指標の内訳」の節。"""
+    failed = _lib.task_failed(task, thresholds)
+    lines = ["", "### 基準を満たさない理由", ""]
+    if failed:
+        lines += ["| 条件 | 値 | 基準 |", "|---|---|---|"]
+        for c in failed:
+            name = _lib.VERDICT_CONDS.get(c["cond"], c["cond"])
+            lines.append(f"| {name} | {fmt(c['value'])} | {c['threshold']} 以上 |" if "value" in c else
+                         f"| {name} | {c['detail']} | {'落ちた判定と判定待ちが無い' if c['cond'] == 'eval' else '全員が満たす'} |")
+    else:
+        lines.append("なし（基準をすべて満たした）")
+    parts = task.get("breakdown")
+    lines += ["", "### 指標の内訳", ""]
+    if not parts:
+        return lines + ["内訳の記録が無い（内訳を書く前の版の convergence.py diff で作った記録）。"]
+    lines += ["計算のしかた:", ""] + [f"- {f}" for f in FORMULAS]
+    pairs = parts["files"]["pairs"]
+    lines += ["", f"#### files（{fmt(task['files'])}）", ""]
+    if not pairs:
+        lines.append("組が無い（エージェントが1人）。")
+    else:
+        lines += ["| 組 | 値 | 2人とも | 片方だけ（A） | 片方だけ（B） |", "|---|---|---|---|---|"]
+        lines += [f"| {p['a']}（A）と {p['b']}（B） | {fmt(p['value'])} | {len(p['common'])} 件 | {listed(p['only_a'], len(p['only_a']))} | "
+                  f"{listed(p['only_b'], len(p['only_b']))} |" for p in pairs]
+    items = parts["structure"]["items"]
+    bad = [i for i in items if not i["match"]]
+    lines += ["", f"#### structure（{fmt(task['structure'])}。2人とも作った・変えたファイル {len(items)} 件のうち一致 {len(items) - len(bad)} 件）", ""]
+    if bad:
+        lines += ["| 骨格が違うファイル | 組 |", "|---|---|"]
+        lines += [f"| `{i['path']}` | {i['a']} と {i['b']} |" for i in bad[:SHOWN["mismatch"]]]
+        if len(bad) > SHOWN["mismatch"]:
+            lines.append(f"\nほか {len(bad) - SHOWN['mismatch']} 件は report.json の breakdown.structure を見る。")
+    same = sorted({i["path"] for i in items if i["match"]})
+    lines += ["", "骨格が一致したファイル: " + listed(same, len(same))]
+    if bad:
+        lines += ["", KINDS]
+        for i in bad[:SHOWN["mismatch"]]:
+            lines += ["", f"##### `{i['path']}`（{i['a']} と {i['b']}）", "", "```diff", *skeleton_diff(i), "```"]
+    lines += ["", f"#### names（{fmt(task.get('names'))}）", ""]
+    if pairs:
+        lines += [f"| 組 | 値 | 2人とも | どちらか | 片方だけ（A。先頭 {SHOWN['items']} 件） | 片方だけ（B。先頭 {SHOWN['items']} 件） |",
+                  "|---|---|---|---|---|---|"]
+        lines += [f"| {p['a']}（A）と {p['b']}（B） | {fmt(p['value'])} | {p['common_count']} | {p['union_count']} | "
+                  f"{listed(p['only_a'], p['only_a_count'])} | {listed(p['only_b'], p['only_b_count'])} |" for p in parts["names"]["pairs"]]
+    else:
+        lines.append("組が無い（エージェントが1人）。")
+    lines += ["", f"#### content（{fmt(task['content'])}。参考値で、基準には使わない）", ""]
+    ratios = parts["content"]["items"]
+    if ratios:
+        lines += ["| ファイル | 組 | 類似度 |", "|---|---|---|"]
+        lines += [f"| `{i['path']}` | {i['a']} と {i['b']} | {fmt(i['ratio']) if i['ratio'] is not None else '—（バイナリか削除）'} |" for i in ratios]
+    else:
+        lines.append("2人とも作った・変えたファイルが無い。")
+    return lines
 
 
 def render_report(report: dict) -> str:
     th = report["thresholds"]
     lines = [f"# 収束テスト ラウンド {report['round']}", "",
              "convergence.py diff が生成する。ばらつきの分類（V1〜V8）と対処は dev/convergence-report.md に書く。", "",
-             f"基準: status が全員、課題の expect_status（既定 done）と同じ。check が全員通過。独立エージェントの作業ディレクトリ制限"
-             f"（fence.py）の登録が維持されている。files ≥ {th['files']}、structure ≥ {th['structure']}、names ≥ {th.get('names', 0.8)}"
+             f"基準: status が全員、課題の expect_status（既定 done）と同じ。check が全員通過。fence.py の登録を"
+             f"外したエージェントがいない。files ≥ {th['files']}、structure ≥ {th['structure']}、names ≥ {th.get('names', 0.8)}"
              + ("。Eval の採点で落ちた出力が無く、model の判定待ちが無い（STEP-07）" if (report.get("eval") or {}).get("hash") else ""), "",
              "## 指標", "", summary(report)]
     if "subagent" in report.get("runners", []):
@@ -1929,8 +2126,7 @@ def render_report(report: dict) -> str:
     for t in report["tasks"]:
         lines += ["", f"## {t['id']}", "", f"### 実行の状態（期待: {t['expect_status']}）", ""]
         lines += [f"- {n}: {s}" for n, s in t["status"].items()]
-        lines += ["", "### 新しく作った名前（names。先頭 40 件）", ""]
-        lines += [f"- {n}: {', '.join(f'`{w}`' for w in words) or 'なし'}" for n, words in t.get("new_names", {}).items()]
+        lines += render_breakdown(t, th)
         lines += ["", "### 一部のエージェントだけが作った・変えたファイル", ""]
         lines += [f"- `{p['path']}`: {', '.join(p['who'])}" for p in t["partial_files"]] or ["なし"]
         lines += ["", "### 中身の違い（抜粋）", ""]
@@ -1938,9 +2134,9 @@ def render_report(report: dict) -> str:
             lines += [f"#### `{ex['path']}`（{ex['pair'][0]} と {ex['pair'][1]}）", "", "```diff", *ex["diff"], "```", ""]
         if not t["excerpts"]:
             lines.append("なし")
-        if t.get("fence_changed"):
-            lines += ["", "### 作業ディレクトリの制限を外したエージェント（失格）", ""]
-            lines += [f"- {n}: {'、'.join(paths)}" for n, paths in t["fence_changed"].items()]
+        if t.get("tampered"):
+            lines += ["", "### 作業ディレクトリの外への操作を止める仕組み（fence.py）の登録を外したエージェント（失格）", ""]
+            lines += [f"- {n}: {'、'.join(paths)}" for n, paths in t["tampered"].items()]
         if t.get("eval"):
             names = {"pass": "通過", "fail": "落ちた", "na": "判定するファイルが無い", "pending": "model の判定待ち", "human": "人が確かめる"}
             lines += ["", "### Eval の採点", ""]
