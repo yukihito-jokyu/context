@@ -1,0 +1,13 @@
+flowchart TD
+  start["本人と対象研修を確認する"] --> ready{"確認できたか"}
+  ready -->|"いいえ"| invalid["確定せず理由を返す"]
+  ready -->|"はい"| duplicate
+  subgraph atomic["競合しても分離しない処理単位"]
+    duplicate{"同じ社員の有効な申込みがあるか"}
+    duplicate -->|"ない"| capacity{"有効な申込み数が定員未満か"}
+    capacity -->|"はい"| save["申込みを確定状態で登録する"]
+  end
+  duplicate -->|"ある"| doubled["二重申込みのため確定しない"]
+  capacity -->|"いいえ"| full["定員超過のため確定しない"]
+  save -->|"完了"| success["確定結果を本人へ返す"]
+  save -->|"失敗"| failed["確定と表示せず結果の再確認を案内"]
