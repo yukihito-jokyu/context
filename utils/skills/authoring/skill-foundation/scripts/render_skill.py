@@ -37,7 +37,7 @@ TEXT = {
         "ask": "start の前に聞く: {q}", "default": "既定値 `{v}`", "none": "空のまま",
         "default_by": "{by} が `{case}` なら `{value}`", "default_by_sep": "、", "default_by_else": "。ほかは",
         "settings_note": "依頼に指定の無い入力は、`settings/user-setting.yaml`（ユーザーの設定）、`settings/skill-setting.yaml`（このスキルの設定）の `inputs` の順に、null でない最初の値で補い、どちらにも無ければ表の「無いとき」に従う。依頼文から推した値は `--guess <キー>=<値>` で渡し、設定より弱く、表の既定値より強い。どこから補ったかは start の出力と報告の「既定値で決めた値」に出る。",
-        "aliases": "別名", "types": {"string": "文字列", "int": "整数（全角も可）", "bool": "はい・いいえ（true/false、する/しない も可）",
+        "aliases": "別名", "list_choices": "。要素は {choices} から選ぶ", "types": {"string": "文字列", "int": "整数（全角も可）", "bool": "はい・いいえ（true/false、する/しない も可）",
                                     "list": "一覧（`,`・`、`・改行で区切る）", "enum": "{choices} のどれか",
                                     "path": "パス", "slug": "英小文字・数字・`-` に変換"},
         "dec_head": "| ID | ルール | 守らせ方 |", "dec_more": "理由・良い例・悪い例は [references/decisions.md](references/decisions.md) にある。",
@@ -46,6 +46,7 @@ TEXT = {
         "con_note": "`{run}` は実行記録の置き場 `.skill-runs/{name}` を指す。`run.py start` の前からあったファイルで、内容が変わっていないものは検査しない。",
         "count": "{low}〜{high} 件", "count_open": "{low} 件以上",
         "name_pattern": "ファイル名が `{p}` に一致",
+        "binary": "バイナリ（文字列としては検査しない）",
         "checks": {
             "headings_equals": "見出し（レベル {level}）が {items} の順で過不足なく並ぶ",
             "headings_includes": "見出し（レベル {level}）に {items} がこの順で含まれる",
@@ -69,25 +70,33 @@ TEXT = {
                         "- `run.py finish`: 指摘 0 件", "", "## 補足", "", "- <notes.md の箇条書き。無ければ「- なし」>"],
         "ctl_head": "| 仕組み | いつ働くか | 何をするか |",
         "ctl_rows": [
-            ["`scripts/run.py start`", "手順の始め", "入力を正規化し（表記ゆれ・全角・未知のキーを受け入れる）、既定値で補い、実行記録を作る"],
-            ["`scripts/run.py check` と `finish`", "出力を書いた後と最後", "契約（`assets/contract.json`）の format で出力を直してから検査する。finish は通ったときだけ実行を終える"],
-            ["hooks の pre-tool", "ファイルを編集する前", "実行記録への直接の編集を拒否する。スキル自身のファイルは編集できる"],
+            ["`scripts/run.py start`", "手順の始め", "入力を正規化し（表記ゆれ・全角・未知のキーを受け入れる）、既定値で補う"],
+            ["`scripts/run.py check` と `finish`", "出力を書いた後と最後", "契約（`assets/contract.json`）の format で出力を直してから検査する。finish は通ったときだけ実行を終える。前の実行の後に契約が変わっていれば、報告の「検証」に出す（止めない）"],
+            ["hooks の pre-tool", "ファイルを編集する前", "実行記録（`state.json`・`report.md`）の編集を拒否する。スキル自身のファイルの編集は止めない"],
             ["hooks の post-tool", "ファイルを編集した後", "出力に当たるファイルを format で直し、検査し、指摘を返す"],
-            ["hooks の stop", "応答を終える前", "実行中は出力全体を検査する（最大 {limit} 回。超えると status: failed）"],
-            ["hooks の prompt", "ユーザーが発言したとき", "質問待ちを解く。発言を止めたり書き換えたりしない"],
+            ["hooks の stop", "応答を終える前", "出力全体を検査し、通るまで応答を終えさせない（最大 {limit} 回。超えると status: failed）"],
+            ["hooks の prompt", "ユーザーが発言したとき", "質問待ち（wait）を解くだけ。発言を止めたり書き換えたりしない"],
         ],
-        "ctl_note": "出力の検査は実行中（`.skill-runs/{name}/state.json` の status が active）に働く。hooks が無い環境でも、`run.py check` と `finish` が同じ検査をする。",
+        "ctl_note": "hooks は、このスキルの実行中（`.skill-runs/{name}/state.json` の status が active）だけ出力を検査する。hooks が無い環境でも、`run.py check` と `finish` が同じ出力の検査をする。",
+        "ctl_change": ["このスキル（ルール、契約、手順、スクリプト）は、実行中でも直せる。品質は出力の検査で確かめるので、直した後は次の順に検査を通す。`<skill-foundation>` は skill-foundation のディレクトリを指す。", "",
+                       "1. `dev/spec.json` を直す。手で書く部分（この SKILL.md の「2. 手順」、`scripts/` のスキル固有のスクリプト、`references/`、`assets/examples/`）は直接直す",
+                       "2. `python3 <skill-foundation>/scripts/render_skill.py --dir <skill>` で生成した部分を作り直す",
+                       "3. ルールや契約を変えたなら `dev/probes.json` の違反例も合わせ、`python3 <skill-foundation>/scripts/probe.py <skill>` を通す",
+                       "4. `python3 <skill-foundation>/scripts/skill_lint.py <skill> --final` を通す"],
         "ctl_install": "hooks の登録: `python3 <skill>/scripts/install.py --project <プロジェクトのルート>`（{where} に追記する{trust}）",
         "ctl_where": {"claude": "Claude Code は `.claude/settings.json`", "codex": "Codex は `.codex/hooks.json`"}, "ctl_where_sep": "、",
         "ctl_trust": "。Codex では、追記した hooks を `/hooks` で信頼するまで動かない",
+        "ctl_plugin": "hooks の登録: プラグインの hooks で配る（{where}）。プロジェクトの設定には登録しない{trust}",
+        "ctl_plugin_where": {"claude": "Claude Code は `hooks/hooks.json`", "codex": "Codex は `.codex-plugin/plugin.json` の `hooks`"},
         "ctl_nohooks": "このスキルは hooks を使わない（spec の control.hooks が false）。検査は `run.py check` と `finish` で行う。",
+        "ctl_setup": "初めて使うときは、ターミナルで `python3 <skill>/scripts/setup.py --project <プロジェクトのルート>` を実行すると、hooks の登録とユーザーの設定（`settings/user-setting.yaml`）を、書く前に差分を確かめながら選ぶだけで行える。AI のツールや CI からは、同じことを引数で行う（`--hooks`、`--features`、`--set`、`--yes`。一覧は `--help`）。",
         "fmt_head": "自動で直す", "fmt": {"trailing_space": "行末の空白を消す", "final_newline": "末尾の改行を1つにする",
                                        "replace": "`{pattern}` を「{with}」に置き換える", "command": "`{run}` で整える"},
         "together": "- 出力 {ids} は一緒に変える。一部だけを変えると {rule} の指摘になる{message}",
         "decisions_title": "# {title} のルール", "generated": "<!-- このファイルは render_skill.py が dev/spec.json から生成する。手で編集しない。 -->",
         "fields": {"axes": "軸", "decision": "ルール", "reason": "理由", "control": "守らせ方", "why": "機械化しない理由",
                    "good": "良い例", "bad": "悪い例", "table": "場合分け", "basis": "決め方", "split": "分けた理由",
-                   "retired": "廃止（ID は再利用しない）"},
+                   "retired": "廃止の理由（ID は再利用しない）", "retired_mark": "（廃止）"},
         "purpose_note": "",
     },
     "en": {
@@ -101,7 +110,7 @@ TEXT = {
         "ask": "ask before start: {q}", "default": "default `{v}`", "none": "left empty",
         "default_by": "`{value}` when {by} is `{case}`", "default_by_sep": "; ", "default_by_else": "; otherwise ",
         "settings_note": "Inputs the request does not give are filled from `inputs` in `settings/user-setting.yaml` (user setting), then `settings/skill-setting.yaml` (this skill's setting), using the first non-null value; when neither has one, the \"When missing\" column applies. Pass values guessed from the request as `--guess <key>=<value>`; they are weaker than the settings and stronger than the table defaults. Where each value came from is shown in the start output and in the report's defaults section.",
-        "aliases": "aliases", "types": {"string": "text", "int": "integer", "bool": "yes/no (true/false, on/off)",
+        "aliases": "aliases", "list_choices": "; items are chosen from {choices}", "types": {"string": "text", "int": "integer", "bool": "yes/no (true/false, on/off)",
                                      "list": "list (separated by `,` or newlines)", "enum": "one of {choices}",
                                      "path": "path", "slug": "converted to lowercase letters, digits and `-`"},
         "dec_head": "| ID | Rule | Enforced by |", "dec_more": "Reasons and good/bad examples are in [references/decisions.md](references/decisions.md).",
@@ -110,6 +119,7 @@ TEXT = {
         "con_note": "`{run}` is the run record directory `.skill-runs/{name}`. Files that existed before `run.py start` and are unchanged are not checked.",
         "count": "{low}-{high}", "count_open": "{low} or more",
         "name_pattern": "file name matches `{p}`",
+        "binary": "binary (not checked as text)",
         "checks": {
             "headings_equals": "level-{level} headings are exactly {items} in this order",
             "headings_includes": "level-{level} headings include {items} in this order",
@@ -134,25 +144,33 @@ TEXT = {
                         "- `run.py finish`: 0 findings", "", "## Notes", "", "- <bullets from notes.md, or \"- None\">"],
         "ctl_head": "| Mechanism | When | What it does |",
         "ctl_rows": [
-            ["`scripts/run.py start`", "start of the procedure", "normalizes inputs (accepts variant spellings, full-width text and unknown keys), fills defaults and creates the run record"],
-            ["`scripts/run.py check` and `finish`", "after writing outputs and at the end", "fixes the outputs with the contract's format, then checks them against the contract (`assets/contract.json`); finish ends the run only when they pass"],
-            ["pre-tool hook", "before a file edit", "rejects direct edits to run records; skill files remain editable"],
+            ["`scripts/run.py start`", "start of the procedure", "normalizes inputs (accepts variant spellings, full-width text and unknown keys) and fills defaults"],
+            ["`scripts/run.py check` and `finish`", "after writing outputs and at the end", "fixes the outputs with the contract's format, then checks them against the contract (`assets/contract.json`); finish ends the run only when they pass; when the contract changed since the previous run, the report's checks section says so (it does not stop the run)"],
+            ["pre-tool hook", "before a file edit", "denies edits to the run record (`state.json`, `report.md`); edits to the skill's own files are not stopped"],
             ["post-tool hook", "after a file edit", "fixes the edited output file with format, checks it and returns findings"],
-            ["stop hook", "before the turn ends", "checks outputs while active (at most {limit} times, then status: failed)"],
-            ["prompt hook", "when the user speaks", "resumes a waiting run; never blocks or rewrites the message"],
+            ["stop hook", "before the turn ends", "checks all outputs and keeps the turn going until they pass (at most {limit} times, then status: failed)"],
+            ["prompt hook", "when the user speaks", "only clears the waiting state; never blocks or rewrites the user's message"],
         ],
-        "ctl_note": "Output checks run while status is active. Without hooks, `run.py check` and `finish` perform the same checks.",
+        "ctl_note": "Hooks check outputs only while this skill is running (status active in `.skill-runs/{name}/state.json`). Without hooks, `run.py check` and `finish` perform the same output checks.",
+        "ctl_change": ["This skill (rules, contract, procedure, scripts) can be changed at any time, even during a run. Quality is ensured by checking the outputs, so after a change pass the checks in this order. `<skill-foundation>` is the directory of skill-foundation.", "",
+                       "1. Edit `dev/spec.json`. Edit the hand-written parts (\"2. Procedure\" of this SKILL.md, the skill's own scripts in `scripts/`, `references/`, `assets/examples/`) directly",
+                       "2. Regenerate the generated parts with `python3 <skill-foundation>/scripts/render_skill.py --dir <skill>`",
+                       "3. If rules or the contract changed, update the probes in `dev/probes.json` and pass `python3 <skill-foundation>/scripts/probe.py <skill>`",
+                       "4. Pass `python3 <skill-foundation>/scripts/skill_lint.py <skill> --final`"],
         "ctl_install": "Register hooks: `python3 <skill>/scripts/install.py --project <project root>` (adds entries to {where}{trust})",
         "ctl_where": {"claude": "`.claude/settings.json` for Claude Code", "codex": "`.codex/hooks.json` for Codex"}, "ctl_where_sep": " and ",
         "ctl_trust": "; Codex runs them only after you trust them in `/hooks`",
+        "ctl_plugin": "Register hooks: ship them in the plugin's hooks ({where}), not in the project settings{trust}",
+        "ctl_plugin_where": {"claude": "`hooks/hooks.json` for Claude Code", "codex": "`hooks` in `.codex-plugin/plugin.json` for Codex"},
         "ctl_nohooks": "This skill does not use hooks (control.hooks is false in the spec). Checks run through `run.py check` and `finish`.",
+        "ctl_setup": "On first use, run `python3 <skill>/scripts/setup.py --project <project root>` in a terminal to register hooks and create the user setting (`settings/user-setting.yaml`) by choosing options, checking the diff before anything is written. From AI tools or CI, do the same with arguments (`--hooks`, `--features`, `--set`, `--yes`; see `--help`).",
         "fmt_head": "fixed automatically", "fmt": {"trailing_space": "remove trailing spaces", "final_newline": "end with exactly one newline",
                                                  "replace": "replace `{pattern}` with \"{with}\"", "command": "format with `{run}`"},
         "together": "- Outputs {ids} change together; changing only some of them is reported as {rule}{message}",
         "decisions_title": "# Rules of {title}", "generated": "<!-- Generated by render_skill.py from dev/spec.json. Do not edit by hand. -->",
         "fields": {"axes": "Axes", "decision": "Rule", "reason": "Reason", "control": "Enforced by", "why": "Why not machine-checked",
                    "good": "Good", "bad": "Bad", "table": "Cases", "basis": "Chosen by", "split": "Why split",
-                   "retired": "Retired (the ID is never reused)"},
+                   "retired": "Why retired (the ID is never reused)", "retired_mark": " (retired)"},
         "purpose_note": "",
     },
 }
@@ -215,8 +233,12 @@ def targets(spec: dict) -> list[str]:
 
 
 def ctl_install(spec: dict, t: dict) -> str:
-    where = t["ctl_where_sep"].join(t["ctl_where"][p] for p in targets(spec))
-    return t["ctl_install"].replace("{where}", where).replace("{trust}", t["ctl_trust"] if "codex" in targets(spec) else "")
+    control = spec.get("control", {})
+    hooked = [p for p in targets(spec) if p in control.get("hook_targets", targets(spec))]
+    plugin = control.get("hook_via") == "plugin"
+    where = t["ctl_where_sep"].join(t["ctl_plugin_where" if plugin else "ctl_where"][p] for p in hooked)
+    text = t["ctl_plugin" if plugin else "ctl_install"]
+    return text.replace("{where}", where).replace("{trust}", t["ctl_trust"] if "codex" in hooked else "")
 
 
 def block_triggers(spec: dict) -> str:
@@ -236,9 +258,11 @@ def accepted(spec: dict, item: dict) -> str:
     t = text_of(spec)
     kind = item.get("type", "string")
     form = t["types"].get(kind, kind)
+    choices = "、".join(f"`{c}`" for c in item.get("enum", [])) if _lib.labels(spec) == "ja" else \
+        ", ".join(f"`{c}`" for c in item.get("enum", []))
+    if kind == "list" and item.get("enum"):  # 一覧の要素の候補
+        form += t["list_choices"].replace("{choices}", choices)
     if kind == "enum":
-        choices = "、".join(f"`{c}`" for c in item.get("enum", [])) if _lib.labels(spec) == "ja" else \
-            ", ".join(f"`{c}`" for c in item.get("enum", []))
         form = form.replace("{choices}", choices)
         if item.get("enum_aliases"):
             form += "（" + "、".join(f"{k}→`{v}`" for k, v in item["enum_aliases"].items()) + "）"
@@ -351,7 +375,7 @@ def block_contract(spec: dict) -> str:
         high = count.get("max")
         span = t["count"].replace("{low}", str(low)).replace("{high}", str(high)) if high is not None else \
             t["count_open"].replace("{low}", str(low))
-        checks = []
+        checks = [t["binary"]] if out.get("binary") else []
         if out.get("name_pattern"):
             checks.append(t["name_pattern"].replace("{p}", out["name_pattern"]) + f"（{out.get('rule')}）")
         checks += [describe_format(spec, fx) for fx in out.get("format", [])]
@@ -363,7 +387,7 @@ def block_contract(spec: dict) -> str:
         ids = ("、" if _lib.labels(spec) == "ja" else ", ").join(group.get("outputs", []))
         message = (f"（{group['message']}）" if _lib.labels(spec) == "ja" else f" ({group['message']})") if group.get("message") else ""
         lines.append(t["together"].replace("{ids}", ids).replace("{rule}", group.get("rule", "")).replace("{message}", message))
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines).rstrip("\n") + "\n"
 
 
 def block_checklist(spec: dict) -> str:
@@ -398,6 +422,7 @@ def block_control(spec: dict) -> str:
         rows = [[c.replace("{limit}", str(control.get("max_stop_blocks", 3))) for c in r] for r in t["ctl_rows"]]
         lines = [t["ctl_head"], "|---|---|---|", *["| " + " | ".join(r) + " |" for r in rows], "",
                  t["ctl_note"].replace("{name}", spec["name"]), "", ctl_install(spec, t)]
+    lines += ["", t["ctl_setup"], "", *t["ctl_change"]]
     return "\n".join(lines) + "\n"
 
 
@@ -411,10 +436,11 @@ def decisions_md(spec: dict) -> str:
     lines = [t["generated"], "", t["decisions_title"].replace("{title}", spec.get("title", spec["name"]))]
     lang = 0 if _lib.labels(spec) == "ja" else 1
     for d in decisions_sorted(spec, include_retired=True):
-        lines += ["", f"## {d['id']} {d.get('title', '')}", "", f"- {f['axes']}: {', '.join(d.get('axes', []))}"]
-        if str(d.get("retired", "")).strip():
-            lines.append(f"- {f['retired']}: {d['retired']}")
+        if str(d.get("retired", "")).strip():  # 廃止したルールは、廃止の見出しと理由だけを残す
+            lines += ["", f"## {d['id']} {d.get('title', '')}{f['retired_mark']}", "", f"- {f['axes']}: {', '.join(d.get('axes', []))}",
+                      f"- {f['retired']}: {d['retired']}"]
             continue
+        lines += ["", f"## {d['id']} {d.get('title', '')}", "", f"- {f['axes']}: {', '.join(d.get('axes', []))}"]
         lines += [f"- {f['decision']}: {d.get('decision', '')}",
                   f"- {f['reason']}: {d.get('reason', '')}",
                   f"- {f['basis']}: {_lib.BASES.get(d.get('basis'), (d.get('basis'),) * 2)[lang]}",
@@ -445,8 +471,9 @@ def contract(spec: dict) -> dict:
         "inputs": spec.get("inputs", []),
         "outputs": spec.get("outputs", []),
         "together": spec.get("together", []),
-        "control": {"hooks": control.get("hooks", True),
-                    "max_stop_blocks": control.get("max_stop_blocks", 3)},
+        "control": {"hooks": control.get("hooks", True), "max_stop_blocks": control.get("max_stop_blocks", 3),
+                    "feedback": control.get("feedback", True),
+                    **({"hook_targets": control["hook_targets"]} if "hook_targets" in control else {})},
         "report": {"include_output": spec.get("report", {}).get("include_output"), "rule": "RPT-01",
                    "sections": spec.get("report", {}).get("sections", [])},
     }

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "about": "settings/ の inputs 以外の欄の値の定義。inputs の定義は契約（assets/contract.json）の inputs。setup.py の選択肢、_skillrt.settings_problems の検査、_lib.convergence_settings がここを読む",
+  "sections": {
+    "convergence": {
+      "label": "収束テストの動かし方",
+      "items": {
+        "runners": {"type": "choices", "choices": ["claude", "codex", "subagent"], "required": true, "label": "エージェントを動かすもの"},
+        "agents": {"type": "count", "required": true, "label": "runner ごとのエージェントの人数"},
+        "max_rounds": {"type": "count", "required": true, "label": "ラウンドの上限。超えると続けるかを聞かれる"},
+        "thresholds": {
+          "label": "課題が基準を満たす揃い方（1 は全員が一致）",
+          "items": {
+            "files": {"type": "rate", "required": true, "label": "作った・変えたファイルの集合の一致度"},
+            "structure": {"type": "rate", "required": true, "label": "共通のファイルの骨格（見出し、JSON のキーと型など）が一致する割合"},
+            "names": {"type": "rate", "required": true, "label": "作業で新しく作った名前（英字の識別子）の一致度"}
+          }
+        },
+        "model": {
+          "label": "runner ごとのエージェントのモデル。null なら runner の既定",
+          "items": {
+            "claude": {"type": "text", "suggest": ["opus", "sonnet", "haiku", "fable"], "label": "claude -p の --model。正式名（例 claude-opus-5-5）も書ける"},
+            "codex": {"type": "text", "suggest": [], "label": "codex exec の -m。~/.codex/config.toml の model と同じ書き方"},
+            "subagent": {"type": "text", "suggest": ["opus", "sonnet", "haiku", "fable"], "label": "Agent ツールの model"}
+          }
+        },
+        "effort": {
+          "label": "runner ごとの推論エフォート。null なら runner の既定",
+          "items": {
+            "claude": {"type": "text", "suggest": ["low", "medium", "high", "xhigh", "max"], "label": "claude -p の --effort"},
+            "codex": {"type": "text", "suggest": ["low", "medium", "high", "xhigh", "max"], "label": "codex の model_reasoning_effort（使える値はモデルによる）"},
+            "subagent": {"type": "text", "suggest": ["low", "medium", "high", "xhigh", "max"], "label": "Agent ツールの effort"}
+          }
+        },
+        "analysis": {
+          "label": "各エージェントの動きを分析する AI",
+          "items": {
+            "runner": {"type": "choice", "choices": ["claude", "codex", "subagent"], "label": "分析役の runner。null なら runners の先頭"},
+            "model": {"type": "text", "suggest": ["opus", "sonnet", "haiku", "fable"], "label": "分析役のモデル。null なら分析役の runner の model"},
+            "effort": {"type": "text", "suggest": ["low", "medium", "high", "xhigh", "max"], "label": "分析役の推論エフォート。null なら分析役の runner の effort"}
+          }
+        },
+        "parallel": {"type": "count", "required": true, "label": "同時に動かすエージェントの数"},
+        "timeout": {"type": "count", "required": true, "label": "エージェント1人の上限の秒数"}
+      }
+    }
+  }
+}

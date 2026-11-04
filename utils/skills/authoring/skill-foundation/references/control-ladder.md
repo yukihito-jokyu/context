@@ -2,7 +2,7 @@
 
 ルールを書いただけでは、AI はそれに従うとは限らない。従わせるには、ルールごとに「守らせ方」を選び、機械で確かめられる形にする。フェーズ4では守らせ方を作り、フェーズ5では違反例（probe）を流して、守らせ方が本当に AI を止めることを証明する。
 
-この章は次の順に読む。1章で段を選び、2章で入力と出力の扱いの原則を確かめる。3章から5章で入力・出力（自動で直す format と、一緒に変える組を含む）・スクリプトを定義し、6章で手順を書き、7章で違反例とレビューの見本を作る。8章で、出力の検査と編集できる範囲を確かめる。
+この章は次の順に読む。1章で段を選び、2章で入力と出力の扱いの原則を確かめる。3章から5章で入力・出力（自動で直す format と、一緒に変える組を含む）・スクリプトを定義し、6章で手順を書き、7章で違反例とレビューの見本を作る。8章で、出力の検査と、実行中に編集できる範囲を確かめる。
 
 ## 1. 守らせ方の段
 
@@ -10,7 +10,7 @@
 
 | 段 | 意味 | 守ったかを確かめるもの | ルールに必要なもの |
 |---|---|---|---|
-| `runtime` | 共通ランタイム（`run.py`、`hook.py`、`install.py`、`feedback.py`、`feedback_review.py`）か、契約の `report.sections` が、AI の操作によらず行う・止める | 機械 | `how` に `run.py`・`hook.py`・`install.py`・`_skillrt.py`・`report.sections` のどれか。`probe.py` の標準の確認と hooks の動作の確認が証明する |
+| `runtime` | 共通ランタイム（`run.py`、`hook.py`、`install.py`）か、契約の `report.sections` が、AI の操作によらず行う・止める | 機械 | `how` に `run.py`・`hook.py`・`install.py`・`_skillrt.py`・`report.sections` のどれか。`probe.py` の標準の確認と hooks の動作の確認が証明する |
 | `format` | 検査の前に、契約の `format` が出力を自動で直す（4章） | 機械 | `outputs` の `format` でこの ID を使う。`probes` に、自動で直ることを確かめる違反例（`fixed` を持つもの。7章） |
 | `validate` | 出力を契約で検査し、違反をルールID付きで返す | 機械 | 契約（`outputs` の `rule`、`checks` の `rule`、`together` の `rule`）でこの ID を使う。`probes` に違反例の ID を1つ以上 |
 | `script` | AI に判断させず、スクリプトが値や材料を出す。AI がその値を使ったかは確かめない | — | `how` に実在する `scripts/<ファイル>`。単独では使わない |
@@ -53,7 +53,6 @@
 | 未知のキー | 捨てずに `extra` として記録する | `run.py start` |
 | ユーザーの発言 | 止めない、書き換えない | hooks の UserPromptSubmit（CTL-04） |
 | 出力の置き場・件数・中身 | 契約に合わなければルールID付きのエラーにする | `run.py check`・`finish`、hooks |
-| スキル自身のファイル | ユーザーの依頼に従って変更できる | 変更を理由に開始や完了を止めない |
 
 スキル固有のスクリプトも同じ原則で作る。引数とファイルの形には寛容にし、AI が書いた出力の検査では厳格にする。
 
@@ -148,8 +147,13 @@
 
 | 項目 | 既定 | 意味 |
 |---|---|---|
-| `hooks` | `true` | Claude Code と Codex に hooks を登録する |
+| `hooks` | `true` | Claude Code と Codex に hooks を登録する。`false` なら1つも登録しない |
+| `feedback` | `true` | 利用中の指摘の収集を hooks に足す（[feedback.md](feedback.md)） |
+| `hook_targets` | `targets` の全部 | hooks を登録する製品。`install.py` と `probe.py` は、ここにある製品にだけ hooks を登録し、動作を確かめる |
+| `hook_via` | `project` | hooks の登録先。`project` は `install.py` がプロジェクトの設定に書き、`plugin` はプラグインの hooks に書く（[platforms.md](platforms.md) の2章） |
 | `max_stop_blocks` | `3` | 応答の終了を差し戻す上限。超えると status を `failed` にする |
+
+`hooks`、`feedback`、`hook_targets`、`hook_via` は、SKILL.md の手順4で決めた hooks の方針（`dev/hooks-plan.json`）から、受付の後に `init_skill.py` が写す（STEP-08）。手で変えると、`skill_lint.py` が方針との食い違いを指摘する。方針を変えるときは `hooks_plan.py --ask` で聞き直してから `init_skill.py` を実行する。
 
 ## 5. スキル固有のスクリプト
 
@@ -163,7 +167,7 @@ AI に数えさせたり、集めさせたり、並べさせたりする処理�
 - ネットワークに触れず、同じ入力なら同じ結果を出す。乱数、UUID、現在時刻を出力に入れない（日付が要るなら入力か git から取る）。数秒で終わるようにする。`skill_lint.py` は、ネットワークのモジュールの import をエラーに、乱数・UUID・現在時刻を警告にする
 - 先頭の docstring に、そのスクリプトを `how` に挙げたルールID を書く。どのルールの `how` にも挙がっていないスクリプトは置かない。スクリプトからルールを辿れるようにするためで、`skill_lint.py` が確かめる
 - 部品のファイル（`_` で始まる。例：`_changes.py`）は作らない。同じ処理が2つのスクリプトに要るなら、1つのスクリプトのサブコマンドにする。部品に分けるかどうかが作る AI ごとに分かれ、スクリプトの構成が揃わないからである。`skill_lint.py` が確かめる
-- 共通ランタイム（`_skillrt.py`、`run.py`、`hook.py`、`install.py`、`feedback.py`、`feedback_review.py`）は書き換えない
+- 共通ランタイム（`_skillrt.py`、`run.py`、`hook.py`、`install.py`、`feedback.py`、`feedback_review.py`、`setup.py`）は書き換えない
 - 入力の値とプロジェクトのルートは、引数で受け取る。`checks` の `run` や手順のコマンドに `{in:キー}`・`{root}` を書いて渡す（4章）
 - 試すときは、試しのプロジェクトを手で作らない。スクリプトの分かれ道（指摘を出す場合、出さない場合）ごとに違反例（7章）を作り、`probe.py` で流す。一時プロジェクトの中を見たいときは、`probe.py <スキル> --only <違反例ID> --keep-temp` で残し、見終えたら消す。スキルのディレクトリ（`dev/` を含む）や `.skill-runs/` に試しのプロジェクトを置かない。手で試した分かれ道は記録に残らず、次に直したときに確かめ直されないからである
 
@@ -232,23 +236,32 @@ SKILL.md のうち、手で書くのは「2. 手順」の番号付きの行だ�
 - 違反例が成功しない（check が落ちない）ときに、違反例の方を弱めて成功させない。検査（`checks`）か、ルールの守らせ方を直す
 - format を含むルールには、`fixed` を持つ違反例を作る。check が終了コード0で終わり、出力が `expect` に当たり、`files` の1つ目に `fixed` が残っていなければ成功である（例：`"fixed": "。$"`）
 - review を含むルール（標準のルールを除く）には、`reviews` に違反の見本を1つ以上作る。`probe.py` は、見本が機械の検査を通ること（check が終了コード0）を確かめる。通らないなら、その違反は字面で判定できるので、段を validate にする。見本は収束テストの最後のラウンドで独立エージェントのレビューに渡し、完了前チェックリストで見つけられるか（検出率）を測る（[convergence-test.md](convergence-test.md) の3章と4章）
-- `probe.py` は、違反例・レビューの見本・開始と完了・質問待ち・報告の形・製品ごとの hooks を確かめる。スキル自身や hooks を変更した後も実行できることを確かめ、`dev/results/probe-results.json` に書く。
+- `probe.py` は、違反例とレビューの見本に加えて標準の確認（CTL-01・03、RPT-01。CTL-01 はスキルを編集した後も start・check・finish が通ることと、違反の出力が落ちることも、RPT-01 は abort と契約の変更の報告も含む。8章）と、製品ごとの hooks の動作（登録、matcher、編集の後、応答を終える前、スキル自身の編集の前は止めないこと、実行記録の編集の前、wait、実行していないとき）を確かめ、`dev/results/probe-results.json` に書く
 
 ## 8. 出力の検査と編集できる範囲
 
-出力の契約は `check`、`finish`、hooks が検査する。スキル自身のファイルと hooks の設定は、ユーザーの依頼に従って変更できる。変更を理由に実行を拒否せず、変更後に特別な手順を要求しない。
+スキルは使いながら育てるものなので、ユーザーが実行中でもスキル自身を微修正できるようにする。その代わり、品質は出力の検査で確かめる。次の表は、実行中に何を編集でき、何を止め、何を報告に出すかである。
 
-| 対象 | 扱い |
-|---|---|
-| スキルの本文・ルール・契約・スクリプト・設定 | 実行中も編集できる。出力は現在の契約で検査する |
-| hooks の登録 | 変更できる。登録の有無は `install.py --check` で確認できる |
-| `.skill-runs/<name>/state.json`・`report.md` | run.py が管理する実行記録。実行中の編集ツールによる直接の編集を拒否する |
-| 契約に合わない出力 | `check` と `finish` が指摘する。hooks が有効なら編集後と応答を終える前にも検査する |
-| 独立エージェントの作業ディレクトリ制限 | fence.py が管理する。スキルの微修正とは別に、作業範囲の外への操作を制限する |
+| 対象 | 実行中の扱い | 仕組み |
+|---|---|---|
+| スキル自身のファイル（`SKILL.md`、`scripts/`、`assets/`、`references/`） | 編集できる。止めない | 直した後は、SKILL.md の「8. 制御の仕組み」の順に spec → render → probe → `skill_lint.py --final` を通す |
+| hooks の登録（`.claude/settings.json`、`.codex/hooks.json`） | 変えられる。止めない | 揃っているかは `install.py --check` で確かめる |
+| 実行記録（`.skill-runs/<name>/state.json`、`report.md`） | 編集ツールでの直接の編集を拒否する | hooks の PreToolUse が deny を返す（CTL-04）。書くのは `run.py` だけ |
+| 契約に反する出力 | 指摘する。finish は通さない | `run.py check`・`finish` と hooks の PostToolUse・Stop が同じ検査をする（CTL-01）。契約（`assets/contract.json`）が前の実行から変わっていれば、報告の「検証」に1行出す（止めない） |
+| 利用中の指摘の記録（`.skill-feedback/<name>/`） | 編集ツールでの直接の編集を拒否する（実行していないときも） | hooks の PreToolUse が deny を返す。書くのは `feedback.py` と確認画面だけ（[feedback.md](feedback.md)） |
+| 作業ディレクトリの外への操作 | 収束テストの間だけ止める | `fence.py` が管理する。登録を外したエージェントは収束テストで失格にする（[convergence-test.md](convergence-test.md) の4章） |
 
-`probe.py` は、スキルを変更した後も `start`・`check`・`finish` が通ることと、不正な出力を検査が検出することを確かめる。
+検査を緩めて通すことは、止める代わりに見えるようにする。表で止めない対象を変えても、出力は同じ検査を受け、契約を変えれば報告に残る。ほかに、検査をすり抜ける次の道を共通ランタイムが塞ぐ。塞ぎきれない部分は「残る穴」の列に書いた。スキルを作るときは、残る穴を新しいルールで塞ぐか、報告で見えることを確かめる。
 
+| 抜け道 | 塞ぎ方 | 残る穴 |
+|---|---|---|
+| 出力を書いてから `start --restart` で基準を取り直す | restart は、出力の基準、契約のハッシュ、履歴を最初の start から引き継ぐ。報告の「検証」に restart の回数が出る | Bash で `.skill-runs/` ごと消してから start すると、記録も消える |
+| abort してから start し、前の中断を隠す | 次の start が前の status と理由を `previous` に残し、報告の「検証」に出す | 同上（`.skill-runs/` の削除） |
+| `assets/contract.json` を緩める | start が契約のハッシュを記録し、finish と abort が前の実行の終わりと比べて、変わっていれば報告の「検証」に出す | 止めはしない。緩める変更かどうかは人が確かめる |
+| wait のまま応答を終える | wait の間は Stop の hook が止めないが、status は done にならず、報告の本文も出ない。次の発言で active に戻る | ユーザーが発言しなければ、その実行は検査されないまま残る |
+| 報告を手で書く、要約する | finish と abort が同じ形の本文を出し、`report.md` に保存する（RPT-01） | 返答そのものは機械で比べない。`report.md` と見比べる |
+| 検査を止める記法（lint の無効化コメント、テストの skip、CI を止める記法）を書く | 共通ランタイムは塞がない。軸 O8（検査を止める記法）のルールにし、`forbid` で禁じる。種類 generate と fix では重点軸なので対象外にできない（[skill-profiles.md](skill-profiles.md)） | O8 を対象外にすると塞がれない。対象外にするには `excluded_axes` に理由が要る |
 
-## 9. 利用中の指摘と承認の収集
+`probe.py` は、このうちスキルの編集、契約の変更、abort を標準の確認として流す（`CTL-01-builtin-edited`：SKILL.md と契約を直した後も start・check・finish が通る、`CTL-01-builtin-edited-probe`：直した後も違反の出力が check で落ちる、`RPT-01-builtin-contract`：契約を変えると報告に出る、`RPT-01-builtin-abort`）。hooks の動作の確認では、スキル自身の編集の前に止めないこと（`pre-tool-skill`）と、実行記録の編集の前に拒否すること（`pre-tool`）を確かめる。収集を外していないスキルでは、完了の後の発言を記録して案内を返すこと（`feedback-prompt`）と、収集の記録の編集の前に拒否すること（`feedback-pre-tool`）も確かめる。
 
-生成するスキルには [feedback.md](feedback.md) の収集 hooks を追加機能として必ず同梱し、既定で登録する。生成した SKILL.md・ルール表・チェックリストには収集の指示や専用ルールを入れない。必要な指示は有効な hooks だけが注入する。hooks を無効にしてもスキル本来の処理が完了し、収集側の失敗も本来の処理を止めない。共通の assets/feedback.schema.json で、指摘・修正前後・確認画面でのユーザー承認・使ったスキルの版を保存する。承認済みの事例を export し、評価基準の合意を得てから Eval と収束テストへ使う。
+CTL-02（実行中はスキル自身のファイルを変えない）と、合格時の指紋（`assets/seal.json`）は廃止した。ユーザーによる微修正を妨げるためである。前の版で作ったスキルは、`init_skill.py --dir <skill> --update-runtime` で spec と共通ランタイムを移し、指紋を消す。

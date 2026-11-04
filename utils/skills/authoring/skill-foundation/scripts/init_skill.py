@@ -3,9 +3,12 @@
 
   1. spec の受付の項目（name、kind、mode、language、targets、title、purpose、triggers）を検査する。
      mode が retrofit（既存のスキルへの後付け）なら、元の SKILL.md を dev/original/SKILL.md に移す
-  2. spec に標準のルール（CTL-01・03・04、RPT-01。CTL-02 は廃止の記録）が無ければ足し、種類（kind）の追加の軸を extra_axes の先頭に入れる
+  2. spec に標準のルール（CTL-01〜04、RPT-01）が無ければ足し、種類（kind）の追加の軸を extra_axes の先頭に入れる。
+     前の版の spec は今の形に移す（標準のルールをひな形の版にし、合格時の指紋に関わるルール・保護ファイル・報告の節を外す）。
+     手順4で決めた hooks の方針（dev/hooks-plan.json）があれば、spec の control（hooks、feedback、hook_targets、hook_via）に写す
   3. ひな形から SKILL.md と dev/ の文書を作る
-  4. 実行時ランタイム（scripts/_skillrt.py、run.py、hook.py、install.py、feedback.py、feedback_review.py）を写す
+  4. 実行時ランタイム（scripts/_skillrt.py、run.py、hook.py、install.py、feedback.py、feedback_review.py）と、その資料
+     （assets/feedback.schema.json、references/feedback.md。英語のスキルは assets/templates/feedback.en.md）を写す
   5. render_skill.py で生成部分を埋める
 
 同じ spec からは常に同じ骨組みができる。
@@ -25,6 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _lib  # noqa: E402
+import hooks_plan  # noqa: E402
 import render_skill  # noqa: E402
 
 PLACEHOLDER = re.compile(r"<[^<>]*[^\x00-\x7f][^<>]*>")
@@ -91,16 +95,42 @@ def standard_decisions(language: str) -> list[dict]:
 
 
 def merge_standard(spec: dict) -> bool:
-    old = list(spec.get("decisions", []))
-    spec["decisions"] = [d for d in old if d.get("id") != "FBK-01"]
-    standards = {d["id"]: d for d in standard_decisions(_lib.labels(spec))}
-    spec["decisions"] = [standards["CTL-04"] if d.get("id") == "CTL-04" and
-                         any(word in d.get("decision", "") for word in ("収集", "collect")) else d
-                         for d in spec["decisions"]]
-    present = {d.get("id") for d in spec["decisions"]}
+    present = {d.get("id") for d in spec.get("decisions", [])}
     added = [d for d in standard_decisions(_lib.labels(spec)) if d["id"] not in present]
     spec.setdefault("decisions", []).extend(added)
-    return bool(added) or old != spec["decisions"]
+    return bool(added)
+
+
+SEAL_MARKS = ("seal.json", "--seal")  # 廃止した合格時の指紋を使うルールと報告の節の目印
+RETIRED_SEAL = {"ja": "合格時の指紋を廃止したため（ユーザーによる微修正を妨げるため）",
+                "en": "The seal was retired (it got in the way of small fixes by the user)"}
+
+
+def migrate(spec: dict) -> list[str]:
+    """前の版の spec を今の形に移す。標準のルールは変えられないので、ひな形と違えばひな形の版にする（CTL-02 の廃止、
+    CTL-04 の書き直し）。合格時の指紋を記録するスキル固有のルールは廃止にし、保護ファイル（control.protected）と
+    `--seal` の報告の節を外す。何を移したかの一覧を返す。"""
+    lang, done = _lib.labels(spec), []
+    standard = {d["id"]: d for d in standard_decisions(lang)}
+    decisions = spec.get("decisions", [])
+    for i, d in enumerate(decisions):
+        rid = d.get("id")
+        if rid in standard and d != standard[rid]:
+            decisions[i] = standard[rid]
+            done.append(f"標準のルール {rid} をひな形の版にした")
+        elif rid not in standard and not str(d.get("retired", "")).strip() and \
+                any(m in str(d.get(k, "")) for m in SEAL_MARKS for k in ("decision", "how")):
+            decisions[i] = {"id": rid, "axes": d.get("axes", []), "title": d.get("title", ""), "retired": RETIRED_SEAL[lang]}
+            done.append(f"合格時の指紋を記録するルール {rid} を廃止にした")
+    if "protected" in spec.get("control", {}):
+        spec["control"].pop("protected")
+        done.append("control.protected（保護ファイル）を外した")
+    sections = spec.get("report", {}).get("sections", [])
+    kept = [x for x in sections if "--seal" not in str(x.get("run", ""))]
+    if len(kept) != len(sections):
+        spec["report"]["sections"] = kept
+        done.append("report.sections から合格時の指紋を記録する節を外した")
+    return done
 
 
 def merge_profile(spec: dict) -> bool:
@@ -182,14 +212,22 @@ def main() -> int:
         return 1
 
     created, kept, differs = [], [], []
+    seal = skill_dir / "assets/seal.json"  # 廃止した合格時の指紋。ランタイムは読まないが、残すと意味を誤解されるので消す
+    removed = ["assets/seal.json（廃止した合格時の指紋）"] if seal.is_file() else []
+    if removed and not args.dry_run:
+        seal.unlink()
     moved = move_original(skill_dir, spec, args.dry_run)
     if moved:
         created.append(moved)
+    migrated = migrate(spec)
     added_standard = merge_standard(spec)
     added_axes = not _lib.is_foundation(skill_dir) and merge_profile(spec)
-    if added_standard or added_axes:
-        created.append(f"{_lib.SPEC_REL}（" + "、".join(x for x, on in (("標準のルールを追加", added_standard),
-                                                                     ("種類の追加の軸を extra_axes に追加", added_axes)) if on) + "）")
+    planned = hooks_plan.apply_plan(skill_dir, spec)
+    if added_standard or added_axes or migrated or planned:
+        created.append(f"{_lib.SPEC_REL}（" + "、".join([x for x, on in (("標準のルールを追加", added_standard),
+                                                                      ("種類の追加の軸を extra_axes に追加", added_axes),
+                                                                      (f"hooks の方針（{hooks_plan.PLAN_REL}）を control に写す", planned)) if on]
+                                                        + migrated) + "）")
         if not args.dry_run:
             _lib.write_json(spec_path, spec)
     for rel, template in plan(spec):
@@ -217,15 +255,18 @@ def main() -> int:
         if not args.dry_run:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(source.read_bytes())
-    for rel in ("assets/feedback.schema.json", "references/feedback.md"):
-        source, target = _lib.FOUNDATION_DIR / rel, skill_dir / rel
-        if rel == "references/feedback.md" and _lib.labels(spec) == "en":
-            source = _lib.TEMPLATES / "feedback.en.md"
-        if not target.exists() or args.update_runtime:
-            created.append(rel)
-            if not args.dry_run:
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(source.read_bytes())
+    for rel in _lib.RUNTIME_ASSETS:
+        source, target = _lib.runtime_asset_source(rel, _lib.labels(spec)), skill_dir / rel
+        if target.exists() and target.read_bytes() == source.read_bytes():
+            kept.append(rel)
+            continue
+        if target.exists() and not args.update_runtime:
+            differs.append(rel)
+            continue
+        created.append(rel)
+        if not args.dry_run:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read_bytes())
     for rel in ("references", "assets", _lib.EXAMPLES_DIR, "dev/fixtures"):
         if not args.dry_run:
             (skill_dir / rel).mkdir(parents=True, exist_ok=True)
@@ -243,6 +284,8 @@ def main() -> int:
         print(f"既存    {rel}")
     for rel in differs:
         print(f"差分あり {rel}（--update-runtime で最新版に置き換える）")
+    for rel in removed:
+        print(f"{'消す予定' if args.dry_run else '削除'}  {rel}")
     print(f"\n{len(created)} 件{verb}、{len(kept)} 件は既存のため変更なし、{len(differs)} 件は差分あり")
     print("次: フェーズ2（調査）。dev/research.md に出典付きで書く。"
           f"各フェーズで {_lib.TODO_MARKER} を埋め、最後に skill_lint.py --final で残りが無いことを確かめる")

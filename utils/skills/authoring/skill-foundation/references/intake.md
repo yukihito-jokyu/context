@@ -1,12 +1,12 @@
 # 受付（フェーズ0）
 
-フェーズ0では、作るスキルの「受付の項目」を決めて `dev/spec.json` に書く。受付の項目は `name`、`kind`、`mode`、`language`、`targets`、`title`、`purpose`、`triggers` の8つである。ここで決めた値から、置き場所と description が機械的に決まる。手順3で Eval を作ったなら、`purpose` は `dev/eval/eval.json` の確定した価値から、`triggers.use_when` は利用場面から書く（[eval.md](eval.md)）。skill-foundation 自身は、スキルを作る側なので `kind` を持たず、名前も `<動詞>-<目的語>` の形にしていない（`init_skill.py` と `skill_lint.py` が skill-foundation 自身を、この2つの検査から外す）。そのため、ここでばらつくと後のすべてがばらつく。
+フェーズ0では、作るスキルの「受付の項目」を決めて `dev/spec.json` に書く。受付の項目は `name`、`kind`、`mode`、`language`、`targets`、`title`、`purpose`、`triggers` の8つである。ここで決めた値から、置き場所と description が機械的に決まる。手順3で Eval を作ったなら、`purpose` は `dev/eval/eval.json` の確定した価値から、`triggers.use_when` は利用場面から書く（[eval.md](eval.md)）。手順4で決めた hooks の方針（`dev/hooks-plan.json`）は、受付の項目ではなく、受付の後に `init_skill.py` が spec の `control` に写す（STEP-08）。skill-foundation 自身は、スキルを作る側なので `kind` を持たず、名前も `<動詞>-<目的語>` の形にしていない（`init_skill.py` と `skill_lint.py` が skill-foundation 自身を、この2つの検査から外す）。そのため、ここでばらつくと後のすべてがばらつく。
 
 この章は次の順に読む。1章でユーザーに何を聞くかを決め、2章から5章で各項目の値を決め、6章で対象外の依頼を断る。
 
 ## 1. 聞くことと、聞かずに決めること
 
-受付の質問は `run.py start` の前に1回だけまとめて行う（CTL-03）。次の表の「依頼に無いとき」に従う。表に無い項目は聞かない。start の後に聞くのは、OUT-06（既存のスキルへの後付け）、STEP-06（Eval の材料と価値の確定）、STEP-02（収束テストを実行するか）、STEP-04（ラウンドを足すか）の場合分けが `run.py wait --question` を指示するときだけである。
+受付の質問は `run.py start` の前に1回だけまとめて行う（CTL-03）。次の表の「依頼に無いとき」に従う。表に無い項目は聞かない。start の後に聞くのは、OUT-06（既存のスキルへの後付け）、STEP-06（Eval の材料と価値の確定）、STEP-08（hooks の方針）、STEP-02（収束テストを実行するか）、STEP-04（ラウンドを足すか）の場合分けが `run.py wait --question` を指示するときだけである。
 
 | 項目 | 依頼に無いとき |
 |---|---|
@@ -18,10 +18,11 @@
 | 言語（`language`） | 聞かない。3章で決める |
 | 収束テストの実行（`measure`） | 聞かない。依頼に指定があるときだけ `--set` で渡す。無ければ渡さない（設定、無ければ既定値 `ask`。実行の直前に回数を示して確かめる） |
 | Eval の作成（`eval`） | 聞かない。依頼に指定があるときだけ `--set` で渡す。無ければ渡さない（設定、無ければ既定値 `make`。手順3で材料を聞いて作る） |
+| hooks の方針（`hooks`） | 受付では聞かない。依頼に指定（「hooks は使わない」など）があるときだけ `--set` で渡す。無ければ渡さない（設定、無ければ既定値 `all`）。手順4で、指定が無ければカタログで聞き、聞けないときはこの値で決める（STEP-08） |
 | 自動で起動するか（`triggers.implicit`） | 聞かない。5章の表で決める |
 | 上のどれでもない | 聞かない。既定値を使い、報告の「補足」に書く |
 
-表の「設定」は、skill-foundation の `settings/user-setting.yaml`（ユーザーの設定）と `settings/skill-setting.yaml`（スキルの設定）の `inputs` で、`run.py start` がこの順に null でない最初の値を使う。ユーザーの設定は各自の手元にだけ置くファイルで、無ければ飛ばす。作るときは `assets/templates/user-setting.example.yaml` を写す。依頼の指定（`--set` と依頼文の「キー: 値」の行）は設定より強い。どこから決まったかは、start の出力と報告の「既定値で決めた値」に出る。
+表の「設定」は、skill-foundation の `settings/user-setting.yaml`（ユーザーの設定）と `settings/skill-setting.yaml`（スキルの設定）の `inputs` で、`run.py start` がこの順に null でない最初の値を使う。ユーザーの設定は各自の手元にだけ置くファイルで、無ければ飛ばす。作るときは、利用者が `scripts/setup.py` で選ぶか、`assets/templates/user-setting.example.yaml` を写す。依頼の指定（`--set` と依頼文の「キー: 値」の行）は設定より強い。どこから決まったかは、start の出力と報告の「既定値で決めた値」に出る。
 
 ユーザーが値を指定したときは、その値を使う。ただし `name` が2章の形に合わないときは、2章の規則で直した名前を使い、報告の「補足」に元の指定と直した理由を書く。
 

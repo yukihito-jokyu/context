@@ -20,7 +20,18 @@ TEMPLATES = FOUNDATION_DIR / "assets" / "templates"
 SPEC_REL = "dev/spec.json"
 ORIGINAL_REL = "dev/original/SKILL.md"  # 後付け（mode: retrofit）で、元の SKILL.md を残す場所
 EXISTING_SECTIONS = ["既存のスキル", "Existing skill"]  # 後付けで、dev/research.md に元のスキルの調べを書く節
-RUNTIME_FILES = ["_skillrt.py", "run.py", "hook.py", "install.py", "feedback.py", "feedback_review.py"]
+RUNTIME_FILES = ["_skillrt.py", "run.py", "hook.py", "install.py", "feedback.py", "feedback_review.py", "setup.py"]
+# 共通ランタイムの資料。英語のスキルの references/feedback.md は assets/templates/feedback.en.md を写す
+RUNTIME_ASSETS = ["assets/feedback.schema.json", "references/feedback.md"]
+RUNTIME_ASSET_EN = {"references/feedback.md": "assets/templates/feedback.en.md"}
+# 利用中の指摘の収集の目印。収集は hooks の追加機能なので、SKILL.md とルールの表（decisions.md）に書かない（skill_lint.py）
+COLLECT_MARKS = ["feedback.py feedback", "feedback.py ignore", "feedback.py context", "feedback.py review", "feedback.py status",
+                 "feedback_review.py", ".skill-feedback", "references/feedback.md", "additionalContext"]
+
+
+def runtime_asset_source(rel: str, language: str | None) -> Path:
+    """共通ランタイムの資料 rel の、スキルの言語に合わせた元のファイル。"""
+    return FOUNDATION_DIR / (RUNTIME_ASSET_EN.get(rel, rel) if language == "en" else rel)
 FIXTURE_NAME = "basic"  # dev/fixtures/ の下に置く唯一の fixture（課題ごとの違いは setup で作る）
 TODO_MARKER = "TODO(" + "skill-foundation)"  # このファイル自体が --final の検査に掛からないよう分割する
 LANGS = ["ja", "en"]
@@ -58,6 +69,7 @@ AXES = {
     "O8": ("OUT", "検査を止める記法", "decision"),
     "R1": ("RPT", "最終の返答の形", "standard"),
     "C1": ("CTL", "実行の始まりと終わり", "standard"),
+    "C2": ("CTL", "スキル自身の保護（廃止）", "standard"),
     "C3": ("CTL", "質問の時機", "standard"),
     "C4": ("CTL", "自動実行（hooks）", "standard"),
 }
@@ -237,53 +249,26 @@ def load_spec(skill_dir: Path) -> dict:
     return load_json(skill_dir / SPEC_REL)
 
 
-# 収束テストの動かし方（skill-foundation の settings/ の convergence）。項目 → 値の種類。入れ子は項目の組
-CONVERGENCE_SETTINGS = {
-    "runners": "runners", "agents": "count", "max_rounds": "count",
-    "thresholds": {"files": "rate", "structure": "rate", "names": "rate"},
-    "model": {"claude": "text", "codex": "text", "subagent": "text"},
-    "effort": {"claude": "text", "codex": "text", "subagent": "text"},
-    "analysis": {"runner": "runner", "model": "text", "effort": "text"},
-    "parallel": "count", "timeout": "count",
-}
-CONVERGENCE_REQUIRED = ["runners", "agents", "max_rounds", "thresholds.files", "thresholds.structure", "thresholds.names",
-                        "parallel", "timeout"]  # どの層にも無いと収束テストを動かせない項目
-CONVERGENCE_RUNNERS = ["claude", "codex", "subagent"]
+# 収束テストの動かし方（skill-foundation の settings/ の convergence）。値の定義は assets/settings.schema.json にだけ書く
+CONVERGENCE_SETTINGS = load_json(FOUNDATION_DIR / "assets/settings.schema.json")["sections"]["convergence"]["items"]
+
+
+def required_paths(items: dict, prefix: str = "") -> list[str]:
+    """定義で required の項目（入れ子は `thresholds.files` の形）。"""
+    return [path for key, item in items.items()
+            for path in (required_paths(item["items"], f"{prefix}{key}.") if "items" in item
+                         else [prefix + key] if item.get("required") else [])]
+
+
+CONVERGENCE_REQUIRED = required_paths(CONVERGENCE_SETTINGS)  # どの層にも無いと収束テストを動かせない項目
 SETTING_SOURCES = {"args": "引数", "spec": "dev/spec.json の convergence", "user": "ユーザーの設定 settings/user-setting.yaml",
                    "skill": "スキルの設定 settings/skill-setting.yaml"}
 
 
-def setting_problem(kind: str, value) -> str | None:
-    """設定の値が種類に合わないときの説明。null は「値なし」なので合う。"""
-    if value is None:
-        return None
-    number = isinstance(value, (int, float)) and not isinstance(value, bool)
-    if kind == "runners":
-        ok = isinstance(value, list) and bool(value) and all(v in CONVERGENCE_RUNNERS for v in value)
-        return None if ok else f"{CONVERGENCE_RUNNERS} から選んだ一覧にしてください"
-    if kind == "runner":
-        return None if value in CONVERGENCE_RUNNERS else f"{CONVERGENCE_RUNNERS} のどれかにしてください"
-    if kind == "count":
-        return None if number and value == int(value) and value >= 1 else "1 以上の整数にしてください"
-    if kind == "rate":
-        return None if number and 0 <= value <= 1 else "0 から 1 の数にしてください"
-    return None if isinstance(value, str) and value.strip() else "空でない文字列にしてください"
-
-
-def convergence_problems(data, shape: dict = CONVERGENCE_SETTINGS, prefix: str = "convergence") -> list[str]:
+def convergence_problems(data, items: dict = CONVERGENCE_SETTINGS, prefix: str = "convergence") -> list[str]:
     """設定の convergence の誤り（設定に無い項目、種類に合わない値）。"""
-    if not isinstance(data, dict):
-        return [f"{prefix} はオブジェクトにしてください"]
-    problems = []
-    for key, value in data.items():
-        where = f"{prefix}.{key}"
-        if key not in shape:
-            problems.append(f"{where} は設定の項目にありません（{', '.join(shape)}）")
-        elif isinstance(shape[key], dict):
-            problems += convergence_problems(value, shape[key], where) if value is not None else []
-        elif setting_problem(shape[key], value):
-            problems.append(f"{where}: {setting_problem(shape[key], value)}")
-    return problems
+    import _skillrt
+    return _skillrt.section_problems(data, items, prefix)
 
 
 def setting_files() -> tuple[list[tuple[str, dict]], list[str]]:
@@ -299,6 +284,7 @@ def setting_files() -> tuple[list[tuple[str, dict]], list[str]]:
 def convergence_settings(spec: dict, args: dict | None = None) -> tuple[dict, dict, list[str]]:
     """収束テストの動かし方、項目ごとの出どころ（SETTING_SOURCES のキー）、設定の誤り。
     引数 → 作るスキルの spec の convergence → ユーザーの設定 → スキルの設定 の順に、null でなく種類に合う最初の値を使う。"""
+    import _skillrt
     files, warnings = setting_files()
     layers = [("args", args or {}), ("spec", spec.get("convergence") or {})]
     layers += [(source, data.get("convergence") or {}) for source, data in files]
@@ -306,19 +292,61 @@ def convergence_settings(spec: dict, args: dict | None = None) -> tuple[dict, di
 
     def pick(shape: dict, layers: list, prefix: str) -> dict:
         values = {}
-        for key, kind in shape.items():
+        for key, item in shape.items():
             here = [(source, data.get(key)) for source, data in layers if isinstance(data, dict)]
-            if isinstance(kind, dict):
-                values[key] = pick(kind, here, f"{prefix}{key}.")
+            if "items" in item:
+                values[key] = pick(item["items"], here, f"{prefix}{key}.")
                 continue
             values[key] = None
             for source, value in here:
-                if value is not None and not setting_problem(kind, value):
+                if value is not None and not _skillrt.setting_problem(item, value):
                     values[key], sources[prefix + key] = value, source
                     break
         return values
 
     return pick(CONVERGENCE_SETTINGS, layers, ""), sources, warnings
+
+
+VERDICT_CONDS = {"status": "status", "check": "check", "fence": "fence.py の登録", "files": "files", "structure": "structure",
+                 "names": "names", "eval": "Eval"}  # 収束テストの基準の条件（verdict.failed の cond）と見せる名前
+
+
+def verdict_failed(task: dict, thresholds: dict) -> list[dict]:
+    """収束テストの課題が満たさなかった基準の条件（report.json の verdict.failed）。convergence.py の diff の判定と同じ条件を、
+    課題の記録から数え直す。条件ごとに {"cond", "value", "threshold"} か {"cond", "detail"} を返す。"""
+    failed = []
+    expected, statuses = task.get("expect_status", "done"), task.get("status") or {}
+    off = sorted(n for n, s in statuses.items() if s != expected)
+    if off or not statuses:
+        failed.append({"cond": "status", "detail": ("、".join(f"{n} が {statuses[n]}" for n in off) or "エージェントがいない")
+                       + f"（期待 {expected}）"})
+    broken = sorted(n for n, code in (task.get("check") or {}).items() if code != 0)
+    if broken:
+        failed.append({"cond": "check", "detail": "、".join(broken) + " が失敗"})
+    if task.get("tampered"):
+        failed.append({"cond": "fence", "detail": "、".join(sorted(task["tampered"])) + " が外した"})
+    for key in ("files", "structure", "names"):
+        value, limit = task.get(key), thresholds.get(key, 0.8 if key == "names" else 1.0)
+        if value is not None and value < limit:
+            failed.append({"cond": key, "value": value, "threshold": limit})
+    results = [s.get("result") for scores in (task.get("eval") or {}).values() for s in scores.values()]
+    if "fail" in results:
+        failed.append({"cond": "eval", "detail": f"落ちた {results.count('fail')}"})
+    elif "pending" in results:
+        failed.append({"cond": "eval", "detail": f"model の判定待ち {results.count('pending')}"})
+    return failed
+
+
+def verdict_text(failed: list[dict]) -> str:
+    """満たさなかった条件の短い文（例: structure 0.545 < 1.0、Eval 落ちた 2）。"""
+    return "、".join(f"{VERDICT_CONDS.get(c['cond'], c['cond'])} {c['value']:.3f} < {c['threshold']}" if "value" in c else
+                    f"{VERDICT_CONDS.get(c['cond'], c['cond'])} {c['detail']}" for c in failed)
+
+
+def task_failed(task: dict, thresholds: dict) -> list[dict]:
+    """report.json の verdict.failed。内訳を足す前の記録には無いので、課題の記録から数え直す。"""
+    verdict = task.get("verdict")
+    return verdict["failed"] if isinstance(verdict, dict) and isinstance(verdict.get("failed"), list) else verdict_failed(task, thresholds)
 
 
 def setting_value(values: dict, path: str):

@@ -21,11 +21,13 @@ import sys
 import unicodedata
 from pathlib import Path
 
-RUNTIME_VERSION = "1.0.0"
+RUNTIME_VERSION = "1.2.0"
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CONTRACT_REL = "assets/contract.json"
 # 依頼に指定の無い入力の既定値。前の方が強く、null の項目は次へ進む（ユーザーの設定 → スキルの設定）
 SETTINGS_FILES = [("user", "settings/user-setting.yaml"), ("skill", "settings/skill-setting.yaml")]
+SETTINGS_BACKUP_REL = "settings/user-setting.yaml.bak"  # setup.py がユーザーの設定を上書きする前に残す写し
+SETTINGS_SCHEMA_REL = "assets/settings.schema.json"  # settings/ の inputs 以外の欄の値の定義（無いスキルは inputs だけ）
 RUNS_DIRNAME = ".skill-runs"
 # 出力の探索で入らないディレクトリ（パターンの固定部分に含まれる場合は入る）
 SKIP_DIRS = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache",
@@ -193,6 +195,12 @@ def load_contract(skill_dir: Path = SKILL_DIR) -> dict:
     return load_json(skill_dir / CONTRACT_REL)
 
 
+def contract_hash(skill_dir: Path = SKILL_DIR) -> str | None:
+    """契約のハッシュ。start が記録し、前の実行から変わっていれば報告の「検証」に出す（止めない）。"""
+    path = skill_dir / CONTRACT_REL
+    return sha256(path) if path.is_file() else None
+
+
 def project_root(start: Path) -> Path:
     """プロジェクトのルート。start から親へ辿って最初に .git がある場所、無ければ start 自身。"""
     current = start.resolve()
@@ -316,7 +324,7 @@ def iter_glob(root: Path, pattern: str) -> list[str]:
         rel_dir = Path(dirpath).relative_to(root).as_posix()
         rel_dir = "" if rel_dir == "." else rel_dir
         dirnames[:] = sorted(d for d in dirnames
-                             if d not in SKIP_DIRS and d != ".skill-feedback" and not (Path(dirpath) / d).is_symlink())
+                             if d not in SKIP_DIRS and not (Path(dirpath) / d).is_symlink())
         for f in filenames:
             rel = f"{rel_dir}/{f}" if rel_dir else f
             if regex.match(rel) and not (Path(dirpath) / f).is_symlink():
@@ -370,18 +378,11 @@ def convert_type(value, spec: dict):
             return False
         raise ValueError(f"真偽値として読めません: {value!r}")
     if kind == "list":
-        if isinstance(value, list):
-            return [str(v).strip() for v in value if str(v).strip()]
-        return [v.strip() for v in re.split(r"[,、，\n]+", str(value)) if v.strip()]
+        items = value if isinstance(value, list) else re.split(r"[,、，\n]+", str(value))
+        items = [str(v).strip() for v in items if str(v).strip()]
+        return [enum_choice(v, spec) for v in items] if spec.get("enum") else items  # enum があれば一覧の要素の候補
     if kind == "enum":
-        choices = spec.get("enum", [])
-        aliases = {canon(k): v for k, v in spec.get("enum_aliases", {}).items()}
-        for choice in choices:
-            if canon(choice) == canon(value):
-                return choice
-        if canon(value) in aliases:
-            return aliases[canon(value)]
-        raise ValueError(f"{choices} のどれでもありません: {value!r}")
+        return enum_choice(value, spec)
     if kind == "path":
         return Path(str(value)).as_posix()
     if kind == "slug":
@@ -390,6 +391,18 @@ def convert_type(value, spec: dict):
             raise ValueError(f"英数字を含まないので slug にできません: {value!r}")
         return slug
     raise ValueError(f"未知の type: {kind}")
+
+
+def enum_choice(value, spec: dict) -> str:
+    """enum の候補のどれか（表記ゆれと enum_aliases を吸収する）。どれでもなければ ValueError。"""
+    choices = spec.get("enum", [])
+    aliases = {canon(k): v for k, v in spec.get("enum_aliases", {}).items()}
+    for choice in choices:
+        if canon(choice) == canon(value):
+            return choice
+    if canon(value) in aliases:
+        return aliases[canon(value)]
+    raise ValueError(f"{choices} のどれでもありません: {value!r}")
 
 
 def load_settings(skill_dir: Path = SKILL_DIR) -> tuple[list[tuple[str, dict]], list[str]]:
@@ -409,6 +422,76 @@ def load_settings(skill_dir: Path = SKILL_DIR) -> tuple[list[tuple[str, dict]], 
         else:
             warnings.append(f"{rel}: オブジェクトでないので使いません")
     return layers, warnings
+
+
+def settings_schema(skill_dir: Path = SKILL_DIR) -> dict:
+    """settings/ の inputs 以外の欄の定義（欄 → {label, items}）。項目は type と、入れ子の組は items を持つ。"""
+    path = skill_dir / SETTINGS_SCHEMA_REL
+    return load_json(path).get("sections", {}) if path.is_file() else {}
+
+
+def setting_problem(item: dict, value) -> str | None:
+    """設定の値が定義の type に合わないときの説明。null は「値なし」なので合う。"""
+    if value is None:
+        return None
+    kind, choices = item.get("type"), item.get("choices", [])
+    number = isinstance(value, (int, float)) and not isinstance(value, bool)
+    if kind == "choices":
+        ok = isinstance(value, list) and bool(value) and all(v in choices for v in value)
+        return None if ok else f"{choices} から選んだ一覧にしてください"
+    if kind == "choice":
+        return None if value in choices else f"{choices} のどれかにしてください"
+    if kind == "count":
+        return None if number and value == int(value) and value >= 1 else "1 以上の整数にしてください"
+    if kind == "rate":
+        return None if number and 0 <= value <= 1 else "0 から 1 の数にしてください"
+    return None if isinstance(value, str) and value.strip() else "空でない文字列にしてください"
+
+
+def section_problems(data, items: dict, prefix: str) -> list[str]:
+    """設定の欄の誤り（定義に無い項目、type に合わない値）。"""
+    if not isinstance(data, dict):
+        return [f"{prefix} はオブジェクトにしてください"]
+    problems = []
+    for key, value in data.items():
+        where = f"{prefix}.{key}"
+        if key not in items:
+            problems.append(f"{where} は設定の項目にありません（{', '.join(items)}）")
+        elif "items" in items[key]:
+            problems += section_problems(value, items[key]["items"], where) if value is not None else []
+        elif setting_problem(items[key], value):
+            problems.append(f"{where}: {setting_problem(items[key], value)}")
+    return problems
+
+
+def settings_problems(data, inputs: list[dict], sections: dict) -> list[str]:
+    """設定ファイル1つの誤り。inputs は契約の入力の key と type、ほかの欄は settings_schema の定義に合わせる。"""
+    if not isinstance(data, dict) or not isinstance(data.get("inputs") or {}, dict):
+        return ["`inputs:` の下に `<入力の key>: <値か null>` を並べた形にしてください"]
+    problems = [f"`{key}` は設定の欄にありません（{', '.join(['inputs', *sections])}）"
+                for key in data if key != "inputs" and key not in sections]
+    specs = {i.get("key"): i for i in inputs}
+    for key, value in (data.get("inputs") or {}).items():
+        if key not in specs:
+            problems.append(f"inputs の `{key}` は入力にありません（{', '.join(specs)}）")
+        elif value is not None:
+            try:
+                convert(value, specs[key])
+            except ValueError as exc:
+                problems.append(f"inputs の `{key}` が入力の type に合いません: {exc}")
+    for name, section in sections.items():
+        if data.get(name) is not None:
+            problems += section_problems(data[name], section.get("items", {}), name)
+    return problems
+
+
+def check_settings(skill_dir: Path = SKILL_DIR) -> list[str]:
+    """settings/ の設定を load_settings で読み、読めないことと定義に合わない値を「<ファイル>: <説明>」で返す。"""
+    layers, problems = load_settings(skill_dir)
+    rels, inputs, sections = dict(SETTINGS_FILES), load_contract(skill_dir).get("inputs", []), settings_schema(skill_dir)
+    for source, data in layers:
+        problems += [f"{rels[source]}: {p}" for p in settings_problems(data, inputs, sections)]
+    return problems
 
 
 def normalize_input(raw: dict, text: str, contract: dict, settings: list[tuple[str, dict]] | None = None,
@@ -586,7 +669,11 @@ def format_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path,
     path, fixes, problems = root / rel, [], []
     for fix in out.get("format", []):
         rule, kind = fix["rule"], fix["type"]
+        if out.get("binary") and kind != "command":
+            continue  # バイナリの出力は文字列として直さない（skill_lint.py が command 以外を書かせない）
         if kind == "command":
+            if not path.is_file():
+                return fixes, problems
             before = sha256(path)
             code, output = run_shell(fill_command(fix["run"], root, name, skill_dir, values, rel), root, int(fix.get("timeout", 60)))
             if code != 0:
@@ -634,12 +721,13 @@ def selected_lines(spec, count: int) -> list[int]:
 
 def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, values: dict | None = None,
                edit: bool = False) -> list[dict]:
-    """出力ファイル1つを、契約の checks で検査する。edit（編集の直後の検査）では stage: finish の検査を飛ばす。"""
+    """出力ファイル1つを、契約の checks で検査する。edit（編集の直後の検査）では stage: finish の検査を飛ばす。
+    binary: true の出力（画像など）は文字列として読まず、ファイル名と command の検査だけを行う。"""
     path = root / rel
     try:
         text = "" if out.get("binary") else path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        return [finding(out.get("rule", "OUT"), rel, 0, "UTF-8 のテキストとして読めません")]
+        return [finding(out.get("rule", "OUT"), rel, 0, "UTF-8 のテキストとして読めません（画像などなら契約の出力に binary: true を付ける）")]
     lines = text.splitlines()
     findings = []
     pattern = out.get("name_pattern")
@@ -649,11 +737,10 @@ def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, valu
         if edit and check.get("stage") == "finish":
             continue
         rule, kind = check["rule"], check["type"]
-        if out.get("binary") and kind != "command":
-            findings.append(finding(rule, rel, 0, "binary の出力には command の検査を指定してください"))
-            continue
         message = check.get("message", "")
         suffix = f"（{message}）" if message else ""
+        if out.get("binary") and kind != "command":
+            continue
         if kind == "headings":
             level = check.get("level")
             found = [(n, t) for n, lv, t in headings(lines) if level is None or lv == level]
@@ -721,7 +808,7 @@ def check_file(root: Path, rel: str, out: dict, name: str, skill_dir: Path, valu
 
 def check_outputs(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
                   only: str | None = None, fixes: list | None = None) -> tuple[list[dict], dict]:
-    """契約の出力を、format で直してから検査する。only を渡すとそのファイルだけを検査し、件数は見ない。
+    """契約の出力を、format で直してから検査する。only を渡すとそのファイルだけを検査し、件数と一緒に変える組は見ない。
     戻り値は（指摘の一覧, 出力ID → 変わったファイルの一覧）。直したものは fixes に足す。"""
     fixes = [] if fixes is None else fixes
     name = state["skill"]
@@ -807,7 +894,7 @@ def fill_command(template: str, root: Path, name: str, skill_dir: Path, values: 
 def report_sections(root: Path, state: dict, contract: dict, skill_dir: Path = SKILL_DIR,
                     stage: str = "finish") -> tuple[list[str], list[dict]]:
     """契約の report.sections のコマンドを実行し、その出力（Markdown の節）を返す。失敗は指摘にする。
-    stage: finish の節（終えるときだけ行うもの）は、check からは実行しない。"""
+    stage: finish の節（カタログの書き直しのように、終えるときだけ行うもの）は、check からは実行しない。"""
     rule = contract.get("report", {}).get("rule", "RPT")
     texts, findings = [], []
     for i, section in enumerate(contract.get("report", {}).get("sections", []), 1):
