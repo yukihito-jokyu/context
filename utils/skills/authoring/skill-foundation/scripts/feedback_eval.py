@@ -1,164 +1,243 @@
 #!/usr/bin/env python3
-"""Prepare an isolated skill + Eval/convergence draft from approved feedback.
+"""承認済みの利用中の指摘（feedback.py export で取り出したもの）から、改善するスキルの作業用コピーと、Eval・収束テストの
+候補を作る（references/eval.md の9章）。正本のスキルと既存の Eval は変えない。
 
-Approval of one corrected artifact is evidence for that example, not approval of a
-general evaluation rubric. The draft therefore has pending user questions and cannot
-pass eval_check.py or start convergence runs until the normal Eval review is complete.
+作るもの（<out> は新しいディレクトリ。作業用のプロジェクトとして使う）:
+  <out>/<置き場>/<name>/            改善するスキルの作業用コピー（dev/results/ は写さない）。置き場は spec の targets の先頭から
+                                    決める（.claude/skills か .agents/skills）ので、catalog.py --project <out> で開ける
+    dev/eval/eval.json              既存の Eval に、指摘ごとの材料・価値仮説・価値・振る舞い・成功と失敗の事例を、指摘の ID
+                                    （feedback）付きで下書きして足す。questions に、ユーザーに確かめる4つのことを書く
+    dev/eval/cases/feedback/<指摘>/  事例の出力の見本（判定するファイルの、before- が修正前、after- が承認した版）
+    dev/evals.json                  既存の課題に、指摘ごとの課題（T-feedback-<番号>）を足す。元の依頼（prompt）と入力の値
+                                    （input）と、保存した入力ファイルの置き先（feedback_inputs）を書く
+    dev/feedback-inputs/<課題>/      保存した入力ファイル（convergence.py prepare が課題の作業ディレクトリに置く）
+  <out>/dataset/                    取り出したものの写し
+  <out>/candidate.json              候補の状態（ユーザーの確認待ち）と、指摘・課題・振る舞い・事例の対応
+
+候補の質問（questions）は、今の Eval 作成と同じく、カタログの「Eval 作成」タブで答えてもらい、eval_check.py --answer で
+記録する。答えるまで eval_check.py は先へ進ませない。確認画面での成果物の承認は「この修正版で OK」の意味で、「今後この条件で
+評価してよい」という同意ではないので、判定への同意は質問で確かめ直す。候補を正本に反映するのは、作業用コピーで Eval 作成と
+収束テストを通した後に、人が判断して行う。
+
+終了コード: 0 作った、1 取り出したものか改善するスキルに問題がある、2 引数の誤り
+
+使い方:
+  python3 feedback_eval.py --dataset <取り出したもの> --skill <改善するスキル> --out <新しい作業場所>
 """
+
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-from pathlib import Path
+import os
 import shutil
 import sys
+from pathlib import Path
 
-import _lib
-import feedback as fb
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _lib  # noqa: E402
+import _skillrt as rt  # noqa: E402
+import feedback  # noqa: E402
 
-
-def safe_path(base: Path, rel: str) -> Path:
-    path = (base / rel).resolve()
-    if Path(rel).is_absolute() or not path.is_relative_to(base.resolve()):
-        raise fb.FeedbackError("Invalid stored path: " + rel)
-    return path
-
-
-def example(dataset: Path, destination: Path, delivery: dict) -> None:
-    """Readable artifact set, with the original bytes preserved alongside the manifest."""
-    artifacts = []
-    for index, item in enumerate(delivery["artifacts"], 1):
-        raw = fb.blob(dataset, item)
-        file = destination.parent / (destination.stem + "-files") / str(index) / Path(item["path"]).name
-        file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_bytes(raw)
-        try:
-            text = raw.decode("utf-8")
-        except UnicodeDecodeError:
-            text = None
-        artifacts.append({"path": item["path"], "output": item["output"], "media_type": item["media_type"],
-                          "sha256": item["sha256"], "file": file.relative_to(destination.parent).as_posix(), "text": text})
-    fb.atomic_json(destination, {"artifacts": artifacts})
+PLACES = {"claude": ".claude/skills", "codex": ".agents/skills"}  # convergence.py の PLACES と同じ
+EVAL_REL, TASKS_REL, INPUTS_REL = "dev/eval/eval.json", "dev/evals.json", "dev/feedback-inputs"
+CASES_REL = "cases/feedback"  # dev/eval/ からの相対
+STATUS = {"status": "awaiting-user", "label": "ユーザーの確認待ち"}
 
 
-def prepare(dataset: Path, skill: Path, output: Path) -> dict:
-    data = json.loads((dataset / "feedback.json").read_text(encoding="utf-8"))
-    fb.validate(dataset, data)
-    cases = [c for c in data["cases"] if c["status"] == "approved"]
-    if not cases:
-        raise fb.FeedbackError("No approved feedback cases")
-    contract = json.loads((skill / "assets/contract.json").read_text(encoding="utf-8"))
-    if data["skill"] != contract["skill"]:
-        raise fb.FeedbackError("Feedback and skill names do not match")
-    if output.exists() or output.is_relative_to(skill):
-        raise fb.FeedbackError("Choose a new workspace outside the source skill")
-    if any(p.is_symlink() for p in skill.rglob("*")):
-        raise fb.FeedbackError("Use the resolved skill directory without nested symbolic links")
-    candidate_rel = "skills/" + data["skill"]
-    candidate = output / candidate_rel
-    shutil.copytree(skill, candidate, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git", ".skill-runs", fb.DIRECTORY))
-    # Keep the previous development material for reference, outside the candidate.
-    for relative in ("dev/eval", "dev/evals.json", "dev/results"):
-        source = candidate / relative
-        if source.exists():
-            destination = output / "previous" / relative
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(source), str(destination))
-    shutil.copytree(dataset, output / "feedback-corpus")
-    doc = {"skip_reason": "", "materials": {k: [] for k in ("scenes", "pains", "wants", "unacceptable")},
-           "dialog": [], "hypotheses": [], "values": [], "behaviors": [], "cases": [],
-           "questions": {"talk": "talk-1", "items": []},
-           "feedback_sources": [c["id"] for c in cases]}
-    tasks = []
-    deliveries = {d["id"]: d for d in data["deliveries"]}
-    for n, case in enumerate(cases, 1):
-        before, after = deliveries[case["before"]], deliveries[case["after"]]
-        issue = case["issue"]["text"]
-        situation = case["request"] or json.dumps(case["inputs"], ensure_ascii=False)
-        for key, prefix, text in (("scenes", "scene", situation), ("pains", "pain", issue),
-                                  ("wants", "want", "この指摘について承認済みの修正版と同じ条件を満たす成果物"),
-                                  ("unacceptable", "ng", issue)):
-            doc["materials"][key].append({"id": f"{prefix}-{n}", "text": text, "feedback": case["id"]})
-        doc["hypotheses"].append({"id": f"hyp-{n}", "text": issue,
-                                  "from": [f"scene-{n}", f"pain-{n}", f"want-{n}"]})
-        doc["values"].append({"id": f"value-{n}", "text": issue, "from": [f"hyp-{n}"], "confirmed_in": "talk-1"})
-        targets = [o["path"] for o in after["contract"].get("outputs", [])]
-        doc["behaviors"].append({"id": f"behavior-{n}", "value": f"value-{n}", "text": issue,
-                                 "target": targets[0] if targets else "",
-                                 "judge": {"type": "model", "rubric":
-                                           "依頼の状況で、次の指摘を解消する条件を満たすかを判定する。指摘: " + issue
-                                           + "。承認済み修正版と修正前の事例を比較し、この指摘に関係する差だけを採点する。"}})
-        for phase, delivery, expect in (("before", before, "fail"), ("after", after, "pass")):
-            relative = f"cases/feedback-{n}-{phase}.json"
-            example(dataset, candidate / "dev/eval" / relative, delivery)
-            doc["cases"].append({"id": f"case-{2*n-1 if phase == 'before' else 2*n}", "behavior": f"behavior-{n}",
-                                 "expect": expect, "situation": situation, "output": relative,
-                                 "reason": issue if phase == "before" else case["approval"]["text"],
-                                 "agreed_in": ["talk-1"], "feedback": case["id"],
-                                 **({"covers": [f"ng-{n}"]} if phase == "before" else {})})
-        input_files = []
-        for item in case["context"]:
-            relative = f"dev/feedback-inputs/{case['id']}/{item['path']}"
-            destination = safe_path(candidate, relative)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(fb.blob(dataset, item))
-            input_files.append({"source": relative, "path": item["path"]})
-        # The producer gets the original request and inputs, never the correction,
-        # approval, expected outputs, or evaluation rubric.
-        tasks.append({"id": f"T-feedback-{n}", "kind": "typical", "prompt": situation,
-                      "aim": "実際に指摘があった依頼で、承認済みの評価条件を満たすか", "fixture": None,
-                      "setup": [], "input_files": input_files,
-                      "feedback_source": case["id"], "input_values": case["inputs"]})
-        doc["questions"]["items"].append({"title": f"指摘 {n} を評価条件にする",
-            "ask": f"指摘「{issue}」について、修正前を失敗、承認した修正版を成功とする判定に同意しますか。"
-                   "この条件を一般化する範囲、判定対象のファイル、元の依頼・入力ファイルで再現できるかも確認してください。",
-            "why": "修正版の承認と、一般的な評価条件・再現条件への同意を分けて確かめるため。",
-            "refs": [f"value-{n}", f"behavior-{n}", f"case-{2*n-1}", f"case-{2*n}", f"T-feedback-{n}"]})
-    fb.atomic_json(candidate / "dev/eval/eval.json", doc)
-    fb.atomic_json(candidate / "dev/evals.json", {"tasks": tasks})
-    spec_path = candidate / "dev/spec.json"
-    if spec_path.exists():
-        spec = json.loads(spec_path.read_text(encoding="utf-8"))
-        spec.setdefault("convergence", {}).pop("skip_reason", None)
-        fb.atomic_json(spec_path, spec)
-    fb.atomic_json(output / "preparation.json", {"schema_version": 1, "skill": data["skill"],
-        "feedback_cases": [c["id"] for c in cases], "candidate": candidate_rel, "rubric_status": "awaiting_user_review",
-        "source_skill": {"files": {str(p.relative_to(skill)): rt_hash(p) for p in sorted(skill.rglob('*')) if p.is_file()}},
-        "recorded_versions": sorted({c["skill"]["revision"] for c in cases})})
-    (output / "README.md").write_text(
-        "# 収集した指摘からスキルを改善する\n\n"
-        f"`{candidate_rel}/` は作業用コピー、`feedback-corpus/` は承認済みの事例と元のスキルの版です。元のスキルは変更していません。\n\n"
-        "1. 指摘の原文、修正前後の実ファイル、承認の原文を読み、一般化する評価条件を作ります。"
-        f"`{candidate_rel}/dev/eval/eval.json` は候補です。修正版への承認を、評価基準への承認に読み替えません。\n"
-        "2. 元の依頼と入力を確かめます。未記録の入力は `dev/feedback-inputs/` に補い、題材の `input_files` に登録します。"
-        "画像・PDF等の原本も保存されています。バイナリを文字列として採点せず、実ファイルを見られる判定方法を決めます。\n"
-        "3. 通常の Eval 作成の対話で価値・判定・成功失敗の事例・入力条件を確認し、`eval_check.py` に通します。"
-        "一般的な依頼、既定値、境目、holdout の課題も加えます。収集事例だけで未知の依頼まで改善したとは扱いません。\n"
-        f"4. `convergence.py prepare {candidate_rel} --round 1 --workdir <新しい作業場所>` で独立実行を準備します。"
-        "実行回数の確認は既存の規則に従います。生成担当へ指摘・修正版・正解・採点基準を渡さず、別の評価担当が Eval で採点します。\n"
-        "5. 元の版と候補版を同じ題材・Evalで比べ、改善内容と残った問題を確認してから採用します。\n",
-        encoding="utf-8")
-    return {"workspace": str(output), "cases": len(cases), "eval": candidate_rel + "/dev/eval/eval.json",
-            "tasks": candidate_rel + "/dev/evals.json", "status": "awaiting_user_review"}
+def tree_hash(directory: Path) -> str:
+    """ディレクトリの中のファイルの一覧と中身のハッシュ（正本が変わっていないことを確かめる）。"""
+    digest = hashlib.sha256()
+    for dirpath, dirnames, filenames in os.walk(directory):
+        dirnames.sort()
+        for f in sorted(filenames):
+            path = Path(dirpath) / f
+            digest.update(path.relative_to(directory).as_posix().encode("utf-8") + b"\0")
+            digest.update(path.read_bytes() if path.is_file() else b"")
+    return digest.hexdigest()
 
 
-def rt_hash(path: Path) -> str:
-    return fb.digest(path.read_bytes())
+def next_id(doc_items: list, prefix: str) -> int:
+    numbers = [int(str(e.get("id", "")).rsplit("-", 1)[-1]) for e in doc_items
+               if str(e.get("id", "")).startswith(prefix + "-") and str(e.get("id", "")).rsplit("-", 1)[-1].isdigit()]
+    return max(numbers, default=0) + 1
+
+
+def first_line(text: str, limit: int = 80) -> str:
+    line = (text or "").strip().splitlines()[0] if (text or "").strip() else ""
+    return line if len(line) <= limit else line[:limit] + "…"
+
+
+def judged_file(case: dict) -> dict | None:
+    """判定するファイルの案: 承認した版で、修正前から変わった契約の出力（文字列を先に）。"""
+    before = {f["path"]: f.get("sha256") for f in case["before"]["files"]}
+    changed = [f for f in case["after"]["files"] if f.get("sha256") and before.get(f["path"]) != f["sha256"]]
+    changed.sort(key=lambda f: (f.get("output") is None, bool(f.get("binary"))))
+    return changed[0] if changed else None
+
+
+def build(dataset: Path, skill: Path, out: Path) -> dict:
+    data = rt.load_json(dataset / "dataset.json")
+    spec = _lib.load_spec(skill)
+    name = spec["name"]
+    copy = out / PLACES[spec.get("targets", ["claude"])[0]] / name
+    _lib.copy_tree(skill, copy)
+    shutil.rmtree(copy / "dev/results", ignore_errors=True)  # 正本の検査と収束テストの結果は、作業用コピーには当てはまらない
+    shutil.copytree(dataset, out / "dataset")  # 成果物のパスに .skill-runs を含むことがあるので、除外なしで写す
+    contract = rt.load_json(copy / "assets/contract.json") if (copy / "assets/contract.json").is_file() else {}
+    patterns = {o["id"]: o["path"] for o in contract.get("outputs", [])}
+    labels = {o["id"]: o.get("label", o["id"]) for o in contract.get("outputs", [])}
+
+    eval_path = copy / EVAL_REL
+    doc = rt.load_json(eval_path) if eval_path.is_file() else {}
+    if str(doc.get("skip_reason") or "").strip() or not doc:
+        doc = {"skip_reason": "", "materials": {}, "dialog": [], "hypotheses": [], "values": [], "behaviors": [], "cases": []}
+    if doc.get("questions"):
+        _lib.fail(f"{skill / EVAL_REL} に答えを待っている質問があります。先に答えてもらってから候補を作ってください")
+    doc["skip_reason"] = ""
+    materials = doc.setdefault("materials", {})
+    for key in ("scenes", "pains", "wants", "unacceptable"):
+        materials.setdefault(key, [])
+    for key in ("dialog", "hypotheses", "values", "behaviors", "cases"):
+        doc.setdefault(key, [])
+    talk = f"talk-{next_id(doc['dialog'], 'talk')}"
+    tasks_doc = rt.load_json(copy / TASKS_REL) if (copy / TASKS_REL).is_file() else {"tasks": []}
+    tasks = tasks_doc.setdefault("tasks", [])
+
+    links, quotes, picks, inputs = [], [], [], []
+    for case in sorted(data["cases"], key=lambda c: c["id"]):
+        cid = case["id"]
+        pick = judged_file(case)
+        if pick is None:
+            _lib.fail(f"指摘 {cid} の承認した版に、修正前から変わったファイルがありません")
+        point = case["issue"]["summary"] or first_line(case["issue"]["quotes"][0])
+        scene = f"scene-{next_id(materials['scenes'], 'scene')}"
+        materials["scenes"].append({"id": scene, "text": f"「{first_line(case['request'], 120)}」と頼んで使った（利用中の指摘 {cid}）",
+                                    "feedback": cid})
+        pains = []
+        for message, quote in zip(case["issue"]["messages"], case["issue"]["quotes"]):
+            pains.append(f"pain-{next_id(materials['pains'], 'pain')}")
+            materials["pains"].append({"id": pains[-1], "text": quote, "feedback": cid, "message": message["id"]})
+        hyp = f"hyp-{next_id(doc['hypotheses'], 'hyp')}"
+        doc["hypotheses"].append({"id": hyp, "text": f"（候補）「{point}」という指摘に沿って直すと、{cid} で承認した版のような出力になる",
+                                  "from": [scene, *pains], "feedback": cid})
+        value = f"value-{next_id(doc['values'], 'value')}"
+        doc["values"].append({"id": value, "text": f"（候補）「{point}」という指摘が直った出力を受け取れる", "from": [hyp],
+                              "confirmed_in": talk, "feedback": cid})
+        behavior = f"behavior-{next_id(doc['behaviors'], 'behavior')}"
+        said = first_line(case["issue"]["quotes"][0])
+        doc["behaviors"].append({
+            "id": behavior, "value": value, "text": f"（候補）出力が「{point}」という指摘に沿っている",
+            "target": patterns.get(pick.get("output"), pick["path"]),
+            "judge": {"type": "model", "rubric": f"成功: {cid} で承認した版（修正後）のように、「{said}」という指摘が直っている。"
+                                                 f"失敗: 指摘を受けた版（修正前）のように、「{said}」と言われた状態のまま。"},
+            "feedback": cid})
+        situation = f"利用中の指摘 {cid}: 「{first_line(case['request'], 120)}」と頼んだとき"
+        before_pick = next((f for f in case["before"]["files"] if f["path"] == pick["path"] and f.get("sha256")), None)
+        samples = {}
+        for side, f in (("after", pick), ("before", before_pick)):
+            if f is None:
+                continue
+            samples[side] = f"{CASES_REL}/{cid}/{side}-{Path(f['path']).name}"
+            target = copy / "dev/eval" / samples[side]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(feedback.inside(dataset / "cases" / cid / side, f["path"]), target)
+        ids = []
+        for expect, side, reason in (
+                ("pass", "after", f"ユーザーが確認画面で承認した版（{case['after']['delivery']}）。「{said}」という指摘が直っている"),
+                ("fail", "before", f"ユーザーが「{said}」と指摘した版（{case['before']['delivery']}）")):
+            if side not in samples:  # 修正前に無かったファイル（新しく作った出力）は、失敗の見本が無い
+                continue
+            ids.append(f"case-{next_id(doc['cases'], 'case')}")
+            doc["cases"].append({"id": ids[-1], "behavior": behavior, "expect": expect, "situation": situation,
+                                 "inputs": case.get("input", {}), "output": samples[side],
+                                 "reason": reason, "agreed_in": talk,
+                                 "feedback": {"case": cid, "delivery": case[side]["delivery"]}})
+        tid = f"T-feedback-{next_id(tasks, 'T-feedback'):03d}"
+        placed = []
+        for f in case.get("input_files", []):
+            if f.get("sha256"):
+                rel = f"{INPUTS_REL}/{tid}/{f['path']}"
+                target = feedback.inside(copy / INPUTS_REL / tid, f["path"])
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(feedback.inside(dataset / "cases" / cid / "inputs", f["path"]), target)
+                placed.append({"from": rel, "to": f["path"]})
+        tasks.append({"id": tid, "kind": "feedback", "prompt": case["request"], "input": case.get("input", {}),
+                      "feedback_inputs": placed, "feedback": cid})
+        links.append({"case": cid, "task": tid, "behavior": behavior, "eval_cases": ids, "file": pick["path"]})
+        quotes.append(f"{cid}「{said}」（依頼「{first_line(case['request'], 60)}」）")
+        picks.append(f"{cid} は {pick['path']}（{labels.get(pick.get('output'), '契約の出力ではない')}）")
+        inputs.append(f"{tid} は入力の値 {json.dumps(case.get('input', {}), ensure_ascii=False)} と入力ファイル "
+                      + ("・".join(p["to"] for p in placed) or "なし"))
+    behaviors = [x["behavior"] for x in links]
+    doc["questions"] = {"talk": talk, "items": [
+        {"title": "一般化の範囲", "ask": "次の指摘を、どこまで一般化して評価しますか。" + "、".join(quotes),
+         "why": "1回の指摘を広げすぎると別の依頼の出力まで縛り、狭すぎると同じ指摘が別の依頼で繰り返されるため。",
+         "refs": behaviors,
+         "options": [{"key": "A", "text": "その依頼と入力のときだけ"}, {"key": "B", "text": "同じ種類の依頼すべて"},
+                     {"key": "C", "text": "ほかの範囲（書く）", "free": True}]},
+        {"title": "成功と失敗の判定", "ask": "指摘を受けた版（修正前）を失敗、確認画面で承認した版（修正後）を成功とする判定に同意しますか。"
+                                    "確認画面での承認は「この修正版で OK」という意味で、「今後この条件で評価してよい」という同意とは別に、ここで確かめます。",
+         "why": "成果物の承認を、評価の条件への同意として扱わないため。",
+         "refs": [i for x in links for i in x["eval_cases"]],
+         "options": [{"key": "A", "text": "同意する"}, {"key": "B", "text": "同意しない（理由を書く）", "free": True}]},
+        {"title": "判定するファイル", "ask": "判定するファイルは次でよいですか。" + "、".join(picks),
+         "why": "指摘が向いていたファイルと、判定するファイルがずれると、直っていない出力を通すため。",
+         "refs": behaviors,
+         "options": [{"key": "A", "text": "よい"}, {"key": "B", "text": "ほかのファイル（書く）", "free": True}]},
+        {"title": "足りない入力条件", "ask": "収束テストでは、元の依頼と次の入力だけで出力を作らせます。再現するのに足りない条件"
+                                    "（ファイル、設定、git の状態など）はありますか。" + "、".join(inputs),
+         "why": "指摘を受けたときと同じ条件で作らせないと、直ったかを確かめられないため。",
+         "refs": [x["task"] for x in links],
+         "options": [{"key": "A", "text": "無い"}, {"key": "B", "text": "ある（書く）", "free": True}]},
+    ]}
+    _lib.write_json(eval_path, doc)
+    _lib.write_json(copy / TASKS_REL, tasks_doc)
+    return {"copy": copy, "talk": talk, "links": links, "name": name, "synthetic": bool(data.get("synthetic"))}
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", type=Path, required=True, help="feedback.py export が書いたディレクトリ")
-    parser.add_argument("--skill", type=Path, required=True, help="改善するスキルの正本")
-    parser.add_argument("--out", type=Path, required=True, help="新しい作業用ディレクトリ")
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--dataset", required=True, help="feedback.py export で取り出したディレクトリ")
+    parser.add_argument("--skill", required=True, help="改善するスキル（正本。変えない）")
+    parser.add_argument("--out", required=True, help="新しい作業場所（無いか空のディレクトリ）")
     args = parser.parse_args()
-    print(json.dumps(prepare(args.dataset.resolve(), args.skill.resolve(), args.out.resolve()), ensure_ascii=False, indent=2))
+    dataset, skill, out = (Path(p).expanduser().resolve() for p in (args.dataset, args.skill, args.out))
+    if not (skill / _lib.SPEC_REL).is_file():
+        _lib.fail(f"{skill / _lib.SPEC_REL} がありません。skill-foundation で作ったスキルを指定してください")
+    if out.exists() and (not out.is_dir() or any(out.iterdir())):
+        _lib.fail(f"{out} は空ではありません。新しいディレクトリを指定してください")
+    if out.is_relative_to(skill) or skill.is_relative_to(out):
+        _lib.fail("作業場所は、改善するスキルの外の、スキルを含まない場所にしてください")
+    found = feedback.dataset_problems(dataset)
+    if found:
+        print("\n".join(f"ERROR {p}" for p in found))
+        print(f"feedback_eval: 取り出したものに問題が {len(found)} 件あります。feedback.py export で取り出し直してください")
+        return 1
+    data = rt.load_json(dataset / "dataset.json")
+    spec = _lib.load_spec(skill)
+    if data.get("skill") != spec.get("name"):
+        _lib.fail(f"取り出したものは {data.get('skill')} の指摘です。改善するスキルは {spec.get('name')} です")
+    if not data.get("cases"):
+        _lib.fail("取り出したものに承認済みの指摘がありません")
+    before = tree_hash(skill)
+    made = build(dataset, skill, out)
+    if tree_hash(skill) != before:
+        _lib.fail("正本のスキルが変わりました。作業場所を消して、作り直してください")
+    _lib.write_json(out / "candidate.json", {
+        **STATUS, "skill": made["name"], "source": str(skill), "source_hash": before, "copy": made["copy"].relative_to(out).as_posix(),
+        "dataset": "dataset", "talk": made["talk"], "synthetic": made["synthetic"], "created_at": rt.now(), "cases": made["links"]})
+    copy = made["copy"]
+    print(f"作業用コピー: {copy}（正本 {skill} は変えていない）")
+    for x in made["links"]:
+        print(f"  指摘 {x['case']} → 課題 {x['task']}、振る舞い {x['behavior']}、事例 {'・'.join(x['eval_cases'])}（判定するファイル {x['file']}）")
+    print(f"状態: {STATUS['label']}（{made['talk']} の質問 4 件）")
+    print(f"次: python3 {Path(__file__).parent / 'eval_check.py'} {copy} と python3 {Path(__file__).parent / 'catalog.py'} --project {out} を"
+          f"実行し、カタログの {out / '.skill-runs/catalog' / (made['name'] + '.html')} の「Eval 作成」タブで答えてもらう。"
+          "以降は作業用コピーを <base>/<name> として、SKILL.md の手順3から Eval 作成と収束テストを進める")
     return 0
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except (fb.FeedbackError, OSError, KeyError, ValueError) as exc:
-        print("ERROR feedback Eval: " + str(exc), file=sys.stderr)
-        sys.exit(1)
+    sys.exit(main())
