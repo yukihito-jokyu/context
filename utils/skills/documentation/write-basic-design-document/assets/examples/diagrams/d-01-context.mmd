@@ -1,0 +1,10 @@
+flowchart LR
+  employee["社員"]
+  manager["管理担当"]
+  subgraph boundary["今回の設計範囲"]
+    app["備品予約システム"]
+  end
+  mail["既存メール基盤"]
+  employee -->|"申込み・取消"| app
+  manager -->|"貸出・返却の記録"| app
+  app -->|"確定メールの依頼"| mail

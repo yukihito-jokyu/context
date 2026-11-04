@@ -56,6 +56,7 @@
 | [pitch](documentation/pitch/SKILL.md) | 実装の背景、変更、判断理由、レビュー観点を説明資料にまとめる。 |
 | [explanation-design](documentation/explanation-design/SKILL.md) | 読者が理解に到達できる説明構成を設計する。 |
 | [write-requirement-document](documentation/write-requirement-document/SKILL.md) | 会話・議事録から、前提・図・要件がつながるHTMLの要件定義書とMermaid原本・PNGを作る。[plugin配布](../plugins/write-requirement-document/README.md)を使う。 |
+| [write-basic-design-document](documentation/write-basic-design-document/SKILL.md) | 会話・議事録から構成・画面・データ・外部連携と採用理由を図付きHTMLにする。hooksの配布単位はpluginとし、配布物は未作成。 |
 
 ## Skillの作成・管理（`authoring/`）
 
