@@ -19,6 +19,15 @@
             "command": "terminal-notifier -title \"codex\" -subtitle \"タスク完了\" -message \"タスクが完了しました\" -sender \"com.apple.Terminal\" -sound \"Finished\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-basic-design-document/scripts/hook.py\" --platform codex stop",
+            "timeout": 300
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -27,6 +36,37 @@
           {
             "type": "command",
             "command": "python3 .codex/user_prompt_submit.py"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-basic-design-document/scripts/hook.py\" --platform codex prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-basic-design-document/scripts/hook.py\" --platform codex pre-tool",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.agents/skills/write-basic-design-document/scripts/hook.py\" --platform codex post-tool",
+            "timeout": 120
           }
         ]
       }
