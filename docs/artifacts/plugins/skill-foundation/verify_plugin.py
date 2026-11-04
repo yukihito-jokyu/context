@@ -57,11 +57,12 @@ def main():
 
     def run(label, command, *, cwd=repo, stdin=None, extra_env=None, expected=0, shell=False):
         result = subprocess.run(command, cwd=cwd, input=stdin, text=True, capture_output=True,
-                                env={**env, **(extra_env or {})}, shell=shell, timeout=180)
+                                env={**env, **(extra_env or {})}, shell=shell, timeout=600)
         commands.append({"label": label, "command": command, "shell": shell,
                          "cwd": str(cwd), "stdin": stdin, "exit_code": result.returncode,
                          "stdout": result.stdout, "stderr": result.stderr})
         assert result.returncode == expected, label + "\n" + result.stdout + result.stderr
+        print("PASS " + label, flush=True)
         return result
 
     def check(label, **details):
@@ -90,14 +91,14 @@ def main():
         assert inventory(runtime) == before_skill
         assert not (runtime / "assets/seal.json").exists()
         selftest = run(agent + ": bundled runtime selftest", ["python3", str(runtime / "scripts/selftest.py")])
-        assert "自己テスト: 17 段階中 失敗 0 件" in selftest.stdout, selftest.stdout
-        assert "feedback_selftest.py" in selftest.stdout and "Ran 16 tests" in selftest.stdout, selftest.stdout
+        assert "自己テスト: 20 段階中 失敗 0 件" in selftest.stdout, selftest.stdout
+        assert "feedback_selftest.py" in selftest.stdout and "収集の自己テスト: 失敗 0 件" in selftest.stdout, selftest.stdout
         assert (runtime / "assets/feedback.schema.json").is_file()
         assert (runtime / "scripts/feedback.py").is_file()
         assert (runtime / "scripts/feedback_review.py").is_file()
         assert (runtime / "scripts/feedback_eval.py").is_file()
-        check(agent + ": feedback collection, review UI and Eval replay regression", selftest_stages=17,
-              synthetic_feedback_tests=16, real_user_approvals=0, feedback_schema_version=1)
+        check(agent + ": feedback collection, review UI and Eval replay regression", selftest_stages=20,
+              synthetic_feedback_failures=0, real_user_approvals=0, feedback_schema_version=1)
         metadata = ".codex-plugin" if agent == "codex" else ".claude-plugin"
         assert (unpacked / metadata / "plugin.json").read_bytes() == (plugin / agent / "plugin.json").read_bytes()
         manifest = json.loads((unpacked / metadata / "plugin.json").read_text())
@@ -213,9 +214,19 @@ def main():
         run(agent + ": edited runtime check", ["python3", str(runtime / "scripts/run.py"), "check"], cwd=finish_project)
         run(agent + ": edited runtime restart with output", ["python3", str(runtime / "scripts/run.py"), "start", "--restart", "--set", "targets=claude,codex", "--set",
              "name=write-commit-message", "--set", "measure=skip", "--set", "eval=skip", "コミットメッセージを書くスキルを作る"], cwd=finish_project)
-        run(agent + ": edited runtime finish", ["python3", str(runtime / "scripts/run.py"), "finish"], cwd=finish_project)
+        unfinished = run(agent + ": finish without updating output after restart is rejected",
+                         ["python3", str(runtime / "scripts/run.py"), "finish"], cwd=finish_project, expected=1)
+        assert "OUT-01" in unfinished.stdout and "今 0 件" in unfinished.stdout, unfinished.stdout
+        update = "from pathlib import Path; import sys; p = Path(sys.argv[1]); p.write_text(p.read_text() + '\\n<!-- 検証用の出力を restart 後に更新した -->\\n')"
+        run(agent + ": update generated output after restart", ["python3", "-c", update,
+            str(generated_ready / "SKILL.md")], cwd=finish_project)
+        run(agent + ": check updated output after restart", ["python3", str(runtime / "scripts/run.py"), "check"], cwd=finish_project)
+        run(agent + ": edited runtime finish after updating output", ["python3", str(runtime / "scripts/run.py"), "finish"], cwd=finish_project)
         assert inventory(clean_unpacked / "runtime/skill-foundation") == before_skill
-        check(agent + ": changed skill can check, restart and finish", stale_legacy_seal_ignored=True, output_checks_preserved=True)
+        check(agent + ": changed skill can check and restart; finish requires updated output",
+              stale_legacy_seal_ignored=True, output_checks_preserved=True,
+              finish_without_output_update_exit=1, finish_without_output_update_rule="OUT-01",
+              output_updated_after_restart=True, finish_after_output_update_exit=0)
         bundles[agent] = {"distribution_files": len(inventory(clean_unpacked)), "runtime_files": len(before_skill),
                           "runtime_inventory": inventory(clean_unpacked / "runtime/skill-foundation")}
     tests = run("plugin-owned tests", ["python3", "-m", "unittest", "discover", "-s",
@@ -231,10 +242,10 @@ def main():
     assert inventory(plugin) == before_plugin and inventory(skill) == before_skill
     check("canonical sources unchanged", plugin_files=len(before_plugin), skill_files=len(before_skill))
     record = {"checked_at": datetime.now(timezone.utc).isoformat(), "status": "passed",
-              "purpose": "Rebuild and verify hook-only feedback collection and review plugin artifacts from canonical sources",
+              "purpose": "Rebuild and verify hooks configuration, feedback collection, review and convergence plugin artifacts from canonical sources",
               "checks": checks, "bundles": bundles, "commands": commands,
               "source_unchanged": {"plugin": True, "skill": True},
-              "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. Canonical sources and user settings remain byte-identical.",
+              "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. After an output is created and the run restarted, finish is first verified to reject the unchanged output with OUT-01; a validation note is then added to the generated SKILL.md and check/finish are verified to succeed. Canonical sources and user settings remain byte-identical.",
               "unit_test_command": "python3 -m unittest discover -s utils/plugins/skill-foundation/tests -p 'test_*.py' -v",
               "not_verified": ["Automatic hooks from a real product session", "Codex hooks trust UI",
                                "Independent AI convergence execution", "Project installation", "Real user approval in the review UI (only synthetic regression events were tested)"],
