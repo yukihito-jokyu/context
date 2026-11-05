@@ -1,10 +1,12 @@
-flowchart TD
-  employee["社員の入口"] --> list["研修一覧"]
-  list --> detail["研修詳細"]
-  detail -->|"申し込む"| result["申込み結果"]
-  result --> own["自分の申込み一覧"]
-  employee -->|"結果を確認し直す"| own
-  own -->|"本人が取消を依頼"| cancel["取消結果・期限条件は未決"]
-  cancel -->|"一覧へ戻る"| own
-  manager["研修担当者の入口"] --> form["研修名・開催日・定員の入力"]
-  form --> registered["研修の登録結果"]
+flowchart LR
+  subgraph employee["社員の画面"]
+    list["研修一覧"] --> detail["研修詳細"]
+    detail -->|"参加を申し込む"| result["申込み結果"]
+    result --> own["自分の申込み一覧"]
+    list -->|"自分の結果を確認"| own
+    own -->|"取消・期限未決"| cancelled["取消結果"]
+    cancelled --> own
+  end
+  subgraph manager["研修担当者の画面"]
+    form["研修名・開催日・定員の入力"] --> registered["登録結果"]
+  end

@@ -1,4 +1,5 @@
 flowchart TD
-  employee["社員：本人を識別する情報・役割"] -->|"1人に0件以上・各申込みの社員は1人"| application["申込み：申込者・対象研修・状態"]
-  training["研修：研修名・開催日・定員"] -->|"1研修に0件以上・各申込みの研修は1つ"| application
-  application -->|"状態で集計を分ける"| status["確定は定員に数える・取消は数えない"]
+  employee["社員・申込者を識別する情報"] -->|"1人に申込みが0件以上"| application["申込み・申込者・申込先・状態"]
+  training["研修・研修名・開催日・定員"] -->|"1研修に申込みが0件以上"| application
+  application -->|"状態"| status["確定 または 取消済み"]
+  status -->|"確定だけを数える"| capacity["研修の定員と比較"]

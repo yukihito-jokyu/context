@@ -1,13 +1,8 @@
 stateDiagram-v2
-  state "確定" as Confirmed
-  state "取消" as Cancelled
-  [*] --> Confirmed: 判定を通過して登録完了
-  Confirmed --> Cancelled: 本人の取消・期限条件を満たす場合
-  note right of Confirmed
-    期限条件は未決
-    取消を許可しなければ状態を維持
-  end note
+  state "確定・定員に数える" as Confirmed
+  state "取消済み・定員に数えない" as Cancelled
+  [*] --> Confirmed: 判定を通り保存完了
+  Confirmed --> Cancelled: 本人の取消を受付・期限条件は未決
   note right of Cancelled
-    定員には数えない
-    再申込みと待機の扱いは未決
+    空き枠待ちと再申込みは未決
   end note
