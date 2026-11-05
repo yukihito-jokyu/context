@@ -421,75 +421,124 @@ def render_html(d, directory, manifest):
     return '\n'.join(parts)
 
 
-def md(value):
-    """Keep authored text literal rather than interpreting it as Markdown or HTML."""
-    return re.sub(r'([\\`*_{}\[\]()#+\-.!|])', r'\\\1', html.escape(str(value), quote=False))
+def md(value, inline=False):
+    """Keep prose literal while leaving ordinary punctuation readable in source."""
+    value = re.sub(r'([\\`*_\[\]()#|])', r'\\\1', html.escape(str(value), quote=False))
+    if not inline:
+        value = re.sub(r'(?m)^([ \t]{0,3})([=~+\-])', r'\1\\\2', value)
+        value = re.sub(r'(?m)^([ \t]{0,3}\d+)([.)])(?=\s)', r'\1\\\2', value)
+    return value
+
+
+def markdown_slug(value):
+    """Heading links follow the numbered, readable headings rather than internal IDs."""
+    return re.sub(r'[^\w\- ]', '', str(value).lower()).replace(' ', '-')
 
 
 def render_markdown(d, manifest):
-    """Render the same design content with portable local image and source links."""
+    """Render a numbered design document with tables, local diagrams and named links."""
     ja = d['language'] == 'ja'
     headings = HEADINGS[d['language']]
     labels = {x['id']: x['title'] for key in ('requirements', 'designs', 'diagrams') for x in d[key]}
     labels.update({x['id']: x['label'] + ' · ' + x['location'] for x in d['sources']})
     labels.update({x['id']: x['question'] for x in d['open_questions']})
-    parts = []
+    parts, titles, numbers = [], {}, [0] * len(headings)
 
     def tr(a, b):
         return a if ja else b
 
+    def plan(section, key, title):
+        numbers[section] += 1
+        titles[key] = str(section + 1) + '.' + str(numbers[section]) + ' ' + title
+
+    for key, title in (('problem', tr('解く課題', 'Problem')), ('purpose', tr('設計の目的', 'Purpose')), ('in', tr('対象', 'In scope')), ('out', tr('対象外', 'Out of scope'))):
+        plan(0, key, title)
+    plan(1, 'terms', tr('用語', 'Terms'))
+    plan(1, 'actors', tr('利用者と役割', 'People and roles'))
+    for x in d['requirements']:
+        plan(1, x['id'], x['title'])
+    for index, area in enumerate(AREAS, 2):
+        for x in d['designs'] + d['diagrams']:
+            if x['area'] == area:
+                plan(index, x['id'], x['title'])
+    grouped = {}
+    for x, label in zip(d['quality'], QUALITY_JA if ja else QUALITY):
+        key = (x['status'], x['statement'], tuple(x['acceptance']), tuple(x['source_ids']), tuple(x['question_ids']))
+        grouped.setdefault(key, []).append(label)
+    for index, names in enumerate(grouped.values()):
+        plan(6, 'quality-' + str(index), ' / '.join(names))
+    plan(6, 'constraints', tr('指定された制約', 'Specified constraints'))
+    for x in d['open_questions']:
+        plan(7, x['id'], x['question'])
+    plan(7, 'handoff', tr('詳細設計へ引き継ぐ作業', 'Detailed design handoff'))
+    for x in d['sources']:
+        plan(8, x['id'], x['label'])
+    plan(8, 'diagram-decisions', tr('図を選んだ理由・省いた理由', 'Diagram selection decisions'))
+
     def paragraph(value):
         parts.append(md(value).replace('\n', '  \n'))
 
-    def heading(level, value, anchor=None):
-        if anchor:
-            parts.append('<a id="' + e(anchor) + '"></a>')
-        parts.append('#' * level + ' ' + md(value).replace('\n', ' '))
+    def heading(level, value):
+        parts.append('#' * level + ' ' + md(value, inline=True).replace('\n', ' '))
+
+    def subheading(key):
+        heading(3, titles[key])
 
     def bullets(values):
         if values:
             parts.append('\n'.join('- ' + md(x).replace('\n', '  \n  ') for x in values))
 
+    def named_links(ids):
+        return '、'.join('[' + md(labels[x], inline=True).replace('\n', ' ') + '](#' + markdown_slug(titles[x]) + ')' for x in ids)
+
     def links(prefix, ids):
         if ids:
-            parts.append(prefix + ' '.join('[' + md(labels[x]).replace('\n', ' ') + '](#' + x + ')' for x in ids))
+            parts.append(prefix + named_links(ids))
 
     def refs(ids):
         links(tr('根拠：', 'Evidence: '), ids)
 
     def status(value):
-        paragraph({'stated': tr('入力に記載', 'Stated in input'), 'proposal': tr('設計案', 'Design proposal'), 'open': tr('未決', 'Open')}[value])
+        paragraph(tr('状態：', 'Status: ') + {'stated': tr('入力に記載', 'Stated in input'), 'proposal': tr('設計案', 'Design proposal'), 'open': tr('未決', 'Open')}[value])
 
     def section(index):
-        heading(2, str(index + 1) + '. ' + headings[index], SECTIONS[index])
+        heading(2, str(index + 1) + '. ' + headings[index])
 
-    paragraph(tr('基本設計書 · 確認用ドラフト', 'Basic design · Review draft'))
+    def table(headers, rows):
+        parts.append('\n'.join(['| ' + ' | '.join(headers) + ' |', '| ' + ' | '.join('---' for _ in headers) + ' |'] + ['| ' + ' | '.join(row) + ' |' for row in rows]))
+
+    def cell(value):
+        return md(value, inline=True).replace('\n', '<br>')
+
     heading(1, d['title'])
+    paragraph(tr('本書は、開発者が構成・画面・データ・外部連携の実現方式と採用理由を確認し、未決条件を整理して詳細設計へ進めるための基本設計書である。記載する設計案は、採用承認を示すものではない。', 'This basic design document explains architecture, interaction, data and integration decisions and their rationale, with open questions for detailed design. Proposals do not imply approval.'))
     paragraph(d['summary'])
     paragraph(tr('読者：', 'Readers: ') + ' / '.join(d['readers']))
-    heading(2, tr('目次', 'Contents'))
-    parts.append('\n'.join('- [' + md(title) + '](#' + sid + ')' for sid, title in zip(SECTIONS, headings)))
+    parts.append(tr('目次', 'Contents'))
+    parts.append('\n'.join('- [' + str(index + 1) + '. ' + md(title, inline=True) + '](#' + markdown_slug(str(index + 1) + '. ' + title) + ')' for index, title in enumerate(headings)))
     section(0)
-    heading(3, tr('解く課題', 'Problem'))
+    subheading('problem')
     for value in d['background']:
         paragraph(value)
-    heading(3, tr('設計の目的', 'Purpose'))
+    subheading('purpose')
     paragraph(d['purpose'])
-    for key, title in (('in', tr('対象', 'In scope')), ('out', tr('対象外', 'Out of scope'))):
-        heading(3, title)
+    for key in ('in', 'out'):
+        subheading(key)
         bullets(d['scope'][key])
     section(1)
-    paragraph(tr('用語と役割を確認してから、会話で求められた振る舞いを読む。設計案は後の章で分けて示す。', 'Read the terms, roles and requested behavior before the design proposals.'))
-    for x in d['terms']:
-        heading(3, x['term'])
-        paragraph(x['definition'])
-        refs(x['source_ids'])
-    for x in d['actors']:
-        heading(3, x['name'], x['id'])
-        paragraph(x['role'])
-        refs(x['source_ids'])
+    paragraph(tr('用語と役割を確認してから、入力で求められた振る舞いを読む。実現方式と採用理由は後の設計の章で示す。', 'Read the terms, roles and requested behavior before the design decisions and rationale.'))
+    subheading('terms')
+    if d['terms']:
+        table([tr('用語', 'Term'), tr('意味', 'Meaning'), tr('根拠', 'Evidence')], [[cell(x['term']), cell(x['definition']), named_links(x['source_ids'])] for x in d['terms']])
+    else:
+        paragraph(tr('この原本に用語の補足は記録されていない。', 'No additional terms are recorded.'))
+    subheading('actors')
+    if d['actors']:
+        table([tr('利用者', 'Person'), tr('行うこと', 'Role'), tr('根拠', 'Evidence')], [[cell(x['name']), cell(x['role']), named_links(x['source_ids'])] for x in d['actors']])
+    else:
+        paragraph(tr('この原本に利用者の役割は記録されていない。', 'No roles are recorded.'))
     for x in d['requirements']:
-        heading(3, x['title'], x['id'])
+        subheading(x['id'])
         paragraph(x['statement'])
         links(tr('対応する設計：', 'Design: '), [v['id'] for v in d['designs'] if x['id'] in v['requirement_ids']])
         refs(x['source_ids'])
@@ -502,39 +551,36 @@ def render_markdown(d, manifest):
         if not coverage['applicable']:
             paragraph(tr('この観点の設計は今回の対象に含めていない。理由と確認する条件は上記に示す。', 'This area is outside this draft; the reason and questions are stated above.'))
         for x in (v for v in d['designs'] if v['area'] == area):
-            heading(3, x['title'], x['id'])
+            subheading(x['id'])
             status(x['status'])
             paragraph(x['statement'])
             bullets(x['details'])
-            heading(4, tr('採用理由', 'Rationale'))
-            paragraph(x['reason'])
+            paragraph(tr('採用理由：', 'Rationale: ') + x['reason'])
             links(tr('元の要望：', 'Requirements: '), x['requirement_ids'])
-            links(tr('関連する図：', 'Diagrams: '), x['diagram_ids'])
+            links(tr('関連図：', 'Diagrams: '), x['diagram_ids'])
             links(tr('確認する条件：', 'Questions: '), x['question_ids'])
             refs(x['source_ids'])
         for x in (v for v in d['diagrams'] if v['area'] == area):
             item = next(v for v in manifest['diagrams'] if v['id'] == x['id'])
-            heading(3, x['title'], x['id'])
+            subheading(x['id'])
             paragraph(x['intro'])
-            parts.append('![' + md(x['alt']).replace('\n', ' ') + '](' + item['png'] + ')')
-            paragraph(x['takeaway'])
-            links(tr('関連する設計：', 'Design: '), x['design_ids'])
+            parts.append('![' + md(x['alt'], inline=True).replace('\n', ' ') + '](' + item['png'] + ')')
+            parts.append('[' + tr('図を拡大する', 'View full-size diagram') + '](' + item['png'] + ') · [' + tr('図の定義を確認する', 'Inspect diagram source') + '](' + item['mermaid'] + ')')
+            paragraph(tr('要点：', 'Key point: ') + x['takeaway'])
+            links(tr('関連設計：', 'Design: '), x['design_ids'])
             refs(x['source_ids'])
-            parts.append('[' + tr('図の画像を開く', 'Open diagram image') + '](' + item['png'] + ') · [' + tr('Mermaid原本', 'Mermaid source') + '](' + item['mermaid'] + ')')
     section(6)
     paragraph(tr('品質と運用の条件を確認する。入力の事実・設計案・未決を分け、未指定の目標値は確定しない。', 'Separate stated constraints, proposals and open questions; do not invent quality targets.'))
-    grouped = {}
-    for x, label in zip(d['quality'], QUALITY_JA if ja else QUALITY):
-        key = (x['status'], x['statement'], tuple(x['acceptance']), tuple(x['source_ids']), tuple(x['question_ids']))
-        grouped.setdefault(key, []).append(label)
-    for (state, statement, acceptance, source_ids, question_ids), names in grouped.items():
-        heading(3, ' / '.join(names))
+    for index, (state, statement, acceptance, source_ids, question_ids) in enumerate(grouped):
+        subheading('quality-' + str(index))
         status(state)
         paragraph(statement)
-        bullets(acceptance)
+        if acceptance:
+            paragraph(tr('設計の確認条件', 'Design verification criteria'))
+            bullets(acceptance)
         refs(source_ids)
         links(tr('確認する条件：', 'Questions: '), question_ids)
-    heading(3, tr('指定された制約', 'Specified constraints'))
+    subheading('constraints')
     for x in d['constraints']:
         paragraph(x['statement'])
         refs(x['source_ids'])
@@ -543,25 +589,21 @@ def render_markdown(d, manifest):
     section(7)
     paragraph(tr('次の質問に、決まるまで確定できない範囲を添える。その後で、詳細設計で具体化する作業を示す。', 'Each question states its design impact, followed by detailed design work.'))
     for x in d['open_questions']:
-        heading(3, x['question'], x['id'])
+        subheading(x['id'])
         paragraph(x['consequence'])
         refs(x['source_ids'])
     if not d['open_questions']:
         paragraph(tr('この原本に未決事項は記録されていない。', 'No open questions are recorded.'))
-    heading(3, tr('詳細設計へ引き継ぐ作業', 'Detailed design handoff'))
+    subheading('handoff')
     bullets(d['handoff'])
     section(8)
     paragraph(tr('設計の根拠を、資料の場所と実際の記述で確かめる。「入力に記載」は資料にあるという意味であり、承認済みを意味しない。', 'Check source locations and excerpts; stated input does not imply approval.'))
     for x in d['sources']:
-        heading(3, x['label'], x['id'])
+        subheading(x['id'])
         paragraph(x['location'])
         parts.append('\n'.join('> ' + md(line) for line in x['quote'].splitlines()))
-    heading(3, tr('図を選んだ理由・省いた理由', 'Diagram selection decisions'))
-    for x in d['diagram_decisions']:
-        heading(4, (NAMES[x['kind']] if ja else x['kind']) + ' · ' + tr('採用' if x['selected'] else '省略', 'Selected' if x['selected'] else 'Omitted'))
-        paragraph(x['reason'])
-        refs(x['source_ids'])
-    paragraph(tr('図・設計・採用理由・根拠を合わせて確認する。', 'Read diagrams, designs, rationale and evidence together.'))
+    subheading('diagram-decisions')
+    table([tr('図', 'Diagram'), tr('採否', 'Selection'), tr('理由', 'Reason'), tr('根拠', 'Evidence')], [[cell(NAMES[x['kind']] if ja else x['kind']), tr('採用' if x['selected'] else '省略', 'Selected' if x['selected'] else 'Omitted'), cell(x['reason']), named_links(x['source_ids'])] for x in d['diagram_decisions']])
     return '\n\n'.join(parts) + '\n'
 
 
@@ -659,6 +701,11 @@ def check(source, out):
     if sha(out / 'basic-design-document.html') != manifest['html_sha256'] or actual_html != render_html(d, out, manifest):
         return ['OUT-06 HTMLの本文・埋め込みPNGが原本と同期していない']
     actual_markdown = (out / 'basic-design-document.md').read_text(encoding='utf-8')
+    markdown_headings = re.findall(r'^## (.+)$', actual_markdown, re.M)
+    if markdown_headings != [str(i + 1) + '. ' + title for i, title in enumerate(HEADINGS[d['language']])]:
+        return ['OUT-02 Markdownの番号付きの章と順序が違う']
+    if re.search(r'<a\b', actual_markdown, re.I):
+        return ['OUT-02 MarkdownにHTMLタグのアンカーを挿入しない']
     if sha(out / 'basic-design-document.md') != manifest['markdown_sha256'] or actual_markdown != render_markdown(d, manifest):
         return ['OUT-06 Markdownの本文・図への参照が原本と同期していない']
     return []

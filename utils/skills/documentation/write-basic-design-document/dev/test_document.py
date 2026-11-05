@@ -31,7 +31,15 @@ class MarkdownOutputTest(unittest.TestCase):
     def test_both_documents_pass_and_markdown_links_resolve(self):
         self.assertEqual(document.check(self.source, self.out), [])
         markdown = (self.out / 'basic-design-document.md').read_text()
-        anchors = set(re.findall(r'<a id="([^"]+)"></a>', markdown))
+        headings = re.findall(r'^#{2,3} (.+)$', markdown, re.M)
+        self.assertNotIn('<a ', markdown)
+        self.assertIn('## 3. 全体構成', markdown)
+        self.assertIn('### 3.1 ', markdown)
+        self.assertIn('| 用語 | 意味 | 根拠 |', markdown)
+        self.assertIn('| 利用者 | 行うこと | 根拠 |', markdown)
+        self.assertIn('要点：', markdown)
+        self.assertIn('採用理由：', markdown)
+        anchors = {re.sub(r'[^\w -]', '', heading.lower()).replace(' ', '-') for heading in headings}
         for link in re.findall(r'\]\(([^)]+)\)', markdown):
             if link.startswith('#'):
                 self.assertIn(link[1:], anchors)
@@ -59,7 +67,7 @@ class MarkdownOutputTest(unittest.TestCase):
         markdown = document.render_markdown(data, self.manifest)
         self.assertNotIn('<script>', markdown)
         self.assertNotIn('[採用済み](', markdown)
-        self.assertIn('\\[採用済み\\]\\(https://example\\.invalid\\)', markdown)
+        self.assertIn('\\[採用済み\\]\\(https://example.invalid\\)', markdown)
         self.assertIn('> 一行目\n> \\# 二行目 \\[条件\\]\n> &gt; 三行目', markdown)
 
     def test_english_headings_and_optional_empty_lists(self):
@@ -70,9 +78,15 @@ class MarkdownOutputTest(unittest.TestCase):
             for row in data[key]:
                 row['question_ids'] = []
         markdown = document.render_markdown(data, self.manifest)
-        self.assertIn('## 1\\. Overview', markdown)
-        self.assertIn('No open questions are recorded\\.', markdown)
+        self.assertIn('## 1. Overview', markdown)
+        self.assertIn('No open questions are recorded.', markdown)
         self.assertIn('Detailed design handoff', markdown)
+
+    def test_multiline_table_cells_do_not_add_columns_or_rows(self):
+        data = copy.deepcopy(self.data)
+        data['terms'][0]['definition'] = '開始 | 終了\n境界の条件'
+        markdown = document.render_markdown(data, self.manifest)
+        self.assertIn('開始 \\| 終了<br>境界の条件', markdown)
 
 
 if __name__ == '__main__':
