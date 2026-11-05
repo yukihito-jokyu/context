@@ -9,7 +9,7 @@
     "codex"
   ],
   "title": "図と採用理由がつながる基本設計書を書く",
-  "purpose": "会話・議事録・箇条書きの要望から、開発者が構成・画面・データ・外部連携と採用理由を図と短い説明で理解し、詳細設計へ進めるHTMLの基本設計書を作る",
+  "purpose": "会話・議事録・箇条書きの要望から、開発者が構成・画面・データ・外部連携と採用理由を図と短い説明で理解し、詳細設計へ進めるMarkdownとHTMLの基本設計書を作る",
   "triggers": {
     "use_when": [
       "会話や議事録から基本設計を作成して",
@@ -119,6 +119,17 @@
       ]
     },
     {
+      "id": "markdown",
+      "label": "基本設計書のMarkdown",
+      "path": "{run}/out/basic-design-document.md",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
       "id": "manifest",
       "label": "図と原本の対応とハッシュ",
       "path": "{run}/out/manifest.json",
@@ -159,7 +170,7 @@
         "html",
         "manifest"
       ],
-      "message": "原本を変えたらHTMLとmanifestを再生成する"
+      "message": "原本を変えたらMarkdown・HTML・manifestを再生成する"
     }
   ],
   "decisions": [
@@ -205,7 +216,7 @@
         "P1"
       ],
       "title": "要望から設計と図を順に作る",
-      "decision": "受付、要望と根拠の整理、4観点の設計と理由の作成、構造化原本、図とHTMLの生成、検査、意味の確認、finishの順に進める。assets/examples/basic-design-document.jsonを構造の見本にする。原本作成用の補助スクリプトは作成手順内で使い終えて削除し、納品物へ残さない。",
+      "decision": "受付、要望と根拠の整理、4観点の設計と理由の作成、構造化原本、図・Markdown・HTMLの生成、検査、意味の確認、finishの順に進める。assets/examples/basic-design-document.jsonを構造の見本にする。原本作成用の補助スクリプトは作成手順内で使い終えて削除し、納品物へ残さない。",
       "reason": "本文と図を別々に作って食い違うことを防ぐため。",
       "basis": "machine",
       "control": [
@@ -241,8 +252,8 @@
       "axes": [
         "P3"
       ],
-      "title": "原本から図とHTMLを一組で生成する",
-      "decision": "scripts/document.pyのbuildで構造化原本からMermaid原本・PNG・HTML・manifestを作る。checkで原本の形、参照、画像の実体と同期を確かめる。派生出力を手で差し替えず、原本を直してbuildを実行する。",
+      "title": "原本から図・Markdown・HTMLを一組で生成する",
+      "decision": "scripts/document.pyのbuildで構造化原本からMermaid原本・PNG・Markdown・HTML・manifestを作る。checkで原本の形、参照、画像の実体と同期を確かめる。派生出力を手で差し替えず、原本を直してbuildを実行する。",
       "reason": "原本と派生出力の対応を毎回同じ方法で確かめるため。",
       "basis": "machine",
       "control": [
@@ -299,19 +310,20 @@
         "O1"
       ],
       "title": "原本と派生出力を同じ場所へ出す",
-      "decision": "{run}/out/へbasic-design-document.json・basic-design-document.html・manifest.jsonを各1件、diagrams/へ同名の.mmdと.pngを図ごとに出力する。context・component・workflow・dataの図を各1件以上作る。",
-      "reason": "読者がHTMLを1件開き、原本と画像も再利用できるため。",
-      "basis": "machine",
+      "decision": "{run}/out/へbasic-design-document.json・basic-design-document.md・basic-design-document.html・manifest.jsonを各1件、diagrams/へ同名の.mmdと.pngを図ごとに出力する。context・component・workflow・dataの図を各1件以上作る。",
+      "reason": "読者がMarkdownとHTMLの両方で同じ設計を読み、原本と画像も再利用できるため。",
+      "basis": "user",
       "control": [
         "validate"
       ],
       "how": "出力の path・count と scripts/document.py の check",
       "why_not_machine": "",
       "probes": [
-        "OUT-01-a"
+        "OUT-01-a",
+        "OUT-01-b"
       ],
-      "good": "HTMLと原本とPNGを同じ出力ディレクトリに置く",
-      "bad": "HTMLだけを保存する"
+      "good": "Markdown・HTML・原本・図を同じ出力ディレクトリに置く",
+      "bad": "HTMLだけを保存し、Markdownを省く"
     },
     {
       "id": "OUT-02",
@@ -319,7 +331,7 @@
         "O2"
       ],
       "title": "全体から観点別に読める構造を作る",
-      "decision": "HTMLの章は、概要、前提と要望、全体構成、画面と操作、データ設計、外部連携、品質と運用、未決事項と詳細設計への引継ぎ、根拠と補足の順にする。設計ごとに観点、設計内容、採用理由、状態、要望・図・質問・根拠への参照を持つ。図は各観点の章へ置き、直前に読む目的、直後に要点を示す。検索できる本文、PNGの埋め込み、代替説明、原寸表示、Mermaid原本のdetails、目次と名前のリンクを付ける。",
+      "decision": "MarkdownとHTMLの章は、概要、前提と要望、全体構成、画面と操作、データ設計、外部連携、品質と運用、未決事項と詳細設計への引継ぎ、根拠と補足の順にする。設計ごとに観点、設計内容、採用理由、状態、要望・図・質問・根拠への参照を持つ。図は各観点の章へ置き、直前に読む目的、直後に要点を示す。HTMLには検索できる本文、PNGの埋め込み、代替説明、原寸表示、Mermaid原本のdetails、目次と名前のリンクを付ける。Markdownにも同じ本文・図の導入と要点・採用理由・未決事項・根拠を出し、図のPNGとMermaid原本は同梱ファイルへの相対リンクにする。",
       "reason": "前提を覚え続けずに、全体と詳細の関係をたどれるため。",
       "basis": "user",
       "control": [
@@ -359,7 +371,7 @@
         "O4"
       ],
       "title": "連番の内部IDを表示へ出さない",
-      "decision": "sourcesはSRC-01、actorsはACT-01、requirementsはREQ-01、designsはDES-01、diagramsはD-01、open_questionsはQ-01から出現順の連番にする。IDは原本のid・参照配列とHTMLのリンク先属性だけに使い、本文・見出し・リンクの表示名・代替説明・Mermaidの表示ラベルへ出さない。原資料のquoteは改変しない。生成日時と乱数を加えない。",
+      "decision": "sourcesはSRC-01、actorsはACT-01、requirementsはREQ-01、designsはDES-01、diagramsはD-01、open_questionsはQ-01から出現順の連番にする。IDは原本のid・参照配列とMarkdown・HTMLのリンク先属性だけに使い、本文・見出し・リンクの表示名・代替説明・Mermaidの表示ラベルへ出さない。原資料のquoteは改変しない。生成日時と乱数を加えない。",
       "reason": "読者に記号の意味と対応を覚えさせず、内部では参照の対応を検査するため。",
       "basis": "user",
       "control": [
@@ -400,19 +412,21 @@
       "axes": [
         "O7"
       ],
-      "title": "原本とHTMLと画像を同期する",
-      "decision": "構造化原本を変更したらbuildでHTMLとmanifestを更新する。manifestには原本・Mermaid・PNG・HTMLのSHA-256と描画設定を記録し、checkが実体とHTMLの埋め込みを照合する。Mermaid・描画設定・描画ツールの版・PNGのハッシュが一致するときだけ同じPNGを再利用する。",
+      "title": "原本・Markdown・HTML・画像を同期する",
+      "decision": "構造化原本を変更したらbuildでMarkdown・HTML・manifestを更新する。manifestには原本・Mermaid・PNG・Markdown・HTMLのSHA-256と描画設定を記録し、checkが実体・Markdownの再生成内容・HTMLの埋め込みを照合する。Mermaid・描画設定・描画ツールの版・PNGのハッシュが一致するときだけ同じPNGを再利用する。",
       "reason": "古い図が本文に残ることを機械で防ぐため。",
       "basis": "machine",
       "control": [
         "validate"
       ],
-      "how": "scripts/document.py の check と together の source・html・manifest",
+      "how": "scripts/document.py の check（Markdownを含む全出力）と together の source・html・manifest",
       "why_not_machine": "",
       "probes": [
-        "OUT-06-a"
+        "OUT-06-a",
+        "OUT-06-b",
+        "OUT-06-c"
       ],
-      "good": "文だけの変更でもHTMLとmanifestを再生成する",
+      "good": "文だけの変更でもMarkdown・HTML・manifestを再生成する",
       "bad": "Mermaidを変えて古いPNGを再利用する"
     },
     {
@@ -728,6 +742,16 @@
         "OUT-01",
         "OUT-05",
         "OUT-09"
+      ]
+    },
+    {
+      "path": "basic-design-document.md",
+      "shows": [
+        "OUT-01",
+        "OUT-02",
+        "OUT-04",
+        "OUT-06",
+        "OUT-08"
       ]
     }
   ],

@@ -43,7 +43,7 @@
 ## STEP-01 要望から設計と図を順に作る
 
 - 軸: P1
-- ルール: 受付、要望と根拠の整理、4観点の設計と理由の作成、構造化原本、図とHTMLの生成、検査、意味の確認、finishの順に進める。assets/examples/basic-design-document.jsonを構造の見本にする。原本作成用の補助スクリプトは作成手順内で使い終えて削除し、納品物へ残さない。
+- ルール: 受付、要望と根拠の整理、4観点の設計と理由の作成、構造化原本、図・Markdown・HTMLの生成、検査、意味の確認、finishの順に進める。assets/examples/basic-design-document.jsonを構造の見本にする。原本作成用の補助スクリプトは作成手順内で使い終えて削除し、納品物へ残さない。
 - 理由: 本文と図を別々に作って食い違うことを防ぐため。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: doc, template: SKILL.md の手順、assets/examples/basic-design-document.json
@@ -78,10 +78,10 @@
   本文で取消から戻す要否を未決と書き、質問と影響範囲を残さない
   ```
 
-## STEP-03 原本から図とHTMLを一組で生成する
+## STEP-03 原本から図・Markdown・HTMLを一組で生成する
 
 - 軸: P3
-- ルール: scripts/document.pyのbuildで構造化原本からMermaid原本・PNG・HTML・manifestを作る。checkで原本の形、参照、画像の実体と同期を確かめる。派生出力を手で差し替えず、原本を直してbuildを実行する。
+- ルール: scripts/document.pyのbuildで構造化原本からMermaid原本・PNG・Markdown・HTML・manifestを作る。checkで原本の形、参照、画像の実体と同期を確かめる。派生出力を手で差し替えず、原本を直してbuildを実行する。
 - 理由: 原本と派生出力の対応を毎回同じ方法で確かめるため。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: script, validate: scripts/document.py の build と check。出力 html の command 検査
@@ -137,25 +137,25 @@
 ## OUT-01 原本と派生出力を同じ場所へ出す
 
 - 軸: O1
-- ルール: {run}/out/へbasic-design-document.json・basic-design-document.html・manifest.jsonを各1件、diagrams/へ同名の.mmdと.pngを図ごとに出力する。context・component・workflow・dataの図を各1件以上作る。
-- 理由: 読者がHTMLを1件開き、原本と画像も再利用できるため。
-- 決め方: 機械で守らせられる答え
+- ルール: {run}/out/へbasic-design-document.json・basic-design-document.md・basic-design-document.html・manifest.jsonを各1件、diagrams/へ同名の.mmdと.pngを図ごとに出力する。context・component・workflow・dataの図を各1件以上作る。
+- 理由: 読者がMarkdownとHTMLの両方で同じ設計を読み、原本と画像も再利用できるため。
+- 決め方: 依頼の指定
 - 守らせ方: validate: 出力の path・count と scripts/document.py の check
 - 良い例:
 
   ```text
-  HTMLと原本とPNGを同じ出力ディレクトリに置く
+  Markdown・HTML・原本・図を同じ出力ディレクトリに置く
   ```
 - 悪い例:
 
   ```text
-  HTMLだけを保存する
+  HTMLだけを保存し、Markdownを省く
   ```
 
 ## OUT-02 全体から観点別に読める構造を作る
 
 - 軸: O2
-- ルール: HTMLの章は、概要、前提と要望、全体構成、画面と操作、データ設計、外部連携、品質と運用、未決事項と詳細設計への引継ぎ、根拠と補足の順にする。設計ごとに観点、設計内容、採用理由、状態、要望・図・質問・根拠への参照を持つ。図は各観点の章へ置き、直前に読む目的、直後に要点を示す。検索できる本文、PNGの埋め込み、代替説明、原寸表示、Mermaid原本のdetails、目次と名前のリンクを付ける。
+- ルール: MarkdownとHTMLの章は、概要、前提と要望、全体構成、画面と操作、データ設計、外部連携、品質と運用、未決事項と詳細設計への引継ぎ、根拠と補足の順にする。設計ごとに観点、設計内容、採用理由、状態、要望・図・質問・根拠への参照を持つ。図は各観点の章へ置き、直前に読む目的、直後に要点を示す。HTMLには検索できる本文、PNGの埋め込み、代替説明、原寸表示、Mermaid原本のdetails、目次と名前のリンクを付ける。Markdownにも同じ本文・図の導入と要点・採用理由・未決事項・根拠を出し、図のPNGとMermaid原本は同梱ファイルへの相対リンクにする。
 - 理由: 前提を覚え続けずに、全体と詳細の関係をたどれるため。
 - 決め方: 依頼の指定
 - 守らせ方: script, validate: scripts/document.py の build と check、references/html-principles.md
@@ -192,7 +192,7 @@
 ## OUT-04 連番の内部IDを表示へ出さない
 
 - 軸: O4
-- ルール: sourcesはSRC-01、actorsはACT-01、requirementsはREQ-01、designsはDES-01、diagramsはD-01、open_questionsはQ-01から出現順の連番にする。IDは原本のid・参照配列とHTMLのリンク先属性だけに使い、本文・見出し・リンクの表示名・代替説明・Mermaidの表示ラベルへ出さない。原資料のquoteは改変しない。生成日時と乱数を加えない。
+- ルール: sourcesはSRC-01、actorsはACT-01、requirementsはREQ-01、designsはDES-01、diagramsはD-01、open_questionsはQ-01から出現順の連番にする。IDは原本のid・参照配列とMarkdown・HTMLのリンク先属性だけに使い、本文・見出し・リンクの表示名・代替説明・Mermaidの表示ラベルへ出さない。原資料のquoteは改変しない。生成日時と乱数を加えない。
 - 理由: 読者に記号の意味と対応を覚えさせず、内部では参照の対応を検査するため。
 - 決め方: 依頼の指定
 - 守らせ方: validate: scripts/document.py の原本検査とHTML生成、references/authoring.md の3章
@@ -225,17 +225,17 @@
   巨大な図を小さく縮めて一枚に収める
   ```
 
-## OUT-06 原本とHTMLと画像を同期する
+## OUT-06 原本・Markdown・HTML・画像を同期する
 
 - 軸: O7
-- ルール: 構造化原本を変更したらbuildでHTMLとmanifestを更新する。manifestには原本・Mermaid・PNG・HTMLのSHA-256と描画設定を記録し、checkが実体とHTMLの埋め込みを照合する。Mermaid・描画設定・描画ツールの版・PNGのハッシュが一致するときだけ同じPNGを再利用する。
+- ルール: 構造化原本を変更したらbuildでMarkdown・HTML・manifestを更新する。manifestには原本・Mermaid・PNG・Markdown・HTMLのSHA-256と描画設定を記録し、checkが実体・Markdownの再生成内容・HTMLの埋め込みを照合する。Mermaid・描画設定・描画ツールの版・PNGのハッシュが一致するときだけ同じPNGを再利用する。
 - 理由: 古い図が本文に残ることを機械で防ぐため。
 - 決め方: 機械で守らせられる答え
-- 守らせ方: validate: scripts/document.py の check と together の source・html・manifest
+- 守らせ方: validate: scripts/document.py の check（Markdownを含む全出力）と together の source・html・manifest
 - 良い例:
 
   ```text
-  文だけの変更でもHTMLとmanifestを再生成する
+  文だけの変更でもMarkdown・HTML・manifestを再生成する
   ```
 - 悪い例:
 
