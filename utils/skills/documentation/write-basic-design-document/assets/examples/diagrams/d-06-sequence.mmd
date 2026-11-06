@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant Employee as 社員の画面
+  participant Service as 予約受付
+  participant Store as 予約の保存先
+  participant Mail as 既存メール基盤
+  Employee->>Service: 予約の申込み
+  Service->>Store: 重複の判定と登録
+  Store-->>Service: 登録完了
+  Service->>Mail: 確定メールの送信依頼
+  Mail-->>Service: 送信結果
+  Service-->>Employee: 予約の確定結果
+  Note over Service,Mail: 送信失敗時の扱いは未決

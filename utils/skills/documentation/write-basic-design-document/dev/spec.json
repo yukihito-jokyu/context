@@ -1,0 +1,767 @@
+{
+  "spec_version": 1,
+  "name": "write-basic-design-document",
+  "status": "ready",
+  "mode": "new",
+  "kind": "write",
+  "language": "ja",
+  "targets": [
+    "codex"
+  ],
+  "title": "図と採用理由がつながる基本設計書を書く",
+  "purpose": "会話・議事録・箇条書きの要望から、開発者が構成・画面・データ・外部連携と採用理由を図と短い説明で理解し、詳細設計へ進めるMarkdownとHTMLの基本設計書を作る",
+  "triggers": {
+    "use_when": [
+      "会話や議事録から基本設計を作成して",
+      "要望のメモを図付きの基本設計書にして",
+      "構成・画面・データ・外部連携が分かる基本設計を書いて",
+      "詳細設計へ進めるように設計案と採用理由をまとめて",
+      "図を多く使い認知負荷の低い基本設計書を作って",
+      "基本設計のHTMLとMermaidの図を作って"
+    ],
+    "not_for": [
+      {
+        "when": "背景・業務・必要な振る舞いを整理した要件定義書だけを作る",
+        "instead": "write-requirement-document"
+      },
+      {
+        "when": "実装コード、メソッド、物理列の定義だけを作る",
+        "instead": "詳細設計と実装を直接行う"
+      }
+    ],
+    "implicit": true
+  },
+  "inputs": [
+    {
+      "key": "language",
+      "label": "出力の言語",
+      "type": "enum",
+      "enum": [
+        "ja",
+        "en"
+      ],
+      "enum_aliases": {
+        "日本語": "ja",
+        "英語": "en"
+      },
+      "aliases": [
+        "言語",
+        "lang"
+      ],
+      "impact": "reversible",
+      "default": "ja"
+    }
+  ],
+  "excluded_inputs": [],
+  "outputs": [
+    {
+      "id": "source",
+      "label": "基本設計の構造化原本",
+      "path": "{run}/out/basic-design-document.json",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": [
+        {
+          "type": "json_schema",
+          "rule": "OUT-02",
+          "schema": {
+            "type": "object",
+            "required": [
+              "title",
+              "summary",
+              "requirements",
+              "coverage",
+              "designs",
+              "sources",
+              "diagrams",
+              "handoff"
+            ]
+          }
+        },
+        {
+          "type": "require",
+          "rule": "OUT-02",
+          "pattern": "\"language\"\\s*:\\s*\"{in:language}\"",
+          "message": "原本の言語を実行時の入力とそろえる"
+        }
+      ]
+    },
+    {
+      "id": "html",
+      "label": "基本設計書のHTML",
+      "path": "{run}/out/basic-design-document.html",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": [
+        {
+          "type": "command",
+          "rule": "STEP-03",
+          "rules": [
+            "OUT-01",
+            "OUT-02",
+            "OUT-04",
+            "OUT-05",
+            "OUT-06",
+            "OUT-07",
+            "OUT-08",
+            "OUT-09"
+          ],
+          "stage": "finish",
+          "run": "python3 {skill}/scripts/document.py check --source {run}/out/basic-design-document.json --out {run}/out",
+          "timeout": 30
+        }
+      ]
+    },
+    {
+      "id": "markdown",
+      "label": "基本設計書のMarkdown",
+      "path": "{run}/out/basic-design-document.md",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "manifest",
+      "label": "図と原本の対応とハッシュ",
+      "path": "{run}/out/manifest.json",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "mermaid",
+      "label": "Mermaid原本",
+      "path": "{run}/out/diagrams/*.mmd",
+      "count": {
+        "min": 4
+      },
+      "rule": "OUT-01",
+      "checks": []
+    },
+    {
+      "id": "png",
+      "label": "図のPNG",
+      "path": "{run}/out/diagrams/*.png",
+      "count": {
+        "min": 4
+      },
+      "rule": "OUT-01",
+      "checks": [],
+      "binary": true
+    }
+  ],
+  "together": [
+    {
+      "rule": "OUT-06",
+      "outputs": [
+        "source",
+        "html",
+        "manifest"
+      ],
+      "message": "原本を変えたらMarkdown・HTML・manifestを再生成する"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "IN-01",
+      "axes": [
+        "I3"
+      ],
+      "title": "対象と課題がある基本設計を扱う",
+      "decision": "要件定義だけ、または実装コード・物理列・メソッドの定義だけを求める依頼では開始せず、対応する作業を案内する。解く課題または対象が会話と資料のどちらにも無ければ、開始前に不足する点をまとめて聞く。対象と課題が分かり、条件だけが未指定か矛盾しているときは、未決事項を残して基本設計のドラフトを作る。",
+      "reason": "対象不明のまま文章や要件を捏造しないため。",
+      "basis": "user",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順1、references/authoring.md の1章",
+      "why_not_machine": "痕跡が残らない：開始しない判断は出力に残らない",
+      "probes": [],
+      "good": "メモの承認条件の矛盾を未決事項へ残す",
+      "bad": "対象がないまま機能を提案して確定する"
+    },
+    {
+      "id": "IN-02",
+      "axes": [
+        "I4"
+      ],
+      "title": "会話と指定資料から根拠を読む",
+      "decision": "会話、利用者が指定した資料、対象プロジェクトのAGENTS.mdを読む。既存コードは利用者が既存構成の確認を指定したときだけ読む。資料の抜粋と場所をsourcesへ保存し、要望の事実と新しく提案する設計を分ける。",
+      "reason": "AIと読者の前提の差を根拠から埋めるため。",
+      "basis": "user",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順1、references/authoring.md の1章",
+      "why_not_machine": "痕跡が残らない：読んだ資料の全範囲は出力だけでは確かめられない",
+      "probes": [],
+      "good": "議事録の発言と場所を保存する",
+      "bad": "無関係なコードから業務条件を確定する"
+    },
+    {
+      "id": "STEP-01",
+      "axes": [
+        "P1"
+      ],
+      "title": "要望から設計と図を順に作る",
+      "decision": "受付、要望と根拠の整理、4観点の設計と理由の作成、構造化原本、図・Markdown・HTMLの生成、検査、意味の確認、finishの順に進める。assets/examples/basic-design-document.jsonを構造の見本にする。原本作成用の補助スクリプトは作成手順内で使い終えて削除し、納品物へ残さない。",
+      "reason": "本文と図を別々に作って食い違うことを防ぐため。",
+      "basis": "machine",
+      "control": [
+        "doc",
+        "template"
+      ],
+      "how": "SKILL.md の手順、assets/examples/basic-design-document.json",
+      "why_not_machine": "痕跡が残らない：作業の順序は最終出力だけでは分からない",
+      "probes": [],
+      "good": "先に要件と根拠を整理してから図を生成する",
+      "bad": "図を先に作って本文の条件を合わせる"
+    },
+    {
+      "id": "STEP-02",
+      "axes": [
+        "P2"
+      ],
+      "title": "未指定と矛盾を質問と影響へ結び付ける",
+      "decision": "業務条件や技術が未指定ならopen_questionsへ確認する条件と、決まるまで確定できない設計の範囲を書く。資料が矛盾するときは両方をsourcesへ残し、片方を合意済みとして採用しない。本文と図にある未決の条件を質問と影響範囲へ結び付ける。提案はproposal、入力の事実はstated、未決の設計はopenにし、承認を捏造しない。",
+      "reason": "質問待ちだけで止まらず、現在分かっている範囲を共有するため。",
+      "basis": "user",
+      "control": [
+        "review"
+      ],
+      "how": "references/authoring.md の2章、完了前チェックリストで未決事項と図を照合する",
+      "why_not_machine": "意味の判断が要る：記述の矛盾と未指定の条件を原資料と比較する",
+      "probes": [],
+      "good": "承認要否は未決と図に示し、確認質問と確定できない予約条件を同じ未決事項へ書く",
+      "bad": "本文で取消から戻す要否を未決と書き、質問と影響範囲を残さない"
+    },
+    {
+      "id": "STEP-03",
+      "axes": [
+        "P3"
+      ],
+      "title": "原本から図・Markdown・HTMLを一組で生成する",
+      "decision": "scripts/document.pyのbuildで構造化原本からMermaid原本・PNG・Markdown・HTML・manifestを作る。checkで原本の形、参照、画像の実体と同期を確かめる。派生出力を手で差し替えず、原本を直してbuildを実行する。",
+      "reason": "原本と派生出力の対応を毎回同じ方法で確かめるため。",
+      "basis": "machine",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/document.py の build と check。出力 html の command 検査",
+      "why_not_machine": "",
+      "probes": [
+        "STEP-03-a"
+      ],
+      "good": "原本を直して全体を再生成する",
+      "bad": "PNGだけ差し替え原本を残す"
+    },
+    {
+      "id": "STEP-04",
+      "axes": [
+        "P4"
+      ],
+      "title": "既存のローカル描画環境を使う",
+      "decision": "Python 3.9以上、Node.js、既存のmermaid-cli 11以降を使い、doctorで経路と版を確認する。Mermaidはflowchart・stateDiagram-v2・sequenceDiagram・classDiagram・erDiagramを使う。外部画像、クリック、初期化指令を図へ埋め込まず、新規パッケージとリモート描画サービスを自動導入しない。",
+      "reason": "同じ構文をローカルで変換し、環境による未検証の代替図を防ぐため。",
+      "basis": "official",
+      "control": [
+        "doc"
+      ],
+      "how": "scripts/document.py の doctor と build、references/diagrams.md の2章",
+      "why_not_machine": "痕跡が残らない：コマンドの選択は最終出力から全て分からない",
+      "probes": [],
+      "good": "既存mmdcで原本をPNGへ変換する",
+      "bad": "PNGの代わりにMermaid文字列だけを載せて完了する"
+    },
+    {
+      "id": "STEP-05",
+      "axes": [
+        "P5"
+      ],
+      "title": "失敗の原因を直して検査し直す",
+      "decision": "buildまたはcheckが失敗したら、示されたルールIDに従って原本を直し、buildとcheckを実行し直す。描画の実行経路か起動権限が無ければ、環境が用意する承認手順を使う。使えないときは不足する経路を報告して質問待ちにし、PNGが無い状態を完成としない。",
+      "reason": "壊れた図や未生成の図を納品しないため。",
+      "basis": "machine",
+      "control": [
+        "doc"
+      ],
+      "how": "SKILL.md の手順5と6、scripts/document.py のエラー出力",
+      "why_not_machine": "痕跡が残らない：失敗後の対処の順序は出力だけでは分からない",
+      "probes": [],
+      "good": "構文エラーを直して再描画する",
+      "bad": "未生成の図を空欄にしてfinishする"
+    },
+    {
+      "id": "OUT-01",
+      "axes": [
+        "O1"
+      ],
+      "title": "原本と派生出力を同じ場所へ出す",
+      "decision": "{run}/out/へbasic-design-document.json・basic-design-document.md・basic-design-document.html・manifest.jsonを各1件、diagrams/へ同名の.mmdと.pngを図ごとに出力する。context・component・workflow・dataの図を各1件以上作る。",
+      "reason": "読者がMarkdownとHTMLの両方で同じ設計を読み、原本と画像も再利用できるため。",
+      "basis": "user",
+      "control": [
+        "validate"
+      ],
+      "how": "出力の path・count と scripts/document.py の check",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-01-a",
+        "OUT-01-b"
+      ],
+      "good": "Markdown・HTML・原本・図を同じ出力ディレクトリに置く",
+      "bad": "HTMLだけを保存し、Markdownを省く"
+    },
+    {
+      "id": "OUT-02",
+      "axes": [
+        "O2"
+      ],
+      "title": "全体から観点別に読める構造を作る",
+      "decision": "MarkdownとHTMLの章は、概要、前提と要望、全体構成、画面と操作、データ設計、外部連携、品質と運用、未決事項と詳細設計への引継ぎ、根拠と補足の順にする。設計ごとに観点、設計内容、採用理由、状態、要望・図・質問・根拠への参照を持つ。図は各観点の章へ置き、直前に読む目的、直後に要点を示す。HTMLには検索できる本文、PNGの埋め込み、代替説明、原寸表示、Mermaid原本のdetails、目次と名前のリンクを付ける。Markdownにも同じ本文・図の導入と要点・採用理由・未決事項・根拠を出し、図のPNGとMermaid原本は同梱ファイルへの相対リンクにする。Markdownは文書名・目的・目次から始め、章と節を番号付き見出しにし、用語と利用者を表で示す。図は導入・PNG・拡大と原本へのリンク・要点・関連設計の順にする。文書内リンクは番号付き見出しに合わせ、HTMLタグのアンカーを本文へ挿入しない。参考文書は書式だけを参考にし、要件定義の章構成・業務・版番号を転用しない。",
+      "reason": "前提を覚え続けずに、全体と詳細の関係をたどれるため。",
+      "basis": "user",
+      "control": [
+        "script",
+        "validate"
+      ],
+      "how": "scripts/document.py の build と check、references/html-principles.md、references/markdown-format.md",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-02-a",
+        "OUT-02-b",
+        "OUT-02-c"
+      ],
+      "good": "図と説明を同じfigureに置き、内容が分かる要件名でリンクする",
+      "bad": "図を巻末へ集め、本文から探させる"
+    },
+    {
+      "id": "OUT-03",
+      "axes": [
+        "O3"
+      ],
+      "title": "短い文章と分かる名前で説明する",
+      "decision": "各節の要点を先に示し、前提から設計と採用理由へ説明をつなぐ。1段落を1論点にし、主体・条件・結果を具体的に書く。同義反復、抽象的な美辞麗句、独自に作った英字の略語を本文・見出し・図・リンクの表示名へ出さない。一般的な技術用語は使うときに初出で意味を説明する。必要な前提・例外・未決事項を短縮のために落とさない。",
+      "reason": "短文だけを並べても意味のつながりが無ければ理解できないため。",
+      "basis": "user",
+      "control": [
+        "review"
+      ],
+      "how": "references/html-principles.mdの1章、Evalのbehavior-3とbehavior-4、完了前チェックリスト",
+      "why_not_machine": "意味の判断が要る：文章のつながりと、略語が文書独自のものかは原資料と文脈で判断する",
+      "probes": [],
+      "good": "重複を確定させないため、予約受付で日時を照合する案を示す",
+      "bad": "独自のRCPで最適化を高度化し、効率的な価値を実現する"
+    },
+    {
+      "id": "OUT-04",
+      "axes": [
+        "O4"
+      ],
+      "title": "連番の内部IDを表示へ出さない",
+      "decision": "sourcesはSRC-01、actorsはACT-01、requirementsはREQ-01、designsはDES-01、diagramsはD-01、open_questionsはQ-01から出現順の連番にする。IDは原本のid・参照配列とMarkdown・HTMLのリンク先属性だけに使い、本文・見出し・リンクの表示名・代替説明・Mermaidの表示ラベルへ出さない。原資料のquoteは改変しない。生成日時と乱数を加えない。",
+      "reason": "読者に記号の意味と対応を覚えさせず、内部では参照の対応を検査するため。",
+      "basis": "user",
+      "control": [
+        "validate"
+      ],
+      "how": "scripts/document.py の原本検査とHTML生成、references/authoring.md の3章",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-04-a",
+        "OUT-04-b",
+        "OUT-04-c"
+      ],
+      "good": "「空き時間を確認する」から同名の設計へ移動できる",
+      "bad": "図にFR-01を付け、対応する要件を読者に探させる"
+    },
+    {
+      "id": "OUT-05",
+      "axes": [
+        "O5"
+      ],
+      "title": "問いごとに図と段落を分ける",
+      "decision": "本文は1段落1論点とし、図は1つの問いを扱う。Mermaid原本は図ごとに6000文字以下、PNGは幅と高さ6000px以下かつ2500万画素以下にする。上限を超えるときは、全体図と処理別の詳細図へ分け、設計への参照を保つ。",
+      "reason": "図や文章を縮小して詰め込むと流れが読めなくなるため。",
+      "basis": "machine",
+      "control": [
+        "validate"
+      ],
+      "how": "scripts/document.py の寸法・原本長検査、references/diagrams.md の3章",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-05-a"
+      ],
+      "good": "全体図から申請と取消の詳細図へ分ける",
+      "bad": "巨大な図を小さく縮めて一枚に収める"
+    },
+    {
+      "id": "OUT-06",
+      "axes": [
+        "O7"
+      ],
+      "title": "原本・Markdown・HTML・画像を同期する",
+      "decision": "構造化原本を変更したらbuildでMarkdown・HTML・manifestを更新する。manifestには原本・Mermaid・PNG・Markdown・HTMLのSHA-256と描画設定を記録し、checkが実体・Markdownの再生成内容・HTMLの埋め込みを照合する。Mermaid・描画設定・描画ツールの版・PNGのハッシュが一致するときだけ同じPNGを再利用する。",
+      "reason": "古い図が本文に残ることを機械で防ぐため。",
+      "basis": "machine",
+      "control": [
+        "validate"
+      ],
+      "how": "scripts/document.py の check（Markdownを含む全出力）と together の source・html・manifest",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-06-a",
+        "OUT-06-b",
+        "OUT-06-c"
+      ],
+      "good": "文だけの変更でもMarkdown・HTML・manifestを再生成する",
+      "bad": "Mermaidを変えて古いPNGを再利用する"
+    },
+    {
+      "id": "OUT-07",
+      "axes": [
+        "O8"
+      ],
+      "title": "検査を省く項目を原本へ加えない",
+      "decision": "原本とmanifestは定義したキーだけを持つ。skip_validation、ignore_errors、自己申告の検証済みを受け付けず、検査は原本と派生出力の実体で行う。",
+      "reason": "検査の省略を成果物へ埋め込ませないため。",
+      "basis": "machine",
+      "control": [
+        "validate"
+      ],
+      "how": "scripts/document.py の原本キーとmanifest検査",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-07-a"
+      ],
+      "good": "未決事項を記録し、検査は実行する",
+      "bad": "skip_validationをtrueにする"
+    },
+    {
+      "id": "OUT-08",
+      "axes": [
+        "X1"
+      ],
+      "title": "要望から設計と根拠をたどれるようにする",
+      "decision": "sourcesへ資料名・場所・実際の記述の抜粋を保存する。各要望から設計、設計から図と根拠、図から設計と根拠をたどれる参照を持つ。未決の設計は対応する質問を参照し、HTMLでは内容が分かる名前をリンクの表示名にする。入力に無い条件を合意済みの事実として書かない。",
+      "reason": "AIが見た根拠を読者も確認できるため。",
+      "basis": "user",
+      "control": [
+        "validate"
+      ],
+      "how": "scripts/document.py の参照・抜粋検査、references/authoring.md の3章",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-08-a",
+        "OUT-08-b",
+        "OUT-08-c"
+      ],
+      "good": "設計から議事録の発言の抜粋へ移動できる",
+      "bad": "出典名だけを書き該当記述を示さない"
+    },
+    {
+      "id": "OUT-09",
+      "axes": [
+        "X2"
+      ],
+      "title": "設計の観点に合わせて図を選ぶ",
+      "decision": "coverageはarchitecture・screen・data・integrationの順に採否と理由を持つ。architectureとdataは採用し、全体構成と責務、処理、データ関係の図を作る。screenを採用したときはscreen、integrationを採用したときはsequenceの図を作る。図の8種類context・component・workflow・screen・data・sequence・state・deploymentの採否と理由をdiagram_decisionsへ残す。画面や外部連携が無いときは理由を示し、未指定のときは未決事項を残す。物理列、索引、メソッドの定義はhandoffへ分ける。",
+      "reason": "図を増やすこと自体を目的にせず、要件と設計を混ぜないため。",
+      "basis": "user",
+      "control": [
+        "validate"
+      ],
+      "how": "scripts/document.py の図の種別・選択記録検査、references/diagrams.md の1章",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-09-a",
+        "OUT-09-b",
+        "OUT-09-c"
+      ],
+      "good": "画面のない夜間処理ではscreenを省き、構成・処理・データ・外部連携の図を作る",
+      "bad": "図を増やすため、要望のない操作画面を確定した構成へ足す"
+    },
+    {
+      "id": "CTL-01",
+      "axes": [
+        "C1"
+      ],
+      "title": "実行は run.py で始めて終える",
+      "decision": "手順の最初に `run.py start`、出力を書いた後に `run.py check`、最後に `run.py finish` を実行する。`finish` が終了コード0で終わるまで、完了と返答しない。",
+      "reason": "始まりと終わりをスクリプトで区切ると、検査が必ず走り、hooks が実行中かどうかを判定できる。完了の基準が AI ごとに分かれない。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate"
+      ],
+      "how": "scripts/run.py。finish は契約の検査に通らないと終了コード1で終わる",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "`run.py finish` が終了コード0で終わってから、その本文で返答する",
+      "bad": "出力を書いた直後に「完了しました」と返答する"
+    },
+    {
+      "id": "CTL-02",
+      "axes": [
+        "C2"
+      ],
+      "title": "スキル自身の変更制限",
+      "retired": "ユーザーによる微修正を妨げるため、変更制限と変更後の特別な検査手順を廃止した。"
+    },
+    {
+      "id": "CTL-03",
+      "axes": [
+        "C3",
+        "I2"
+      ],
+      "title": "質問は start の前に済ませる",
+      "decision": "ユーザーに聞くことは `run.py start` の前にまとめて聞く。start の後に聞く必要が出たときは、`run.py wait --question <質問>` を実行してから聞く。聞けない状況では既定値を使い、報告の「既定値で決めた値」に載せる。",
+      "reason": "実行の途中で質問するかどうかが AI ごとに分かれると、出力が揃わない。wait を挟むと、質問のために応答を終えることを hooks が止めない。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "doc"
+      ],
+      "how": "scripts/run.py の start は、聞くべき入力が無いと終了コード3で止まり、質問を出力する。wait は hooks の強制を止める",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "start の終了コード3で出た質問をユーザーに聞き、答えを `--set` で渡して start をやり直す",
+      "bad": "出力を半分書いたところで、形式をユーザーに尋ねる"
+    },
+    {
+      "id": "CTL-04",
+      "axes": [
+        "C4"
+      ],
+      "title": "hooks で出力を検査する",
+      "decision": "hooks は実行中（status: active）に、編集の後と応答を終える前に出力を検査する。実行記録への直接の編集は拒否する。ユーザーの発言を止めたり書き換えたりしない。hooks が無くても run.py check と finish で同じ出力の検査を行う。",
+      "reason": "スキルの微修正を妨げず、出力の検証結果と実行記録を揃える。",
+      "basis": "machine",
+      "control": [
+        "runtime"
+      ],
+      "how": "scripts/hook.py。install.py が Claude Code（.claude/settings.json）と Codex（.codex/hooks.json）に登録する",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "Stop の hook が、検査に通るまで応答の終了を差し戻す",
+      "bad": "UserPromptSubmit の hook で、依頼文の書き方が違うと拒否する"
+    },
+    {
+      "id": "RPT-01",
+      "axes": [
+        "R1"
+      ],
+      "title": "最終の返答は finish の本文をそのまま使う",
+      "decision": "最終の返答は、`run.py finish` が出力した本文をそのまま使い、前後に文を足さず、要約しない。中断したときは、`run.py abort` が出力した本文を同じように使う。決めきれなかったことは、finish の前に `.skill-runs/<name>/notes.md` に「- 」で始まる箇条書きで書く（10 項目まで）。finish がそれを本文の「## 補足」に入れる。",
+      "reason": "報告の形と中身が AI ごとに分かれない。既定値で決めた値と検証の結果を、読み手が必ず見られる。",
+      "basis": "machine",
+      "control": [
+        "runtime",
+        "validate",
+        "review"
+      ],
+      "how": "scripts/run.py の finish と abort が本文を組み立て、.skill-runs/<name>/report.md にも保存する。check と finish が notes.md の形を検査する",
+      "why_not_machine": "",
+      "probes": [
+        "builtin"
+      ],
+      "good": "決めきれなかった既定値を notes.md に「- 」で書き、finish の本文をそのまま返答する",
+      "bad": "finish の本文を要約し直し、最後に自由な文で補足を足して返答する"
+    }
+  ],
+  "extra_axes": [
+    {
+      "axis": "X1",
+      "prefix": "OUT",
+      "name": "引用と根拠の示し方（何を引用し、どこへのリンクを付けるか）"
+    },
+    {
+      "axis": "X2",
+      "prefix": "OUT",
+      "name": "設計の観点と図の採否"
+    }
+  ],
+  "excluded_axes": [
+    {
+      "axis": "O6",
+      "reason": "利用者の既存文書を更新せず、実行記録の下へ原本と派生出力を作るため。"
+    }
+  ],
+  "examples": [
+    {
+      "path": "basic-design-document.json",
+      "shows": [
+        "OUT-01",
+        "OUT-03",
+        "OUT-04",
+        "OUT-07",
+        "OUT-08",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "basic-design-document.html",
+      "shows": [
+        "OUT-01",
+        "OUT-02",
+        "OUT-05",
+        "OUT-06"
+      ]
+    },
+    {
+      "path": "manifest.json",
+      "shows": [
+        "OUT-06"
+      ]
+    },
+    {
+      "path": "diagrams/d-01-context.mmd",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-01-context.png",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-02-component.mmd",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-02-component.png",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-03-workflow.mmd",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-03-workflow.png",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-04-screen.mmd",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-04-screen.png",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-05-data.mmd",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-05-data.png",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-06-sequence.mmd",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-06-sequence.png",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-07-state.mmd",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "diagrams/d-07-state.png",
+      "shows": [
+        "OUT-01",
+        "OUT-05",
+        "OUT-09"
+      ]
+    },
+    {
+      "path": "basic-design-document.md",
+      "shows": [
+        "OUT-01",
+        "OUT-02",
+        "OUT-04",
+        "OUT-06",
+        "OUT-08"
+      ]
+    }
+  ],
+  "control": {
+    "hooks": true,
+    "max_stop_blocks": 3
+  },
+  "report": {
+    "include_output": null
+  },
+  "convergence": {}
+}

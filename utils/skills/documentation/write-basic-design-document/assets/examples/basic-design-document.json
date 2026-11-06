@@ -1,0 +1,580 @@
+{
+  "title": "社内備品予約の基本設計書",
+  "language": "ja",
+  "summary": "紙台帳による重複予約を防ぐため、予約受付へ重複の判定と登録を集める案を示す。社員の画面、予約データ、既存メールとの関係を図で確認し、未決の取消期限と送信失敗時の扱いを詳細設計へ引き継ぐ。",
+  "background": [
+    "紙台帳では同じ備品に重複する予約が入る。",
+    "社員の予約・取消と、管理担当の貸出・返却を一つの仕組みで扱う。"
+  ],
+  "purpose": "開発者が責務・画面・データ・連携と理由を理解し、未決条件を確認して詳細設計へ進める。",
+  "readers": [
+    "開発者"
+  ],
+  "terms": [
+    {
+      "term": "予約の確定",
+      "definition": "備品と時間帯を受け付け、重複する予約として扱われないよう登録した状態を指す。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "scope": {
+    "in": [
+      "備品と時間帯を指定した予約と本人による取消",
+      "管理担当による貸出・返却の記録",
+      "予約確定後のメール通知"
+    ],
+    "out": [
+      "対象外の業務は未指定。「今回扱わない業務の範囲」で確認する。"
+    ]
+  },
+  "actors": [
+    {
+      "id": "ACT-01",
+      "name": "社員",
+      "role": "備品と日時を選んで申し込み、自分の予約を取り消す。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "ACT-02",
+      "name": "管理担当",
+      "role": "備品の貸出と返却を記録する。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "title": "備品を予約して重複を防ぐ",
+      "statement": "社員は備品と開始・終了日時を指定して申し込み、重複する時間帯の予約を確定させない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "REQ-02",
+      "title": "自分の予約を取り消す",
+      "statement": "社員は自分の予約を取り消せる。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "REQ-03",
+      "title": "貸出と返却を記録する",
+      "statement": "管理担当は備品の貸出と返却を記録する。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "REQ-04",
+      "title": "予約確定を本人へ通知する",
+      "statement": "予約確定後、既存の社内メール基盤から本人へ通知する。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "area": "architecture",
+      "applicable": true,
+      "reason": "受付判定・保存・画面・メールの責務を分けて、重複防止と通知の順序を説明する。",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": []
+    },
+    {
+      "area": "screen",
+      "applicable": true,
+      "reason": "社員の予約・取消と管理担当の貸出・返却を、目的別の操作として説明する。",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": []
+    },
+    {
+      "area": "data",
+      "applicable": true,
+      "reason": "社員・備品・予約・利用記録の関係と、重複を判定する情報を説明する。",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": []
+    },
+    {
+      "area": "integration",
+      "applicable": true,
+      "reason": "既存メール基盤への依頼と、失敗時に未決の条件を説明する。",
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": []
+    }
+  ],
+  "designs": [
+    {
+      "id": "DES-01",
+      "area": "architecture",
+      "title": "予約の判定と登録を一つの責務へ集める",
+      "statement": "画面から予約受付を呼び出し、同じ備品への重複の判定と登録を一つの単位で扱う設計案とする。",
+      "reason": "画面ごとに判定が分かれることを避け、重複する予約を確定させないため。",
+      "details": [
+        "社員の申込み・取消と管理担当の貸出・返却は、予約受付へ集める。",
+        "既存メール基盤への依頼は、予約の登録完了後に行う。",
+        "同時申込みの採否を決める順序と、境界時刻の扱いは詳細設計で確認する。"
+      ],
+      "status": "proposal",
+      "requirement_ids": [
+        "REQ-01",
+        "REQ-02",
+        "REQ-03",
+        "REQ-04"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-01",
+        "D-02",
+        "D-03"
+      ],
+      "question_ids": [
+        "Q-06"
+      ]
+    },
+    {
+      "id": "DES-02",
+      "area": "screen",
+      "title": "目的別に画面と操作を分ける",
+      "statement": "社員には備品一覧・予約入力・結果確認・自分の予約一覧を示し、管理担当には貸出・返却の一覧を設ける案とする。",
+      "reason": "社員が自分の申込みと取消を確認でき、管理担当の記録操作と区別できるため。",
+      "details": [
+        "予約入力は備品、開始日時、終了日時を受け取る。",
+        "重複する予約は確定させず、結果確認で重複を伝える。",
+        "本人の取消は自分の予約一覧から行う。受付期限は「取消期限」で確認する。",
+        "管理担当は貸出・返却の一覧から利用記録を更新する。"
+      ],
+      "status": "proposal",
+      "requirement_ids": [
+        "REQ-01",
+        "REQ-02",
+        "REQ-03"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-04"
+      ],
+      "question_ids": [
+        "Q-01"
+      ]
+    },
+    {
+      "id": "DES-03",
+      "area": "data",
+      "title": "予約と利用記録を分けて保持する",
+      "statement": "予約を社員と備品へ関連付け、貸出と返却は予約に対応する利用記録として保持する案とする。",
+      "reason": "重複の判定に使う予約と、実際の貸出・返却の履歴を別の目的で扱うため。",
+      "details": [
+        "予約は申込者・備品・開始日時・終了日時・状態を持つ。",
+        "社員1人と備品1点に対し、それぞれ複数の予約が対応する。",
+        "予約の状態は確定・取消を扱い、利用記録に貸出・返却を残す。",
+        "予約受付で同じ備品の重複判定と登録を一つの単位として扱い、物理制約は詳細設計へ渡す。"
+      ],
+      "status": "proposal",
+      "requirement_ids": [
+        "REQ-01",
+        "REQ-02",
+        "REQ-03"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-05",
+        "D-07"
+      ],
+      "question_ids": [
+        "Q-06"
+      ]
+    },
+    {
+      "id": "DES-04",
+      "area": "integration",
+      "title": "確定した予約を既存メールへ渡す",
+      "statement": "予約の登録が完了してから、本人の通知先と予約内容を既存メール基盤へ渡す案とする。",
+      "reason": "未確定の予約を確定通知として送らず、要望にある既存の通知経路を使うため。",
+      "details": [
+        "正常時は登録完了、送信依頼、結果確認の順とする。",
+        "接続方式と送信結果の形式は利用技術と合わせて確認する。",
+        "送信失敗時の再送と予約結果への影響は未決であり、「メール送信失敗時の扱い」で確認する。"
+      ],
+      "status": "proposal",
+      "requirement_ids": [
+        "REQ-04"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-06"
+      ],
+      "question_ids": [
+        "Q-02",
+        "Q-03"
+      ]
+    },
+    {
+      "id": "DES-05",
+      "area": "architecture",
+      "title": "利用する技術を既存環境と合わせて選ぶ",
+      "statement": "既存の実行環境と運用の条件を確認してから、保存先と受付処理の実装技術を決める。",
+      "reason": "利用技術が会話に指定されておらず、採用済みの製品として確定できないため。",
+      "details": [
+        "ここに示す責務の分担は製品の採用を意味しない。"
+      ],
+      "status": "open",
+      "requirement_ids": [
+        "REQ-01",
+        "REQ-04"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "diagram_ids": [
+        "D-02"
+      ],
+      "question_ids": [
+        "Q-03"
+      ]
+    }
+  ],
+  "quality": [
+    {
+      "category": "performance",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質と運用の条件」で確認し、設計への影響を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": [
+        "Q-04"
+      ]
+    },
+    {
+      "category": "availability",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質と運用の条件」で確認し、設計への影響を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": [
+        "Q-04"
+      ]
+    },
+    {
+      "category": "security",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質と運用の条件」で確認し、設計への影響を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": [
+        "Q-04"
+      ]
+    },
+    {
+      "category": "privacy",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質と運用の条件」で確認し、設計への影響を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": [
+        "Q-04"
+      ]
+    },
+    {
+      "category": "operations",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質と運用の条件」で確認し、設計への影響を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": [
+        "Q-04"
+      ]
+    },
+    {
+      "category": "accessibility",
+      "status": "open",
+      "statement": "入力に目標と条件の指定がない。「品質と運用の条件」で確認し、設計への影響を定める。",
+      "acceptance": [],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "question_ids": [
+        "Q-04"
+      ]
+    }
+  ],
+  "constraints": [],
+  "open_questions": [
+    {
+      "id": "Q-01",
+      "question": "取消期限",
+      "consequence": "社員の取消をいつまで受け付けるか。決まるまで、取消画面と受付処理の期限条件を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-02",
+      "question": "メール送信失敗時の扱い",
+      "consequence": "失敗した通知を再送するか、予約結果へ影響させるかを確認する。決まるまで、連携の異常系と結果確認の表示を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-03",
+      "question": "利用技術と接続方式",
+      "consequence": "既存の技術・運用環境とメールの接続方式を確認する。決まるまで、製品・配置・接続の実装を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-04",
+      "question": "品質と運用の条件",
+      "consequence": "性能、可用性、権限、個人情報、監視、アクセシビリティの条件を確認する。決まるまで、品質目標と運用・検証の方法を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-05",
+      "question": "今回扱わない業務の範囲",
+      "consequence": "対象外の業務を確認する。決まるまで、今回の実装の対象外を追加で断定しない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "id": "Q-06",
+      "question": "同時申込みと時刻の境界",
+      "consequence": "同時に申し込まれた予約の採否と、終了時刻が次の開始時刻と一致する場合を確認する。決まるまで、採否の順序と境界の受付条件を確定できない。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-01",
+      "label": "備品予約の会話メモ",
+      "location": "検証用の会話メモ・発言1",
+      "quote": "社内備品の予約を紙台帳で管理しており、同じ備品に重複予約が入る。社員は備品と開始・終了日時を選んで申し込み、本人が予約を取り消す。管理担当は貸出と返却を記録する。重複する時間帯の予約を確定させない。予約が確定したら既存の社内メール基盤から本人へ通知する。利用技術、取消期限、メール送信に失敗したときの扱いはまだ決まっていない。"
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "D-01",
+      "kind": "context",
+      "area": "architecture",
+      "title": "対象システムの境界",
+      "intro": "社員・管理担当・既存メール基盤と、今回設計する範囲の境界を見る。",
+      "takeaway": "社員と管理担当の操作を対象とし、通知は既存メール基盤へ依頼する。",
+      "alt": "社員と管理担当が備品予約システムを使い、予約確定通知を既存メール基盤へ依頼する関係。",
+      "design_ids": [
+        "DES-01"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  employee[\"社員\"]\n  manager[\"管理担当\"]\n  subgraph boundary[\"今回の設計範囲\"]\n    app[\"備品予約システム\"]\n  end\n  mail[\"既存メール基盤\"]\n  employee -->|\"申込み・取消\"| app\n  manager -->|\"貸出・返却の記録\"| app\n  app -->|\"確定メールの依頼\"| mail\n"
+    },
+    {
+      "id": "D-02",
+      "kind": "component",
+      "area": "architecture",
+      "title": "受付と保存と通知の責務",
+      "intro": "画面から受けた操作を、どの責務が判定・保存・通知するかを見る。",
+      "takeaway": "予約受付が重複の判定と登録を一つの単位で扱い、登録完了後にメールへ依頼する案である。",
+      "alt": "社員と管理担当の画面から予約受付へ操作を渡し、予約と利用記録を保存して、登録完了後に既存メールへ通知する構成案。",
+      "design_ids": [
+        "DES-01",
+        "DES-05"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  screen[\"社員と管理担当の画面\"] -->|\"操作\"| service[\"予約受付\"]\n  service -->|\"重複判定・登録\"| store[\"予約と利用記録の保存先\"]\n  service -->|\"登録完了後の通知\"| mail[\"既存メール基盤\"]\n"
+    },
+    {
+      "id": "D-03",
+      "kind": "workflow",
+      "area": "architecture",
+      "title": "予約が確定するまでの処理",
+      "intro": "時間帯の重複の有無で、受付の結果が分かれる順序を見る。",
+      "takeaway": "重複する予約は確定させず、重複しない予約の登録完了後に通知を依頼する案である。同時申込みの採否は確認事項へ残す。",
+      "alt": "備品と日時を入力して重複を検査し、重複時は確定せず、重複が無ければ登録して通知する処理案。",
+      "design_ids": [
+        "DES-01"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart TD\n  input[\"社員が備品と日時を入力\"] --> check{\"同じ備品の時間帯が重複するか\"}\n  check -->|\"あり\"| reject[\"確定せず結果を伝える\"]\n  check -->|\"なし\"| save[\"予約を登録する\"]\n  save --> notify[\"確定メールを依頼する\"]\n  notify --> result[\"社員へ確定結果を示す\"]\n"
+    },
+    {
+      "id": "D-04",
+      "kind": "screen",
+      "area": "screen",
+      "title": "社員と管理担当の画面",
+      "intro": "申込みから結果確認・取消までと、貸出・返却の入口を見る。",
+      "takeaway": "社員の取消は自分の予約一覧から行い、管理担当は利用記録を扱う案である。",
+      "alt": "社員は備品一覧、予約入力、結果確認、自分の予約一覧へ進む。管理担当は貸出・返却一覧から利用記録を更新する画面案。",
+      "design_ids": [
+        "DES-02"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  subgraph employee[\"社員\"]\n    list[\"備品一覧\"] --> form[\"予約入力\"] --> result[\"結果確認\"] --> own[\"自分の予約一覧\"]\n    own -->|\"本人が取消\"| cancelled[\"取消結果\"]\n  end\n  subgraph manager[\"管理担当\"]\n    loans[\"貸出・返却の一覧\"] --> record[\"利用記録の更新\"]\n  end\n"
+    },
+    {
+      "id": "D-05",
+      "kind": "data",
+      "area": "data",
+      "title": "社員と備品と予約の関係",
+      "intro": "誰が、どの備品を、どの時間帯に予約したかをたどる。",
+      "takeaway": "予約が社員と備品に属し、実際の貸出・返却を利用記録へ分ける案である。物理的な列の定義は詳細設計へ渡す。",
+      "alt": "社員1人と備品1点から複数の予約が対応し、予約ごとに利用記録を保持する論理データの関係案。",
+      "design_ids": [
+        "DES-03"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "flowchart LR\n  employee[\"社員\"] -->|\"1人に複数の予約\"| booking[\"予約\"]\n  equipment[\"備品\"] -->|\"1点に複数の予約\"| booking\n  booking -->|\"貸出・返却を記録\"| usage[\"利用記録\"]\n"
+    },
+    {
+      "id": "D-06",
+      "kind": "sequence",
+      "area": "integration",
+      "title": "予約登録後の確定メール",
+      "intro": "登録が完了する時点と、メールへ送信を依頼する順序を見る。",
+      "takeaway": "正常時は登録完了後に通知する案とする。メール送信失敗時の予約結果と再送は、対応する確認事項が決まるまで確定しない。",
+      "alt": "社員が予約を申し込むと受付が登録を完了し、既存メールへ通知を依頼する。メール失敗時の扱いは未決として示す。",
+      "design_ids": [
+        "DES-04"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "sequenceDiagram\n  participant Employee as 社員の画面\n  participant Service as 予約受付\n  participant Store as 予約の保存先\n  participant Mail as 既存メール基盤\n  Employee->>Service: 予約の申込み\n  Service->>Store: 重複の判定と登録\n  Store-->>Service: 登録完了\n  Service->>Mail: 確定メールの送信依頼\n  Mail-->>Service: 送信結果\n  Service-->>Employee: 予約の確定結果\n  Note over Service,Mail: 送信失敗時の扱いは未決\n"
+    },
+    {
+      "id": "D-07",
+      "kind": "state",
+      "area": "data",
+      "title": "予約の確定と取消",
+      "intro": "予約の状態と本人による取消の関係を見る。",
+      "takeaway": "確定した予約を本人が取り消す。取消期限は「取消期限」が決まるまで確定しない。",
+      "alt": "重複しない予約を登録して確定状態となり、本人による取消で取消状態へ移る状態の案。",
+      "design_ids": [
+        "DES-03"
+      ],
+      "source_ids": [
+        "SRC-01"
+      ],
+      "mermaid": "stateDiagram-v2\n  state \"確定\" as Confirmed\n  state \"取消\" as Cancelled\n  [*] --> Confirmed: 予約の登録\n  Confirmed --> Cancelled: 本人が取消\n"
+    }
+  ],
+  "diagram_decisions": [
+    {
+      "kind": "context",
+      "selected": true,
+      "reason": "この観点の関係と順序を、対応する設計と照合するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "component",
+      "selected": true,
+      "reason": "この観点の関係と順序を、対応する設計と照合するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "workflow",
+      "selected": true,
+      "reason": "この観点の関係と順序を、対応する設計と照合するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "screen",
+      "selected": true,
+      "reason": "この観点の関係と順序を、対応する設計と照合するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "data",
+      "selected": true,
+      "reason": "この観点の関係と順序を、対応する設計と照合するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "sequence",
+      "selected": true,
+      "reason": "この観点の関係と順序を、対応する設計と照合するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "state",
+      "selected": true,
+      "reason": "この観点の関係と順序を、対応する設計と照合するため。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    },
+    {
+      "kind": "deployment",
+      "selected": false,
+      "reason": "実行する場所と利用技術が未指定のため。配置は「利用技術と接続方式」で確認する。",
+      "source_ids": [
+        "SRC-01"
+      ]
+    }
+  ],
+  "handoff": [
+    "画面ごとの入力項目・検査条件・権限を、本人の取消と管理担当の操作を分けて具体化する。",
+    "論理データの関係から、物理的な列・型・制約・索引を定め、同時申込みでも重複を確定させない方法を検証する。",
+    "メール送信失敗時の扱いと接続方式を確認し、要求・応答・再送・監視の仕様を具体化する。"
+  ]
+}

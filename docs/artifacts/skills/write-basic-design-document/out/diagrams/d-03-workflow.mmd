@@ -1,0 +1,9 @@
+flowchart TD
+  request["対象研修への初回申込みを受付"] --> begin["研修単位の判定と保存を開始"]
+  begin --> duplicate{"同じ社員・研修で確定済みか"}
+  duplicate -->|"いいえ"| capacity{"確定件数が定員未満か"}
+  duplicate -->|"はい"| repeated["二重申込みとして確定させない"]
+  capacity -->|"未満"| save["申込みを確定状態で保存"]
+  capacity -->|"定員以上"| full["満員として確定させない"]
+  save -->|"保存完了"| confirmed["社員へ確定結果を示す"]
+  save -->|"保存失敗"| failed["確定扱いにせず結果の確認を案内"]

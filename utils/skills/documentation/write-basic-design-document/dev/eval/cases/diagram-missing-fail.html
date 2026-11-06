@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>図がない例</title>
+<style>body{font:16px/1.8 system-ui,sans-serif;color:#172a3a;max-width:960px;margin:32px auto;padding:0 24px}h1{font-size:26px}h2{font-size:21px;margin-top:32px}h3{font-size:18px}p{margin:10px 0}figure{margin:18px 0;padding:14px;border:1px solid #bbcbd4;border-radius:8px}svg{width:100%;height:auto}svg text{font:16px system-ui,sans-serif;fill:#172a3a}svg rect{fill:#f0f7fa;stroke:#56798d}svg line,svg path{stroke:#56798d;stroke-width:2;fill:none}figcaption{font-weight:600}aside{padding:12px 18px;background:#fff8e8;border-left:4px solid #d69b35}table{border-collapse:collapse;width:100%}th,td{border:1px solid #c8d3da;padding:10px;text-align:left}</style>
+<main><h1>図がない例</h1>
+<section><h2>何を設計するか</h2><p>紙台帳による予約の重複を防ぐため、社員の申込みを予約受付で検査し、保存する構成を提案する。画面・データ・メール連携の役割をそろえ、詳細設計へ渡す。</p><p>会話で確認した要望を根拠とし、以下の構成・画面・データ・連携は設計案として示す。使用する製品と取消期限は未決である。</p></section>
+<section id="design-reasons"><h2>設計案と選んだ理由</h2><table><tr><th>観点</th><th>設計案</th><th>理由</th></tr><tr><td>構成</td><td>画面からの申込みを予約受付へ集め、受付判定と登録を一つの単位として扱う。</td><td>同じ備品への同時申込みでも重複を確定させないため。</td></tr><tr><td>画面</td><td>備品一覧・予約入力・結果確認・自分の予約一覧を分ける。</td><td>申込みと本人の確認・取消の操作目的を区別するため。</td></tr><tr><td>データ</td><td>予約を社員・備品へ関連付け、開始・終了日時と状態を持たせる。</td><td>重複の判定と、貸出・返却を含む履歴の確認に必要なため。</td></tr><tr><td>外部連携</td><td>予約の登録完了後に、既存メール基盤へ送信を依頼する。</td><td>確定した予約の内容を通知するため。</td></tr></table></section>
+<aside><h2>詳細設計へ渡す未決事項</h2><p>取消をいつまで受け付けるか確認する。決まるまで、取消画面の受付条件を確定できない。</p><p>メール送信に失敗した場合の再送方法と予約結果への影響を確認する。決まるまで、連携の失敗時処理と確認画面の表示を確定できない。</p><p>利用技術は未指定のため、既存環境と整合する候補を比較して確定する。今回の設計案で採用済みの製品はない。</p></aside>
+<section id="source"><h2>会話の根拠</h2><blockquote>紙台帳で重複予約が起きる。社員は備品と開始・終了日時を指定して申し込み、本人が取り消せる。管理担当は貸出と返却を記録する。予約確定メールは既存の社内メール基盤から送る。重複する予約を確定させない。</blockquote><p>場所：今回の会話メモ。取消期限、メール送信失敗時の扱い、利用技術の指定はない。</p></section>
+</main></html>
