@@ -1,0 +1,299 @@
+{
+  "contract_version": 1,
+  "generated_by": "render_skill.py（dev/spec.json から生成。手で編集しない）",
+  "skill": "write-detailed-design-document",
+  "language": "ja",
+  "targets": [
+    "codex"
+  ],
+  "inputs": [
+    {
+      "key": "sources",
+      "label": "対象資料",
+      "type": "list",
+      "aliases": [
+        "資料",
+        "入力資料",
+        "source"
+      ],
+      "impact": "target",
+      "ask": true,
+      "question": "要件定義と基本設計のファイルはどれですか。docs直下に一組あるときは、その二つを読み取って使います。"
+    },
+    {
+      "key": "scope",
+      "label": "対象機能",
+      "type": "string",
+      "aliases": [
+        "対象機能",
+        "範囲"
+      ],
+      "impact": "reversible",
+      "default": "入力資料の全対象機能"
+    },
+    {
+      "key": "output_dir",
+      "label": "出力先",
+      "type": "path",
+      "aliases": [
+        "出力先",
+        "保存先"
+      ],
+      "impact": "reversible",
+      "default": ".skill-runs/write-detailed-design-document/out/detailed-design"
+    },
+    {
+      "key": "language",
+      "label": "出力の言語",
+      "type": "enum",
+      "enum": [
+        "ja",
+        "en"
+      ],
+      "enum_aliases": {
+        "日本語": "ja",
+        "英語": "en",
+        "japanese": "ja",
+        "english": "en"
+      },
+      "aliases": [
+        "言語",
+        "lang"
+      ],
+      "impact": "reversible",
+      "default": "ja"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "design-data",
+      "label": "設計の台帳",
+      "path": "{in:output_dir}/design.json",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "command",
+          "run": "python3 {skill}/scripts/design.py check --root {root} --dir {in:output_dir} --source {in:sources}",
+          "rule": "OUT-02",
+          "rules": [
+            "STEP-02",
+            "OUT-01",
+            "OUT-04",
+            "OUT-05",
+            "OUT-06",
+            "OUT-07",
+            "OUT-08",
+            "OUT-09",
+            "OUT-13",
+            "OUT-14",
+            "OUT-15"
+          ],
+          "message": "台帳の構造、引用、対応ID、採用・検証の証拠、生成文書の一致を確かめる",
+          "stage": "finish"
+        }
+      ]
+    },
+    {
+      "id": "entry",
+      "label": "入口文書",
+      "path": "{in:output_dir}/README.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 120,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "common-design",
+      "label": "共通仕様",
+      "path": "{in:output_dir}/common.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "feature-design",
+      "label": "機能詳細",
+      "path": "{in:output_dir}/features.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "interface-design",
+      "label": "境界の契約",
+      "path": "{in:output_dir}/interfaces.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "data-design",
+      "label": "物理データ",
+      "path": "{in:output_dir}/data.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "ui-design",
+      "label": "画面",
+      "path": "{in:output_dir}/ui.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "recovery-design",
+      "label": "障害と再起動",
+      "path": "{in:output_dir}/recovery.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "verification-design",
+      "label": "対応と確認条件",
+      "path": "{in:output_dir}/verification.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "evidence-design",
+      "label": "根拠と未決と変更",
+      "path": "{in:output_dir}/evidence.md",
+      "rule": "OUT-01",
+      "count": {
+        "min": 0,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "review-view",
+      "label": "分野別の閲覧と確認",
+      "path": "{in:output_dir}/review.html",
+      "rule": "OUT-01",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "max_lines",
+          "value": 3000,
+          "rule": "OUT-05"
+        }
+      ]
+    }
+  ],
+  "together": [
+    {
+      "rule": "OUT-07",
+      "outputs": [
+        "design-data",
+        "entry"
+      ],
+      "message": "設計の台帳を変えたら、内容ハッシュを持つ入口文書も再生成する"
+    }
+  ],
+  "control": {
+    "hooks": true,
+    "max_stop_blocks": 3,
+    "feedback": true,
+    "hook_targets": [
+      "codex"
+    ]
+  },
+  "report": {
+    "include_output": null,
+    "rule": "RPT-01",
+    "sections": [
+      {
+        "run": "python3 {skill}/scripts/design.py report --root {root} --dir {in:output_dir} --source {in:sources}",
+        "timeout": 60
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "tasks": [
+    {
+      "id": "T1-typical",
+      "kind": "typical",
+      "prompt": "docs/requirement.mdとdocs/basic-design.mdから、依頼受付、同じ会話の順次処理、承認回答の詳細設計書を作ってください。docs/detailed-designに入口文書と関連する設計をまとめ、実装と試験へ渡せるようにしてください。",
+      "aim": "agent2agentの資料から、境界の契約・受付順・再送・承認競合・保存と画面・確認条件をつなげられるかを確かめる。",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "python3 -c \"import shutil; shutil.copytree('materials/agent2agent', 'docs', dirs_exist_ok=True)\""
+      ],
+      "expect_status": "done"
+    },
+    {
+      "id": "T2-default",
+      "kind": "default",
+      "prompt": "要件と基本設計をもとに、通知先設定の詳細設計書を作ってください。",
+      "aim": "docs直下に入力資料が一組だけあるときに、保存先・形式・言語の指定を既定値で補い、機能の入口から設定保存と画面まで具体化できるかを確かめる。",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "python3 -c \"import shutil; shutil.copytree('materials/notification', 'docs', dirs_exist_ok=True)\""
+      ],
+      "expect_status": "done"
+    },
+    {
+      "id": "T3-edge",
+      "kind": "edge",
+      "prompt": "docs/requirement.mdとdocs/basic-design.mdから、受付と切断後の結果照会の詳細設計書をdocs/detailed-designに作ってください。資料には保存方針と失敗時の再実行に食い違いがあり、実アダプターからの回答再取得は未検証です。変更判断と外部検証が必要な部分を示し、依存しない内部設計も具体化してください。",
+      "aim": "資料の不一致と外部検証への依存を隠さず、影響範囲・検証内容・採用条件を付けて、独立した設計を進められるかを確かめる。",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "python3 -c \"import shutil; shutil.copytree('materials/incomplete', 'docs', dirs_exist_ok=True)\""
+      ],
+      "expect_status": "done"
+    },
+    {
+      "id": "H1-holdout",
+      "kind": "holdout",
+      "prompt": "docs/requirement.mdとdocs/basic-design.mdをもとに、備品の予約・取消・期限切れの詳細設計書をdocs/detailed-designに作ってください。最後の1個への同時予約、取消と期限処理の競合、保存確定後の応答切断を含め、画面と在庫データと確認条件をつないでください。",
+      "aim": "別分野の予約管理でも状態・保存・競合・回復を具体化でき、agent2agentの製品名・実行枠・保存方針を持ち込まないかを確かめる。",
+      "fixture": "dev/fixtures/basic",
+      "setup": [
+        "python3 -c \"import shutil; shutil.copytree('materials/reservation', 'docs', dirs_exist_ok=True)\""
+      ],
+      "expect_status": "done"
+    }
+  ]
+}

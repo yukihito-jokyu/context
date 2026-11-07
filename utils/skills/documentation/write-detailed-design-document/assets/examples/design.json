@@ -1,0 +1,961 @@
+{
+  "schema_version": 1,
+  "title": "通知先設定の詳細設計書",
+  "language": "ja",
+  "scope": "通知先名の設定保存と再取得を対象とする。",
+  "overview": "利用者が通知先名を変更し、保存された値と失敗の違いを確認できるようにする。本書は共通の責務・状態を定義してから、画面から保存までの処理と試験条件を示す。",
+  "scope_exclusions": [
+    "通知の外部送信と通知先の認証は対象に含めない。"
+  ],
+  "time_policy": "updated_atは保存側で取得するUTCミリ秒整数とする。競合の判定に画面時刻を使わず、revisionの一致を使う。この機能に待ち時間の期限はなく、通信タイムアウトと保存の不成立を同一視しない。",
+  "diagram_notes": "入力から確定までをシーケンス図、画面の保存状態を状態図で示す。物理表は設定1件だけで参照関係を持たないため、ER図は省き物理列と制約の表で示す。",
+  "sources": [
+    {
+      "id": "S001",
+      "path": "docs/requirement.md",
+      "line": 3,
+      "end_line": 3,
+      "quote": "利用者は通知先名を保存し、現在の保存値を確認できる。",
+      "sha256": "26f11316dfcf58a01346825c61dcbe7d2a47a8777e15762f6f91927eb37b8e81",
+      "kind": "requirement"
+    },
+    {
+      "id": "S002",
+      "path": "docs/requirement.md",
+      "line": 4,
+      "end_line": 4,
+      "quote": "同時保存で別の利用者の更新を無断で上書きしない。",
+      "sha256": "26f11316dfcf58a01346825c61dcbe7d2a47a8777e15762f6f91927eb37b8e81",
+      "kind": "requirement"
+    },
+    {
+      "id": "S003",
+      "path": "docs/requirement.md",
+      "line": 5,
+      "end_line": 5,
+      "quote": "保存結果が不明なときは、成功と断定せず現在の値を確認できる。",
+      "sha256": "26f11316dfcf58a01346825c61dcbe7d2a47a8777e15762f6f91927eb37b8e81",
+      "kind": "requirement"
+    },
+    {
+      "id": "S004",
+      "path": "docs/basic-design.md",
+      "line": 4,
+      "end_line": 4,
+      "quote": "通知先名とrevisionを1件の設定行に保存し、revisionが一致する更新だけを確定する。",
+      "sha256": "1f20f870c68370a320b79509d5c9c91845b1ebe80460a915b9314bc9c3456e06",
+      "kind": "basic_design"
+    },
+    {
+      "id": "S005",
+      "path": "docs/basic-design.md",
+      "line": 7,
+      "end_line": 7,
+      "quote": "本資料は設計案であり、採用承認・実装・検証を示さない。",
+      "sha256": "1f20f870c68370a320b79509d5c9c91845b1ebe80460a915b9314bc9c3456e06",
+      "kind": "basic_design"
+    },
+    {
+      "id": "S006",
+      "path": "docs/verification-plan.md",
+      "line": 4,
+      "end_line": 4,
+      "quote": "試験は未実施であり、保存の耐障害性を確認した結果ではない。",
+      "sha256": "cd14bc74ba3dbe2506e1a94000d2ceeb9f80149f156948c740b26f24ef7d3a6f",
+      "kind": "verification"
+    }
+  ],
+  "terms": [
+    {
+      "name": "revision",
+      "meaning": "保存するたびに1増える設定行の版であり、同時保存の比較に使う。"
+    },
+    {
+      "name": "保存結果未確認",
+      "meaning": "応答を受け取れず、その操作の成否をまだ断定できない状態である。現在値の取得とは区別する。"
+    }
+  ],
+  "modules": [
+    {
+      "id": "M001",
+      "name": "設定画面",
+      "responsibility": "入力、保存結果、再取得した現在値を表示する。",
+      "depends_on": [
+        "M002"
+      ]
+    },
+    {
+      "id": "M002",
+      "name": "設定サービス",
+      "responsibility": "入力を検査し、保存と再取得の結果を共通の契約へ変換する。",
+      "depends_on": [
+        "M003"
+      ]
+    },
+    {
+      "id": "M003",
+      "name": "保存リポジトリ",
+      "responsibility": "条件付き更新とトランザクションの確定を担当する。",
+      "depends_on": []
+    }
+  ],
+  "state_sets": [
+    {
+      "id": "ST001",
+      "entity": "設定画面の保存状態。DBへ保存する業務状態ではない。",
+      "values": [
+        {
+          "name": "editing",
+          "meaning": "入力を編集できる"
+        },
+        {
+          "name": "saving",
+          "meaning": "保存要求の結果を待っている"
+        },
+        {
+          "name": "saved",
+          "meaning": "今回の保存成功の応答を受け取った"
+        },
+        {
+          "name": "conflict",
+          "meaning": "revision不一致が返った"
+        },
+        {
+          "name": "failed",
+          "meaning": "保存不成立が確認された"
+        },
+        {
+          "name": "unknown",
+          "meaning": "要求の結果が不明で、現在値を再取得する"
+        }
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D001",
+      "kind": "inherited",
+      "statement": "revision一致時だけを更新する基本設計の案を引き継ぐ。",
+      "source_ids": [
+        "S004"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": false,
+      "issue_ids": []
+    },
+    {
+      "id": "D002",
+      "kind": "proposed",
+      "statement": "通知先名は前後の空白除去後1〜64文字かつUTF-8で256バイト以下、要求全体は4096バイト以下とする。物理型、エラー、画面状態は本詳細設計で追加した提案である。 revisionは符号付き64ビットの非負整数とし、保存要求は最大値未満だけを許可する。",
+      "source_ids": [
+        "S001",
+        "S005"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": false,
+      "issue_ids": []
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R001",
+      "text": "通知先名を保存して現在の値を確認できる。",
+      "source_ids": [
+        "S001"
+      ],
+      "status": "designed",
+      "feature_ids": [
+        "F001"
+      ],
+      "check_ids": [
+        "C001",
+        "C002"
+      ],
+      "issue_ids": [],
+      "reason": "保存と再取得の契約および画面を設計する。"
+    },
+    {
+      "id": "R002",
+      "text": "競合時に他の更新を失わず、結果不明を成功と断定しない。",
+      "source_ids": [
+        "S002",
+        "S003"
+      ],
+      "status": "designed",
+      "feature_ids": [
+        "F001"
+      ],
+      "check_ids": [
+        "C003",
+        "C004"
+      ],
+      "issue_ids": [],
+      "reason": "revision一致の条件付き更新と、応答切断後の再取得を設計する。"
+    }
+  ],
+  "features": [
+    {
+      "id": "F001",
+      "name": "通知先名を保存する",
+      "purpose": "画面から変更した通知先名を確定し、保存結果を判断できるようにする。",
+      "source_ids": [
+        "S001",
+        "S002",
+        "S003",
+        "S004"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003"
+      ],
+      "preconditions": [
+        "設定画面がIF002で現在の通知先名とrevisionを読み、editingにある。現在値の取得権限と、保存する場合の変更権限がある。"
+      ],
+      "input_interface_ids": [
+        "IF001",
+        "IF002"
+      ],
+      "steps": [
+        "設定サービスがIF001の要求定義と検査順に従って検査する。",
+        "リポジトリが書込みトランザクションを開始し、主キーmainかつrevisionが入力値と一致する行だけを更新する。",
+        "更新件数が1なら通知先名・revision+1・updated_atを同じトランザクションでコミットする。0件なら更新せず競合を返す。",
+        "コミット成立を確認してから保存済みの通知先名とrevisionを返し、画面へ保存成功を表示する。",
+        "再取得はIF002を呼び、現在値とrevisionを読む。終端結果から再編集する場合は取得値を確認し、TR006〜TR009でeditingへ戻る。元のsaveの成否が不明だった表示は、新しい操作の開始まで別に保つ。"
+      ],
+      "result": "呼出し元へ保存済みの通知先名とrevisionを返す。画面はsavedを表示する。設定保存自体は外部通知を発生させない。",
+      "failure": "検査不正は更新前に返す。コミット前の失敗はロールバックする。確定結果が不明な障害や応答切断では成功も失敗も断定せずunknownとし、更新を自動再送せず現在値を再取得する。",
+      "state_set_ids": [
+        "ST001"
+      ],
+      "table_ids": [
+        "T001"
+      ],
+      "screen_ids": [
+        "UI001"
+      ],
+      "recovery_ids": [
+        "RC001",
+        "RC002"
+      ],
+      "check_ids": [
+        "C001",
+        "C002",
+        "C003",
+        "C004"
+      ],
+      "issue_ids": []
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "IF001",
+      "name": "通知先名の保存",
+      "caller": "設定画面",
+      "callee": "設定サービス",
+      "transport": "アプリ内部のJSON要求・応答の設計案。外部ネットワークAPIとして公開しない。",
+      "input": "要求項目の定義に従い検査する。ST001のeditingで利用者が保存操作を選び、TR001でsavingへ進めてから要求を送る。",
+      "response": "成功応答でだけ今回の保存成功を示す。各応答の項目と型はresponse_variantsを正本とする。",
+      "errors": "response_variantsのcodeで区別する。CLIではないので終了値は非該当である。",
+      "max_size": "要求全体はUTF-8で4096バイト以下、通知先名は前後の空白除去後1〜64文字かつ256バイト以下とする。応答も4096バイト以下とする。",
+      "validation_order": "サイズ、JSON構文、キーと型、文字数・バイト数、利用者権限、expected_revisionの値域、保存内のrevision一致の順とする。",
+      "repeat": "保存の自動再送はしない。同じsaveを再送しても古いrevisionなら競合となる。",
+      "disconnect": "応答未受信ではRESULT_UNKNOWNとして現在値を取得する。取得後もそのsaveの成否は未確認と明示し、再編集から新しい操作として保存できる。",
+      "state_set_ids": [
+        "ST001"
+      ],
+      "module_ids": [
+        "M001",
+        "M002"
+      ],
+      "request_fields": [
+        {
+          "path": "destination",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "constraint": "前後の空白除去後1〜64文字かつUTF-8で256バイト以下。"
+        },
+        {
+          "path": "expected_revision",
+          "type": "integer",
+          "required": true,
+          "nullable": false,
+          "constraint": "0〜9223372036854775806。真偽値・小数は拒否する。"
+        }
+      ],
+      "request_policy": "全項目必須。欠落・null・未知キー・重複キー・型違いをINVALID_INPUTとして保存前に拒否する。",
+      "response_variants": [
+        {
+          "name": "success",
+          "description": "コミットの成立を確認した後だけ返す。",
+          "fields": [
+            {
+              "path": "destination",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "前後の空白除去後1〜64文字かつUTF-8で256バイト以下。"
+            },
+            {
+              "path": "revision",
+              "type": "integer",
+              "required": true,
+              "nullable": false,
+              "constraint": "0以上の符号付き64ビット整数。"
+            }
+          ]
+        },
+        {
+          "name": "conflict",
+          "description": "条件更新0件で保存をしない。",
+          "fields": [
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "REVISION_CONFLICT固定。"
+            }
+          ]
+        },
+        {
+          "name": "failed",
+          "description": "ロールバック等で保存不成立を確認した。",
+          "fields": [
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "SAVE_FAILED固定。"
+            }
+          ]
+        },
+        {
+          "name": "unknown",
+          "description": "成否を断定できない。",
+          "fields": [
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "RESULT_UNKNOWN固定。"
+            }
+          ]
+        },
+        {
+          "name": "invalid",
+          "description": "入力が不正であり更新しない。",
+          "fields": [
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "INVALID_INPUT固定。"
+            },
+            {
+              "path": "field",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "不正な入力項目のパス。JSON全体なら$。"
+            }
+          ]
+        }
+      ],
+      "state_effects": [
+        {
+          "state_set_id": "ST001",
+          "from": "saving",
+          "outcome": "success",
+          "to": "saved",
+          "transition_id": "TR002",
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "saving",
+          "outcome": "conflict",
+          "to": "conflict",
+          "transition_id": "TR003",
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "saving",
+          "outcome": "failed",
+          "to": "failed",
+          "transition_id": "TR005",
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "saving",
+          "outcome": "unknown",
+          "to": "unknown",
+          "transition_id": "TR004",
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "saving",
+          "outcome": "invalid",
+          "to": "editing",
+          "transition_id": "TR010",
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        }
+      ],
+      "state_policy": "editingから設定を変更する利用者権限で開始する。送信時にTR001でsavingになり、応答に応じstate_effectsで遷移する。DBの条件更新という副作用を持つ。saving中の多重送信は行わない。"
+    },
+    {
+      "id": "IF002",
+      "name": "現在の通知先名を取得する",
+      "caller": "設定画面",
+      "callee": "設定サービス",
+      "transport": "アプリ内部のJSON要求・応答の設計案。外部ネットワークAPIとして公開しない。",
+      "input": "要求項目なし。現在値の読取りだけを行う。",
+      "response": "現在値とrevisionを返す。取得成功は過去の保存成功の証明ではない。",
+      "errors": "READ_FAILEDとINVALID_INPUTを区別する。CLI終了値は非該当である。",
+      "max_size": "要求全体はUTF-8で4096バイト以下、通知先名は前後の空白除去後1〜64文字かつ256バイト以下とする。応答も4096バイト以下とする。",
+      "validation_order": "サイズ、JSON構文、空オブジェクト、読取権限の順に検査する。",
+      "repeat": "読取りのみ再試行可能であり、保存を起こさない。",
+      "disconnect": "読取り結果の受信失敗だけを示す。保存状態を変えず、同じ取得を再試行できる。",
+      "state_set_ids": [
+        "ST001"
+      ],
+      "module_ids": [
+        "M001",
+        "M002"
+      ],
+      "request_fields": [],
+      "request_policy": "要求本文は空オブジェクトのみ。未知キー・null・型違いをINVALID_INPUTとして拒否する。",
+      "response_variants": [
+        {
+          "name": "success",
+          "description": "現在の保存値を取得した。",
+          "fields": [
+            {
+              "path": "destination",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "前後の空白除去後1〜64文字かつUTF-8で256バイト以下。"
+            },
+            {
+              "path": "revision",
+              "type": "integer",
+              "required": true,
+              "nullable": false,
+              "constraint": "0以上の符号付き64ビット整数。"
+            }
+          ]
+        },
+        {
+          "name": "failed",
+          "description": "取得できず現在値も断定できない。",
+          "fields": [
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "READ_FAILED固定。"
+            }
+          ]
+        },
+        {
+          "name": "invalid",
+          "description": "入力が不正で読取りを行わない。",
+          "fields": [
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "INVALID_INPUT固定。"
+            }
+          ]
+        }
+      ],
+      "state_effects": [
+        {
+          "state_set_id": "ST001",
+          "from": "editing",
+          "outcome": "success",
+          "to": "editing",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "editing",
+          "outcome": "failed",
+          "to": "editing",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "editing",
+          "outcome": "invalid",
+          "to": "editing",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "saved",
+          "outcome": "success",
+          "to": "saved",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "saved",
+          "outcome": "failed",
+          "to": "saved",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "saved",
+          "outcome": "invalid",
+          "to": "saved",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "conflict",
+          "outcome": "success",
+          "to": "conflict",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "conflict",
+          "outcome": "failed",
+          "to": "conflict",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "conflict",
+          "outcome": "invalid",
+          "to": "conflict",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "failed",
+          "outcome": "success",
+          "to": "failed",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "failed",
+          "outcome": "failed",
+          "to": "failed",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "failed",
+          "outcome": "invalid",
+          "to": "failed",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "unknown",
+          "outcome": "success",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "unknown",
+          "outcome": "failed",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        },
+        {
+          "state_set_id": "ST001",
+          "from": "unknown",
+          "outcome": "invalid",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "画面の状態を保ち、今回の操作の成否と現在値を区別する。"
+        }
+      ],
+      "state_policy": "editing・saved・conflict・failed・unknownから設定の読取権限で許可する。saving中は応答を待ち、取得要求を開始しない。DBの書込みと外部通知は行わず、状態は保つ。"
+    }
+  ],
+  "tables": [
+    {
+      "id": "T001",
+      "name": "settings",
+      "purpose": "現在の通知先名を1件保持する。",
+      "columns": [
+        {
+          "name": "setting_id",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "main",
+          "constraint": "値はmainの1件だけとする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "destination",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "未設定",
+          "constraint": "1〜64文字、UTF-8で256バイト以下。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "0",
+          "constraint": "0〜9223372036854775807。更新ごとに1増える。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "updated_at",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "作成時のUTCミリ秒",
+          "constraint": "保存側の時刻。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        }
+      ],
+      "constraints": [
+        "setting_id=mainの1行を初期化時に作る。revisionの一致しない更新は許可しない。"
+      ],
+      "indexes": [],
+      "index_policy": "主キーだけを使う1行の更新と取得のため、追加索引は設けない。",
+      "update_unit": "通知先名、revision、updated_atを同じトランザクションで確定する。",
+      "deletion": "設定の期限削除は対象外。通知先名の変更は行の更新で行う。",
+      "migration": "初回作成で表とmain行を同じ移行トランザクションに作る。既存行は上書きしない。移行に失敗した場合は設定の受付を開始しない。",
+      "primary_key": [
+        "setting_id"
+      ],
+      "unique_keys": [],
+      "key_policy": "setting_idでmainの1件を識別する。追加の一意キーはない。"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "TR001",
+      "state_set_id": "ST001",
+      "from": "editing",
+      "event": "保存を選ぶ",
+      "guard": "入力の画面検査を通る",
+      "to": "saving",
+      "write": "画面のメモリ状態だけを更新する。DB更新はF001に従う。",
+      "notify": "保存ボタンを無効にする。",
+      "check_ids": [
+        "C001",
+        "C002"
+      ]
+    },
+    {
+      "id": "TR002",
+      "state_set_id": "ST001",
+      "from": "saving",
+      "event": "保存成功の応答",
+      "guard": "コミット後の値とrevisionを応答で受信した",
+      "to": "saved",
+      "write": "画面に返却値を反映する。",
+      "notify": "保存成功を文字で通知する。",
+      "check_ids": [
+        "C001"
+      ]
+    },
+    {
+      "id": "TR003",
+      "state_set_id": "ST001",
+      "from": "saving",
+      "event": "revision不一致",
+      "guard": "REVISION_CONFLICTを受け取った",
+      "to": "conflict",
+      "write": "DBは更新せず、画面の未保存入力を保持する。",
+      "notify": "競合と再読込の操作を表示する。",
+      "check_ids": [
+        "C003"
+      ]
+    },
+    {
+      "id": "TR004",
+      "state_set_id": "ST001",
+      "from": "saving",
+      "event": "応答が途切れる",
+      "guard": "保存の成否を断定できない",
+      "to": "unknown",
+      "write": "確定したDBを巻き戻さず、画面に未確認を記録する。",
+      "notify": "現在値の取得操作を示す。",
+      "check_ids": [
+        "C004"
+      ]
+    },
+    {
+      "id": "TR005",
+      "state_set_id": "ST001",
+      "from": "saving",
+      "event": "保存不成立の応答",
+      "guard": "ロールバックを確認したSAVE_FAILEDである",
+      "to": "failed",
+      "write": "DBは旧値。画面の未保存入力を保持する。",
+      "notify": "保存失敗と再編集を示す。",
+      "check_ids": [
+        "C004"
+      ]
+    },
+    {
+      "id": "TR006",
+      "state_set_id": "ST001",
+      "from": "saved",
+      "event": "再取得した現在値を確認して再編集する",
+      "guard": "IF002の成功応答で最新値とrevisionを得て利用者が再編集を選んだ。",
+      "to": "editing",
+      "write": "画面の入力元とrevisionを更新する。DB書込みはしない。",
+      "notify": "新しい保存操作を許可する。前操作がunknownだった事実は過去の結果として保つ。",
+      "check_ids": [
+        "C004"
+      ]
+    },
+    {
+      "id": "TR007",
+      "state_set_id": "ST001",
+      "from": "conflict",
+      "event": "再取得した現在値を確認して再編集する",
+      "guard": "IF002の成功応答で最新値とrevisionを得て利用者が再編集を選んだ。",
+      "to": "editing",
+      "write": "画面の入力元とrevisionを更新する。DB書込みはしない。",
+      "notify": "新しい保存操作を許可する。前操作がunknownだった事実は過去の結果として保つ。",
+      "check_ids": [
+        "C004"
+      ]
+    },
+    {
+      "id": "TR008",
+      "state_set_id": "ST001",
+      "from": "failed",
+      "event": "再取得した現在値を確認して再編集する",
+      "guard": "IF002の成功応答で最新値とrevisionを得て利用者が再編集を選んだ。",
+      "to": "editing",
+      "write": "画面の入力元とrevisionを更新する。DB書込みはしない。",
+      "notify": "新しい保存操作を許可する。前操作がunknownだった事実は過去の結果として保つ。",
+      "check_ids": [
+        "C004"
+      ]
+    },
+    {
+      "id": "TR009",
+      "state_set_id": "ST001",
+      "from": "unknown",
+      "event": "再取得した現在値を確認して再編集する",
+      "guard": "IF002の成功応答で最新値とrevisionを得て利用者が再編集を選んだ。",
+      "to": "editing",
+      "write": "画面の入力元とrevisionを更新する。DB書込みはしない。",
+      "notify": "新しい保存操作を許可する。前操作がunknownだった事実は過去の結果として保つ。",
+      "check_ids": [
+        "C004"
+      ]
+    },
+    {
+      "id": "TR010",
+      "state_set_id": "ST001",
+      "from": "saving",
+      "event": "入力不正の応答",
+      "guard": "INVALID_INPUTを受信した。",
+      "to": "editing",
+      "write": "入力と検査エラーを保持する。DB更新はない。",
+      "notify": "該当項目へフォーカスを戻す。",
+      "check_ids": [
+        "C002"
+      ]
+    }
+  ],
+  "concurrency": [
+    {
+      "id": "P001",
+      "protected_data": "settingsのmain行、revision、通知先名を保護する。",
+      "exclusion": "保存リポジトリの書込みトランザクションとrevision条件付き更新を使う。画面のボタン無効だけに依存しない。",
+      "order": "単一のmain行だけを更新する。別のロックを追加して取得しない。",
+      "acquire": "入力検査後、更新トランザクション開始時に確保する。",
+      "release": "コミットまたはロールバックで解放し、画面への返却中は保持しない。",
+      "limit_update": "実行枠と回数上限はこの機能にはない。文字数とバイト数は書込み前に検査し、revisionと同じ更新で保存値へ反映する。",
+      "time_boundary": "競合の勝敗はrevisionの一致で決める。画面の押下時刻や通信タイムアウトを保存の確定条件にしない。",
+      "winner": "同じrevisionからの同時保存は1件だけが更新に成功し、他方はREVISION_CONFLICTとなる。",
+      "check_ids": [
+        "C003",
+        "C004"
+      ]
+    }
+  ],
+  "recovery": [
+    {
+      "id": "RC001",
+      "cut": "コミット前に保存処理が停止する。",
+      "committed": "新しい値は未確定である。",
+      "remaining": "旧通知先名と旧revisionが残る。",
+      "restart": "ストレージの回復後に現在値を読み、画面に旧値を表示する。未確認のsaveを自動再実行しない。",
+      "retry": "利用者が現在値を見て再編集し、新しいrevisionを付けて新しい操作として保存する。",
+      "visible_result": "保存不成立を確認できればfailed、確認できなければunknownとして表示する。",
+      "check_ids": [
+        "C004"
+      ]
+    },
+    {
+      "id": "RC002",
+      "cut": "コミット後、画面への応答前に接続またはアプリが停止する。",
+      "committed": "新通知先名と新revisionが確定している。",
+      "remaining": "DBに新値が残るが、画面が成功応答を受けた証拠はない。",
+      "restart": "現在値を読み直す。前回操作の成否を断定せず、現在保存値と前操作が未確認であることを分けて表示する。",
+      "retry": "元のsaveを自動再送しない。新たに保存する場合は再取得したrevisionを使う。",
+      "visible_result": "画面はunknownを文字で示し、再取得した現在値を表示する。",
+      "check_ids": [
+        "C004"
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "id": "UI001",
+      "name": "通知先設定",
+      "fields": "通知先名を編集し、revisionは表示用の読取専用とする。",
+      "validation": "画面で空白除去後の文字数とバイト数を検査する。保存側でも同じ条件を再検査する。",
+      "display": "ST001の状態を使う。savedは成功応答を受信した場合だけ、unknownは前操作の成否未確認を表す。 初回読込中は編集操作を無効にし、初回取得成功後にediting、失敗時は読込失敗と再取得だけを示す。",
+      "actions": "saving中は保存・再取得不可。editingで保存できる。saved・conflict・failed・unknownからは現在値をIF002で再取得し、利用者が再編集を選んだ後にTR006〜TR009でeditingへ戻り新たに保存できる。取得失敗なら元の状態を保つ。",
+      "save_result": "成功した保存値、競合、保存未成立、保存結果未確認を文字で区別する。現在値の取得結果を前操作の成功へ読み替えない。",
+      "focus": "入力エラーは通知先名へ戻す。保存結果は文字で通知し、TabとShift+Tabで入力・保存・再取得へ移動できる。",
+      "updates": "保存応答または明示した再取得で画面を更新する。別の画面の変更は次の再取得で反映する。",
+      "state_set_ids": [
+        "ST001"
+      ],
+      "interface_ids": [
+        "IF001",
+        "IF002"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "C001",
+      "kind": "normal",
+      "given": "revision0の設定が表示されている。",
+      "when": "有効な通知先名を保存する。",
+      "then": "1回だけ保存されrevision1となり、成功応答の値とDBと画面が一致する。",
+      "feature_ids": [
+        "F001"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C002",
+      "kind": "boundary",
+      "given": "通知先名が0、1、64、65文字および256、257バイトとなる入力を用意する。",
+      "when": "各入力と小数・真偽値のrevisionを送る。",
+      "then": "文字数1〜64かつ256バイト以下で整数revisionの入力だけが保存に進み、不正な入力ではDB更新がない。",
+      "feature_ids": [
+        "F001"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C003",
+      "kind": "race",
+      "given": "同じrevisionを読み込んだ画面を二つ用意する。",
+      "when": "異なる通知先名を同時保存する。",
+      "then": "1件だけが保存され、他方は競合となり、勝った値を後続の再取得で確認できる。",
+      "feature_ids": [
+        "F001"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C004",
+      "kind": "restart",
+      "given": "保存のコミット前とコミット後の応答前で停止を注入する。",
+      "when": "再起動し現在値を読む。",
+      "then": "前者では旧値、後者では新値を取得する。未受信の応答を成功と断定せず、元の操作を自動再実行してrevisionを2回増やさない。 取得後に再編集を選ぶとTR006〜TR009でeditingへ戻り、新たな保存だけを開始できる。",
+      "feature_ids": [
+        "F001"
+      ],
+      "issue_ids": []
+    }
+  ],
+  "issues": [],
+  "changes": [],
+  "diagrams": [
+    {
+      "id": "G001",
+      "type": "sequence",
+      "name": "設定保存の確定と応答",
+      "mermaid": "sequenceDiagram\n  participant UI as 設定画面\n  participant S as 設定サービス\n  participant DB as 保存リポジトリ\n  UI->>S: 通知先名とrevision\n  S->>S: 入力検査\n  S->>DB: revision一致時だけ更新\n  DB-->>S: コミット結果\n  S-->>UI: 保存結果",
+      "explains": "保存の確定後に結果を返す順を示す。競合と応答切断の厳密な条件はP001とRC002に記す。",
+      "condition_ids": [
+        "P001",
+        "RC001",
+        "RC002"
+      ]
+    },
+    {
+      "id": "G002",
+      "type": "state",
+      "name": "保存中から画面へ返す結果",
+      "mermaid": "stateDiagram-v2\n  [*] --> editing\n  editing --> saving: 保存\n  saving --> saved: 成功応答\n  saving --> conflict: revision不一致\n  saving --> failed: 保存不成立\n  saving --> unknown: 成否未確認\n  saved --> editing: 再取得後に再編集\n  conflict --> editing: 再取得後に再編集\n  failed --> editing: 再取得後に再編集\n  unknown --> editing: 再取得後に再編集\n  saving --> editing: 入力不正",
+      "explains": "保存要求の応答によって画面の状態が分かれる。unknownからの現在値取得は前操作の成功を意味しない。",
+      "condition_ids": [
+        "TR001",
+        "TR002",
+        "TR003",
+        "TR004",
+        "TR005",
+        "TR006",
+        "TR007",
+        "TR008",
+        "TR009",
+        "TR010"
+      ]
+    }
+  ],
+  "applicability": {
+    "state_sets": "",
+    "interfaces": "",
+    "tables": "",
+    "transitions": "",
+    "concurrency": "",
+    "recovery": "",
+    "screens": "",
+    "issues": "この機能は外部送信と未検証の実行基盤を使わず、入力資料間の不一致もない。設計案の採用と試験実施は別途行う。",
+    "changes": "入力資料の要件を変更していない。追加した制約はD002に未承認の提案として示す。",
+    "diagrams": ""
+  }
+}

@@ -57,6 +57,7 @@
 | [explanation-design](documentation/explanation-design/SKILL.md) | 読者が理解に到達できる説明構成を設計する。 |
 | [write-requirement-document](documentation/write-requirement-document/SKILL.md) | 会話・議事録から、前提・図・要件がつながるHTMLの要件定義書とMermaid原本・PNGを作る。[plugin配布](../plugins/write-requirement-document/README.md)を使う。 |
 | [write-basic-design-document](documentation/write-basic-design-document/SKILL.md) | 会話・議事録から構成・画面・データ・外部連携と採用理由を図付きMarkdown・HTMLにする。hooksの配布単位はpluginとし、配布物は未作成。 |
+| [write-detailed-design-document](documentation/write-detailed-design-document/SKILL.md) | 要件と基本設計から、処理・境界・物理データ・画面・競合・障害時動作をつなぐ詳細設計書を作る。設計台帳からMarkdownと閲覧用HTMLを生成し、引用と参照と文書の一致を検査する。 |
 
 ## Skillの作成・管理（`authoring/`）
 
