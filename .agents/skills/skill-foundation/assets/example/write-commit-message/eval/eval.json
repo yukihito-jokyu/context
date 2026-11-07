@@ -1,0 +1,65 @@
+{
+  "skip_reason": "",
+  "materials": {
+    "scenes": [
+      {"id": "scene-1", "text": "src/app.py と src/util.py の変更をステージした後、コミットの直前にチケット ABC-12 のコミットメッセージを頼む"}
+    ],
+    "pains": [
+      {"id": "pain-1", "text": "AI に頼むと `feat:` のような Conventional Commits の形で書かれ、このリポジトリの「チケットID 要約」の形と合わない"},
+      {"id": "pain-2", "text": "本文にファイルごとの変更が書かれず、レビューのたびに差分を開き直す"}
+    ],
+    "wants": [
+      {"id": "want-1", "text": "履歴の1行目を見れば、どのチケットの何の変更かが分かる"},
+      {"id": "want-2", "text": "本文を読めば、変えたファイルごとに何をしたかが分かる"}
+    ],
+    "unacceptable": [
+      {"id": "ng-1", "text": "指定したものと違うチケットIDや、推測したチケットIDで書く"},
+      {"id": "ng-2", "text": "1行目に Conventional Commits の接頭辞が付き、リポジトリの形と違う"}
+    ]
+  },
+  "dialog": [
+    {"id": "talk-1", "asked": "どんな場面で使いますか。今のコミットメッセージで困っていること、望む結果、これだけは困るという結果を教えてください", "answer": "コミットの直前にチケットIDを渡して頼む。feat: の形で書かれるのと、本文が無いのが困る。違うチケットIDで書かれるのは困る"},
+    {"id": "talk-2", "asked": "価値は「1行目だけでどのチケットの何の変更かが分かる」と「本文だけでファイルごとの変更が分かる」の2つで合っていますか", "answer": "合っている"},
+    {"id": "talk-3", "asked": "要約が差分と合っているかの判定は、case-6 を成功、case-7 を失敗とします。合っていますか", "answer": "合っている。差分に無い変更を書くのは失敗でよい"}
+  ],
+  "hypotheses": [
+    {"id": "hyp-1", "text": "1行目を「チケットID 要約」の形にすると、履歴からチケットと変更の要約をすぐに引ける", "from": ["scene-1", "pain-1", "want-1"]},
+    {"id": "hyp-2", "text": "本文に変えたファイルごとの箇条書きがあると、差分を開かずにレビューできる", "from": ["pain-2", "want-2"]}
+  ],
+  "values": [
+    {"id": "value-1", "text": "1行目だけで、どのチケットの何の変更かが分かる", "from": ["hyp-1"], "confirmed_in": "talk-2"},
+    {"id": "value-2", "text": "本文だけで、変えたファイルごとの変更が分かる", "from": ["hyp-2"], "confirmed_in": "talk-2"}
+  ],
+  "behaviors": [
+    {"id": "behavior-1", "value": "value-1", "text": "1行目が、指定したチケットIDと空白で始まり、接頭辞を付けずに要約が続く",
+     "target": "{run}/out/commit-message.txt",
+     "judge": {"type": "code", "checks": [
+       {"type": "require", "lines": "first", "pattern": "^{in:ticket} \\S", "message": "指定したチケットIDと空白で始める"},
+       {"type": "forbid", "lines": "first", "pattern": "^\\S+ (feat|fix|chore|docs|refactor|test|style|perf|build|ci)(\\(.*\\))?!?:", "message": "Conventional Commits の接頭辞を付けない"}
+     ]}},
+    {"id": "behavior-2", "value": "value-2", "text": "3行目から、変えたファイルごとに「- `<パス>`: <変更の要約>」の行がある",
+     "target": "{run}/out/commit-message.txt",
+     "judge": {"type": "code", "checks": [
+       {"type": "require", "pattern": "^- `[^`]+`: \\S", "message": "ファイルごとの箇条書きの行を書く"}
+     ]}},
+    {"id": "behavior-3", "value": "value-2", "text": "箇条書きの変更の要約が、そのファイルの差分で変えた内容と合っている",
+     "target": "{run}/out/commit-message.txt",
+     "judge": {"type": "model", "rubric": "各行の要約が、そのファイルの差分で変えた内容を書いていれば成功。差分に無い変更を書いた行が1つでもあれば失敗"}}
+  ],
+  "cases": [
+    {"id": "case-1", "behavior": "behavior-1", "expect": "pass", "situation": "チケット ABC-12。src/app.py に表示の式、src/util.py に引き算の関数を足してステージした",
+     "inputs": {"ticket": "ABC-12"}, "output": "cases/good.txt", "reason": "指定した ABC-12 と空白で始まり、接頭辞の無い要約が続く"},
+    {"id": "case-2", "behavior": "behavior-1", "expect": "fail", "situation": "case-1 と同じ変更で、チケットは ABC-12",
+     "inputs": {"ticket": "ABC-12"}, "output": "cases/other-ticket.txt", "reason": "指定は ABC-12 なのに、ABC-13 で始まる", "covers": ["ng-1"]},
+    {"id": "case-3", "behavior": "behavior-1", "expect": "fail", "situation": "case-1 と同じ変更で、チケットは ABC-12",
+     "inputs": {"ticket": "ABC-12"}, "output": "cases/prefixed.txt", "reason": "チケットIDの後に feat: が付き、リポジトリの形と違う", "covers": ["ng-2"]},
+    {"id": "case-4", "behavior": "behavior-2", "expect": "pass", "situation": "case-1 と同じ変更",
+     "output": "cases/good.txt", "reason": "変えた2つのファイルが、それぞれ箇条書きの1行になっている"},
+    {"id": "case-5", "behavior": "behavior-2", "expect": "fail", "situation": "case-1 と同じ変更",
+     "output": "cases/prose-body.txt", "reason": "本文が文章で、ファイルごとの変更が分からない"},
+    {"id": "case-6", "behavior": "behavior-3", "expect": "pass", "situation": "case-1 と同じ変更",
+     "output": "cases/good.txt", "reason": "src/util.py は引き算の関数、src/app.py は表示の式で、差分と合う", "agreed_in": "talk-3"},
+    {"id": "case-7", "behavior": "behavior-3", "expect": "fail", "situation": "case-1 と同じ変更",
+     "output": "cases/wrong-summary.txt", "reason": "差分は引き算の関数なのに、掛け算の関数と書いている", "agreed_in": "talk-3"}
+  ]
+}
