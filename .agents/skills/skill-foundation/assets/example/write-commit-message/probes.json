@@ -1,0 +1,165 @@
+{
+  "baseline": {
+    "fixture": "dev/fixtures/basic",
+    "setup": [
+      "printf 'from src.util import add\\n\\nprint(\"1 + 2 =\", add(1, 2))\\n' > src/app.py",
+      "printf 'def add(a, b):\\n    return a + b\\n\\n\\ndef sub(a, b):\\n    return a - b\\n' > src/util.py",
+      "git add -A"
+    ],
+    "input": {
+      "ticket": "abc-12"
+    },
+    "text": "ABC-12 のコミットメッセージを書いて",
+    "files": [
+      {
+        "path": "{run}/out/commit-message.txt",
+        "from": "assets/examples/commit-message.txt"
+      }
+    ]
+  },
+  "probes": [
+    {
+      "id": "OUT-01-a",
+      "rule": "OUT-01",
+      "description": "メッセージのファイルを作らない",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "delete"
+        }
+      ],
+      "expect": "OUT-01"
+    },
+    {
+      "id": "OUT-02-a",
+      "rule": "OUT-02",
+      "description": "Conventional Commits の接頭辞を付ける",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 feat: 引き算と表示を足す\n\n- `src/app.py`: 結果の表示に式を足す\n- `src/util.py`: 引き算の関数を足す\n"
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-02-b",
+      "rule": "OUT-02",
+      "description": "2行目を空行にしない",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 引き算と表示を足す\n- `src/app.py`: 結果の表示に式を足す\n- `src/util.py`: 引き算の関数を足す\n"
+        }
+      ],
+      "expect": "OUT-02"
+    },
+    {
+      "id": "OUT-03-a",
+      "rule": "OUT-03",
+      "description": "行末に句点を付ける（check が自動で消す）",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 引き算と表示を足す。\n\n- `src/app.py`: 結果の表示に式を足す\n- `src/util.py`: 引き算の関数を足す\n"
+        }
+      ],
+      "expect": "OUT-03",
+      "fixed": "。$"
+    },
+    {
+      "id": "OUT-04-a",
+      "rule": "OUT-04",
+      "description": "入力と違うチケットIDを書く",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-13 引き算と表示を足す\n\n- `src/app.py`: 結果の表示に式を足す\n- `src/util.py`: 引き算の関数を足す\n"
+        }
+      ],
+      "expect": "OUT-04"
+    },
+    {
+      "id": "OUT-05-a",
+      "rule": "OUT-05",
+      "description": "1行目を50文字より長くする",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 引き算の関数を新しく追加して、それに合わせて結果の表示の仕方も変更して式が見えるように整える\n\n- `src/app.py`: 結果の表示に式を足す\n- `src/util.py`: 引き算の関数を足す\n"
+        }
+      ],
+      "expect": "OUT-05"
+    },
+    {
+      "id": "OUT-06-a",
+      "rule": "OUT-06",
+      "description": "1行目に [skip ci] を付ける",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 引き算と表示を足す [skip ci]\n\n- `src/app.py`: 結果の表示に式を足す\n- `src/util.py`: 引き算の関数を足す\n"
+        }
+      ],
+      "expect": "OUT-06"
+    },
+    {
+      "id": "STEP-02-a",
+      "rule": "STEP-02",
+      "description": "2ファイルなのに本文を書かない",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 引き算と表示を足す\n"
+        }
+      ],
+      "expect": "STEP-02"
+    },
+    {
+      "id": "STEP-02-b",
+      "rule": "STEP-02",
+      "description": "箇条書きをファイルでなく内容で書く",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 引き算と表示を足す\n\n- 引き算を足した\n- 表示を変えた\n"
+        }
+      ],
+      "expect": "STEP-02"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "IN-02-r1",
+      "rule": "IN-02",
+      "description": "ステージ済みの差分に無い変更（掛け算の関数）を本文に書く",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 引き算と掛け算と表示を足す\n\n- `src/app.py`: 結果の表示に式を足す\n- `src/util.py`: 引き算と掛け算の関数を足す\n"
+        }
+      ]
+    },
+    {
+      "id": "OUT-03-r1",
+      "rule": "OUT-03",
+      "description": "要約と本文を英語で書く",
+      "files": [
+        {
+          "path": "{run}/out/commit-message.txt",
+          "mode": "replace",
+          "content": "ABC-12 Add subtraction and show the expression\n\n- `src/app.py`: Show the expression in the result\n- `src/util.py`: Add a sub function\n"
+        }
+      ]
+    }
+  ]
+}

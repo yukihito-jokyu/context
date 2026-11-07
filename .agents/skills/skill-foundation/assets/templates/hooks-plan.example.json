@@ -1,0 +1,52 @@
+{
+  "questions": {
+    "talk": "talk-1",
+    "items": [
+      {
+        "id": "hooks",
+        "title": "出力の検査に hooks を使うか",
+        "ask": "{name} の出力を、編集の直後と応答を終える前に、hooks で自動で検査しますか。",
+        "why": "hooks はプロジェクトの設定（`.claude/settings.json`・`.codex/hooks.json`）に書かれ、このプロジェクトでの作業全体に効く。使わなくても、`run.py check` と `finish` の検査は働く。",
+        "options": [
+          {"key": "A", "value": true, "text": "使う", "effect": "編集の直後と応答を終える前に自動で検査し、通るまで直させる。"},
+          {"key": "B", "value": false, "text": "使わない", "effect": "hooks を1つも登録しない。検査は `run.py check` と `finish` だけで行い、利用中の指摘も集めない。"}
+        ]
+      },
+      {
+        "id": "targets",
+        "title": "どの製品に登録するか",
+        "ask": "hooks を登録する製品を選んでください。",
+        "why": "選ばなかった製品には hooks を登録しない（スキルの本体はどちらにも置く）。",
+        "why_codex": "Codex は、登録した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。それまでは `run.py check` と `finish` だけで検査される。",
+        "multi": true,
+        "when": {"id": "hooks", "key": "A"},
+        "options": [
+          {"key": "A", "value": "claude", "text": "Claude Code", "effect": "`.claude/settings.json` に登録する。"},
+          {"key": "B", "value": "codex", "text": "Codex", "effect": "`.codex/hooks.json` に登録する。`/hooks` で信頼するまで動かない。"}
+        ]
+      },
+      {
+        "id": "feedback",
+        "title": "利用中の指摘を集めるか",
+        "ask": "{name} を使った後の「ここが違う」などの指摘を、hooks で記録しますか。",
+        "why": "記録はプロジェクトの `.skill-feedback/` に手元にだけ残る。承認した直しは、後で Eval と収束テストの材料にできる。",
+        "when": {"id": "hooks", "key": "A"},
+        "options": [
+          {"key": "A", "value": true, "text": "集める", "effect": "完了の後の発言の原文と、直す前と後の成果物を記録する。"},
+          {"key": "B", "value": false, "text": "集めない", "effect": "出力の検査の hooks だけを登録する（契約の `control.feedback` を false にする）。"}
+        ]
+      },
+      {
+        "id": "via",
+        "title": "hooks をどこに登録するか",
+        "ask": "hooks の登録先を選んでください。",
+        "why": "プラグインで配ると、プラグインを入れた人にだけ hooks が効き、プロジェクトの設定ファイルは変えない。",
+        "when": {"id": "hooks", "key": "A"},
+        "options": [
+          {"key": "A", "value": "project", "text": "プロジェクトの設定", "effect": "`install.py` が `.claude/settings.json`・`.codex/hooks.json` に書く。"},
+          {"key": "B", "value": "plugin", "text": "プラグインで配る", "effect": "本体をプラグインの `skills/` に置き、プラグインの hooks に書く。`install.py` では登録しない。"}
+        ]
+      }
+    ]
+  }
+}

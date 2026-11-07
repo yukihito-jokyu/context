@@ -15,5 +15,6 @@ title: 記録・説明
 | [explanation-design](explanation-design.md) | 読者が理解できる説明順を設計する |
 | [write-requirement-document](write-requirement-document.md) | 会話・議事録から図付きHTMLの要件定義書を作る |
 | [write-basic-design-document](write-basic-design-document.md) | 構成・画面・データ・外部連携と採用理由を図付きHTMLにする |
+| [write-detailed-design-document](write-detailed-design-document.md) | 要件と基本設計を、実装と試験へ渡せる詳細設計書にする |
 
 組み合わせて使う場合は[ワークフロー](../workflows.md)を参照してください。各ページには入力と成果物の例を掲載しています。

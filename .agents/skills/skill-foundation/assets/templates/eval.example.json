@@ -1,0 +1,37 @@
+{
+  "skip_reason": "",
+  "materials": {
+    "scenes": [{"id": "scene-1", "text": "TODO(skill-foundation): ユーザーがこのスキルを使う具体的な場面"}],
+    "pains": [{"id": "pain-1", "text": "TODO(skill-foundation): 今のやり方での不満や失敗"}],
+    "wants": [{"id": "want-1", "text": "TODO(skill-foundation): ユーザーが望む結果"}],
+    "unacceptable": [{"id": "ng-1", "text": "TODO(skill-foundation): これだけは困るという結果"}]
+  },
+  "dialog": [],
+  "questions": {
+    "talk": "talk-1",
+    "items": [
+      {"title": "利用場面", "ask": "いつ、何を手元に持って、このスキルを使いますか。", "why": "価値は、抽象的な目的からではなく、具体的な場面から見つけるため。"},
+      {"title": "今の不満や失敗", "ask": "今のやり方（スキル無しで AI に頼む、手で作る）で困っていることや、起きた失敗は何ですか。", "why": "スキルが解くべき問題を、実際に起きたことから決めるため。"},
+      {"title": "望む結果", "ask": "出力を受け取った後に、何ができるようになっていればよいですか。", "why": "出力の良し悪しを、受け取った後にできることで判定するため。"},
+      {"title": "許容できない結果", "ask": "これが起きたら使えない、という出力や動きは何ですか。", "why": "最も避けたい出力を、失敗の事例で必ず確かめるため。"}
+    ]
+  },
+  "hypotheses": [
+    {"id": "hyp-1", "text": "TODO(skill-foundation): 材料から立てた価値仮説", "from": ["scene-1", "pain-1", "want-1"]}
+  ],
+  "values": [
+    {"id": "value-1", "text": "TODO(skill-foundation): ユーザーが確かめた価値", "from": ["hyp-1"], "confirmed_in": "talk-1"}
+  ],
+  "behaviors": [
+    {"id": "behavior-1", "value": "value-1", "text": "TODO(skill-foundation): 出力を見れば確かめられる振る舞い",
+     "target": "TODO(skill-foundation): フェーズ4で、判定するファイルの場所をプロジェクトのルートからの相対パスで書く（例: {run}/out/result.md）",
+     "judge": {"type": "code", "checks": [{"type": "require", "pattern": "TODO(skill-foundation): 成功の出力に一致する正規表現",
+                                       "message": "TODO(skill-foundation): この検査が確かめることを、正規表現を読まない人にも分かる1文で書く"}]}}
+  ],
+  "cases": [
+    {"id": "case-1", "behavior": "behavior-1", "expect": "pass", "situation": "TODO(skill-foundation): その出力を作った依頼と入力。状況が同じ事例は、一字一句同じ文にする",
+     "output": "cases/case-1.txt", "reason": "TODO(skill-foundation): 成功とする根拠。振る舞いのどこを満たすかを、出力の見本の箇所で1〜2文で書く"},
+    {"id": "case-2", "behavior": "behavior-1", "expect": "fail", "situation": "TODO(skill-foundation): その出力を作った依頼と入力。状況が同じ事例は、一字一句同じ文にする",
+     "output": "cases/case-2.txt", "reason": "TODO(skill-foundation): 失敗とする根拠。振る舞いのどこを破るかを、出力の見本の箇所で1〜2文で書く", "covers": ["ng-1"]}
+  ]
+}

@@ -1,0 +1,30 @@
+# ユーザーの設定の見本。settings/user-setting.yaml に写し、変えたい項目だけ値を書く（user-setting.yaml は各自の手元にだけ置く）
+# ユーザーの設定。依頼に指定の無い値をここから補う（依頼文や作業の途中の指示は、いつもこの設定より優先される）
+# 値を null にした項目は settings/skill-setting.yaml（スキルの設定）の値を使う。# から行末まではコメント
+inputs: # 作るスキルの入力の既定値
+  eval: make # Eval を作るか。make（作る）か skip（省く）
+  measure: ask # 収束テストを実行するか。ask（そのつど聞く）、run（聞かずに実行）、skip（省く）
+  targets: [codex] # 対象の製品。claude、codex から1つ以上の一覧。置き場はここから決まる
+  language: ja # 作るスキルの言語。ja か en。null なら依頼文の言語に合わせる
+convergence: # 収束テストの動かし方
+  runners: [subagent] # エージェントを動かすもの。claude、codex、subagent から1つ以上の一覧
+  agents: 2 # runner ごとのエージェントの人数。1 以上の整数
+  max_rounds: 3 # ラウンドの上限。1 以上の整数。超えると続けるかを聞かれる
+  thresholds: # 課題が基準を満たす揃い方。0 から 1 の数（1 は全員が一致）
+    files: 0.8 # 作った・変えたファイルの集合の一致度
+    structure: 0.8 # 共通のファイルの骨格（見出し、JSON のキーと型など）が一致する割合
+    names: 0.8 # 作業で新しく作った名前（英字の識別子）の一致度
+  model: # runner ごとのエージェントのモデル。null なら runner の既定
+    claude: null # claude -p の --model。opus、sonnet、haiku、fable か正式名（例 claude-opus-5-5）
+    codex: gpt-6.1-sol # codex exec の -m。~/.codex/config.toml の model と同じ書き方
+    subagent: gpt-6.1-sol # Agent ツールの model。opus、sonnet、haiku、fable のどれか
+  effort: # runner ごとの推論エフォート。null なら runner の既定
+    claude: null # claude -p の --effort。low、medium、high、xhigh、max のどれか
+    codex: medium # codex の model_reasoning_effort。low、medium、high、xhigh、max（使える値はモデルによる）
+    subagent: medium # Agent ツールの effort。low、medium、high、xhigh、max のどれか
+  analysis: # 各エージェントの動きを分析する AI
+    runner: subagent # 分析役の runner。claude、codex、subagent のどれか。null なら runners の先頭
+    model: gpt-6.1-sol # 分析役のモデル。書き方は上の model と同じ。null なら分析役の runner の model
+    effort: high # 分析役の推論エフォート。書き方は上の effort と同じ。null なら分析役の runner の effort
+  parallel: 8 # 同時に動かすエージェントの数。1 以上の整数
+  timeout: 1800 # エージェント1人の上限の秒数。1 以上の整数

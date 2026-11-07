@@ -1,0 +1,134 @@
+{
+  "$comment": "利用中の指摘の記録（.skill-feedback/<スキル名>/feedback.json）の形。feedback.py validate が _skillrt.schema_errors で検査する。skill-foundation の共通ランタイム（スキルごとに書き換えない）。説明は references/feedback.md",
+  "type": "object",
+  "required": ["schema_version", "skill", "synthetic", "messages", "deliveries", "cases", "pending_inputs"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 1},
+    "skill": {"type": "string", "minLength": 1},
+    "synthetic": {"type": "boolean"},
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "at", "kind", "platform", "session", "text", "delivered", "class", "reason", "case"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^m-[0-9]{4,}$"},
+          "at": {"type": "string"},
+          "kind": {"enum": ["prompt", "approval"]},
+          "platform": {"type": ["string", "null"]},
+          "session": {"type": ["string", "null"]},
+          "text": {"type": "string"},
+          "delivered": {"type": "string", "pattern": "^d-[0-9]{4,}$"},
+          "class": {"enum": [null, "feedback", "ignored", "approval"]},
+          "reason": {"type": ["string", "null"]},
+          "case": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "deliveries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "at", "trigger", "platform", "session", "marker", "run", "request", "input", "extra", "input_files",
+                     "files", "skill", "contract"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^d-[0-9]{4,}$"},
+          "at": {"type": "string"},
+          "trigger": {"enum": ["finish", "revision"]},
+          "platform": {"type": ["string", "null"]},
+          "session": {"type": ["string", "null"]},
+          "marker": {"type": "string"},
+          "run": {"type": ["string", "null"]},
+          "request": {"type": "string"},
+          "input": {"type": "object"},
+          "extra": {"type": "object"},
+          "input_files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "sha256", "size", "at"],
+              "properties": {
+                "path": {"type": "string"},
+                "sha256": {"type": ["string", "null"]},
+                "size": {"type": "integer", "minimum": 0},
+                "at": {"type": "string"}
+              }
+            }
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["path", "sha256", "size", "binary", "output"],
+              "additionalProperties": false,
+              "properties": {
+                "path": {"type": "string", "minLength": 1},
+                "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+                "size": {"type": "integer", "minimum": 0},
+                "binary": {"type": "boolean"},
+                "output": {"type": ["string", "null"]}
+              }
+            }
+          },
+          "skill": {
+            "type": "object",
+            "required": ["version", "manifest", "contract"],
+            "properties": {
+              "version": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "manifest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "contract": {"type": ["string", "null"]}
+            }
+          },
+          "contract": {"type": ["integer", "null"]}
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "opened_at", "session", "issue", "before", "revisions", "after", "approval"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^c-[0-9]{4,}$"},
+          "status": {"enum": ["open", "approved"]},
+          "opened_at": {"type": "string"},
+          "session": {"type": ["string", "null"]},
+          "issue": {
+            "type": "object",
+            "required": ["messages", "quotes", "summary"],
+            "additionalProperties": false,
+            "properties": {
+              "messages": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^m-[0-9]{4,}$"}},
+              "quotes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+              "summary": {"type": ["string", "null"]}
+            }
+          },
+          "before": {"type": "string", "pattern": "^d-[0-9]{4,}$"},
+          "revisions": {"type": "array", "items": {"type": "string", "pattern": "^d-[0-9]{4,}$"}},
+          "after": {"type": ["string", "null"]},
+          "approval": {
+            "type": ["object", "null"],
+            "required": ["at", "delivery", "comment", "via", "origin", "user_agent", "token", "message", "synthetic"],
+            "properties": {
+              "at": {"type": "string"},
+              "delivery": {"type": "string", "pattern": "^d-[0-9]{4,}$"},
+              "comment": {"type": "string"},
+              "via": {"const": "review"},
+              "origin": {"type": "string"},
+              "user_agent": {"type": "string"},
+              "token": {"type": "string"},
+              "message": {"type": "string"},
+              "synthetic": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    },
+    "pending_inputs": {"type": "array", "items": {"type": "object"}}
+  }
+}
