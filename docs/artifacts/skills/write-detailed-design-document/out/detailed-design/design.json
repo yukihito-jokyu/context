@@ -1,0 +1,3262 @@
+{
+  "schema_version": 1,
+  "title": "備品予約の詳細設計書（設計案）",
+  "language": "ja",
+  "scope": "数量指定による予約作成、利用者の取消、10分経過時の期限処理、切断・再起動後の受付結果照会と、それらを支える在庫・予約の表示を対象とする。",
+  "overview": "同じ備品を複数の利用者が予約しても在庫を負にせず、取消と期限処理で予約数量を一度だけ戻す設計案である。保存の確定と画面への到達を分け、受付結果の照会で切断後も事実を確認する。共通条件から機能、通信、物理データ、画面、回復、試験条件へ辿る構成とする。採用承認と実装・実DB・外部接続試験は未実施であり、文書検査の通過はこれらを代替しない。",
+  "scope_exclusions": [
+    "備品の登録・入出庫・総数の変更、アカウント登録、認証方式の実装は対象外とする。既存の認証済みactor_idを受け取る契約だけを定める。",
+    "外部実行基盤、エージェント、メール、プッシュ送信は使わない。通知は保存後のHTTP応答だけとする。",
+    "実装作成、実DBの構築・移行実行、負荷・競合試験、外部サービスへの接続、ブラウザとMermaidの実描画確認、採用承認は実施しない。"
+  ],
+  "time_policy": "保存時刻はPostgreSQL側のUTC、物理型はtimestamptz、JSON表現はUTCのRFC3339（小数6桁、末尾Z）を提案する。作成では備品行のロック取得後のclock_timestamp()をcreated_atとして一度取得し、expires_at=created_at+10分とする。取消・期限処理は必要な行ロックを全て取った直後にclock_timestamp()を一度取得して判定時刻tとし、t<expires_atだけを取消可能、t>=expires_atを期限切れとする。待機前のトランザクション開始時刻や画面時刻では判定しない。判定後にコミットが期限を跨いでも、ロック中に決めた勝敗は覆さない。通信待ち時間は確定条件でない。時計補正・フェイルオーバー時の連続性はU002で未検証とする。",
+  "diagram_notes": "G001は画面から保存確定と切断後照会までの順序、G002は予約の保存状態、G003は備品・予約・受付結果の参照関係を示す。三種類とも必要なため省略しない。画面と期限監視の観測状態は共通の遷移表に置く。図は厳密な検査条件を対応IDへ委ねる。ブラウザを起動しないため実描画は未確認でありU005に残す。",
+  "sources": [
+    {
+      "id": "S001",
+      "path": "docs/requirement.md",
+      "line": 3,
+      "end_line": 3,
+      "quote": "利用者は備品の数量を指定して予約し、予約結果と残数を確認できる。最後の1個へ同時に予約しても、在庫は負にならず、成立する予約は1件だけである。",
+      "sha256": "f48dfbbb161879d79830f2066cc45fa5c3e8db6c5f24a9a26986bd194d39ed22",
+      "kind": "requirement"
+    },
+    {
+      "id": "S002",
+      "path": "docs/requirement.md",
+      "line": 4,
+      "end_line": 4,
+      "quote": "予約の有効期間は作成から10分とする。利用者の取消か期限切れで予約分の数量を在庫へ戻す。取消と期限処理が競合しても返却は1回だけとする。保存側の判定時刻が期限と等しければ期限切れとする。",
+      "sha256": "f48dfbbb161879d79830f2066cc45fa5c3e8db6c5f24a9a26986bd194d39ed22",
+      "kind": "requirement"
+    },
+    {
+      "id": "S003",
+      "path": "docs/requirement.md",
+      "line": 5,
+      "end_line": 5,
+      "quote": "作成の同じ受付用識別子・同じ内容の再送は新しい予約を作らない。違う内容なら競合として返す。",
+      "sha256": "f48dfbbb161879d79830f2066cc45fa5c3e8db6c5f24a9a26986bd194d39ed22",
+      "kind": "requirement"
+    },
+    {
+      "id": "S004",
+      "path": "docs/requirement.md",
+      "line": 6,
+      "end_line": 6,
+      "quote": "保存確定後に応答する。応答切断後は識別子で確定した結果を照会し、予約や在庫の更新を自動で繰り返さない。",
+      "sha256": "f48dfbbb161879d79830f2066cc45fa5c3e8db6c5f24a9a26986bd194d39ed22",
+      "kind": "requirement"
+    },
+    {
+      "id": "S005",
+      "path": "docs/requirement.md",
+      "line": 7,
+      "end_line": 7,
+      "quote": "画面は在庫数、予約の状態、操作結果を表示し、期限切れ後は取消を受け付けない。キーボードで予約・取消・結果照会を行える。",
+      "sha256": "f48dfbbb161879d79830f2066cc45fa5c3e8db6c5f24a9a26986bd194d39ed22",
+      "kind": "requirement"
+    },
+    {
+      "id": "S006",
+      "path": "docs/basic-design.md",
+      "line": 3,
+      "end_line": 3,
+      "quote": "この資料は設計案である。実装と負荷・競合試験は未実施である。",
+      "sha256": "887f247ad827415e314ad00b16904c4ec5b131074f92101d17537b9629b6c3d2",
+      "kind": "basic_design"
+    },
+    {
+      "id": "S007",
+      "path": "docs/basic-design.md",
+      "line": 5,
+      "end_line": 5,
+      "quote": "ブラウザ画面はHTTPのJSON APIを呼ぶ。サーバー側は受付・予約サービス・期限監視・保存リポジトリを分け、PostgreSQLへ備品と予約と受付結果を保存する。外部の実行基盤やエージェントは使わない。",
+      "sha256": "887f247ad827415e314ad00b16904c4ec5b131074f92101d17537b9629b6c3d2",
+      "kind": "basic_design"
+    },
+    {
+      "id": "S008",
+      "path": "docs/basic-design.md",
+      "line": 6,
+      "end_line": 6,
+      "quote": "作成は在庫確認と数量の引当と予約と受付結果を一つの保存単位で確定する。同時再送は受付用識別子の一意制約で照合する。取消と期限処理は同じ予約の状態を条件にして一方だけが在庫を戻す。",
+      "sha256": "887f247ad827415e314ad00b16904c4ec5b131074f92101d17537b9629b6c3d2",
+      "kind": "basic_design"
+    },
+    {
+      "id": "S009",
+      "path": "docs/basic-design.md",
+      "line": 7,
+      "end_line": 7,
+      "quote": "時刻は保存側のUTCとし、画面の押下時刻を期限判定に使わない。期限処理が遅れても、取消の受付では期限を再検査する。",
+      "sha256": "887f247ad827415e314ad00b16904c4ec5b131074f92101d17537b9629b6c3d2",
+      "kind": "basic_design"
+    },
+    {
+      "id": "S010",
+      "path": "docs/basic-design.md",
+      "line": 8,
+      "end_line": 8,
+      "quote": "通知は保存確定後に画面へ返す。通信切断後や再起動後も受付用識別子で確定結果を照会し、外部への更新を再実行したことにしない。",
+      "sha256": "887f247ad827415e314ad00b16904c4ec5b131074f92101d17537b9629b6c3d2",
+      "kind": "basic_design"
+    },
+    {
+      "id": "S011",
+      "path": "docs/basic-design.md",
+      "line": 9,
+      "end_line": 9,
+      "quote": "APIの項目・サイズ・エラー、物理列・索引・移行、取得順と原子性、画面の操作可否と更新、試験条件は詳細設計で具体化する。",
+      "sha256": "887f247ad827415e314ad00b16904c4ec5b131074f92101d17537b9629b6c3d2",
+      "kind": "basic_design"
+    }
+  ],
+  "terms": [
+    {
+      "name": "受付用識別子",
+      "meaning": "利用者が一つの更新操作に付けるUUIDである。actor_idとrequest_idの組で受付結果を識別し、作成と取消で共通の名前空間とする。再送で変えない。"
+    },
+    {
+      "name": "同じ内容",
+      "meaning": "operationと、作成ならitem_id・quantity、取消ならreservation_idの型付き値が同じことである。JSONの空白とキー順は無視し、UUIDは小文字に正規化する。未知項目と重複キーは受け付けない。"
+    },
+    {
+      "name": "確定した操作結果",
+      "meaning": "受付結果に保存した不変のスナップショットである。作成後に取消・期限切れになっても作成の成立は取り消さない。現在の予約状態・残数と分けて表示する。"
+    },
+    {
+      "name": "結果未確認",
+      "meaning": "更新要求に応答が届かず、保存確定の有無をまだ知らない画面状態である。失敗でも成功でもなく、GETの照会だけを行う。"
+    },
+    {
+      "name": "残数",
+      "meaning": "items.available_quantityの保存値である。期限監視が遅れたactiveの数量はまだ含まない。期限到来と返却完了は区別する。"
+    },
+    {
+      "name": "actor_id",
+      "meaning": "認証済みの利用者を示す不変UUIDである。HTTP本文からは受け取らず、同一オリジンの認証・CSRF検査済みコンテキストから得る追加提案である。"
+    }
+  ],
+  "modules": [
+    {
+      "id": "M001",
+      "name": "ブラウザ画面",
+      "responsibility": "数量と操作を受け取り、受付用識別子を送信前に利用者別のブラウザ保存領域へ保存する。確定した操作結果、現在値、結果未確認を分けて表示する。",
+      "depends_on": [
+        "M002"
+      ]
+    },
+    {
+      "id": "M002",
+      "name": "受付",
+      "responsibility": "HTTP v1の構造・サイズ・認証・CSRFを検査し、利用者コンテキストを固定する。予約サービスの確定結果をHTTPへ写像し、未確定を成功にしない。",
+      "depends_on": [
+        "M003"
+      ]
+    },
+    {
+      "id": "M003",
+      "name": "予約サービス",
+      "responsibility": "同じ受付の照合、権利、在庫、期限を判定し、保存単位と応答を組み立てる。保存リポジトリの処理途中を呼出し元へ公開しない。",
+      "depends_on": [
+        "M005"
+      ]
+    },
+    {
+      "id": "M004",
+      "name": "期限監視",
+      "responsibility": "期限到来候補を読み、一予約ずつIF005を呼ぶ。再起動後も候補を再走査し、更新前に実際の状態と期限を再確認する。",
+      "depends_on": [
+        "M003",
+        "M005"
+      ]
+    },
+    {
+      "id": "M005",
+      "name": "保存リポジトリ",
+      "responsibility": "PostgreSQLの行ロック、条件付き更新、受付結果の衝突、コミット・ロールバック確認、整合した読取りを担当する。個々のSQLはIF001〜IF005の処理内に閉じるため、独立した外部境界とはしない。",
+      "depends_on": []
+    }
+  ],
+  "state_sets": [
+    {
+      "id": "ST001",
+      "entity": "予約の保存状態。absentは予約行がない論理状態であり、status列へ保存しない。",
+      "values": [
+        {
+          "name": "absent",
+          "meaning": "予約が保存されていない。"
+        },
+        {
+          "name": "active",
+          "meaning": "数量を引当済みで返却未了である。期限到来後も期限処理の確定前はこの保存状態である。"
+        },
+        {
+          "name": "cancelled",
+          "meaning": "期限前の取消と数量返却が同じ保存単位で確定した終端状態である。"
+        },
+        {
+          "name": "expired",
+          "meaning": "期限到来による数量返却が同じ保存単位で確定した終端状態である。"
+        }
+      ]
+    },
+    {
+      "id": "ST002",
+      "entity": "画面の更新結果の観測状態。予約の業務状態とは別でありDBへ保存しない。",
+      "values": [
+        {
+          "name": "ready",
+          "meaning": "入力と新しい更新操作を行える。"
+        },
+        {
+          "name": "sending",
+          "meaning": "一つの更新要求の応答を待っている。"
+        },
+        {
+          "name": "unknown",
+          "meaning": "結果未確認であり、同じ受付の結果照会と現在値のGETだけを行う。更新要求は再送しない。"
+        },
+        {
+          "name": "result",
+          "meaning": "今回の操作の確定結果か識別子競合を受信した。"
+        }
+      ]
+    },
+    {
+      "id": "ST003",
+      "entity": "期限監視の一候補の実行結果の観測状態。DBの予約状態を代用しない。",
+      "values": [
+        {
+          "name": "ready",
+          "meaning": "候補の再読取りを開始できる。"
+        },
+        {
+          "name": "running",
+          "meaning": "候補一件の保存処理を実行している。"
+        },
+        {
+          "name": "known",
+          "meaning": "処理の確定またはロールバックを確認した。"
+        },
+        {
+          "name": "unknown",
+          "meaning": "コミット確認ができず、予約の再読取りが必要である。"
+        }
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D001",
+      "kind": "inherited",
+      "statement": "数量引当・予約・受付結果の一括確定、UTCの保存側時刻、状態を条件とする一回だけの返却、確定結果の照会という基本設計案を引き継ぐ。基本設計は採用済みでも検証済みでもない。",
+      "source_ids": [
+        "S001",
+        "S002",
+        "S003",
+        "S004",
+        "S006",
+        "S007",
+        "S008",
+        "S009",
+        "S010"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": false,
+      "issue_ids": []
+    },
+    {
+      "id": "D002",
+      "kind": "proposed",
+      "statement": "HTTP /api/v1、UUID識別子、quantityと総数の上限1000000、備品名100文字、JSON本文1024バイト、HTTP要求ヘッダー8192バイト、応答8192バイト、URL512バイト、エラー文160文字を提案する。要求はUTF-8の単一オブジェクトとし、重複・未知項目とnullを拒否する。応答は項目ごとのnullable定義に従う。値は入力資料にない追加提案であり、採用前にU004で確認する。",
+      "source_ids": [
+        "S011"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": false,
+      "issue_ids": [
+        "U004"
+      ]
+    },
+    {
+      "id": "D003",
+      "kind": "proposed",
+      "statement": "PostgreSQLのREAD COMMITTED、備品→予約→受付結果挿入の取得順、active条件付き更新と数量返却の一トランザクションを提案する。受付結果は最後に完成形だけをINSERTし、同じ(actor_id,request_id)の衝突では全変更をロールバックした後に勝者を読み、同じ内容ならその結果、違えば競合を返す。PostgreSQL対象版・ロック・耐久性はU001で未検証とする。",
+      "source_ids": [
+        "S007",
+        "S008"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": true,
+      "issue_ids": [
+        "U001"
+      ]
+    },
+    {
+      "id": "D004",
+      "kind": "proposed",
+      "statement": "取消にも受付用識別子を必須とし、作成と同じ不変の受付結果を残す。結果には操作時の残数と状態を保存し、結果照会は現在値を別の読取りスナップショットで返す。受付結果と終端予約は削除せず、保存期間を短縮する場合は再送照合が失われない別の保持契約を先に決める。",
+      "source_ids": [
+        "S003",
+        "S004",
+        "S010"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": false,
+      "issue_ids": [
+        "U003"
+      ]
+    },
+    {
+      "id": "D005",
+      "kind": "proposed",
+      "statement": "認証済みactor_idの本人だけが予約を作成・取消・照会できる権利を提案する。期限監視だけはアプリケーション内の専用実行権で全利用者の期限処理を行う。本人以外の予約はNOT_FOUNDとして情報を隠す。認証・CSRFの実装と結合は未確認である。",
+      "source_ids": [
+        "S005",
+        "S007",
+        "S011"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": false,
+      "issue_ids": [
+        "U004"
+      ]
+    },
+    {
+      "id": "D006",
+      "kind": "proposed",
+      "statement": "期限監視は1秒ごとに期限到来候補を最大100件読む案とする。複数監視が同じ候補を読んでも、備品と予約の再検査後にactiveから更新できた一方だけが返却する。ロック待ち5秒・SQL実行10秒・HTTP待ち15秒を提案する。タイムアウトで未確定を失敗へ読み替えず、DB時計と処理遅延の妥当性をU002で検証する。",
+      "source_ids": [
+        "S002",
+        "S009"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": true,
+      "issue_ids": [
+        "U001",
+        "U002"
+      ]
+    },
+    {
+      "id": "D007",
+      "kind": "proposed",
+      "statement": "画面は受付用識別子と操作内容を送信前に利用者別のブラウザ保存領域へ保持し、再読込後も結果照会できるようにする。保存不能なら送信を開始しない。切断後はGETだけを行い、未登録という照会結果でも自動で作成・取消を再実行しない。",
+      "source_ids": [
+        "S004",
+        "S005"
+      ],
+      "adoption": "proposed",
+      "adoption_evidence": [],
+      "verification": "unverified",
+      "verification_evidence": [],
+      "external_dependency": false,
+      "issue_ids": [
+        "U003",
+        "U005"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R001",
+      "text": "指定数量の予約結果と残数を示し、最後の一個に同時予約が来ても成立を一件だけにする。",
+      "source_ids": [
+        "S001"
+      ],
+      "status": "designed",
+      "feature_ids": [
+        "F001",
+        "F004"
+      ],
+      "check_ids": [
+        "C001",
+        "C002",
+        "C003"
+      ],
+      "issue_ids": [],
+      "reason": "対象機能の処理・境界・画面と、未実施の確認条件へ対応付ける。設計案の採用と動作の実証は別に行う。"
+    },
+    {
+      "id": "R002",
+      "text": "作成から10分、取消か期限切れによる返却は一回だけとし、期限と等しければ期限切れとする。",
+      "source_ids": [
+        "S002"
+      ],
+      "status": "designed",
+      "feature_ids": [
+        "F002",
+        "F003"
+      ],
+      "check_ids": [
+        "C006",
+        "C007",
+        "C008",
+        "C009",
+        "C013"
+      ],
+      "issue_ids": [],
+      "reason": "対象機能の処理・境界・画面と、未実施の確認条件へ対応付ける。設計案の採用と動作の実証は別に行う。"
+    },
+    {
+      "id": "R003",
+      "text": "同じ識別子・同じ内容の再送は新しい予約を作らず、違う内容は競合とする。",
+      "source_ids": [
+        "S003"
+      ],
+      "status": "designed",
+      "feature_ids": [
+        "F001",
+        "F002"
+      ],
+      "check_ids": [
+        "C004",
+        "C005"
+      ],
+      "issue_ids": [],
+      "reason": "対象機能の処理・境界・画面と、未実施の確認条件へ対応付ける。設計案の採用と動作の実証は別に行う。"
+    },
+    {
+      "id": "R004",
+      "text": "保存確定後に応答し、切断後は識別子で確定結果を照会し、更新を自動で繰り返さない。",
+      "source_ids": [
+        "S004"
+      ],
+      "status": "designed",
+      "feature_ids": [
+        "F001",
+        "F002",
+        "F004"
+      ],
+      "check_ids": [
+        "C010",
+        "C011",
+        "C012",
+        "C014"
+      ],
+      "issue_ids": [],
+      "reason": "対象機能の処理・境界・画面と、未実施の確認条件へ対応付ける。設計案の採用と動作の実証は別に行う。"
+    },
+    {
+      "id": "R005",
+      "text": "在庫・予約状態・操作結果を示し、期限切れ後は取消不可とし、キーボードで操作できる。",
+      "source_ids": [
+        "S005"
+      ],
+      "status": "designed",
+      "feature_ids": [
+        "F001",
+        "F002",
+        "F003",
+        "F004"
+      ],
+      "check_ids": [
+        "C007",
+        "C015",
+        "C016"
+      ],
+      "issue_ids": [],
+      "reason": "対象機能の処理・境界・画面と、未実施の確認条件へ対応付ける。設計案の採用と動作の実証は別に行う。"
+    }
+  ],
+  "features": [
+    {
+      "id": "F001",
+      "name": "予約を作成する",
+      "purpose": "一つの受付に一つの確定結果を残し、残数を超えない数量だけを引き当てる。",
+      "source_ids": [
+        "S001",
+        "S003",
+        "S004",
+        "S007",
+        "S008"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003",
+        "M005"
+      ],
+      "preconditions": [
+        "認証済み利用者が新しい作成を開始する。UIはreadyかresultからsendingへ進む。",
+        "既存受付の再送は予約がactive・cancelled・expiredのどの状態でも結果読取りとして許可する。新規予約はabsentから開始する。"
+      ],
+      "input_interface_ids": [
+        "IF001"
+      ],
+      "steps": [
+        "画面は入力を検査し、request_idと内容を送信前に保存してTR004またはTR005へ進む。受付はIF001の順で検査する。",
+        "型付き内容を正規化して既存のT003を読む。同じ内容なら結果をそのまま返し、数量・期限を更新しない。違う内容ならKEY_CONFLICTを返す。新規に限り数量範囲を検査する。",
+        "新規の保存単位を開始し、T001の対象備品をFOR UPDATEで取得する。備品なし・残数不足なら更新を行わず、拒否結果を組み立てる。残数が足りればロック後の保存側時刻を取得し、available_quantityからquantityを減らし、activeのT002を作る。 成立・拒否ともdecided_atは当該判定時にDBから取得する。備品がない場合もDB時刻を取得して拒否結果を完成する。",
+        "最後に完成したT003をINSERTし、同じ保存単位をCOMMITする。挿入の識別子衝突では、引当・予約を含めて全てROLLBACKする。新しい読取りで勝者の内容を比較し、同じなら保存済み結果、違えばKEY_CONFLICTを返す。残数不足という仮の判定よりも、この照合結果を優先する。",
+        "COMMIT成功を確認した後だけ、作成成立または保存済み拒否を応答する。採番した予約IDに保存前の欠番が生じても再利用しない。"
+      ],
+      "result": "成立ではTR001でactiveを保存し、作成時の残数・期限を含む不変の操作結果を返す。再送でも同じsnapshotを返すため、現在の残数はIF004またはIF003で別に取得する。拒否も受付結果に保存され、同じ識別子では後で在庫が増えても成立へ変わらない。",
+      "failure": "保存前またはロールバック確認済みの障害では予約・在庫・受付結果の全変更を残さない。COMMITの成否が不明なら成功も失敗も返さず、画面ではunknown、期限監視ではST003のunknownとして扱う。自動の更新再実行は行わず、読み取って確定状態を調べる。 同じ識別子の競合では勝者の受付結果を上書きしない。",
+      "state_set_ids": [
+        "ST001",
+        "ST002"
+      ],
+      "table_ids": [
+        "T001",
+        "T002",
+        "T003"
+      ],
+      "screen_ids": [
+        "UI001"
+      ],
+      "recovery_ids": [
+        "RC001",
+        "RC002",
+        "RC003"
+      ],
+      "check_ids": [
+        "C001",
+        "C002",
+        "C003",
+        "C004",
+        "C005",
+        "C010",
+        "C011",
+        "C012",
+        "C015"
+      ],
+      "issue_ids": [
+        "U001",
+        "U003",
+        "U004"
+      ]
+    },
+    {
+      "id": "F002",
+      "name": "予約を取り消す",
+      "purpose": "期限前の本人のactive予約だけを取消し、数量を一度だけ戻す。期限到来済みなら期限切れとして確定する。",
+      "source_ids": [
+        "S002",
+        "S004",
+        "S005",
+        "S008",
+        "S009"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003",
+        "M005"
+      ],
+      "preconditions": [
+        "本人の予約IDと新しい取消のrequest_idを指定する。UIはreadyかresultからsendingへ進む。",
+        "保存側はactive・cancelled・expired・absentを受け付けて各結果を区別する。期限到来が画面で既知なら取消ボタンを使えないが、直接呼出しは保存側で再検査する。"
+      ],
+      "input_interface_ids": [
+        "IF002"
+      ],
+      "steps": [
+        "作成と同じ識別子照合を先に行い、同じ取消は保存済み結果を返す。作成と同じ識別子の使い回しはoperationが異なるためKEY_CONFLICTとする。",
+        "予約のitem_idをロックなしで読み、備品行、次いで予約行をロックして本人・不変のitem_id・状態を再確認する。予約なしまたは他人の予約は同じNOT_FOUNDの拒否を作り、在庫値は開示しない。 対象がない場合もDB時刻でdecided_atを設定する。対象がある場合はロック後の判定時刻tをdecided_atとする。",
+        "全ロックの取得後に保存側時刻tを取得する。activeかつt<expires_atならTR002でcancelledへ、activeかつt>=expires_atならTR003でexpiredへ条件付き更新する。更新できた一件だけ、そのquantityを同じ備品のavailable_quantityへ加える。",
+        "cancelled・expiredなら数量を加えない。新しい取消識別子にはALREADY_CANCELLEDまたはDEADLINE_EXPIREDの拒否結果を残す。期限到来のactiveを閉じた場合も取消成立ではなくDEADLINE_EXPIREDとする。",
+        "完成した取消のT003を最後に挿入し、予約状態・返却・受付結果を同時に確定する。受付結果挿入の衝突は全変更を戻してから勝者を読む。COMMIT確認後に結果を応答する。"
+      ],
+      "result": "期限前の取消はcancelledと返却後残数を返す。期限到来はexpiredと返却後残数を保存した拒否結果を返す。別の取消や期限処理が先に閉じた場合はその終端状態を保つ。",
+      "failure": "保存前またはロールバック確認済みの障害では予約・在庫・受付結果の全変更を残さない。COMMITの成否が不明なら成功も失敗も返さず、画面ではunknown、期限監視ではST003のunknownとして扱う。自動の更新再実行は行わず、読み取って確定状態を調べる。 取消と期限処理の勝敗はP002に従い、終端をactiveへ戻さない。",
+      "state_set_ids": [
+        "ST001",
+        "ST002"
+      ],
+      "table_ids": [
+        "T001",
+        "T002",
+        "T003"
+      ],
+      "screen_ids": [
+        "UI001"
+      ],
+      "recovery_ids": [
+        "RC001",
+        "RC002",
+        "RC003"
+      ],
+      "check_ids": [
+        "C004",
+        "C005",
+        "C006",
+        "C007",
+        "C008",
+        "C010",
+        "C011",
+        "C012",
+        "C015"
+      ],
+      "issue_ids": [
+        "U001",
+        "U002",
+        "U004"
+      ]
+    },
+    {
+      "id": "F003",
+      "name": "期限が来た予約を閉じる",
+      "purpose": "期限監視が遅れても再起動しても、期限到来済みactive予約の数量を一回だけ戻す。",
+      "source_ids": [
+        "S002",
+        "S007",
+        "S008",
+        "S009"
+      ],
+      "module_ids": [
+        "M004",
+        "M003",
+        "M005"
+      ],
+      "preconditions": [
+        "期限監視の専用実行権で候補走査を行う。停止中に期限を過ぎた行も対象とする。",
+        "保存状態がactiveの候補を読むが、候補取得後にcancelled・expired・absentへ変わっていてもIF005で再確認する。"
+      ],
+      "input_interface_ids": [
+        "IF005"
+      ],
+      "steps": [
+        "保存側時刻でexpires_at<=候補時刻のactiveを(expires_at,reservation_id)順に最大100件だけ読み、候補読取りの保存単位を閉じる。候補の読取りでは更新ロックを保持しない。",
+        "候補一件ごとにST003をreadyからrunningへ進め、IF005を呼ぶ。トランザクションごとに備品→予約の順でロックを取り、保存状態と本人に依存しない期限処理権を再確認する。",
+        "ロック後のt>=expires_atかつactiveのときだけTR003でexpiredへ更新し、数量を返却して同時に確定する。未到来、終端、行なしは書き込まず、理由付きのno_changeを返す。",
+        "確定・ロールバック確認はknown、確定不明はunknownとして観測する。次の走査では予約を再読取りしてから状態条件を満たす新しい処理を始める。以前のUPDATE文を無条件に再送しない。"
+      ],
+      "result": "返却確定はexpiredと増加した残数として後続GETに現れる。利用者への自発送信は行わない。候補が重複しても返却は一回である。",
+      "failure": "保存前またはロールバック確認済みの障害では予約・在庫・受付結果の全変更を残さない。COMMITの成否が不明なら成功も失敗も返さず、画面ではunknown、期限監視ではST003のunknownとして扱う。自動の更新再実行は行わず、読み取って確定状態を調べる。 候補一件の失敗で他の備品の処理を止めず、次回走査で再評価する。",
+      "state_set_ids": [
+        "ST001",
+        "ST003"
+      ],
+      "table_ids": [
+        "T001",
+        "T002"
+      ],
+      "screen_ids": [
+        "UI001"
+      ],
+      "recovery_ids": [
+        "RC001",
+        "RC002",
+        "RC004"
+      ],
+      "check_ids": [
+        "C007",
+        "C008",
+        "C009",
+        "C010",
+        "C013",
+        "C016"
+      ],
+      "issue_ids": [
+        "U001",
+        "U002"
+      ]
+    },
+    {
+      "id": "F004",
+      "name": "確定結果と現在値を照会する",
+      "purpose": "切断後の受付結果を再実行せずに読み、過去の操作結果と現在の在庫・予約状態を区別する。",
+      "source_ids": [
+        "S001",
+        "S004",
+        "S005",
+        "S010"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003",
+        "M005"
+      ],
+      "preconditions": [
+        "同じactor_idの受付用識別子を保持する。ST002のunknown・ready・resultから結果照会でき、予約のactive権は要求しない。",
+        "IF004は画面の現在値の更新に使い、操作結果の代わりには使わない。"
+      ],
+      "input_interface_ids": [
+        "IF003",
+        "IF004"
+      ],
+      "steps": [
+        "再読込時は利用者別に保持した未確認識別子を読み、unknownと表示する。別利用者の保存値を読み込まず、元の更新を自動再送しない。",
+        "IF003は同じactor_idの受付結果を、明示した読取り専用REPEATABLE READの同一スナップショットで予約・備品と共に読む。受付結果は不変のrecordとして返し、現在値はcurrentとして別に返す。書込みや期限処理を呼ばない。 現在値の備品は作成ならrequest_payload.item_id、取消なら本人の対象予約のitem_idから辿る。対象不明の拒否だけはcurrent=nullとする。",
+        "受付結果が見えなければnot_recordedを返す。これは未到着・処理中・ロールバックを区別できず、成功でも確定失敗でもない。元の更新がunknownならその状態を保ち、結果照会の再実行だけを許す。ready・resultから別の識別子を照会した場合は元の観測状態を保ち、未登録という照会結果だけを併記する。読取り失敗でも前の確定結果を覆さない。",
+        "完了済みのrecordがある場合にpendingや未完了を返さない。期限到来済みactiveの現在値ではdeadline_reached=true、cancel_allowed=falseを返し、「期限到来・返却待ち」と表示する。現在の備品残数はまだ返却されていない保存値を示す。",
+        "IF004は備品と、指定があれば本人の予約を同じ読取りスナップショットで返す。取得時刻とdeadline_reachedを併記し、後続の書込みが行われるまでこの値は閲覧時点の値であると表示する。"
+      ],
+      "result": "foundはrecordの成立・拒否を確定結果として示す。作成recordがactiveで現在の予約がexpiredでも過去の成立を維持する。照会だけで予約作成、返却、受付結果の追加は行わない。",
+      "failure": "読取りの入力不正・未認証・保存側停止はcodeで区別して返す。not_recordedは確定した拒否のrecordではなく、元の成否を未確認のまま保つ。実装・運用で未到着を確定できる手順はU003とする。",
+      "state_set_ids": [
+        "ST001",
+        "ST002"
+      ],
+      "table_ids": [
+        "T001",
+        "T002",
+        "T003"
+      ],
+      "screen_ids": [
+        "UI001"
+      ],
+      "recovery_ids": [
+        "RC002",
+        "RC003"
+      ],
+      "check_ids": [
+        "C001",
+        "C010",
+        "C011",
+        "C012",
+        "C014",
+        "C015",
+        "C016"
+      ],
+      "issue_ids": [
+        "U003",
+        "U004",
+        "U005"
+      ]
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "IF001",
+      "name": "POST /api/v1/reservations（作成）",
+      "caller": "M001 ブラウザ画面",
+      "callee": "M002 受付、M003 予約サービス、M005 保存リポジトリ",
+      "transport": "同一オリジンHTTPS、HTTP JSON UTF-8、/api/v1。Cookie等の認証方式の実装は対象外でありU004で接続を確認する。",
+      "input": "構造化した要求項目の値を受け取り、認証コンテキストは本文と分ける。",
+      "response": "response_variantsのHTTP状態と項目を返す。確定した操作結果と現在値を混同しない。",
+      "errors": "保存済みの業務拒否はrejectedのerror_codeで判別する。invalid・rollback・conflictにはcodeとmessageを含める。返せない切断・確定不明はunknownのローカル分類であり、HTTP本文はない。",
+      "max_size": "D002の提案値とする。ヘッダー8192バイト、URL512バイト、JSON本文1024バイト、応答8192バイトとする。サイズ超過は保存前に拒否する。",
+      "validation_order": "サイズ・メディア型→認証とCSRF（更新だけ）→JSON単一オブジェクト・重複キー・未知項目・必須とnull・型とUUID書式→正規化→既存受付の内容照合（更新だけ）→新規の値域と対象権利→保存側で状態と期限を再検査する。GETでは本文を受け付けない。",
+      "repeat": "読取りは何度呼んでも書込みを行わない。更新は同じactor_idとrequest_id・同じ内容なら同じ結果、違う内容ならKEY_CONFLICTとする。自動の更新再試行は行わない。",
+      "disconnect": "更新の応答切断では識別子を保持しIF003で照会する。照会の切断は同じGETだけを再実行できる。確定済み更新を巻き戻さない。",
+      "state_set_ids": [
+        "ST002"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003",
+        "M005"
+      ],
+      "request_fields": [
+        {
+          "path": "context.actor_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "認証層が設定する。本文から指定不可とする。"
+        },
+        {
+          "path": "context.authenticated",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "constraint": "trueだけを許可する。"
+        },
+        {
+          "path": "context.csrf_valid",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "constraint": "更新ではtrueだけを許可する。同一オリジンの検査結果とする。"
+        },
+        {
+          "path": "body.request_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "小文字の標準36文字へ正規化する。利用者内で操作ごとに生成し再送時は不変とする。"
+        },
+        {
+          "path": "body.item_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "対象備品IDとする。"
+        },
+        {
+          "path": "body.quantity",
+          "type": "integer",
+          "required": true,
+          "nullable": false,
+          "constraint": "新規要求は1〜1000000の整数とする。小数・真偽値を拒否する。既存受付との内容比較は値域検査より前に行う。"
+        }
+      ],
+      "request_policy": "必須項目の欠落、null、未知項目、重複キー、型違いを拒否する。任意項目の欠落の意味は項目定義に従う。GETの本文は空だけを許可する。HTTPの通常ヘッダーは許可するが、JSON・パス・クエリの業務項目は列挙したものだけとする。",
+      "response_variants": [
+        {
+          "name": "committed",
+          "description": "作成はHTTP201でoutcome=created、取消はHTTP200でoutcome=cancelledとする。再送も保存済みの同じHTTP状態・本文を返す。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "照合対象の受付用識別子である。"
+            },
+            {
+              "path": "operation",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "createまたはcancelである。"
+            },
+            {
+              "path": "outcome",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "created、cancelled、rejectedのいずれかである。"
+            },
+            {
+              "path": "reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "作成成立・本人の取消対象で設定する。対象なし・他人・在庫不足ではnullとする。"
+            },
+            {
+              "path": "state_at_commit",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "active、cancelled、expiredのいずれか、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "available_at_commit",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、対象不明または非開示ではnullとする。現在値とは区別する。"
+            },
+            {
+              "path": "decided_at",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "保存側判定時刻のUTC RFC3339とする。"
+            },
+            {
+              "path": "expires_at",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "対象予約の期限のUTC RFC3339、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "error_code",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "rejectedではITEM_NOT_FOUND、INSUFFICIENT_STOCK、NOT_FOUND、ALREADY_CANCELLED、DEADLINE_EXPIREDのいずれか、それ以外はnullとする。"
+            }
+          ]
+        },
+        {
+          "name": "rejected",
+          "description": "保存した拒否をHTTP409、ITEM_NOT_FOUND・NOT_FOUNDはHTTP404で返す。outcome=rejectedとerror_codeを必須とする。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "照合対象の受付用識別子である。"
+            },
+            {
+              "path": "operation",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "createまたはcancelである。"
+            },
+            {
+              "path": "outcome",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "created、cancelled、rejectedのいずれかである。"
+            },
+            {
+              "path": "reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "作成成立・本人の取消対象で設定する。対象なし・他人・在庫不足ではnullとする。"
+            },
+            {
+              "path": "state_at_commit",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "active、cancelled、expiredのいずれか、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "available_at_commit",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、対象不明または非開示ではnullとする。現在値とは区別する。"
+            },
+            {
+              "path": "decided_at",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "保存側判定時刻のUTC RFC3339とする。"
+            },
+            {
+              "path": "expires_at",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "対象予約の期限のUTC RFC3339、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "error_code",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "rejectedではITEM_NOT_FOUND、INSUFFICIENT_STOCK、NOT_FOUND、ALREADY_CANCELLED、DEADLINE_EXPIREDのいずれか、それ以外はnullとする。"
+            }
+          ]
+        },
+        {
+          "name": "conflict",
+          "description": "HTTP409、code=KEY_CONFLICT。既存受付と違う内容であり今回の更新はない。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            },
+            {
+              "path": "receipt_recorded",
+              "type": "boolean",
+              "required": true,
+              "nullable": false,
+              "constraint": "invalid・rollback・conflictではfalseとする。conflictは今回の内容を保存していない意味であり既存の受付は存在する。"
+            }
+          ]
+        },
+        {
+          "name": "invalid",
+          "description": "HTTP400 INVALID_INPUT、HTTP413 REQUEST_TOO_LARGE、HTTP401 UNAUTHENTICATED、HTTP403 CSRF_FAILEDとする。受付結果を作らない。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            },
+            {
+              "path": "receipt_recorded",
+              "type": "boolean",
+              "required": true,
+              "nullable": false,
+              "constraint": "invalid・rollback・conflictではfalseとする。conflictは今回の内容を保存していない意味であり既存の受付は存在する。"
+            }
+          ]
+        },
+        {
+          "name": "rollback",
+          "description": "HTTP503 UNAVAILABLE。保存開始前の障害か全変更のロールバックを確認できた場合だけ返す。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            },
+            {
+              "path": "receipt_recorded",
+              "type": "boolean",
+              "required": true,
+              "nullable": false,
+              "constraint": "invalid・rollback・conflictではfalseとする。conflictは今回の内容を保存していない意味であり既存の受付は存在する。"
+            }
+          ]
+        },
+        {
+          "name": "unknown",
+          "description": "HTTP応答を得られないローカルの分類であり、JSON本文は存在しない。切断、HTTP待ち時間超過、COMMIT確認不能はこの分類とする。",
+          "fields": []
+        }
+      ],
+      "state_effects": [
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "committed",
+          "to": "result",
+          "transition_id": "TR006",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "rejected",
+          "to": "result",
+          "transition_id": "TR006",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "conflict",
+          "to": "result",
+          "transition_id": "TR006",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "invalid",
+          "to": "ready",
+          "transition_id": "TR007",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "rollback",
+          "to": "ready",
+          "transition_id": "TR007",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "unknown",
+          "to": "unknown",
+          "transition_id": "TR008",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        }
+      ],
+      "state_policy": "UIがsendingで呼ぶ。保存側は新規予約absentからの作成を許可する。既存受付の再送は対象予約のactive・cancelled・expiredに関係なく本人の結果読取りとして許可し、在庫を変更しない。新規成立だけが数量を引き当てる。 state_effectsは画面の観測状態を定義する。保存状態は新規作成成立ならTR001、期限前取消成立ならTR002、期限到来による返却ならTR003で変わる。その他の確定拒否と再送では保存状態を保ち、rollbackでは当該保存単位前の状態を保つ。unknownでは保存状態の変化を断定しない。"
+    },
+    {
+      "id": "IF002",
+      "name": "POST /api/v1/reservations/{reservation_id}/cancel（取消）",
+      "caller": "M001 ブラウザ画面",
+      "callee": "M002 受付、M003 予約サービス、M005 保存リポジトリ",
+      "transport": "同一オリジンHTTPS、HTTP JSON UTF-8、/api/v1。Cookie等の認証方式の実装は対象外でありU004で接続を確認する。",
+      "input": "構造化した要求項目の値を受け取り、認証コンテキストは本文と分ける。",
+      "response": "response_variantsのHTTP状態と項目を返す。確定した操作結果と現在値を混同しない。",
+      "errors": "保存済みの業務拒否はrejectedのerror_codeで判別する。invalid・rollback・conflictにはcodeとmessageを含める。返せない切断・確定不明はunknownのローカル分類であり、HTTP本文はない。",
+      "max_size": "D002の提案値とする。ヘッダー8192バイト、URL512バイト、JSON本文1024バイト、応答8192バイトとする。サイズ超過は保存前に拒否する。",
+      "validation_order": "サイズ・メディア型→認証とCSRF（更新だけ）→JSON単一オブジェクト・重複キー・未知項目・必須とnull・型とUUID書式→正規化→既存受付の内容照合（更新だけ）→新規の値域と対象権利→保存側で状態と期限を再検査する。GETでは本文を受け付けない。",
+      "repeat": "読取りは何度呼んでも書込みを行わない。更新は同じactor_idとrequest_id・同じ内容なら同じ結果、違う内容ならKEY_CONFLICTとする。自動の更新再試行は行わない。",
+      "disconnect": "更新の応答切断では識別子を保持しIF003で照会する。照会の切断は同じGETだけを再実行できる。確定済み更新を巻き戻さない。",
+      "state_set_ids": [
+        "ST002"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003",
+        "M005"
+      ],
+      "request_fields": [
+        {
+          "path": "context.actor_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "認証層が設定する。本文から指定不可とする。"
+        },
+        {
+          "path": "context.authenticated",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "constraint": "trueだけを許可する。"
+        },
+        {
+          "path": "context.csrf_valid",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "constraint": "更新ではtrueだけを許可する。同一オリジンの検査結果とする。"
+        },
+        {
+          "path": "body.request_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "小文字の標準36文字へ正規化する。利用者内で操作ごとに生成し再送時は不変とする。"
+        },
+        {
+          "path": "path.reservation_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "本人の取消対象予約IDとする。"
+        }
+      ],
+      "request_policy": "必須項目の欠落、null、未知項目、重複キー、型違いを拒否する。任意項目の欠落の意味は項目定義に従う。GETの本文は空だけを許可する。HTTPの通常ヘッダーは許可するが、JSON・パス・クエリの業務項目は列挙したものだけとする。",
+      "response_variants": [
+        {
+          "name": "committed",
+          "description": "作成はHTTP201でoutcome=created、取消はHTTP200でoutcome=cancelledとする。再送も保存済みの同じHTTP状態・本文を返す。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "照合対象の受付用識別子である。"
+            },
+            {
+              "path": "operation",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "createまたはcancelである。"
+            },
+            {
+              "path": "outcome",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "created、cancelled、rejectedのいずれかである。"
+            },
+            {
+              "path": "reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "作成成立・本人の取消対象で設定する。対象なし・他人・在庫不足ではnullとする。"
+            },
+            {
+              "path": "state_at_commit",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "active、cancelled、expiredのいずれか、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "available_at_commit",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、対象不明または非開示ではnullとする。現在値とは区別する。"
+            },
+            {
+              "path": "decided_at",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "保存側判定時刻のUTC RFC3339とする。"
+            },
+            {
+              "path": "expires_at",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "対象予約の期限のUTC RFC3339、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "error_code",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "rejectedではITEM_NOT_FOUND、INSUFFICIENT_STOCK、NOT_FOUND、ALREADY_CANCELLED、DEADLINE_EXPIREDのいずれか、それ以外はnullとする。"
+            }
+          ]
+        },
+        {
+          "name": "rejected",
+          "description": "保存した拒否をHTTP409、ITEM_NOT_FOUND・NOT_FOUNDはHTTP404で返す。outcome=rejectedとerror_codeを必須とする。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "照合対象の受付用識別子である。"
+            },
+            {
+              "path": "operation",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "createまたはcancelである。"
+            },
+            {
+              "path": "outcome",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "created、cancelled、rejectedのいずれかである。"
+            },
+            {
+              "path": "reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "作成成立・本人の取消対象で設定する。対象なし・他人・在庫不足ではnullとする。"
+            },
+            {
+              "path": "state_at_commit",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "active、cancelled、expiredのいずれか、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "available_at_commit",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、対象不明または非開示ではnullとする。現在値とは区別する。"
+            },
+            {
+              "path": "decided_at",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "保存側判定時刻のUTC RFC3339とする。"
+            },
+            {
+              "path": "expires_at",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "対象予約の期限のUTC RFC3339、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "error_code",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "rejectedではITEM_NOT_FOUND、INSUFFICIENT_STOCK、NOT_FOUND、ALREADY_CANCELLED、DEADLINE_EXPIREDのいずれか、それ以外はnullとする。"
+            }
+          ]
+        },
+        {
+          "name": "conflict",
+          "description": "HTTP409、code=KEY_CONFLICT。既存受付と違う内容であり今回の更新はない。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            },
+            {
+              "path": "receipt_recorded",
+              "type": "boolean",
+              "required": true,
+              "nullable": false,
+              "constraint": "invalid・rollback・conflictではfalseとする。conflictは今回の内容を保存していない意味であり既存の受付は存在する。"
+            }
+          ]
+        },
+        {
+          "name": "invalid",
+          "description": "HTTP400 INVALID_INPUT、HTTP413 REQUEST_TOO_LARGE、HTTP401 UNAUTHENTICATED、HTTP403 CSRF_FAILEDとする。受付結果を作らない。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            },
+            {
+              "path": "receipt_recorded",
+              "type": "boolean",
+              "required": true,
+              "nullable": false,
+              "constraint": "invalid・rollback・conflictではfalseとする。conflictは今回の内容を保存していない意味であり既存の受付は存在する。"
+            }
+          ]
+        },
+        {
+          "name": "rollback",
+          "description": "HTTP503 UNAVAILABLE。保存開始前の障害か全変更のロールバックを確認できた場合だけ返す。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            },
+            {
+              "path": "receipt_recorded",
+              "type": "boolean",
+              "required": true,
+              "nullable": false,
+              "constraint": "invalid・rollback・conflictではfalseとする。conflictは今回の内容を保存していない意味であり既存の受付は存在する。"
+            }
+          ]
+        },
+        {
+          "name": "unknown",
+          "description": "HTTP応答を得られないローカルの分類であり、JSON本文は存在しない。切断、HTTP待ち時間超過、COMMIT確認不能はこの分類とする。",
+          "fields": []
+        }
+      ],
+      "state_effects": [
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "committed",
+          "to": "result",
+          "transition_id": "TR006",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "rejected",
+          "to": "result",
+          "transition_id": "TR006",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "conflict",
+          "to": "result",
+          "transition_id": "TR006",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "invalid",
+          "to": "ready",
+          "transition_id": "TR007",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "rollback",
+          "to": "ready",
+          "transition_id": "TR007",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "sending",
+          "outcome": "unknown",
+          "to": "unknown",
+          "transition_id": "TR008",
+          "reason": "画面の観測状態だけを変える。保存側の成立・返却の遷移はTR001〜TR003に従い、unknownでは保存結果を断定しない。"
+        }
+      ],
+      "state_policy": "UIがsendingで呼ぶ。保存側はactive・cancelled・expired・absentから受け付けて結果を区別する。本人だけが取消でき、t<expires_atのactiveだけがcancelledとなる。t>=expires_atのactiveはexpiredとして返却し、取消成立にしない。終端と既存受付の再送では返却しない。 state_effectsは画面の観測状態を定義する。保存状態は新規作成成立ならTR001、期限前取消成立ならTR002、期限到来による返却ならTR003で変わる。その他の確定拒否と再送では保存状態を保ち、rollbackでは当該保存単位前の状態を保つ。unknownでは保存状態の変化を断定しない。"
+    },
+    {
+      "id": "IF003",
+      "name": "GET /api/v1/requests/{request_id}（確定結果照会）",
+      "caller": "M001 ブラウザ画面",
+      "callee": "M002 受付、M003 予約サービス、M005 保存リポジトリ",
+      "transport": "同一オリジンHTTPS、HTTP JSON UTF-8、/api/v1。Cookie等の認証方式の実装は対象外でありU004で接続を確認する。",
+      "input": "構造化した要求項目の値を受け取り、認証コンテキストは本文と分ける。",
+      "response": "response_variantsのHTTP状態と項目を返す。確定した操作結果と現在値を混同しない。",
+      "errors": "読取りで返せるエラーはcodeとmessageで判別する。読取り失敗から元の更新受付の有無を断定しないためreceipt_recordedを返さない。切断はunknownのローカル分類であり、既存の確定結果と現在値を保つ。",
+      "max_size": "D002の提案値とする。ヘッダー8192バイト、URL512バイト、JSON本文1024バイト、応答8192バイトとする。サイズ超過は保存前に拒否する。",
+      "validation_order": "サイズ→認証→パスUUID・クエリなし・本文なし→本人の(actor_id,request_id)で読取りとする。CSRF検査は更新をしないGETには要求しない。",
+      "repeat": "読取りは何度呼んでも書込みを行わない。更新は同じactor_idとrequest_id・同じ内容なら同じ結果、違う内容ならKEY_CONFLICTとする。自動の更新再試行は行わない。",
+      "disconnect": "更新の応答切断では識別子を保持しIF003で照会する。照会の切断は同じGETだけを再実行できる。確定済み更新を巻き戻さない。",
+      "state_set_ids": [
+        "ST002"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003",
+        "M005"
+      ],
+      "request_fields": [
+        {
+          "path": "context.actor_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "認証層が設定する。本文から指定不可とする。"
+        },
+        {
+          "path": "context.authenticated",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "constraint": "trueだけを許可する。"
+        },
+        {
+          "path": "path.request_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "本人の受付結果識別子である。"
+        }
+      ],
+      "request_policy": "必須項目の欠落、null、未知項目、重複キー、型違いを拒否する。任意項目の欠落の意味は項目定義に従う。GETの本文は空だけを許可する。HTTPの通常ヘッダーは許可するが、JSON・パス・クエリの業務項目は列挙したものだけとする。",
+      "response_variants": [
+        {
+          "name": "found",
+          "description": "HTTP200で不変のrecordと現在のcurrentを返す。recordは終端の操作結果でありpendingを返さない。",
+          "fields": [
+            {
+              "path": "record",
+              "type": "object",
+              "required": true,
+              "nullable": false,
+              "constraint": "T003のresult_snapshotに一致する不変の操作結果である。"
+            },
+            {
+              "path": "record.request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "照合対象の受付用識別子である。"
+            },
+            {
+              "path": "record.operation",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "createまたはcancelである。"
+            },
+            {
+              "path": "record.outcome",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "created、cancelled、rejectedのいずれかである。"
+            },
+            {
+              "path": "record.reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "作成成立・本人の取消対象で設定する。対象なし・他人・在庫不足ではnullとする。"
+            },
+            {
+              "path": "record.state_at_commit",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "active、cancelled、expiredのいずれか、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "record.available_at_commit",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、対象不明または非開示ではnullとする。現在値とは区別する。"
+            },
+            {
+              "path": "record.decided_at",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "保存側判定時刻のUTC RFC3339とする。"
+            },
+            {
+              "path": "record.expires_at",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "対象予約の期限のUTC RFC3339、予約なしまたは非開示ではnullとする。"
+            },
+            {
+              "path": "record.error_code",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "rejectedではITEM_NOT_FOUND、INSUFFICIENT_STOCK、NOT_FOUND、ALREADY_CANCELLED、DEADLINE_EXPIREDのいずれか、それ以外はnullとする。"
+            },
+            {
+              "path": "current",
+              "type": "object",
+              "required": true,
+              "nullable": true,
+              "constraint": "対象が開示できる場合の現在スナップショット、対象がない拒否結果ではnullとする。"
+            },
+            {
+              "path": "current.item_id",
+              "type": "UUID",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須とする。"
+            },
+            {
+              "path": "current.item_name",
+              "type": "string",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、T001の備品名1〜100文字とする。"
+            },
+            {
+              "path": "current.available_quantity",
+              "type": "integer",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、0〜1000000の現在の保存残数である。"
+            },
+            {
+              "path": "current.reservation_id",
+              "type": "UUID",
+              "required": false,
+              "nullable": true,
+              "constraint": "currentが非nullなら必須、対象予約がなければnullとする。"
+            },
+            {
+              "path": "current.state",
+              "type": "string",
+              "required": false,
+              "nullable": true,
+              "constraint": "currentが非nullなら必須、active・cancelled・expiredまたは予約がなければnullとする。"
+            },
+            {
+              "path": "current.expires_at",
+              "type": "string",
+              "required": false,
+              "nullable": true,
+              "constraint": "currentが非nullなら必須、予約なしならnull、予約ありならUTC RFC3339とする。"
+            },
+            {
+              "path": "current.deadline_reached",
+              "type": "boolean",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、予約がありserver_now>=expires_atならtrue、予約なしはfalseとする。"
+            },
+            {
+              "path": "current.cancel_allowed",
+              "type": "boolean",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、本人予約がactiveかつserver_now<expires_atのときだけtrueとする。"
+            },
+            {
+              "path": "server_now",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "当該読取り単位で取得する保存側UTC RFC3339とする。"
+            }
+          ]
+        },
+        {
+          "name": "not_recorded",
+          "description": "HTTP404、code=NOT_RECORDED。未到着・処理中・ロールバックを区別しない。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "照会した識別子である。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "NOT_RECORDED固定とする。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "結果をまだ確認できないことを160文字以下で示す。"
+            }
+          ]
+        },
+        {
+          "name": "error",
+          "description": "HTTP400 INVALID_INPUT、HTTP413 REQUEST_TOO_LARGE、HTTP401 UNAUTHENTICATED、HTTP503 UNAVAILABLEとする。読取り不能でも過去のrecordを失敗へ変えない。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            }
+          ]
+        },
+        {
+          "name": "unknown",
+          "description": "GETの応答を取得できないローカルの分類であり本文はない。",
+          "fields": []
+        }
+      ],
+      "state_effects": [
+        {
+          "state_set_id": "ST002",
+          "from": "ready",
+          "outcome": "found",
+          "to": "result",
+          "transition_id": "TR010",
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "ready",
+          "outcome": "not_recorded",
+          "to": "ready",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "ready",
+          "outcome": "error",
+          "to": "ready",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "ready",
+          "outcome": "unknown",
+          "to": "ready",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "result",
+          "outcome": "found",
+          "to": "result",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "result",
+          "outcome": "not_recorded",
+          "to": "result",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "result",
+          "outcome": "error",
+          "to": "result",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "result",
+          "outcome": "unknown",
+          "to": "result",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "unknown",
+          "outcome": "found",
+          "to": "result",
+          "transition_id": "TR009",
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "unknown",
+          "outcome": "not_recorded",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "unknown",
+          "outcome": "error",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "unknown",
+          "outcome": "unknown",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        }
+      ],
+      "state_policy": "UIのready・result・unknownから本人の受付結果を読める。予約のactive権・期限内であることを要求しない。終端予約・期限到来済みの結果も許可する。受付結果・予約・備品へ副作用を与えない。"
+    },
+    {
+      "id": "IF004",
+      "name": "GET /api/v1/items/{item_id}（現在値）",
+      "caller": "M001 ブラウザ画面",
+      "callee": "M002 受付、M003 予約サービス、M005 保存リポジトリ",
+      "transport": "同一オリジンHTTPS、HTTP JSON UTF-8、/api/v1。Cookie等の認証方式の実装は対象外でありU004で接続を確認する。",
+      "input": "構造化した要求項目の値を受け取り、認証コンテキストは本文と分ける。",
+      "response": "response_variantsのHTTP状態と項目を返す。確定した操作結果と現在値を混同しない。",
+      "errors": "読取りで返せるエラーはcodeとmessageで判別する。読取り失敗から元の更新受付の有無を断定しないためreceipt_recordedを返さない。切断はunknownのローカル分類であり、既存の確定結果と現在値を保つ。",
+      "max_size": "D002の提案値とする。ヘッダー8192バイト、URL512バイト、JSON本文1024バイト、応答8192バイトとする。サイズ超過は保存前に拒否する。",
+      "validation_order": "サイズ→認証→パスと任意クエリのUUID・未知クエリ・重複クエリ・本文なし→備品の存在→指定予約の本人と備品一致→同一スナップショットの読取りとする。",
+      "repeat": "読取りは何度呼んでも書込みを行わない。更新は同じactor_idとrequest_id・同じ内容なら同じ結果、違う内容ならKEY_CONFLICTとする。自動の更新再試行は行わない。",
+      "disconnect": "更新の応答切断では識別子を保持しIF003で照会する。照会の切断は同じGETだけを再実行できる。確定済み更新を巻き戻さない。",
+      "state_set_ids": [
+        "ST002"
+      ],
+      "module_ids": [
+        "M001",
+        "M002",
+        "M003",
+        "M005"
+      ],
+      "request_fields": [
+        {
+          "path": "context.actor_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "認証層が設定する。本文から指定不可とする。"
+        },
+        {
+          "path": "context.authenticated",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "constraint": "trueだけを許可する。"
+        },
+        {
+          "path": "path.item_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "表示対象の備品である。"
+        },
+        {
+          "path": "query.reservation_id",
+          "type": "UUID",
+          "required": false,
+          "nullable": false,
+          "constraint": "欠落なら予約なしの備品表示とする。指定した場合は本人かつ同じ備品の予約だけを開示する。null文字列を受け付けない。"
+        }
+      ],
+      "request_policy": "必須項目の欠落、null、未知項目、重複キー、型違いを拒否する。任意項目の欠落の意味は項目定義に従う。GETの本文は空だけを許可する。HTTPの通常ヘッダーは許可するが、JSON・パス・クエリの業務項目は列挙したものだけとする。",
+      "response_variants": [
+        {
+          "name": "snapshot",
+          "description": "HTTP200で現在値だけを返す。直前の操作の成否は示さない。",
+          "fields": [
+            {
+              "path": "current",
+              "type": "object",
+              "required": true,
+              "nullable": false,
+              "constraint": "成功では対象備品があるため必ず非nullの現在スナップショットを返す。対象なしはerrorとする。"
+            },
+            {
+              "path": "current.item_id",
+              "type": "UUID",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須とする。"
+            },
+            {
+              "path": "current.item_name",
+              "type": "string",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、T001の備品名1〜100文字とする。"
+            },
+            {
+              "path": "current.available_quantity",
+              "type": "integer",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、0〜1000000の現在の保存残数である。"
+            },
+            {
+              "path": "current.reservation_id",
+              "type": "UUID",
+              "required": false,
+              "nullable": true,
+              "constraint": "currentが非nullなら必須、対象予約がなければnullとする。"
+            },
+            {
+              "path": "current.state",
+              "type": "string",
+              "required": false,
+              "nullable": true,
+              "constraint": "currentが非nullなら必須、active・cancelled・expiredまたは予約がなければnullとする。"
+            },
+            {
+              "path": "current.expires_at",
+              "type": "string",
+              "required": false,
+              "nullable": true,
+              "constraint": "currentが非nullなら必須、予約なしならnull、予約ありならUTC RFC3339とする。"
+            },
+            {
+              "path": "current.deadline_reached",
+              "type": "boolean",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、予約がありserver_now>=expires_atならtrue、予約なしはfalseとする。"
+            },
+            {
+              "path": "current.cancel_allowed",
+              "type": "boolean",
+              "required": false,
+              "nullable": false,
+              "constraint": "currentが非nullなら必須、本人予約がactiveかつserver_now<expires_atのときだけtrueとする。"
+            },
+            {
+              "path": "server_now",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "当該読取り単位で取得する保存側UTC RFC3339とする。"
+            }
+          ]
+        },
+        {
+          "name": "error",
+          "description": "HTTP400 INVALID_INPUT、HTTP413 REQUEST_TOO_LARGE、HTTP401 UNAUTHENTICATED、HTTP404 NOT_FOUND、HTTP503 UNAVAILABLEとする。",
+          "fields": [
+            {
+              "path": "request_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": true,
+              "constraint": "解析できた場合の識別子、それ以外はnullとする。"
+            },
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "各応答名に列挙したコードである。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の表示説明とする。機械判定はcodeを使う。"
+            }
+          ]
+        },
+        {
+          "name": "unknown",
+          "description": "GETの応答を取得できないローカルの分類であり本文はない。",
+          "fields": []
+        }
+      ],
+      "state_effects": [
+        {
+          "state_set_id": "ST002",
+          "from": "ready",
+          "outcome": "snapshot",
+          "to": "ready",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "ready",
+          "outcome": "error",
+          "to": "ready",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "ready",
+          "outcome": "unknown",
+          "to": "ready",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "result",
+          "outcome": "snapshot",
+          "to": "result",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "result",
+          "outcome": "error",
+          "to": "result",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "result",
+          "outcome": "unknown",
+          "to": "result",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "unknown",
+          "outcome": "snapshot",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "unknown",
+          "outcome": "error",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        },
+        {
+          "state_set_id": "ST002",
+          "from": "unknown",
+          "outcome": "unknown",
+          "to": "unknown",
+          "transition_id": null,
+          "reason": "応答は観測した結果だけを変え、保存済みの予約と在庫は変更しない。"
+        }
+      ],
+      "state_policy": "UIのready・result・unknownから備品の読取権で許可する。予約IDを指定するときは本人の予約だけとする。他人または異なる備品の予約はNOT_FOUNDである。期限切れの予約も読める。期限処理を含む書込みはない。"
+    },
+    {
+      "id": "IF005",
+      "name": "期限監視からの一予約の期限確定",
+      "caller": "M004 期限監視",
+      "callee": "M003 予約サービス、M005 保存リポジトリ",
+      "transport": "同一アプリケーション内の型付き呼出しとする。HTTP状態は付けない。",
+      "input": "期限走査の候補IDを渡す。判定時刻を呼出し元から受け取らない。",
+      "response": "一予約の保存確定・変更なし・ロールバック確認を区別する。コミット不明は値を返せないローカルのunknownとして扱う。",
+      "errors": "型・実行権違反は保存前に例外INVALID_INTERNAL_CALL、ロールバック確認済みはreason=SAVE_ROLLED_BACKとする。確定不明はunknownであり、予約状態の値を返さない。",
+      "max_size": "入力はUUID一件と実行権だけであり、シリアライズ時256バイト以内、応答1024バイト以内の提案とする。候補集合を一保存単位へ渡さない。",
+      "validation_order": "内部実行権→UUID型→予約から不変のitem_idを読む→備品→予約のロック→状態→保存側時刻と期限→条件付き更新→返却→コミット確認の順とする。",
+      "repeat": "同じ予約を再走査してもactiveかつ期限到来だけが更新される。終端なら変更なしとする。",
+      "disconnect": "プロセス停止・COMMIT確認不能ではunknownと記録し、RC004で保存状態を再読取りする。停止前の加算を無条件に繰り返さない。",
+      "state_set_ids": [
+        "ST003"
+      ],
+      "module_ids": [
+        "M004",
+        "M003",
+        "M005"
+      ],
+      "request_fields": [
+        {
+          "path": "context.expiry_permission",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "constraint": "専用の内部実行権trueだけを許可する。"
+        },
+        {
+          "path": "reservation_id",
+          "type": "UUID",
+          "required": true,
+          "nullable": false,
+          "constraint": "候補一件の予約IDである。"
+        }
+      ],
+      "request_policy": "必須項目の欠落・null・未知項目を拒否する。入力なしの呼出しはない。実行権は利用者入力へ公開しない。",
+      "response_variants": [
+        {
+          "name": "changed",
+          "description": "返却とexpiredが保存確定した。status=changed、reason=EXPIREDとする。",
+          "fields": [
+            {
+              "path": "reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "候補の予約IDである。"
+            },
+            {
+              "path": "status",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "changed・no_change・rollbackのいずれかである。"
+            },
+            {
+              "path": "state",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "changed・no_changeで対象があればactive・cancelled・expiredを返す。行なしとrollbackではnullとし、rollback後の現在状態を推測しない。"
+            },
+            {
+              "path": "available_quantity",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、行なしまたはrollbackではnullとする。"
+            },
+            {
+              "path": "reason",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "EXPIRED・NOT_DUE・TERMINAL・NOT_FOUND・SAVE_ROLLED_BACKのいずれかとする。"
+            }
+          ]
+        },
+        {
+          "name": "no_change",
+          "description": "更新なし。status=no_change、reason=NOT_DUE・TERMINAL・NOT_FOUNDを区別する。",
+          "fields": [
+            {
+              "path": "reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "候補の予約IDである。"
+            },
+            {
+              "path": "status",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "changed・no_change・rollbackのいずれかである。"
+            },
+            {
+              "path": "state",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "changed・no_changeで対象があればactive・cancelled・expiredを返す。行なしとrollbackではnullとし、rollback後の現在状態を推測しない。"
+            },
+            {
+              "path": "available_quantity",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、行なしまたはrollbackではnullとする。"
+            },
+            {
+              "path": "reason",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "EXPIRED・NOT_DUE・TERMINAL・NOT_FOUND・SAVE_ROLLED_BACKのいずれかとする。"
+            }
+          ]
+        },
+        {
+          "name": "rollback",
+          "description": "ロールバック確認済み。status=rollback、stateとavailable_quantityはnullとする。",
+          "fields": [
+            {
+              "path": "reservation_id",
+              "type": "UUID",
+              "required": true,
+              "nullable": false,
+              "constraint": "候補の予約IDである。"
+            },
+            {
+              "path": "status",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "changed・no_change・rollbackのいずれかである。"
+            },
+            {
+              "path": "state",
+              "type": "string",
+              "required": true,
+              "nullable": true,
+              "constraint": "changed・no_changeで対象があればactive・cancelled・expiredを返す。行なしとrollbackではnullとし、rollback後の現在状態を推測しない。"
+            },
+            {
+              "path": "available_quantity",
+              "type": "integer",
+              "required": true,
+              "nullable": true,
+              "constraint": "0〜1000000、行なしまたはrollbackではnullとする。"
+            },
+            {
+              "path": "reason",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "EXPIRED・NOT_DUE・TERMINAL・NOT_FOUND・SAVE_ROLLED_BACKのいずれかとする。"
+            }
+          ]
+        },
+        {
+          "name": "invalid",
+          "description": "呼出し契約違反であり保存していない。",
+          "fields": [
+            {
+              "path": "code",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "INVALID_INTERNAL_CALL固定とする。"
+            },
+            {
+              "path": "message",
+              "type": "string",
+              "required": true,
+              "nullable": false,
+              "constraint": "160文字以下の内部向け説明とする。"
+            }
+          ]
+        },
+        {
+          "name": "unknown",
+          "description": "ローカルの確定不明観測であり、返却値はない。",
+          "fields": []
+        }
+      ],
+      "state_effects": [
+        {
+          "state_set_id": "ST003",
+          "from": "running",
+          "outcome": "changed",
+          "to": "known",
+          "transition_id": "TR012",
+          "reason": "期限監視の観測状態である。changedだけが保存側TR003に対応する。unknownでは保存状態を推測せず次回の再読取りを必須とする。"
+        },
+        {
+          "state_set_id": "ST003",
+          "from": "running",
+          "outcome": "no_change",
+          "to": "known",
+          "transition_id": "TR012",
+          "reason": "期限監視の観測状態である。changedだけが保存側TR003に対応する。unknownでは保存状態を推測せず次回の再読取りを必須とする。"
+        },
+        {
+          "state_set_id": "ST003",
+          "from": "running",
+          "outcome": "rollback",
+          "to": "known",
+          "transition_id": "TR012",
+          "reason": "期限監視の観測状態である。changedだけが保存側TR003に対応する。unknownでは保存状態を推測せず次回の再読取りを必須とする。"
+        },
+        {
+          "state_set_id": "ST003",
+          "from": "running",
+          "outcome": "invalid",
+          "to": "known",
+          "transition_id": "TR012",
+          "reason": "期限監視の観測状態である。changedだけが保存側TR003に対応する。unknownでは保存状態を推測せず次回の再読取りを必須とする。"
+        },
+        {
+          "state_set_id": "ST003",
+          "from": "running",
+          "outcome": "unknown",
+          "to": "unknown",
+          "transition_id": "TR013",
+          "reason": "期限監視の観測状態である。changedだけが保存側TR003に対応する。unknownでは保存状態を推測せず次回の再読取りを必須とする。"
+        }
+      ],
+      "state_policy": "ST003のrunningで専用の期限処理権を持つ監視だけが呼ぶ。保存側はactive・cancelled・expired・absentを再評価する。activeかつt>=expires_atだけが返却する。終端では読取りのみで、期限前は変えない。 state_effectsは監視の観測状態を定義する。保存状態はchangedだけがTR003でactiveからexpiredへ進み、no_changeは取得した状態を保ち、rollbackは保存単位前の状態を保つ。unknownでは保存状態の変化を断定しない。"
+    }
+  ],
+  "tables": [
+    {
+      "id": "T001",
+      "name": "items",
+      "purpose": "備品ごとの総数と現在の引当可能数を保持する。総数変更は今回の対象外である。",
+      "columns": [
+        {
+          "name": "item_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "備品識別子である。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(100)",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "1〜100文字とする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "total_quantity",
+          "type": "integer",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "0〜1000000とする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "available_quantity",
+          "type": "integer",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "0以上total_quantity以下とする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "保存側のUTC時刻とする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        }
+      ],
+      "primary_key": [
+        "item_id"
+      ],
+      "unique_keys": [],
+      "key_policy": "item_idで一備品を識別する。他の識別キーは設けない。",
+      "constraints": [
+        "CHECK: 0<=available_quantity AND available_quantity<=total_quantity AND total_quantity<=1000000とする。",
+        "運用不変条件: total_quantity-available_quantity=同一備品のactive予約quantityの総和とする。表間の総和はCHECKで保証せず、同一保存単位とC003・C008・C010で確認する。"
+      ],
+      "indexes": [],
+      "index_policy": "備品一件のロックと取得はitem_idで行うため追加索引は設けない。",
+      "update_unit": "作成時の減算または取消・期限処理時の加算を、対応するT002と必要なT003の確定と同じ保存単位で行う。",
+      "deletion": "参照する予約と受付結果が残るため削除しない。備品廃止は対象外とする。",
+      "migration": "初回はAPIと監視を止め、T001→T002→T003の順に同じ移行トランザクションで作る。失敗は全て戻し、書込み受付を開始しない。既存データがある場合は列追加→値の埋戻し→件数・在庫整合確認→NOT NULL/CHECK適用→アプリ切替の順を別の移行として承認する。混在版の書込みと破壊的な自動巻戻しは許可しない。移行は未実施でU001の対象とする。"
+    },
+    {
+      "id": "T002",
+      "name": "reservations",
+      "purpose": "予約数量、所有者、期限、返却済みの状態を保持する。",
+      "columns": [
+        {
+          "name": "reservation_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "保存側で生成し、成立した予約を識別する。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "item_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "予約中は変更しない。",
+          "reference": "T001.items.item_idへ参照する。削除を拒否する。",
+          "state_set_id": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "本人を示す不変の識別子とする。",
+          "reference": "認証コンテキストの識別子であり、本設計内に利用者表は設けない。",
+          "state_set_id": null
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "1〜1000000、作成後は変更しない。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "active、cancelled、expiredだけとする。absentは保存しない。",
+          "reference": "参照先なし。",
+          "state_set_id": "ST001"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "ロック後に取得した保存側UTC時刻とする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "created_at+10分とする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "closed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "default": "NULL",
+          "constraint": "activeならnull、cancelled・expiredなら返却判定の保存側時刻とする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        }
+      ],
+      "primary_key": [
+        "reservation_id"
+      ],
+      "unique_keys": [],
+      "key_policy": "reservation_idで一予約を識別する。受付用識別子はT003だけに置く。",
+      "constraints": [
+        "CHECK: quantity BETWEEN 1 AND 1000000、status IN (active,cancelled,expired)、expires_at=created_at+10分とする。",
+        "CHECK: activeならclosed_at IS NULL、終端ならclosed_at IS NOT NULLとする。cancelledではclosed_at<expires_at、expiredではclosed_at>=expires_atとする。",
+        "参照: item_idはT001を参照し、削除時の連鎖削除を行わない。"
+      ],
+      "indexes": [
+        "(expires_at,reservation_id) WHERE status=activeの部分B-tree索引とする。"
+      ],
+      "index_policy": "期限候補を期限とIDの安定順で走査するため部分索引を設ける。実際の利用計画と負荷はU001・U002で未確認とする。",
+      "update_unit": "active条件付き更新でclosed_atとstatusを同時更新する。更新件数が1のときだけT001のavailable_quantityへ当該予約のquantityを加える。作成・返却の途中状態をコミットしない。",
+      "deletion": "終端も照会と受付結果の参照に必要なため削除しない。保持方針の変更はU003で別途判断する。",
+      "migration": "初回はAPIと監視を止め、T001→T002→T003の順に同じ移行トランザクションで作る。失敗は全て戻し、書込み受付を開始しない。既存データがある場合は列追加→値の埋戻し→件数・在庫整合確認→NOT NULL/CHECK適用→アプリ切替の順を別の移行として承認する。混在版の書込みと破壊的な自動巻戻しは許可しない。移行は未実施でU001の対象とする。"
+    },
+    {
+      "id": "T003",
+      "name": "request_results",
+      "purpose": "本人の受付用識別子、比較用の内容、確定した操作結果を不変で保持する。処理中の行を作らない。",
+      "columns": [
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "認証済み利用者を示す。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "作成と取消で共通の受付識別子である。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "operation",
+          "type": "text",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "createまたはcancelとする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "request_payload",
+          "type": "jsonb",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "createはitem_idとquantity、cancelはreservation_idだけの正規化値とする。本文1024バイト以内から作る。ハッシュだけで同内容と判定しない。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "reservation_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": "NULL",
+          "constraint": "本人の成立・対象予約がある場合だけ設定する。拒否で対象なし・非開示ならnullとする。",
+          "reference": "非null時はT002.reservations.reservation_idを参照し削除を拒否する。",
+          "state_set_id": null
+        },
+        {
+          "name": "result_snapshot",
+          "type": "jsonb",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "IF001/IF002のcommittedまたはrejectedの全項目と同じ完成した値である。unknown・processing・invalid・KEY_CONFLICTを保存しない。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "http_status",
+          "type": "smallint",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "保存結果のHTTP201・200・404・409のいずれかとする。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "既定値なし。書込側が明示する。",
+          "constraint": "結果本文のdecided_atと一致させる。",
+          "reference": "参照先なし。",
+          "state_set_id": null
+        }
+      ],
+      "primary_key": [
+        "actor_id",
+        "request_id"
+      ],
+      "unique_keys": [],
+      "key_policy": "利用者と受付識別子の複合構成だけで再送を照合する。一つのrequest_idを別利用者が使用しても混ざらない。作成と取消の識別子衝突はoperationの内容不一致として扱う。",
+      "constraints": [
+        "CHECK: operation IN (create,cancel)、http_status IN (200,201,404,409)とする。",
+        "参照: reservation_idが非nullならT002を参照する。result_snapshotのrequest_idとoperationとdecided_atは行の対応値と一致させる。",
+        "request_payload・result_snapshotはINSERT時に完成させ、確定後のUPDATEをアプリケーション権限で禁止する。結果の書式はIF001/IF002と同じ検査を保存前に行う。"
+      ],
+      "indexes": [],
+      "index_policy": "本人の受付識別子による一点照会だけを行うため追加索引は設けない。",
+      "update_unit": "T001・T002の更新がある場合は同一トランザクションの最後に完成形をINSERTする。衝突時は例外となった保存単位全体を戻して、別の読取りで勝者を照合する。",
+      "deletion": "自動削除しない。拒否も残して同じ識別子の意味を維持する。容量・個人情報・保持期間の採用はU003で未決とする。",
+      "migration": "初回はAPIと監視を止め、T001→T002→T003の順に同じ移行トランザクションで作る。失敗は全て戻し、書込み受付を開始しない。既存データがある場合は列追加→値の埋戻し→件数・在庫整合確認→NOT NULL/CHECK適用→アプリ切替の順を別の移行として承認する。混在版の書込みと破壊的な自動巻戻しは許可しない。移行は未実施でU001の対象とする。"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "TR001",
+      "state_set_id": "ST001",
+      "from": "absent",
+      "event": "作成の保存確定",
+      "guard": "本人の新規受付で必要残数がありT003も挿入できた。",
+      "to": "active",
+      "write": "備品減算・予約挿入・受付結果挿入を一括COMMITする。",
+      "notify": "確定後にcreatedを返す。",
+      "check_ids": [
+        "C001",
+        "C003",
+        "C004",
+        "C010"
+      ]
+    },
+    {
+      "id": "TR002",
+      "state_set_id": "ST001",
+      "from": "active",
+      "event": "期限前の取消の保存確定",
+      "guard": "全ロック後のt<expires_atかつ本人である。",
+      "to": "cancelled",
+      "write": "active条件付き更新・備品加算・取消の受付結果を一括COMMITする。",
+      "notify": "確定後にcancelledを返す。",
+      "check_ids": [
+        "C006",
+        "C007",
+        "C008",
+        "C010"
+      ]
+    },
+    {
+      "id": "TR003",
+      "state_set_id": "ST001",
+      "from": "active",
+      "event": "期限到来の返却確定",
+      "guard": "全ロック後のt>=expires_atである。",
+      "to": "expired",
+      "write": "active条件付き更新と備品加算を一括COMMITする。取消受付からの処理なら拒否の受付結果も含める。",
+      "notify": "取消にはDEADLINE_EXPIRED、監視にはchangedを返す。",
+      "check_ids": [
+        "C007",
+        "C008",
+        "C009",
+        "C013"
+      ]
+    },
+    {
+      "id": "TR004",
+      "state_set_id": "ST002",
+      "from": "ready",
+      "event": "新しい更新を送る",
+      "guard": "入力検査と送信前の識別子保持が成功した。",
+      "to": "sending",
+      "write": "画面の観測状態だけを更新する。",
+      "notify": "更新操作を無効にし待機を通知する。",
+      "check_ids": [
+        "C001",
+        "C015"
+      ]
+    },
+    {
+      "id": "TR005",
+      "state_set_id": "ST002",
+      "from": "result",
+      "event": "別の新しい更新を送る",
+      "guard": "直前の結果を確認し、新しい操作に新しい識別子を用意した。",
+      "to": "sending",
+      "write": "直前の確定記録を保持し新しい観測を開始する。",
+      "notify": "更新操作を無効にする。",
+      "check_ids": [
+        "C006",
+        "C015"
+      ]
+    },
+    {
+      "id": "TR006",
+      "state_set_id": "ST002",
+      "from": "sending",
+      "event": "確定結果または識別子競合を受信",
+      "guard": "committed・rejected・conflictの本文を受信した。",
+      "to": "result",
+      "write": "受信した操作結果を画面へ反映する。",
+      "notify": "結果見出しへ通知し、現在値は別に更新する。",
+      "check_ids": [
+        "C001",
+        "C005",
+        "C006"
+      ]
+    },
+    {
+      "id": "TR007",
+      "state_set_id": "ST002",
+      "from": "sending",
+      "event": "入力拒否またはロールバック確認",
+      "guard": "invalidまたはrollbackを受信した。",
+      "to": "ready",
+      "write": "保存済み失敗状態を新設せず、入力と識別子を保持する。",
+      "notify": "入力修正または明示した再操作を許可する。",
+      "check_ids": [
+        "C002",
+        "C010",
+        "C015"
+      ]
+    },
+    {
+      "id": "TR008",
+      "state_set_id": "ST002",
+      "from": "sending",
+      "event": "応答未取得",
+      "guard": "切断・タイムアウト・COMMIT確認不能である。",
+      "to": "unknown",
+      "write": "保持した識別子を残しDBの結果を推測しない。",
+      "notify": "結果未確認と結果照会を表示する。",
+      "check_ids": [
+        "C011",
+        "C012"
+      ]
+    },
+    {
+      "id": "TR009",
+      "state_set_id": "ST002",
+      "from": "unknown",
+      "event": "結果照会でrecordを取得",
+      "guard": "IF003のfoundを受信した。",
+      "to": "result",
+      "write": "同じ識別子の不変recordを操作結果として反映する。",
+      "notify": "現在値と過去の結果を分けて通知する。",
+      "check_ids": [
+        "C011",
+        "C014"
+      ]
+    },
+    {
+      "id": "TR010",
+      "state_set_id": "ST002",
+      "from": "ready",
+      "event": "指定した結果を照会する",
+      "guard": "IF003のfoundを受信した。",
+      "to": "result",
+      "write": "指定した本人の確定recordを画面へ反映する。",
+      "notify": "結果見出しへ通知する。",
+      "check_ids": [
+        "C014",
+        "C015"
+      ]
+    },
+    {
+      "id": "TR011",
+      "state_set_id": "ST003",
+      "from": "ready",
+      "event": "期限候補の処理開始",
+      "guard": "候補を再読取りして一予約の処理を開始する。",
+      "to": "running",
+      "write": "プロセス内の観測だけを変える。",
+      "notify": "監視ログに対象IDを記す。",
+      "check_ids": [
+        "C009",
+        "C013"
+      ]
+    },
+    {
+      "id": "TR012",
+      "state_set_id": "ST003",
+      "from": "running",
+      "event": "監視の確定またはロールバック確認",
+      "guard": "changed・no_change・rollback・invalidである。",
+      "to": "known",
+      "write": "保存結果そのものと区別して観測を記録する。",
+      "notify": "結果と理由を記録する。",
+      "check_ids": [
+        "C008",
+        "C009",
+        "C013"
+      ]
+    },
+    {
+      "id": "TR013",
+      "state_set_id": "ST003",
+      "from": "running",
+      "event": "監視の確定不明",
+      "guard": "COMMIT確認不能またはプロセス停止の回復観測である。",
+      "to": "unknown",
+      "write": "保存状態を推測せずIDと停止位置を記録する。",
+      "notify": "次回の再読取りが必要と記録する。",
+      "check_ids": [
+        "C010",
+        "C013"
+      ]
+    },
+    {
+      "id": "TR014",
+      "state_set_id": "ST003",
+      "from": "known",
+      "event": "次の候補走査",
+      "guard": "前の行ロックを全て解放した。",
+      "to": "ready",
+      "write": "新しい走査から現在の状態を読む。",
+      "notify": "次の候補を選ぶ。",
+      "check_ids": [
+        "C009"
+      ]
+    },
+    {
+      "id": "TR015",
+      "state_set_id": "ST003",
+      "from": "unknown",
+      "event": "保存側回復後の候補走査",
+      "guard": "読み取れるまで待ち、以前の更新文をそのまま再実行しない。",
+      "to": "ready",
+      "write": "現在のstatusと期限を再取得し終端なら変更しない。",
+      "notify": "回復後の観測を記録する。",
+      "check_ids": [
+        "C013"
+      ]
+    }
+  ],
+  "concurrency": [
+    {
+      "id": "P001",
+      "protected_data": "一備品のavailable_quantity、作成する予約、本人の受付結果を保護する。",
+      "exclusion": "備品行のFOR UPDATEと残数条件で引当を直列化する。T003の(actor_id,request_id)の制約で同時受付の勝者を決める。排他はDBで行い画面だけに依存しない。",
+      "order": "既存結果の読取りはロックなしとする。新規処理は備品→必要な予約→最後のT003挿入の順で行う。一保存単位は備品一件・予約一件・受付一件だけを扱う。複数備品を横断する処理は対象外である。",
+      "acquire": "構造と既存受付の照合後に保存単位を開始し、備品行のロックを確保する。",
+      "release": "COMMITまたは全体ROLLBACKで全て解放する。応答送信・照会・次の候補待機中は保持しない。",
+      "limit_update": "available>=quantityのときだけ減算し、0〜total_quantityの範囲を維持する。数量の消費確定点は予約と受付結果を含むCOMMITである。実行枠と別の回数上限は設けない。",
+      "time_boundary": "作成のロック後にcreated_atを取得する。再送は元の期限を延長しない。",
+      "winner": "最後の一個に異なる受付が来ると一件だけが作成成立する。同じ受付の競合ではT003の先にコミットした結果だけを残し、敗者の仮の引当・返却も全て戻す。",
+      "check_ids": [
+        "C003",
+        "C004",
+        "C005",
+        "C010"
+      ]
+    },
+    {
+      "id": "P002",
+      "protected_data": "一予約のstatus・quantity・closed_atと、その備品の残数を保護する。",
+      "exclusion": "取消と期限処理は同じ備品→予約の行ロックを用いる。UPDATEのWHERE status=activeを必須とし、更新件数1のときだけ数量を戻す。終端からの再返却はない。",
+      "order": "予約の不変item_idを先にロックなしで読む。備品→予約の順でロックし、存在・item_id・権利・statusを読み直す。監視も同じ順とし、候補取得中のロックは持ち越さない。",
+      "acquire": "本人確認に必要な予備読取り後、備品と予約の更新前に確保する。監視の実行権は利用者の権利と分ける。",
+      "release": "返却と状態と必要な受付結果のCOMMITまたは全体ROLLBACKで解放する。",
+      "limit_update": "返却はactiveからの状態変更と同じ保存単位でquantityを加算する。quantity・total_quantityは本対象内で変更せず、available<=total_quantityを維持する。",
+      "time_boundary": "全ロック後にtを一度取得する。t<expires_atだけ取消、t=expires_atとt>expires_atは期限切れとする。待機していた取消もロック取得後に再判定する。",
+      "winner": "期限前にロック後判定した取消が確定すればcancelledとなる。先行処理が期限切れを確定した場合や、後続取消の判定時刻が期限到来ならexpiredとなる。先行処理がROLLBACKすれば後続が新しい時刻で判断する。返却はどちらが勝っても合計一回である。",
+      "check_ids": [
+        "C006",
+        "C007",
+        "C008",
+        "C010",
+        "C013"
+      ]
+    },
+    {
+      "id": "P003",
+      "protected_data": "読取り時点の受付結果、予約状態、残数と画面の操作履歴を保護する。",
+      "exclusion": "GETは読取り専用REPEATABLE READで同じスナップショットから読む。期限処理や更新を呼ばない。画面はsending中に別操作を送らず、非同期応答は最新の照会番号に一致する場合だけ現在値へ反映する。",
+      "order": "GETは書込みロックを取らず、受付結果→関連予約・備品を同じ読取り単位で読む。照会結果と現在値の取得が別要求のときは取得時刻も別に表示する。",
+      "acquire": "読取り開始時にDBスナップショットを確保する。ブラウザの保存領域は利用者IDで分け、送信前に識別子を保持する。",
+      "release": "読取りの終了直後にスナップショットを解放する。HTTP返却中にトランザクションを保持しない。",
+      "limit_update": "GETの書込みは0件とし、未登録の照会でも数量を消費しない。",
+      "time_boundary": "読取り中の保存側server_nowでdeadline_reachedとcancel_allowedを計算する。画面時刻は表示上の早期無効化の補助だけとし、取消の最終判定は保存側で行う。",
+      "winner": "古いGET応答は新しい現在値を上書きしない。結果照会は不変recordの成立・拒否を維持し、期限後の現在状態で過去の結果を覆さない。",
+      "check_ids": [
+        "C011",
+        "C012",
+        "C014",
+        "C016"
+      ]
+    }
+  ],
+  "recovery": [
+    {
+      "id": "RC001",
+      "cut": "備品更新前、更新後・受付挿入前、返却後・状態確定前などCOMMIT前で停止する。",
+      "committed": "当該保存単位の変更は確定していない。ROLLBACK完了を確認できない間は未確認とする。",
+      "remaining": "DB回復後は旧残数・旧予約状態・旧受付結果だけが残る。新規作成に欠番があっても予約はない。",
+      "restart": "DB回復を待ちIF003で受付結果を読む。監視はIF005へ進む前に候補を再読取りする。",
+      "retry": "更新を自動再送しない。確定したロールバック応答を受信した場合だけ、利用者が明示した同じ内容の再操作を許可する。",
+      "visible_result": "確認済みrollbackはreadyへ戻る。応答がない画面はunknownであり、not_recordedだけでは確定失敗としない。",
+      "check_ids": [
+        "C010",
+        "C012"
+      ]
+    },
+    {
+      "id": "RC002",
+      "cut": "COMMIT後・HTTP応答前、応答送信中、ブラウザ受信前で接続またはプロセスが停止する。",
+      "committed": "予約・数量変更・受付結果は同時に確定している。監視では予約状態と返却が同時に確定している。",
+      "remaining": "T003に不変record、T001/T002に確定済み値が残る。画面への到達の証拠はない。",
+      "restart": "画面は保存済み識別子でIF003だけを呼ぶ。予約がcancelled・expiredでも本人の結果読取りを許可する。",
+      "retry": "GETの再照会は許可する。元の作成・取消を自動再実行しない。外部実行基盤への作用はないため外部送信の回復は非該当とする。",
+      "visible_result": "foundなら確定recordを表示する。操作時の残数・状態と現在値は別欄とし、過去の成立を現在の期限切れで拒否にしない。",
+      "check_ids": [
+        "C011",
+        "C014"
+      ]
+    },
+    {
+      "id": "RC003",
+      "cut": "同時再送のT003挿入衝突、COMMIT結果不明、照会時の保存側停止で止まる。",
+      "committed": "衝突の敗者は全変更をROLLBACKし勝者だけが確定する。COMMIT確認不能では確定の有無を断定しない。",
+      "remaining": "確定すれば一つの受付結果が残る。未確定の途中受付を永続化しない。",
+      "restart": "衝突後は新しい読取りで勝者を照合する。DB読取り不能ならunknownを保ち、回復後にIF003を使う。",
+      "retry": "同じ内容の照会だけを自動再実行可能とする。更新の内部トランザクションを勝手に再試行して後の在庫で判定し直さない。",
+      "visible_result": "foundは終端結果、KEY_CONFLICTは内容衝突、not_recordedはまだ未確認、UNAVAILABLEは照会不能として区別する。",
+      "check_ids": [
+        "C004",
+        "C005",
+        "C012"
+      ]
+    },
+    {
+      "id": "RC004",
+      "cut": "監視の候補取得後、返却COMMIT前後、次の走査前に停止する。",
+      "committed": "COMMIT前は返却なし、COMMIT後はexpiredと数量返却が確定する。確認不能ではST003だけをunknownとする。",
+      "remaining": "候補一覧はメモリ上で失われるが、期限とactive・終端状態はDBに残る。監視の実行枠やリースは設けない。",
+      "restart": "TR015でreadyに戻る前に保存側回復を待ち、activeかつ期限到来の候補を再走査する。終端ならno_changeとする。",
+      "retry": "再走査後の条件付き期限処理を許可する。過去の加算SQLの再送は行わない。複数監視でもP002で一方だけが更新する。",
+      "visible_result": "次の現在値取得で返却後残数とexpiredを示す。停止中は期限到来・返却待ちの表示を許し、取消は保存側で期限を再検査する。",
+      "check_ids": [
+        "C008",
+        "C009",
+        "C013",
+        "C016"
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "id": "UI001",
+      "name": "備品予約と結果照会",
+      "fields": "備品名、現在残数、取得時刻、数量入力、本人予約ID、保存状態、期限、受付用識別子、確定した操作結果を持つ。操作時の残数と現在残数は別欄である。ST001はactive=予約中、cancelled=取消済み、expired=期限切れ・返却済みと表示する。activeかつdeadline_reached=trueは期限到来・返却待ちと表示する。",
+      "validation": "quantityは1〜1000000の整数を画面で検査し、表示残数を超える場合は再取得を案内する。残数は変わり得るため保存側でも判定する。識別子保持に失敗した場合は送信しない。取消はcurrent.cancel_allowed=trueの本人予約だけを有効にする。",
+      "display": "ST002はready=入力可能、sending=処理中、unknown=結果未確認、result=操作結果ありと対応する。初回読込みとGET待機は操作のbusyフラグで表示し、既存の操作結果を消さない。初回取得失敗は再読込みだけを示す。未登録の結果照会では未確認を保つ。",
+      "actions": "ready・resultで現在値取得と結果照会を行える。新規作成と取消は各条件を満たすときだけTR004/TR005でsendingへ進む。sending中は新しい作成・取消・GETを開始しない。unknownでは同じ受付識別子の結果照会と現在値取得だけを許可する。not_recordedでは新しいキーの自動発行も更新の自動再送も行わない。",
+      "save_result": "committed・rejectedは保存済み結果、conflictは今回内容の識別子競合、invalidは保存前拒否、rollbackは保存未成立確認、unknownは未確認として表示する。foundは元のrecordを表示し、現在値だけの取得を元操作の成功にしない。",
+      "focus": "Tab/Shift+Tabで数量→予約→取消→受付用識別子→結果照会→現在値更新へ移動し、EnterまたはSpaceで押下できる。入力不正は該当入力へ、取消不可は状態説明へフォーカスを戻す。処理結果は見出しとaria-live=politeで一度通知する。unknownでは結果照会ボタンへ移し、非表示の操作へフォーカスを残さない。",
+      "updates": "更新応答後にIF004の明示した読取りを行い、元のrecordを残して現在値を更新する。期限までの補助タイマーは取消を早めに無効化できるが成功を確定しない。期限到来時と画面再表示時はGETだけを行い、監視の返却結果を取り込む。要求番号で古い応答を捨てる。自動の更新要求・外部通知はない。",
+      "state_set_ids": [
+        "ST001",
+        "ST002"
+      ],
+      "interface_ids": [
+        "IF001",
+        "IF002",
+        "IF003",
+        "IF004"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "C001",
+      "kind": "normal",
+      "given": "総数5、残数5の備品と認証済み本人を用意する。",
+      "when": "quantity=2を新しい識別子で作成し、結果と現在値を読む。",
+      "then": "一予約active、残数3、expires_at=created_at+10分、受付結果一件が同時確定する。応答はCOMMIT確認後に返り、操作時残数と取得時残数を区別する。",
+      "feature_ids": [
+        "F001",
+        "F004"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C002",
+      "kind": "boundary",
+      "given": "数量0・1・1000000・1000001、小数、真偽値、null、欠落、未知項目、重複キー、本文1024/1025バイトを用意する。",
+      "when": "新しい識別子で作成する。",
+      "then": "正しい整数かつ値域と残数を満たすものだけ成立する。構造不正はinvalidで更新0件、在庫不足は保存済み拒否一件で数量変更0件となる。本文上限の等号を許可し超過を拒否する。",
+      "feature_ids": [
+        "F001"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C003",
+      "kind": "race",
+      "given": "残数1の同じ備品に、異なる本人または受付識別子のquantity=1要求を二つ用意する。",
+      "when": "同時に作成する。",
+      "then": "createdが一件、INSUFFICIENT_STOCKの保存済み拒否が一件となる。残数0、active数量総和1で負数が一度もコミットされない。",
+      "feature_ids": [
+        "F001"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C004",
+      "kind": "race",
+      "given": "同じ本人・識別子・型付き内容の作成、および同じ取消の二重到着を用意する。",
+      "when": "既存受付の事前読取りが双方とも空の時点から同時に処理し、T003挿入を競合させる。",
+      "then": "受付結果は一件で、全応答のHTTP状態とrecordが勝者に一致する。敗者の仮の引当・返却は全て戻り、予約作成も数量返却も合計一回だけとなる。",
+      "feature_ids": [
+        "F001",
+        "F002"
+      ],
+      "issue_ids": [
+        "U001"
+      ]
+    },
+    {
+      "id": "C005",
+      "kind": "race",
+      "given": "同じ本人・識別子で異なるitem_id・quantity、別予約の取消、作成と取消を用意する。別利用者の同じrequest_idも用意する。",
+      "when": "同時到着と既存受付への再送を行う。",
+      "then": "同じ本人では先に確定した内容だけが残り、異なる内容はKEY_CONFLICTで変更0件となる。衝突した保存単位の仮変更は残らない。別利用者の識別子は独立し情報が混ざらない。",
+      "feature_ids": [
+        "F001",
+        "F002"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C006",
+      "kind": "normal",
+      "given": "数量2のactive予約があり、保存側時刻が期限前である。",
+      "when": "本人が新しい取消識別子で取り消し、その後さらに別識別子で取り消す。",
+      "then": "初回はcancelledと数量2の返却が同時確定する。後続はALREADY_CANCELLEDで数量を増やさず、その拒否も保存される。",
+      "feature_ids": [
+        "F002"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C007",
+      "kind": "boundary",
+      "given": "同じ期限を持つ独立したactive予約について、ロック取得後の保存側tを期限の1マイクロ秒前・等号・1マイクロ秒後に制御する。",
+      "when": "本人の取消を行い、期限監視が遅れた場合も試す。",
+      "then": "直前だけcancelled、それ以外はexpiredかつDEADLINE_EXPIREDとなる。全て数量返却は一回だけであり、画面は期限到来後に取消を無効にする。ロック前の押下時刻を使わない。",
+      "feature_ids": [
+        "F002",
+        "F003"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C008",
+      "kind": "race",
+      "given": "期限前後の同じactive予約に取消一件と複数の監視候補を用意する。",
+      "when": "備品・予約ロックの取得順を入れ替えて同時実行し、一方のROLLBACKも注入する。",
+      "then": "全取得順が備品→予約であり、確定した状態はcancelledかexpiredの一方だけとなる。更新件数1に対応する加算一回だけで、available<=totalを維持する。ROLLBACKの返却は残らない。",
+      "feature_ids": [
+        "F002",
+        "F003"
+      ],
+      "issue_ids": [
+        "U001"
+      ]
+    },
+    {
+      "id": "C009",
+      "kind": "normal",
+      "given": "期限到来active、期限前active、cancelled、expiredの候補と、監視停止中に期限を過ぎた予約を用意する。",
+      "when": "複数監視で走査し、一予約単位でIF005を呼ぶ。",
+      "then": "期限到来activeだけがexpiredとなる。期限前と終端はno_changeで、各走査は最大100件とし、未処理は次回で対象となる。失敗一件で他の備品を止めない。",
+      "feature_ids": [
+        "F003"
+      ],
+      "issue_ids": [
+        "U002"
+      ]
+    },
+    {
+      "id": "C010",
+      "kind": "error",
+      "given": "作成・取消・期限処理の備品更新後、予約更新後、受付結果挿入前、COMMIT前に停止・SQL失敗を注入できる実装を用意する。",
+      "when": "保存を失敗させDBを回復し、全表と照会結果を読む。",
+      "then": "COMMIT前の変更は全て戻り、旧在庫と旧状態が残る。更新数と返却数の部分確定がない。rollback応答は確認済みの場合だけで、確認不能はunknownとなる。",
+      "feature_ids": [
+        "F001",
+        "F002",
+        "F003",
+        "F004"
+      ],
+      "issue_ids": [
+        "U001"
+      ]
+    },
+    {
+      "id": "C011",
+      "kind": "restart",
+      "given": "作成・取消のCOMMIT成功後、HTTP応答前または応答中に切断する。",
+      "when": "ブラウザとサーバーを再起動し、保持した識別子でGETする。",
+      "then": "foundのrecordが一件だけ返り、更新を自動再送しない。作成の二重引当も取消の二重返却もない。操作時状態と現在状態が違ってもrecordは変わらない。",
+      "feature_ids": [
+        "F001",
+        "F002",
+        "F004"
+      ],
+      "issue_ids": [
+        "U003",
+        "U005"
+      ]
+    },
+    {
+      "id": "C012",
+      "kind": "error",
+      "given": "未到着の要求、未COMMITの要求、ROLLBACK後の要求と、COMMIT確認不能・読取り不能を用意する。",
+      "when": "各識別子で照会し、DB回復後も繰り返す。",
+      "then": "見えない受付はnot_recordedで結果未確認を保つ。完了recordにpendingを返さない。読取り不能はUNAVAILABLEかローカルunknownであり、確定失敗・成功にしない。GETによる更新は0件である。",
+      "feature_ids": [
+        "F001",
+        "F002",
+        "F004"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C013",
+      "kind": "restart",
+      "given": "期限監視の候補取得後、返却COMMIT前、COMMIT後で監視を停止する。",
+      "when": "DB回復後に候補を再走査する。",
+      "then": "前者は未処理activeなら一回返却し、確定後は終端を読みno_changeとなる。過去の加算を再送せず、全体で数量返却は一回である。",
+      "feature_ids": [
+        "F003"
+      ],
+      "issue_ids": [
+        "U001",
+        "U002"
+      ]
+    },
+    {
+      "id": "C014",
+      "kind": "normal",
+      "given": "作成成立の受付結果を保持した後、その予約を取消または期限切れにする。本人以外のコンテキストも用意する。",
+      "when": "本人と別人で同じ受付識別子を照会する。",
+      "then": "本人にはcreatedのrecordとcancelled/expiredのcurrentが別に返る。終端でもfoundとなりpendingへ覆らない。別人には元結果が返らずnot_recordedとなる。",
+      "feature_ids": [
+        "F004"
+      ],
+      "issue_ids": []
+    },
+    {
+      "id": "C015",
+      "kind": "normal",
+      "given": "画面に在庫と本人予約を表示し、キーボードだけとブラウザ保存領域の失敗を用意する。",
+      "when": "数量入力、予約、取消、結果照会、入力不正、切断を順に行う。",
+      "then": "TabとEnter/Spaceで全操作を実行できる。sendingの二重操作は不可、unknownは照会へフォーカスする。保存領域の失敗では送信0回、期限到来後は取消不可で状態と結果を文字で通知する。",
+      "feature_ids": [
+        "F001",
+        "F002",
+        "F004"
+      ],
+      "issue_ids": [
+        "U005"
+      ]
+    },
+    {
+      "id": "C016",
+      "kind": "race",
+      "given": "期限監視が遅れたactiveと、古いGET応答が遅延する画面を用意する。",
+      "when": "期限到来時にGETし、その後返却確定して新しいGETを行い、古い応答を最後に届かせる。",
+      "then": "初回はactive・deadline_reached=true・cancel_allowed=falseで期限到来・返却待ちを表示する。後のexpiredと返却後残数を古い応答で上書きしない。操作結果recordを現在値へ置き換えない。",
+      "feature_ids": [
+        "F003",
+        "F004"
+      ],
+      "issue_ids": [
+        "U005"
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "id": "U001",
+      "question": "PostgreSQLの対象版、隔離・ロック・受付衝突・耐久性・移行が実装で成立するか未検証である。",
+      "verification": "対象版を固定し公式仕様を確認した上で、C003/C004/C008/C010/C013を実DBで停止注入・同時実行する。COMMIT確認不能、接続切断、lock_timeout、statement_timeout、デッドロックの実際の戻り値と全体ROLLBACKを観測する。移行は空DBと既存データで試す。今回は接続も移行も実行しない。",
+      "acceptance": "負在庫0回、数量返却一回、受付結果一件、途中状態の確定0回となり、保存時刻とHTTP応答と再起動後結果が一致する。対象版・設定・試験ログを根拠として残してから採用を判断する。",
+      "independent_work": "APIの型、画面の文言、試験のデータ準備と期待値は進められる。DB実装の本番利用と性能・耐久性の成立の断言は保留する。",
+      "owner": "保存・DB担当と試験担当。担当者の指名は未実施である。",
+      "affected_ids": [
+        "D003",
+        "D006",
+        "T001",
+        "T002",
+        "T003",
+        "P001",
+        "P002",
+        "RC001",
+        "RC004"
+      ]
+    },
+    {
+      "id": "U002",
+      "question": "DB時計の補正・切替と監視遅延、候補件数・待ち時間の提案値は未検証である。",
+      "verification": "UTC設定と時計補正、DB切替時の時刻差、期限直前・等号・直後、ロック待機中の期限跨ぎを測る。代表データ量で候補100件/秒と部分索引の処理計画・遅延を測定する。今回は負荷試験と外部仕様確認を実施しない。",
+      "acceptance": "保存側t>=expires_atで取消成立がなく、遅延時も二重返却0回となる。許容する最大返却遅延と時計差を利用者側と決め、測定値がそれを満たしてから周期と件数を採用する。",
+      "independent_work": "期限の等号規則、状態条件、遅延時の画面表示と候補再走査の実装設計は進められる。性能保証と周期の採用は保留する。",
+      "owner": "運用・DB担当と業務判断者。採用承認は未実施である。",
+      "affected_ids": [
+        "D006",
+        "F002",
+        "F003",
+        "IF005",
+        "P002",
+        "T002"
+      ]
+    },
+    {
+      "id": "U003",
+      "question": "受付結果の無期限保持、ブラウザ識別子の保持と、not_recordedが続く未確認操作の運用確認は未決である。",
+      "verification": "保存容量、個人情報の保持規定、ログとDBから未到着・確定ROLLBACKを調べる運用手順、ブラウザ再読込・別利用者ログインを確認する。今回の設計では受付結果と終端予約を消さない。",
+      "acceptance": "必要な再送・照会期間に同じ識別子の意味を失わず、利用者間で情報が混ざらない。未確認のまま更新を自動再実行しない。保持と運用手順について判断の記録を得る。",
+      "independent_work": "不変record・本人別識別子・GETのみの回復を実装設計できる。保持期間の短縮と未確認操作の自動解決は行わない。",
+      "owner": "業務判断者・運用担当・画面担当。担当者の指名は未実施である。",
+      "affected_ids": [
+        "D004",
+        "D007",
+        "T002",
+        "T003",
+        "F004",
+        "RC002",
+        "RC003",
+        "UI001"
+      ]
+    },
+    {
+      "id": "U004",
+      "question": "APIの追加上限・本人権利・認証とCSRFの受渡しは未採用かつ未結合である。",
+      "verification": "UUIDと数量・サイズの値域、エラーコード、認証済みactor_idの不変性と偽装不可、CSRF失敗、別人予約・別人受付の非開示を実装後に確認する。今回は外部接続試験をしない。",
+      "acceptance": "全項目の欠落・null・未知項目・型・上限で契約どおりのcodeを返し、本文から本人を偽装できない。業務とセキュリティの判断者が提案値と本人操作権を承認した記録を残す。",
+      "independent_work": "提案契約のクライアント型、エラー表示、確認条件は進められる。認証統合と本番公開の判断は保留する。",
+      "owner": "API担当・認証担当・業務判断者。採用承認は未実施である。",
+      "affected_ids": [
+        "D002",
+        "D005",
+        "IF001",
+        "IF002",
+        "IF003",
+        "IF004"
+      ]
+    },
+    {
+      "id": "U005",
+      "question": "キーボード、ブラウザ保存領域、HTMLとMermaidの実描画は未確認である。",
+      "verification": "対象ブラウザでC011/C015/C016を実行し、フォーカス・aria-live・保存不能・再読込と古い応答を確認する。review.htmlとG001〜G003の表示を別途確認する。今回はブラウザを起動しない。",
+      "acceptance": "全操作をキーボードだけで行え、期限到来後の取消不可とunknownの照会が読み上げられ、識別子が再読込後も本人へ結び付く。図・HTMLの文字欠けと意味の欠落がない。",
+      "independent_work": "Markdown、API、物理データ、画面項目と試験期待値の照合は進められる。描画済み・操作確認済みとは報告しない。",
+      "owner": "画面担当と文書レビュー担当。担当者の指名は未実施である。",
+      "affected_ids": [
+        "D007",
+        "UI001",
+        "G001",
+        "G002",
+        "G003"
+      ]
+    }
+  ],
+  "changes": [],
+  "diagrams": [
+    {
+      "id": "G001",
+      "type": "sequence",
+      "name": "予約の保存確定と切断後の結果照会",
+      "mermaid": "sequenceDiagram\n  participant UI as ブラウザ画面\n  participant API as 受付と予約サービス\n  participant DB as PostgreSQL\n  UI->>UI: 識別子と内容を保持\n  UI->>API: 識別子と数量で作成\n  API->>DB: 既存受付を照合\n  API->>DB: 備品ロックと残数判定\n  API->>DB: 引当と予約と完成した受付結果\n  DB-->>API: COMMIT確認\n  alt 応答が届く\n    API-->>UI: 確定した操作結果\n  else 応答が途切れる\n    UI->>UI: 結果未確認\n    UI->>API: GET 識別子で照会\n    API->>DB: 本人の受付と現在値を読む\n    DB-->>API: 不変recordと現在値\n    API-->>UI: 過去の結果と現在値を分けて返す\n  end",
+      "explains": "更新の確定後に通知する。再送衝突の全体ROLLBACK、未登録の照会、COMMIT確認不能は対応条件で補う。",
+      "condition_ids": [
+        "F001",
+        "IF001",
+        "IF003",
+        "P001",
+        "RC001",
+        "RC002",
+        "RC003",
+        "C004",
+        "C012"
+      ]
+    },
+    {
+      "id": "G002",
+      "type": "state",
+      "name": "予約の引当と一回だけの返却",
+      "mermaid": "stateDiagram-v2\n  [*] --> absent\n  absent --> active: 作成確定\n  active --> cancelled: 期限前の取消確定\n  active --> expired: 期限到来の返却確定\n  cancelled --> [*]\n  expired --> [*]",
+      "explains": "activeは返却前の保存状態であり、期限到来だけでは残数を増やさない。終端からの取消・監視は状態を保ち返却しない。観測のunknownはこの業務状態へ保存しない。",
+      "condition_ids": [
+        "TR001",
+        "TR002",
+        "TR003",
+        "P002",
+        "C007",
+        "C008"
+      ]
+    },
+    {
+      "id": "G003",
+      "type": "er",
+      "name": "備品と予約と受付結果",
+      "mermaid": "erDiagram\n  ITEMS ||--o{ RESERVATIONS : holds\n  RESERVATIONS o|--o{ REQUEST_RESULTS : records\n  ITEMS {\n    uuid item_id\n    integer total_quantity\n    integer available_quantity\n  }\n  RESERVATIONS {\n    uuid reservation_id\n    uuid item_id\n    uuid actor_id\n    integer quantity\n    text status\n    timestamptz expires_at\n  }\n  REQUEST_RESULTS {\n    uuid actor_id\n    uuid request_id\n    uuid reservation_id\n    jsonb request_payload\n    jsonb result_snapshot\n  }",
+      "explains": "一備品が複数予約を持ち、一予約に作成・取消など複数の受付結果が結び付く。拒否結果は予約を持たない場合がある。キーとNULLの正本は物理表の定義である。",
+      "condition_ids": [
+        "T001",
+        "T002",
+        "T003",
+        "P001",
+        "P002"
+      ]
+    }
+  ],
+  "applicability": {
+    "state_sets": "",
+    "interfaces": "",
+    "tables": "",
+    "transitions": "",
+    "concurrency": "",
+    "recovery": "",
+    "screens": "",
+    "issues": "",
+    "changes": "要件間・基本設計間に今回の入力から確認できる不一致はなく、元の要件は変更しない。値域・権利・取消識別子・物理方式はD002〜D007の未採用の詳細提案であり、要件変更の承認として扱わない。",
+    "diagrams": ""
+  }
+}
