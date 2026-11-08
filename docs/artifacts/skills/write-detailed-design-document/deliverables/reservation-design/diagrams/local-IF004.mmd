@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant A as ブラウザ・受付
+  participant B as 予約サービス・保存リポジトリ
+  A->>B: IF004 本人の受付用識別子で保存済みの元結果だけを取得する。
+  alt found HTTP 200。コミット済みの元の応答をresultへ返す。元が拒否でもfoundであり、現在の予約状態を意味しない。
+    B-->>A: found
+  else unrecorded HTTP 404 NOT_RECORDED。現時点で本人の受付結果が見えない。未着と処理中と保存不成立を区別しない。
+    B-->>A: unrecorded
+  else failed HTTP 400 INVALID_INPUT、401 UNAUTHENTICATED、403 FORBIDDEN、413 TOO_LARGEまたは503 LOOKUP_FAILE…
+    B-->>A: failed
+  end

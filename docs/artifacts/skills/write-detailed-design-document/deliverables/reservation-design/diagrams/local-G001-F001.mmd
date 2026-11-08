@@ -1,0 +1,17 @@
+sequenceDiagram
+ participant UI as 予約画面
+ participant S as 予約サービス
+ participant DB as 保存リポジトリ
+ UI->>S: request_id・備品・数量
+ S->>DB: 既存結果確認・備品行ロック
+ DB-->>S: ロック後の在庫
+ S->>DB: 在庫減算・予約・受付結果を同時COMMIT
+ alt 確定結果を受信
+  DB-->>S: 確定した共通応答
+  S-->>UI: 保存確定後の結果
+ else 応答切断
+  UI->>S: 同じrequest_idで結果照会
+  S->>DB: コミット済み結果を読む
+  DB-->>S: 保存結果または未記録
+  S-->>UI: foundなら確認・未記録なら未確認を保つ
+ end

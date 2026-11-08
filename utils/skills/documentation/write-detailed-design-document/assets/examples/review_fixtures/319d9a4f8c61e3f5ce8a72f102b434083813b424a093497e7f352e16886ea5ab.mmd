@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant A as 設定画面
+  participant B as 設定サービス
+  A->>B: IF001 要求項目の定義に従い検査する。ST001のeditingで利用者が保存操作を選び、TR001でsavingへ進めてから要求を送る。
+  alt success コミットの成立を確認した後だけ返す。
+    B-->>A: success
+  else conflict 条件更新0件で保存をしない。
+    B-->>A: conflict
+  else failed ロールバック等で保存不成立を確認した。
+    B-->>A: failed
+  else unknown 成否を断定できない。
+    B-->>A: unknown
+  else invalid 入力が不正であり更新しない。
+    B-->>A: invalid
+  end

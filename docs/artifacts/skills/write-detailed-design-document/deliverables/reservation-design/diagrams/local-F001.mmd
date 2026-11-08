@@ -1,0 +1,16 @@
+flowchart TD
+  n0["F001 開始: UI001のreadyで本人の予約権限があり、備品が事前登録されている。既存結果の再送照合は予約の全業務状態で行える。"]
+  n1["受付がサイズ・認証・項目を検査する。サービスから保存リポジトリへはIF001の正規化したrequest_id・item_id・quantityと信頼済みowner_idだけを渡す。"]
+  n2["既存のT003をowner_idとrequest_idで読む。同じ内容なら保存済み応答を返し、違う内容ならID_CONFLICTを返す。既存結果は予約がcancelled・expiredでも再…"]
+  n3["存在しなければREAD COMMITTEDのトランザクションで備品行をFOR UPDATEし、同じ受付結果を再読する。T001.available&gt;=quantityかつversionが上限未…"]
+  n4["成功なら行ロック後の時刻を採り、available-=quantity、version+=1、予約UUID・active・created_at・expires_atを作る。数量を先に外部へ送信…"]
+  n5["正規化内容と全応答をT003へ最後にINSERTし、在庫・予約と同時にCOMMITする。受付識別子の衝突なら試行全体をROLLBACKし、別トランザクションで勝者の結果を読み同内容かを照合する…"]
+  n6["COMMIT成立を確認してから保存済み応答を返す。画面は操作時点の残数と予約IDを表示し、現在値はIF005で更新する。"]
+  n7["結果: createdはactiveと期限・確定時残数を返す。再送は保存済みの同じHTTP状態と応答を返し、予約が後にexpiredになっても当初の結果を書き換えない。"]
+  n0 --> n1
+  n1 --> n2
+  n2 --> n3
+  n3 --> n4
+  n4 --> n5
+  n5 --> n6
+  n6 --> n7

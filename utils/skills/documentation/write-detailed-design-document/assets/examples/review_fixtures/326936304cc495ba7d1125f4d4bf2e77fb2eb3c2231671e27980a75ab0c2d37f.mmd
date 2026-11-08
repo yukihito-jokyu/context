@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant A as 設定画面
+  participant B as 設定サービス
+  A->>B: IF002 要求項目なし。現在値の読取りだけを行う。
+  alt success 現在の保存値を取得した。
+    B-->>A: success
+  else failed 取得できず現在値も断定できない。
+    B-->>A: failed
+  else invalid 入力が不正で読取りを行わない。
+    B-->>A: invalid
+  end

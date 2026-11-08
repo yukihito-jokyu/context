@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant A as 期限監視
+  participant B as 予約サービス・保存リポジトリ
+  A->>B: IF003 引数は候補の予約IDとworker権利だけとし、数量や時刻は保存側から再取得する。
+  alt applied EXPIRED。activeからexpiredと返却をCOMMITした結果。
+    B-->>A: applied
+  else no_op activeで未到達はNOT_DUE、cancelled/expiredはALREADY_TERMINAL、予約なしはNOT_FOUND。DB変更なし。
+    B-->>A: no_op
+  else failed INVALID_INPUT、FORBIDDEN、VERSION_LIMITまたはROLLBACK確認済みSAVE_FAILED。DB更新なし。
+    B-->>A: failed
+  else unconfirmed COMMIT_UNKNOWN。業務状態と返却回数を断定しない。
+    B-->>A: unconfirmed
+  end

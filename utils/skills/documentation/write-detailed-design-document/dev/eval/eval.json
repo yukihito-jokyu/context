@@ -27,6 +27,18 @@
       {
         "id": "pain-3",
         "text": "各項目を別々に書くだけでは不十分です。たとえば承認の状態名は、状態遷移表、保存データ、画面表示、外部への返却で一致させる必要があります。"
+      },
+      {
+        "id": "pain-14",
+        "text": ".skill-runsを成果物の固定保存先にしてほしくない。"
+      },
+      {
+        "id": "pain-15",
+        "text": "各mdの図が少なく、項目から離れている。"
+      },
+      {
+        "id": "pain-16",
+        "text": "リンク先で見る箇所がわからず、戻る労力も高い。"
       }
     ],
     "wants": [
@@ -45,6 +57,18 @@
       {
         "id": "want-4",
         "text": "未決事項があっても、依存しない設計は進められます。"
+      },
+      {
+        "id": "want-14",
+        "text": "指定した保存先へ設計が生成される。"
+      },
+      {
+        "id": "want-15",
+        "text": "項目の説明の近くで図と厳密な本文を読める。"
+      },
+      {
+        "id": "want-16",
+        "text": "リンクに必要な引用または要約が添えられる。"
       }
     ],
     "unacceptable": [
@@ -91,6 +115,16 @@
       "id": "talk-5",
       "asked": "採点前の確認です。追加した型・状態定義により、境界の判定資料が約2万文字となり、評価器の12,000文字上限を超えました。既存の基準を維持し、境界を「操作の契約」「要求・応答の項目」「操作と状態」の3窓へ分け、全文を渡して全通過を求める方式へ直してよいですか。原本と今回の独立生成は変更しません。具体案は .skill-runs/skill-foundation/eval-input-round-4-plan.md にあります。",
       "answer": "はい"
+    },
+    {
+      "id": "talk-6",
+      "asked": "利用者から自発的に追加された価値。保存先の固定をやめること、項目の近くにMermaidとPNGを置くこと、リンク先の必要情報を遷移せずに読めること。",
+      "answer": "docs/artifacts/skills/write-detailed-design-documentについて成果物が.skill-runsに配置されるルールを廃止し、ユーザーの指示によって動的に変化させるようにしてください\nまた、各mdに対して明らかに図が少ないです。図について、項目ごとにその項目に近い場所に図を配置するようにしてください。また、図はマーメードで記載し、pngにも変換してください\nこれは新たな価値とし、収束テスト2回、1回目の収束テスト後に修正をすべきところをし、再び収束テストを行ない、結果を示してください\nもう一つ問題点がありました。リンクを多用しすぎています。リンクは使っていいですが、リンクのみはよろしく無いです。理由として、リンクを飛んだ後に人間がどの部分を見れば良いかわからず、また、リンクの遷移先から戻る労力が高くなっているからです。これを避ける方法として、リンクは配置するが、リンクに遷移せずに必要な情報を見れるように>のように情報を拾うことができるようにしてください。\n先ほど言った価値に加えてこれも価値としてください"
+    },
+    {
+      "id": "talk-7",
+      "asked": "図と参照の評価基準を補完してよいですか。成功は「図が項目に対応し、PNGに必要な図内容の欠け・重なりがなく、リンク先の必要条件を引用・要約で読める」、失敗は「図は存在しても読めない、またはリンクだけで条件が分からない」とします。実画像を読む独立AIレビューを加え、1回目と修正後の2回目を同じ条件で比較します。",
+      "answer": "この基準で補完して続ける（推奨）"
     }
   ],
   "hypotheses": [
@@ -125,6 +159,33 @@
         "want-1",
         "want-4"
       ]
+    },
+    {
+      "id": "hyp-4",
+      "text": "保存先を依頼と文脈に合わせて選べる。",
+      "from": [
+        "scene-1",
+        "pain-14",
+        "want-14"
+      ]
+    },
+    {
+      "id": "hyp-5",
+      "text": "項目の近くでMermaidとPNGの図を読める。",
+      "from": [
+        "scene-1",
+        "pain-15",
+        "want-15"
+      ]
+    },
+    {
+      "id": "hyp-6",
+      "text": "リンクを開かずに根拠や関連条件を理解できる。",
+      "from": [
+        "scene-1",
+        "pain-16",
+        "want-16"
+      ]
     }
   ],
   "values": [
@@ -151,6 +212,30 @@
         "hyp-3"
       ],
       "confirmed_in": "talk-1"
+    },
+    {
+      "id": "value-4",
+      "text": "保存先を依頼と文脈に合わせて選べる。",
+      "from": [
+        "hyp-4"
+      ],
+      "confirmed_in": "talk-6"
+    },
+    {
+      "id": "value-5",
+      "text": "項目の近くでMermaidとPNGの図を読める。",
+      "from": [
+        "hyp-5"
+      ],
+      "confirmed_in": "talk-6"
+    },
+    {
+      "id": "value-6",
+      "text": "リンクを開かずに根拠や関連条件を理解できる。",
+      "from": [
+        "hyp-6"
+      ],
+      "confirmed_in": "talk-6"
     }
   ],
   "behaviors": [
@@ -293,6 +378,56 @@
         "rubric": "成功: 両側の責務、入力項目・型・欠落や未知値・制約・最大サイズ・検査順、出力・エラー、再送・切断の扱いが具体的である。非該当は理由を示す。 失敗: 入力型や制約、保存結果と返却の意味、エラーや再送の条件を担当者の判断に残す。 この判定窓にない分野は、同じ記録の他の判定窓で確認する。値の一致は関連する窓の内容も参照する。 承認済みの入力分割であり、同じ境界IDの契約・項目・状態を他の窓と照合する。割り当てる境界がないページは対象なしとして扱う。存在する項目を省略してよいという意味ではない。"
       },
       "target": ".skill-runs/_fence/eval-inputs/interfaces-states-2.html#window"
+    },
+    {
+      "id": "behavior-15",
+      "value": "value-4",
+      "text": "成果物を実行記録配下へ固定せず、入力のoutput_dirへ生成する。",
+      "judge": {
+        "type": "code",
+        "checks": [
+          {
+            "type": "forbid",
+            "pattern": "\"output_dir\"\\s*:\\s*\"\\.skill-runs/",
+            "message": "今回の題材は保存先を.skill-runsに固定しない。"
+          }
+        ]
+      },
+      "target": "{run}/state.json"
+    },
+    {
+      "id": "behavior-16",
+      "value": "value-5",
+      "text": "入口で読む順序を示すMermaidとPNGを同じ場所に置く。",
+      "judge": {
+        "type": "code",
+        "checks": [
+          {
+            "type": "require",
+            "pattern": "```mermaid[\\s\\S]*?```[\\s\\S]*?!\\[[^\\]]+\\]\\(diagrams/local-overview\\.png\\)",
+            "message": "Mermaid図と同じ位置のPNG参照が存在する。",
+            "multiline": true
+          }
+        ]
+      },
+      "target": "{in:output_dir}/README.md"
+    },
+    {
+      "id": "behavior-17",
+      "value": "value-6",
+      "text": "関連仕様のリンクを開かずに必要な条件を引用で読める。",
+      "judge": {
+        "type": "code",
+        "checks": [
+          {
+            "type": "require",
+            "pattern": "\\[[A-Z]+[0-9]+\\]\\([^)]*\\)\\n\\n> .+",
+            "message": "関連する設計のリンクに本文の抜粋が添えられる。",
+            "multiline": true
+          }
+        ]
+      },
+      "target": "{in:output_dir}/features.md"
     }
   ],
   "cases": [
@@ -598,6 +733,60 @@
         "ng-1"
       ],
       "agreed_in": "talk-5"
+    },
+    {
+      "id": "case-30",
+      "behavior": "behavior-15",
+      "expect": "pass",
+      "situation": "詳細設計書を作成する。保存先を.skill-runsへ指定していない。",
+      "output": "cases/behavior-15-pass.md",
+      "reason": "利用者が直接要求した保存先・項目直下の図・参照先の情報の取り出しを満たす。",
+      "covers": []
+    },
+    {
+      "id": "case-31",
+      "behavior": "behavior-15",
+      "expect": "fail",
+      "situation": "詳細設計書を作成する。保存先を.skill-runsへ指定していない。",
+      "output": "cases/behavior-15-fail.md",
+      "reason": "利用者が直接要求した保存先・項目直下の図・参照先の情報の取り出しを欠く。",
+      "covers": []
+    },
+    {
+      "id": "case-32",
+      "behavior": "behavior-16",
+      "expect": "pass",
+      "situation": "詳細設計書を作成する。保存先を.skill-runsへ指定していない。",
+      "output": "cases/behavior-16-pass.md",
+      "reason": "利用者が直接要求した保存先・項目直下の図・参照先の情報の取り出しを満たす。",
+      "covers": []
+    },
+    {
+      "id": "case-33",
+      "behavior": "behavior-16",
+      "expect": "fail",
+      "situation": "詳細設計書を作成する。保存先を.skill-runsへ指定していない。",
+      "output": "cases/behavior-16-fail.md",
+      "reason": "利用者が直接要求した保存先・項目直下の図・参照先の情報の取り出しを欠く。",
+      "covers": []
+    },
+    {
+      "id": "case-34",
+      "behavior": "behavior-17",
+      "expect": "pass",
+      "situation": "詳細設計書を作成する。保存先を.skill-runsへ指定していない。",
+      "output": "cases/behavior-17-pass.md",
+      "reason": "利用者が直接要求した保存先・項目直下の図・参照先の情報の取り出しを満たす。",
+      "covers": []
+    },
+    {
+      "id": "case-35",
+      "behavior": "behavior-17",
+      "expect": "fail",
+      "situation": "詳細設計書を作成する。保存先を.skill-runsへ指定していない。",
+      "output": "cases/behavior-17-fail.md",
+      "reason": "利用者が直接要求した保存先・項目直下の図・参照先の情報の取り出しを欠く。",
+      "covers": []
     }
   ]
 }

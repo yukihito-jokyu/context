@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> editing
+  editing --> saving: 保存
+  saving --> saved: 成功応答
+  saving --> conflict: revision不一致
+  saving --> failed: 保存不成立
+  saving --> unknown: 成否未確認
+  saved --> editing: 再取得後に再編集
+  conflict --> editing: 再取得後に再編集
+  failed --> editing: 再取得後に再編集
+  unknown --> editing: 再取得後に再編集
+  saving --> editing: 入力不正

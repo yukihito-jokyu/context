@@ -9,7 +9,7 @@
     "codex"
   ],
   "title": "要件と基本設計を実装と試験へ渡せる詳細設計にする",
-  "purpose": "要件と基本設計から、共通仕様と機能ごとの処理・通信・物理データ・画面・競合・障害時動作を整合させ、根拠と未検証の影響が分かる詳細設計書を作る",
+  "purpose": "要件と基本設計から、共通仕様と機能ごとの処理・通信・物理データ・画面・競合・障害時動作を整合させ、根拠と未検証の影響が分かる詳細設計書を作る 保存先を依頼に合わせ、各項目の図とPNG、参照先の必要条件の抜粋を備える。",
   "triggers": {
     "use_when": [
       "要件と基本設計の情報をもとに詳細設計書を作成して",
@@ -69,7 +69,7 @@
         "保存先"
       ],
       "impact": "reversible",
-      "default": ".skill-runs/write-detailed-design-document/out/detailed-design"
+      "default": "docs/detailed-design"
     },
     {
       "key": "language",
@@ -120,7 +120,9 @@
             "OUT-09",
             "OUT-13",
             "OUT-14",
-            "OUT-15"
+            "OUT-15",
+            "OUT-16",
+            "OUT-17"
           ],
           "message": "台帳の構造、引用、対応ID、採用・検証の証拠、生成文書の一致を確かめる",
           "stage": "finish"
@@ -296,6 +298,30 @@
           "rule": "OUT-05"
         }
       ]
+    },
+    {
+      "id": "diagram-assets",
+      "label": "図の原本と画像の対応",
+      "path": "{in:output_dir}/diagrams/manifest.json",
+      "rule": "OUT-16",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "require",
+          "pattern": "\"mermaid\": \"diagrams/",
+          "rule": "OUT-16",
+          "message": "Mermaid原本の対応を記録する。"
+        },
+        {
+          "type": "require",
+          "pattern": "\"png\": \"diagrams/",
+          "rule": "OUT-16",
+          "message": "変換したPNGの対応を記録する。"
+        }
+      ]
     }
   ],
   "together": [
@@ -446,7 +472,7 @@
         "O1"
       ],
       "title": "入口と分野別文書を固定の名前で出力する",
-      "decision": "output_dirにdesign.json、README.md、common.md、features.md、interfaces.md、data.md、ui.md、recovery.md、verification.md、evidence.md、review.htmlを1件ずつ置く。入口から各文書へリンクする。既定の出力先は実行記録配下とし、利用者が指定した保存先があればその場所を使う。",
+      "decision": "output_dirにdesign.json、README.md、common.md、features.md、interfaces.md、data.md、ui.md、recovery.md、verification.md、evidence.md、review.htmlを1件ずつ置く。出力先は利用者の明示指定、会話で合意した保存先、既存設計の保存先の順に決め、どれもなければdocs/detailed-designを提案値として使い報告する。.skill-runs配下を成果物の保存先に固定しない。実行記録は.skill-runs/write-detailed-design-documentに残し、成果物の保存先とは分ける。",
       "reason": "読み順と保存先を揃えるため。",
       "basis": "machine",
       "control": [
@@ -815,6 +841,51 @@
       "bad": "UserPromptSubmit の hook で、依頼文の書き方が違うと拒否する"
     },
     {
+      "id": "OUT-16",
+      "axes": [
+        "X8"
+      ],
+      "title": "項目の直下にMermaidとPNGを置く",
+      "decision": "各Markdownの説明対象の項目直下に、その台帳項目を表す図を置く。処理は処理順、状態は状態と遷移、境界は要求と応答、表は物理列、確認は開始条件・事象・観測結果、他は項目と条件の対応を図示する。Mermaidフェンスと同内容の.mmdと、実際に変換した.pngをdiagramsへ保存する。図の直下に伝えることと厳密な条件の場所を示す。章末への一括配置、無関係な装飾図、画像欠落、MermaidとPNGの不一致を完了にしない。",
+      "reason": "利用者が追加した価値を、出力と確認条件へ反映する。",
+      "basis": "user",
+      "control": [
+        "validate",
+        "script"
+      ],
+      "how": "scripts/design.pyとscripts/presentation.pyが生成と一致を検査する。 scripts/contact_sheet.shが既存の描画環境で確認用の画像一覧を作る。",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-16-a",
+        "OUT-16-b"
+      ],
+      "good": "機能の直下に処理順のMermaidとPNG、同じ項目の保存条件を置く。",
+      "bad": "全図を章末へ寄せ、PNGを作らない。",
+      "split_reason": "図の生成と参照の引用は独立に欠落し、別々の違反例で検出する。"
+    },
+    {
+      "id": "OUT-17",
+      "axes": [
+        "X9"
+      ],
+      "title": "参照を開かずに必要情報を読める",
+      "decision": "根拠と関連仕様のリンクには、その項目で必要な本文の引用または要約を添える。根拠は実際の引用を>で示し、関連仕様は条件・判断・観測結果を>または本文で取り出す。参照IDや資料名だけの表示、名前だけの言い換えで必要な条件を隠さない。目次・戻る・ダウンロードの操作リンクは対象外とする。要約は原文と区別し、原文と逆の意味や確定度を付けない。",
+      "reason": "利用者が追加した価値を、出力と確認条件へ反映する。",
+      "basis": "user",
+      "control": [
+        "validate",
+        "script"
+      ],
+      "how": "scripts/design.pyとscripts/presentation.pyが生成と一致を検査する。",
+      "why_not_machine": "",
+      "probes": [
+        "OUT-17-a"
+      ],
+      "good": "承認のリンクの直後に未回答かつ期限前だけ確定する条件を引用する。",
+      "bad": "関連: S001、C001というリンクだけを置く。",
+      "split_reason": "図の生成と参照の引用は独立に欠落し、別々の違反例で検出する。"
+    },
+    {
       "id": "RPT-01",
       "axes": [
         "R1"
@@ -872,6 +943,16 @@
       "axis": "X7",
       "prefix": "OUT",
       "name": "操作結果と状態遷移を対応付ける"
+    },
+    {
+      "axis": "X8",
+      "prefix": "OUT",
+      "name": "項目直下のMermaidとPNG"
+    },
+    {
+      "axis": "X9",
+      "prefix": "OUT",
+      "name": "遷移せずに読める根拠と関連条件"
     }
   ],
   "excluded_axes": [],
@@ -893,7 +974,483 @@
         "OUT-12",
         "OUT-13",
         "OUT-14",
-        "OUT-15"
+        "OUT-15",
+        "OUT-16",
+        "OUT-17"
+      ]
+    },
+    {
+      "path": "review_fixtures/03755e21d663c158c44bdd2a371e4f499154718a290634312cef9f21cc7c5002.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/039279c9fb5e22ab6175799d96470db3c9997ffc87a078fb5abb3b1715c5a48f.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/05aaa59f98f284ce071fb757bab986f633eef406494c5527500459e60c2ac9c9.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/0d26f7c4c3842e4ae90b5ead8948fb2896d6278b2184542bd97ddeacc3828364.json",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/19fa853fd469f2a47ff9e3adb9b00f45c3036738eaf7990e3a446b7a2558ad8c.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/2184d440a3898a8ac564a5ddce6afa86fda06d498f7e2b8257eb4afe6e629829.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/24430fb929514b75db912235eb952c046eea56f6e822c9bbf320a918b99784f4.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/2cffeb08af7e7bb6c9570c1be87eb1f7971ca661c9f6e4c569e2c8f076d6c369.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/2d64312bc65292cf3b1afb0f75ec6e6db93762032661c7cc9e3743b962fc5ea9.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/304667760c4b36505a0465371ee28ecd422d984e9fec7b9303d0adad99fb264d.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/319d9a4f8c61e3f5ce8a72f102b434083813b424a093497e7f352e16886ea5ab.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/326936304cc495ba7d1125f4d4bf2e77fb2eb3c2231671e27980a75ab0c2d37f.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/39ab54b3807e9137d2097f99b3649c4f6d141379c46b4a291758261eaf7ebfbc.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/3e5148de8be84162e06ef629dfbae96576d4bfcda9768d17ebf21af5ea21696c.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/411afe8da72d6b7a179d9c01434b6521b41d03ced1d620b8553a9b4b530088cb.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/43309a47384770400fbaaad9920473ece8b894ff8b3293b2f6d3d38dab7cfdbc.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/44af20e4af7f12990265621ffdd67b6ab9d1cc61f0d409f568e5c0e6b7d89221.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/44d9cccc7bf1b067d886afbb608806eca262bac68226fa7edc3ae25a5fc24f26.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/491d9af86054ddf83dd4afec6c2594b77a82f87bede8a6425a96d643ab2a19d5.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/5025a101c22140db1100b446378cc47c8d85a569bf4af867d42dbfdbb5f94f32.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/522f92eb4e992ffa89287492c2b4c351b305012d4873c1340cc61a6aab7a2382.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/571dfbf6941e2e1f08fb84ce8f76e1eae38bc9d051ef6652c5578281f89625cd.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/58619954a59c527f4ec10ffb196e4b95c58d4a58364eb9aa7a181c1a3a284947.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/5ed6e6b3a6dbabed376d996973b175995bf4942bfb255c1b9939ffd5a123ccbd.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/5f95c810d5d2cee8165bbcf1d5e82038de067da55d32c0e7b660ac994f8516dc.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/615055c67e0a276c50b4eb7d2f99f6b68428f0b5b101011bb33719d8f4bff86e.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/62dd2ad3bab178ef6e353a54f09ff94f46773470f2654e7a61d6367e4acdd133.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/633dea2f5befc2c331730bce184bca3b3651303b1467508ec288d2c6355fbaa2.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/6884466b8d3c7adfc6452483b5425f00a71cb809b6439cd3618ff0e87898e9c2.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/68be537fd00d92ba5115c439b00a9e4eea63637d557d389f923ac1cfc1cfd152.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/6a886a13a26a100632a609cc5608330b91ac83ec7a85d4531efb9d5ab5d47261.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/6b88cfe45bbc3f6898d3c81aa718f0f19c6c562404960ddf56d8eae6d83a7040.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/6fb52409d765d6d0d7f60d4192beb8d833f52e122c7f83dc62a86095cae81144.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/70fb0463620aecc0547258de5377f3f31672aafed91f6d571066a29e05856ada.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/77dc7581670f8ec994582448c651f41d1eae681bc3f455b79def38c081e6d6b6.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/77fea44d98a29480c601d4f19e6d45a6c5fbbdabf52031527421afb35bf16356.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/78fd8bfab2577d3de018b20feb72185212048e290a7691e0b4a4cd1c9db3a571.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/7d6261ca79944a9942fe8852edf1ec9336f5985627bed9ce95bbc4667112429a.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/83a791d6ee27575f9fb0d434ab12cccf01d11e3805638e36857b16c45779004f.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/83e9700d68f1f6424397696a221218872c73274ab09c0d8c8e1c1dac9f90b467.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/8401d2e6427ce1047cba19c77499bf058338a6e089cbdf4714cccb6b7b70a46a.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/84fd562898a2ff0697a35cb974e1c6bcfd984c4effb4fef52282fb7f051740dc.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/8a86a24ef03bba14d1c6b2959fea2375c9e5f0f0b8f4a941250b6d40ee13a900.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/8de7a50b626d650ebff96856bfa02e051b904258f59ef0ed26e447eea747a98c.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/8f9f8d6a3729eb890f3057d891b55e3d766a7b880ab4506c0337d51c8fb70b82.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/900870b8c01efce06ceef7cfe0278c74cc10d57dad8038cdda77530fab78e281.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/94061774c2b7ecade819ab110249193db1a316caea6813b34103bdd9c7b3b26f.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/9844579510c82538881a95e84d9af7b676c7e82fd1d1f657fcdcf04704deaaa0.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/a0194260586be342e99a653a7ed9f09fb24cc6763b27fc9f8ce1fe21b089852d.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/a5ba1e931d945a2fb6ec8fba16021d2da71ff208cdcfb6109789463e45ecf96a.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/a6bb607e937efb816cf281847cd5d626af5c5b76555d16e14958da5f825af080.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/ac1a61f24ddb7de8c07c726bbb2db1e44816cbd4bfb1ac6edd5d098065b231b5.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/b3976eecaebda55299784c8919d1dea4cdd957bba077f718e68db4aa28fa2c6a.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/b3c8b85e67e189e8917beca4f3fbd456467b4ad82236f318e033e36c49804bef.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/b4a77d53a28ce3c9b75ded40b7347b57d28943e61e7012141492772b7c717deb.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/b61e62182e4441035d173ed486bdf353b93a75cbccde50019fd20462021005a1.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/c412e6d727fcd5f6589560300678bc93c8076d2a5aefd1c691281f52ee4c34e9.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/cb1b63ab98d8d6394e1d60de1a76dadd9fa24916afeaf81f2dacf0a2428bc88f.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/cc9ebeedd422b3146068db00cdd6717fa54d3268af43a322cb30f1ed8b3e0870.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/cfd9760ab1af39b45d47934b70e03ee60472fffadacec5ab1db01e2c71987f99.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/d21d8edbfd688fb8836d918cc9d2b46b2994d8760b5a439e77d6be2651981556.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/d4ad99b3ec7eb2e303e5c95c095f94246420a601963bfb2baa4da456ca4b64bd.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/d693f15849c30b50e8050c5389e6a9ddab67778d3cc791bacc02a60d4b4813e2.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/d7dca454761d81a8e0145123352de58feb0fe2ab7a7bbe55e8c2d199d635b0b9.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/d890a560be0c938d6416bab6f87e71a0ae3308badeb675472c18ee9d5d68da7c.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/d93a5f48fc7302095b5a455b697e4e3c36db9631dc8576e5815826a4f328a979.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/da08bc785ed79ad910606db77efc8c809775a2ccc56149e4c00648f20067eb48.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/dcb357c475b8f6a278c0badb7053b663bd3c39f0f9f6bf7d932ee4d8fc0f7880.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/de02ae2ae87e47afccc5be6a88fc12f92bd6bca00dc7893dcc33eeecd043fcf1.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/df64cfcf510ceafadd2c9259e3a2846c9827f4562f59a96e82580364dec0bbb5.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/e1e1f2fbed92f6981b0b79d01d755d1ebaf8b874d35b40b73eee7c07ed03bf0e.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/e584665f4c910f8e2c0620c4f5dd3bd2413c6310fdb489926f07262aab30dce3.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/e6c59e6d80c5d03d9b91e71493ad6d443c34c204207535502a20444de9ea9f24.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/e747d51eae198b78e02719e575bb250f76cbc12cd83780e25422de9c9396409b.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/e7def2ba1501a9e8902a1c89b02c6daa5e29210b6b9d1273204ba6fe5c0822d6.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/e9fee2952a5df0ea12298f1baa77fb2b65f972fda6925c9b647488c74f1bd21e.png",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/f922e09446150b3ba6978d341f7b8f7c54b44b739960bda8ec6a0a2fcc5eecbf.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/fd3f9f803b6da85ea8016d19f33686906d94429d5a21aca927fef34ce5bd29be.mmd",
+      "shows": [
+        "OUT-16"
+      ]
+    },
+    {
+      "path": "review_fixtures/fdc4dfc180245712c8e137c0a7c0a2dd47e8dd23fae53dcd561e9e609a1dd3f3.png",
+      "shows": [
+        "OUT-16"
       ]
     }
   ],
@@ -916,6 +1473,6 @@
     ]
   },
   "convergence": {
-    "max_rounds": 4
+    "max_rounds": 2
   }
 }

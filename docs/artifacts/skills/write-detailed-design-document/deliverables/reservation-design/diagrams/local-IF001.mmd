@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant A as ブラウザ・受付
+  participant B as 予約サービス・保存リポジトリ
+  A->>B: IF001 同じrequest_idと正規化内容を受付・サービス・保存で引き継ぐ。内部の数量を再生成しない。
+  alt created 201 CREATED。新しい予約と在庫・受付結果のCOMMITを確認した応答でありdurable=trueとする。
+    B-->>A: created
+  else replay 保存済み結果と同じHTTP状態・共通応答を返す。CREATED、NO_STOCK、NOT_FOUND、VERSION_LIMITの元コードを変更しない。
+    B-->>A: replay
+  else rejected 400 INVALID_INPUT、413 TOO_LARGE、415 UNSUPPORTED_MEDIA、401 UNAUTHENTICATED、403 FORBIDDEN…
+    B-->>A: rejected
+  else unconfirmed 503 COMMIT_UNKNOWN。結果が不明でありdurable=false、予約・状態・期限・残数・result_atはnullとする。応答不能ならHTTP応答は…
+    B-->>A: unconfirmed
+  end
