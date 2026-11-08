@@ -1,0 +1,17 @@
+sequenceDiagram
+  participant A as ブラウザ・受付
+  participant B as 予約サービス・保存リポジトリ
+  A->>B: IF002 取消はreservation_idだけから保存済みitem_id・quantity・expires_atを読み、クライアントの数量を受け付けない。
+  alt cancelled 200 CANCELLED。activeかつ期限前の判定でcancelledと返却をCOMMITしdurable=trueとする。
+    B-->>A: cancelled
+  else expired_now 409 EXPIRED。activeかつ期限到達の判定でexpiredと返却をCOMMITしdurable=trueとする。
+    B-->>A: expired_now
+  else terminal 既存cancelledは200 ALREADY_CANCELLED、既存expiredは409 EXPIRED。再返却せずその結果をdurable=trueとして記録する。
+    B-->>A: terminal
+  else replay 元の取消または拒否結果と同じHTTP状態・共通応答を返す。
+    B-->>A: replay
+  else rejected 400 INVALID_INPUT、413 TOO_LARGE、415 UNSUPPORTED_MEDIA、401 UNAUTHENTICATED、403 FORBIDDEN…
+    B-->>A: rejected
+  else unconfirmed 503 COMMIT_UNKNOWN。durable=falseとし予約・状態・期限・残数・result_atをnullとする。応答不能は画面でunknownとして扱う…
+    B-->>A: unconfirmed
+  end

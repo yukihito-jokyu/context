@@ -1,0 +1,14 @@
+flowchart TD
+  n0["F002 開始: UI001のreadyで予約IDと本人の取消権限がある。activeだけが取消成功の候補であり、終端でも受付結果の再送照合と結果取得を許可する。"]
+  n1["IF002でrequest_id・reservation_idと信頼済みowner_idを渡す。既存結果を先に照合する。予約をロックせず一度読みitem_idを得る。この対応は作成後に変更しな…"]
+  n2["本人の予約がなければNOT_FOUNDを確定拒否として保存する。存在すれば備品行、予約行の順でFOR UPDATEし、再度所有者・状態と既存受付結果を確認する。"]
+  n3["activeの場合はロック後の判定時刻を一度採る。時刻&lt;expires_atならTR002でcancelled、時刻&gt;=expires_atならTR003でexpiredとする。後者は取消成功…"]
+  n4["どちらの遷移でもavailable+=quantity、version+=1、ended_atを同じ単位で更新する。cancelledとexpiredは変更せずALREADY_CANCELLE…"]
+  n5["受付結果を最後に登録してCOMMITする。識別子衝突は全体を戻して勝者結果を再読し、競合敗者の返却を残さない。確定応答後にIF005で現在値を読む。"]
+  n6["結果: cancelledは一回の返却成功を示す。expired_nowは期限到達による返却とEXPIREDを示し、terminalは既に返却済みの状態を示す。残数は操作時点の値である。"]
+  n0 --> n1
+  n1 --> n2
+  n2 --> n3
+  n3 --> n4
+  n4 --> n5
+  n5 --> n6

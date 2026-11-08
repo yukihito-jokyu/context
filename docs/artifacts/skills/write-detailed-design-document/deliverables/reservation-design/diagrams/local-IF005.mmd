@@ -1,0 +1,9 @@
+sequenceDiagram
+  participant A as ブラウザ・受付
+  participant B as 予約サービス・保存リポジトリ
+  A->>B: IF005 現在値だけを取得し、過去の操作結果を推測しない。
+  alt snapshot HTTP 200。現在の在庫と任意の予約を同一読取りスナップショットで返す。
+    B-->>A: snapshot
+  else failed 400 INVALID_INPUT、401 UNAUTHENTICATED、403 FORBIDDEN、413 TOO_LARGE、404 NOT_FOUND、503 LOOKU…
+    B-->>A: failed
+  end

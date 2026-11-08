@@ -1,0 +1,17 @@
+erDiagram
+ inventory ||--o{ reservations : "同じ備品の引当"
+ reservations o|--o{ request_results : "成功・終端の結果"
+ inventory {
+  UUID item_id
+  INTEGER available
+ }
+ reservations {
+  UUID reservation_id
+  UUID item_id
+  TEXT state
+ }
+ request_results {
+  UUID owner_id
+  UUID request_id
+  UUID reservation_id
+ }

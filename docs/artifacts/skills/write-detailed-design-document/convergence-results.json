@@ -1,0 +1,233 @@
+{
+  "scope": "two requested improvement rounds; previous four rounds are separate",
+  "rubric_confirmed_in": "talk-7",
+  "rounds": [
+    {
+      "round": 1,
+      "tasks": [
+        {
+          "id": "T1-typical",
+          "files": 0.822,
+          "structure": 0.856,
+          "names": 0.522,
+          "content": 0.581,
+          "converged": false,
+          "eval_counts": {
+            "pass": 26,
+            "fail": 5,
+            "na": 3,
+            "pending": 0
+          },
+          "failed_evaluations": [
+            {
+              "agent": "subagent-1",
+              "behavior": "behavior-11",
+              "reason": "interfaces-fields-1のIF005はoutcome=failureでもcodeを任意とし、条件付き必須を定めていない。一方T001はfailed時failure_code必須で、理由なし失敗入力の処理が決まらない。"
+            },
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-2",
+              "reason": "statesのTR006は期限到達時をTR007へ送る一方、TR012とTR014は受領確認済みならdelivery=deliveredを保つ別遷移を定め、同じ期限条件の保存内容が一致しない。"
+            },
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-4",
+              "reason": "操作の契約でIF007のerrorsにはSAVE_FAILED/COMMIT_UNKNOWNがないが、同じ境界の応答項目はこの2値を要求する。IF008も期限到達時の保存先と状態対応が一致しない。"
+            },
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-11",
+              "reason": "IF007のcommit_unknownが返すSAVE_FAILED/COMMIT_UNKNOWNは操作のerrors一覧に含まれない。IF008はstoppedに停止証拠を要求するが、その証拠を渡す入力項目が定義されていない。"
+            },
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-13",
+              "reason": "IF008のstate_effectsではrunningのerrorは状態保持だが、操作契約は期限到達時にTR005でsettlingを保存し、state_policyはerrorで別停止制御へ渡すため対応が一致しない。"
+            }
+          ]
+        },
+        {
+          "id": "T2-default",
+          "files": 0.659,
+          "structure": 0.815,
+          "names": 0.5,
+          "content": 0.585,
+          "converged": false,
+          "eval_counts": {
+            "pass": 29,
+            "fail": 1,
+            "na": 4,
+            "pending": 0
+          },
+          "failed_evaluations": [
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-13",
+              "reason": "interfaces-states-1のIF002は許可状態に短いunknownを残すが、ST001の正式名とstate_effectsはunknown_保存結果未確認であり、許可状態の列挙が一致しない。"
+            }
+          ]
+        },
+        {
+          "id": "T3-edge",
+          "files": 0.828,
+          "structure": 0.893,
+          "names": 0.523,
+          "content": 0.601,
+          "converged": false,
+          "eval_counts": {
+            "pass": 27,
+            "fail": 3,
+            "na": 4,
+            "pending": 0
+          },
+          "failed_evaluations": [
+            {
+              "agent": "subagent-1",
+              "behavior": "behavior-2",
+              "reason": "statesで確定状態を定義する一方、checksのC007は保存不能時に元状態を保つと断定する。F002のDB保存不明では推測しないという条件と整合しない。"
+            },
+            {
+              "agent": "subagent-1",
+              "behavior": "behavior-9",
+              "reason": "recoveryのRC001〜RC003は停止箇所と再送・再実行を区別するが、C007の保存不能時は元状態を保つという期待結果が、F002のDB保存不明を包含できない。"
+            },
+            {
+              "agent": "subagent-1",
+              "behavior": "behavior-13",
+              "reason": "interfaces-states-1のIF002はerror時に元状態を保つ表だが、F002のDB保存不明でもQUERY_SAVE_FAILEDを返すため、確定不明を元状態維持と区別できない。"
+            }
+          ]
+        }
+      ],
+      "visual": {
+        "outputs": 6,
+        "diagrams": 446,
+        "sheets": 114,
+        "documents": 54,
+        "counts": {
+          "PV-1": {
+            "fail": 3,
+            "pass": 3
+          },
+          "PV-2": {
+            "fail": 4,
+            "pass": 2
+          }
+        }
+      }
+    },
+    {
+      "round": 2,
+      "tasks": [
+        {
+          "id": "T1-typical",
+          "files": 0.811,
+          "structure": 0.853,
+          "names": 0.486,
+          "content": 0.619,
+          "converged": false,
+          "eval_counts": {
+            "pass": 27,
+            "fail": 4,
+            "na": 3,
+            "pending": 0
+          },
+          "failed_evaluations": [
+            {
+              "agent": "subagent-1",
+              "behavior": "behavior-5",
+              "reason": "#tablesのrequests.generationは「開始後はsessions.generationと一致」とするが、sessions側は実行権取得ごとに増える。過去依頼の世代を保持するのか更新するのか決まらず、世代照合の制約が一意にならない。"
+            },
+            {
+              "agent": "subagent-1",
+              "behavior": "behavior-13",
+              "reason": "操作と状態1のIF004はerrorをqueued維持とする一方、契約にはCONNECTION_FAILEDがあり、開始保存後に外部へ送る。保存後の接続失敗ではrunningまたはstoppingなので、一律の状態対応と矛盾する。"
+            },
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-4",
+              "reason": "操作の契約のIF008は送達試行済みの保存を要求するが、保存不成立・確定不明時の応答がない。IF004のエラー一覧も項目側のfailure.codeにあるRUNTIME_FAILEDを含まない。"
+            },
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-11",
+              "reason": "要求・応答の項目1でIF002は必須requestの欠落をINVALID_INPUTにする一方、error応答のrequestも常に必須とする。欠落時に返す値が定義されず、両側で同じ応答を実装できない。"
+            }
+          ]
+        },
+        {
+          "id": "T2-default",
+          "files": 0.866,
+          "structure": 0.876,
+          "names": 0.523,
+          "content": 0.808,
+          "converged": false,
+          "eval_counts": {
+            "pass": 30,
+            "fail": 0,
+            "na": 4,
+            "pending": 0
+          },
+          "failed_evaluations": []
+        },
+        {
+          "id": "T3-edge",
+          "files": 0.806,
+          "structure": 0.834,
+          "names": 0.475,
+          "content": 0.612,
+          "converged": false,
+          "eval_counts": {
+            "pass": 31,
+            "fail": 0,
+            "na": 3,
+            "pending": 0
+          },
+          "failed_evaluations": []
+        },
+        {
+          "id": "H1-holdout",
+          "files": 0.72,
+          "structure": 0.835,
+          "names": 0.5,
+          "content": 0.617,
+          "converged": false,
+          "eval_counts": {
+            "pass": 30,
+            "fail": 1,
+            "na": 3,
+            "pending": 0
+          },
+          "failed_evaluations": [
+            {
+              "agent": "subagent-2",
+              "behavior": "behavior-4",
+              "reason": "操作の契約のIF001・IF002は「内部呼出しはUUID1件のみ」とするが、要求項目には受付ID・対象IDに加え作成数量もある。内部へ渡す引数が整合せず担当者の判断が残る。"
+            }
+          ]
+        }
+      ],
+      "visual": {
+        "outputs": 8,
+        "diagrams": 520,
+        "sheets": 133,
+        "documents": 72,
+        "counts": {
+          "PV-1": {
+            "pass": 8
+          },
+          "PV-2": {
+            "pass": 8
+          }
+        }
+      }
+    }
+  ],
+  "review_detection": {
+    "samples": 4,
+    "reviewers_per_sample": 2,
+    "detected": 8,
+    "total": 8
+  },
+  "limits": "No third round; overall convergence unmet; same Codex model; no DB/adapter/Wails integration tests."
+}
