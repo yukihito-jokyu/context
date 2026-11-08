@@ -15,7 +15,12 @@ import html
 import json
 import re
 import sys
+import importlib.util
 from pathlib import Path
+
+_spec = importlib.util.spec_from_file_location("design_presentation", Path(__file__).with_name("presentation.py"))
+presentation = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(presentation)
 
 
 FILES = ["README.md", "common.md", "features.md", "interfaces.md", "data.md",
@@ -382,10 +387,12 @@ def validate(data, root, selected):
     for path in source_args(selected):
         if resolve(root, path) not in source_paths:
             errors.append(("OUT-09", "対象資料を根拠に含めていない: " + path))
-    prefixes = {"sequence": "sequenceDiagram", "state": "stateDiagram-v2", "er": "erDiagram"}
+    prefixes = {"sequence": "sequenceDiagram", "state": "stateDiagram-v2", "er": "erDiagram", "flowchart": "flowchart"}
     for row in data["diagrams"]:
         if not row["mermaid"].lstrip().startswith(prefixes[row["type"]]) or "```" in row["mermaid"]:
             errors.append(("OUT-02", row["id"] + " の図の種類かフェンスの書き方が違う"))
+        if not row["condition_ids"] or not all(rid in ids and ids[rid][0] != "diagrams" for rid in row["condition_ids"]):
+            errors.append(("OUT-16", row["id"] + " に配置できる説明対象がない"))
     return errors
 
 
@@ -454,8 +461,24 @@ def render_documents(data, root):
     def tr(ja, en):
         return en if english else ja
     destinations = {r["id"]: filename for group, (_, filename) in GROUPS.items() for r in data[group]}
+    rows_by_id = presentation.records(data)
+    plans = presentation.plan(data, GROUPS, LABELS)
     for row in data["diagrams"]:
-        destinations[row["id"]] = {"sequence": "features.md", "state": "common.md", "er": "data.md"}[row["type"]]
+        destinations[row["id"]] = destinations.get(row["condition_ids"][0], "features.md") if row["condition_ids"] else "features.md"
+    def figures(owner):
+        lines = []
+        for diagram in plans:
+            if diagram["owner"] != owner:
+                continue
+            if diagram.get("author_id"):
+                lines += ['<a id="' + diagram['author_id'] + '"></a>', '']
+            lines += ["#### " + diagram["name"], "", diagram["explains"], "",
+                      "<details><summary>Mermaidの記述を確認する</summary>", "", "```mermaid", diagram["mermaid"].rstrip(), "```", "", "</details>", "",
+                      "![" + diagram["name"].replace("]", "") + "](diagrams/" + diagram["id"] + ".png)", "",
+                      "Mermaid: [" + diagram["id"] + ".mmd](diagrams/" + diagram["id"] + ".mmd) — " + diagram["explains"], ""]
+            for item in diagram.get("legend", []):
+                lines += ["> " + item, ""]
+        return lines
     def inline(value):
         if value is None:
             return tr("非該当", "Not applicable")
@@ -467,8 +490,35 @@ def render_documents(data, root):
             return "<br>".join((str(k) if english else LABELS.get(k, str(k))) + ": " + inline(v) for k, v in value.items())
         value = str(value)
         if value in destinations:
-            return "[" + value + "](" + destinations[value] + "#" + value + ")"
+            return "[" + value + "](" + destinations[value] + "#" + value + ") — " + presentation.excerpt(rows_by_id[value]).replace("|", "\\|").replace("\n", "<br>")
         return value.replace("|", "\\|").replace("\n", "<br>")
+    def contextual_refs(row):
+        ids = []
+        def visit(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key != "id":
+                        visit(item)
+            elif isinstance(value, list):
+                for item in value:
+                    visit(item)
+            elif isinstance(value, str):
+                candidates = [value] if value in rows_by_id and "quote" in rows_by_id[value] else (re.findall(r"\b[A-Z]+[0-9]+\b", value) if value not in rows_by_id else [])
+                for rid in candidates:
+                    if rid in rows_by_id and rid != row["id"] and rid not in ids:
+                        ids.append(rid)
+        visit(row)
+        lines = []
+        for rid in ids:
+            target = rows_by_id[rid]
+            lines += ["[" + rid + "](" + destinations[rid] + "#" + rid + ")", ""]
+            lines += ["> " + line for line in presentation.excerpt(target).splitlines()]
+            if "quote" in target:
+                path = resolve(root, target["path"])
+                lines += ["", "出典: [" + target["path"] + " " + str(target["line"]) + "行目](" + str(path).replace(" ", "%20") + ":" + str(target["line"]) + ":1)", ""]
+            else:
+                lines += [""]
+        return lines
     def record(row):
         row = display_row(row)
         rid = row["id"]
@@ -479,7 +529,7 @@ def render_documents(data, root):
             lines += ["[" + path.name + " " + str(row["line"]) + tr("行目", " line") + "](" + str(path).replace(" ", "%20") + ":" + str(row["line"]) + ":1)", ""]
             lines += ["> " + line for line in row["quote"].splitlines()]
             lines += ["", "SHA-256: `" + row["sha256"] + "` / " + row["kind"], ""]
-            return lines
+            return lines + figures(rid)
         lines += ["| " + tr("項目", "Field") + " | " + tr("内容", "Detail") + " |", "| --- | --- |"]
         for key, val in row.items():
             if key not in ["id", "name", "columns"]:
@@ -491,7 +541,7 @@ def render_documents(data, root):
                       "| " + " | ".join("---" for _ in keys) + " |"]
             for col in row["columns"]:
                 lines.append("| " + " | ".join(inline(col[k]) for k in keys) + " |")
-        return lines + [""]
+        return lines + [""] + contextual_refs(row) + figures(rid)
     def feature(row):
         lines = ['<a id="' + row["id"] + '"></a>', "## " + row["id"] + " " + row["name"], ""]
         parts = [
@@ -503,6 +553,10 @@ def render_documents(data, root):
             ("確認方法", "Verification", [inline(row["check_ids"])])]
         for ja, en, content in parts:
             lines += ["### " + tr(ja, en), ""] + content + [""]
+            if ja == "目的と根拠":
+                lines += contextual_refs(row)
+            if ja == "処理の流れ":
+                lines += figures(row["id"])
         return lines
     bodies = {}
     index = ["# " + data["title"], "", data["overview"], "",
@@ -512,10 +566,12 @@ def render_documents(data, root):
              tr("機能 / 要件 / 未決: ", "Features / requirements / open issues: ") + " / ".join(str(len(data[k])) for k in ["features", "requirements", "issues"]), "",
              "## " + tr("読む順序", "Reading order"), ""]
     for name, (ja, intro, _) in SECTIONS.items():
-        index.append("- [" + (name if english else ja) + "](" + name + ")")
+        index.append("- [" + (name if english else ja) + "](" + name + ") — " + intro)
     index += ["", "- [" + tr("分野別の閲覧と確認", "Review by area") + "](review.html)", "",
               tr("設計の正本: ", "Design source: ") + "[design.json](design.json)", "",
               "Design SHA-256: `" + digest(canonical(data)) + "`", ""]
+    index += ["## " + tr("図の読み方", "Reading the diagrams"), "", data["diagram_notes"], ""]
+    index += figures("overview")
     bodies["README.md"] = "\n".join(index)
     for filename, (title, intro, groups) in SECTIONS.items():
         lines = ["# " + (filename[:-3] if english else title), "", "[" + tr("入口に戻る", "Back to index") + "](README.md)", "",
@@ -531,12 +587,6 @@ def render_documents(data, root):
                 lines += [data["applicability"][group], ""]
             for row in data[group]:
                 lines += feature(row) if group == "features" else record(row)
-        diagrams = [r for r in data["diagrams"] if destinations[r["id"]] == filename]
-        if filename in ["features.md", "common.md", "data.md"]:
-            lines += ["## " + tr("図と厳密な条件", "Diagrams and exact conditions"), "", data["diagram_notes"], ""]
-            for row in diagrams:
-                lines += ['<a id="' + row["id"] + '"></a>', "### " + row["id"] + " " + row["name"], "", row["explains"], "",
-                          "```mermaid", row["mermaid"], "```", "", inline(row["condition_ids"]), ""]
         bodies[filename] = "\n".join(lines)
     bodies["review.html"] = review_document(data)
     return {name: marker(body.rstrip() + "\n") for name, body in bodies.items()}
@@ -567,10 +617,16 @@ def checked(args, compare=True):
             if len(actual.splitlines()) > maximum:
                 errors.append(("OUT-05", name + " が行数の上限を超える"))
                 continue
+            if any(line.startswith("> ") for line in text.splitlines()) and not any(line.startswith("> ") for line in actual.splitlines()):
+                errors.append(("OUT-17", name + " に必要な参照先の引用がない"))
+            if "```mermaid" in text and "```mermaid" not in actual:
+                errors.append(("OUT-16", name + " に項目の図がない"))
             if not intact(actual):
                 errors.append(("OUT-06", name + " は手書きか、生成後に編集されている"))
             elif actual != text:
                 errors.append(("OUT-07", name + " がdesign.jsonの現在の内容と一致しない"))
+    if compare:
+        errors += presentation.check_pngs(presentation.plan(data, GROUPS, LABELS), directory)
     return data, docs, list(dict.fromkeys(errors))
 
 
@@ -580,7 +636,7 @@ def print_errors(errors):
 
 
 def render(args):
-    _, docs, errors = checked(args, compare=False)
+    data, docs, errors = checked(args, compare=False)
     directory = Path(args.directory).resolve()
     for name in docs:
         path = directory / name
@@ -589,10 +645,18 @@ def render(args):
     if errors:
         print_errors(errors)
         return 1
+    images = presentation.render_pngs(presentation.plan(data, GROUPS, LABELS), directory)
+    (directory / "diagrams").mkdir(exist_ok=True)
+    for name, raw in images.items():
+        (directory / name).write_bytes(raw)
+    for path in (directory / "diagrams").iterdir():
+        if "diagrams/" + path.name not in images:
+            path.unlink()
     # 全ファイルの事前検査後に書く。途中のIO失敗後もcheckで欠落・不一致を検出できる。
     for name, text in docs.items():
         (directory / name).write_text(text, encoding="utf-8")
-    print("生成した文書: " + str(len(docs)) + " 件 / 設計の正本: design.json")
+    print("生成した文書: " + str(len(docs)) + " 件 / Mermaid・PNG: " + str(len(images)//2) + " 組")
+    print("保存先: " + str(directory) + " / 入口: " + str(directory / "README.md"))
     return 0
 
 
@@ -613,15 +677,70 @@ def report(args):
     p = Path(args.directory).resolve() / "README.md"
     print("## 詳細設計書\n\n- [入口文書](" + str(p) + ")")
     print("- 機能 " + str(len(data["features"])) + " 件、要件 " + str(len(data["requirements"])) + " 件、確認条件 " + str(len(data["checks"])) + " 件")
+    print("- 図 " + str(len(presentation.plan(data, GROUPS, LABELS))) + " 件をMermaidとPNGで保存している。")
     print("- 未決 " + str(len(data["issues"])) + " 件、要件変更 " + str(len(data["changes"])) + " 件")
     print("- 文書検査の通過と、採用判断・実装・実機検証の結果は別に記録している。")
+    return 0
+
+
+def read(args):
+    """値を削らず、範囲を決めて意味の照合に使う。各ページは6,000文字以内。"""
+    data = load_design(Path(args.directory).resolve())
+    errors = validate(data, Path(args.root).resolve(), args.source)
+    if errors:
+        print_errors(errors)
+        return 1
+    areas = {key: {group: data[group] for group in groups} for key, (_, groups) in REVIEW_PARTS.items()}
+    areas['overview'] = {key: data[key] for key in ['title', 'overview', 'scope', 'scope_exclusions', 'time_policy', 'diagram_notes', 'applicability']}
+    areas['sources'] = data['sources']
+    pages = {}
+    for key, value in areas.items():
+        body = json.dumps(value, ensure_ascii=False, indent=2)
+        pieces, current = [], ''
+        for line in body.splitlines(keepends=True):
+            while len(line) > 6000:
+                if current:
+                    pieces.append(current)
+                    current = ''
+                pieces.append(line[:6000])
+                line = line[6000:]
+            if len(current) + len(line) > 6000:
+                pieces.append(current)
+                current = ''
+            current += line
+        if current:
+            pieces.append(current)
+        assert ''.join(pieces) == body
+        pages[key] = pieces
+    if args.area == 'list':
+        print('分野別ページ数（全ページに元の値を省略せず収録）')
+        for key, values in pages.items():
+            print(key + ': ' + str(len(values)) + ' ページ')
+        return 0
+    values = pages[args.area]
+    if not 1 <= args.page <= len(values):
+        print('OUT-02 ページが範囲外である')
+        return 2
+    print(args.area + ' / page ' + str(args.page) + ' of ' + str(len(values)) + '（続くページも読む）\n')
+    print(values[args.page-1])
+    return 0
+
+
+def sheets(args):
+    _, _, errors = checked(args)
+    if errors:
+        print_errors(errors)
+        return 1
+    for path in presentation.sheets(Path(args.directory).resolve()):
+        print(path)
+    print('一覧の各図を確認し、文字が小さい図・多数の遷移・長いラベルは元PNGを開いて読む。台帳変更後は再生成して一覧も作り直す。')
     return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ["inspect", "cite", "render", "check", "report"]:
+    for name in ["inspect", "cite", "render", "check", "report", "read", "sheets"]:
         p = commands.add_parser(name)
         p.add_argument("--root", default=".")
         if name == "cite":
@@ -632,8 +751,11 @@ def main():
             p.add_argument("--id", default="S001")
         else:
             p.add_argument("--source", action="append", default=[])
-        if name in ["render", "check", "report"]:
+        if name in ["render", "check", "report", "read", "sheets"]:
             p.add_argument("--dir", dest="directory", required=True)
+        if name == "read":
+            p.add_argument("--area", choices=['list', 'overview', 'sources', *REVIEW_PARTS], default='list')
+            p.add_argument("--page", type=int, default=1)
     args = parser.parse_args()
     try:
         return globals()[args.command](args)

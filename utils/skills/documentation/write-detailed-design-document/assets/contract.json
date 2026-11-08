@@ -40,7 +40,7 @@
         "保存先"
       ],
       "impact": "reversible",
-      "default": ".skill-runs/write-detailed-design-document/out/detailed-design"
+      "default": "docs/detailed-design"
     },
     {
       "key": "language",
@@ -90,7 +90,9 @@
             "OUT-09",
             "OUT-13",
             "OUT-14",
-            "OUT-15"
+            "OUT-15",
+            "OUT-16",
+            "OUT-17"
           ],
           "message": "台帳の構造、引用、対応ID、採用・検証の証拠、生成文書の一致を確かめる",
           "stage": "finish"
@@ -264,6 +266,30 @@
           "type": "max_lines",
           "value": 3000,
           "rule": "OUT-05"
+        }
+      ]
+    },
+    {
+      "id": "diagram-assets",
+      "label": "図の原本と画像の対応",
+      "path": "{in:output_dir}/diagrams/manifest.json",
+      "rule": "OUT-16",
+      "count": {
+        "min": 1,
+        "max": 1
+      },
+      "checks": [
+        {
+          "type": "require",
+          "pattern": "\"mermaid\": \"diagrams/",
+          "rule": "OUT-16",
+          "message": "Mermaid原本の対応を記録する。"
+        },
+        {
+          "type": "require",
+          "pattern": "\"png\": \"diagrams/",
+          "rule": "OUT-16",
+          "message": "変換したPNGの対応を記録する。"
         }
       ]
     }

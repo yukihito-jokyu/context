@@ -1,0 +1,9 @@
+sequenceDiagram
+  participant UI as 設定画面
+  participant S as 設定サービス
+  participant DB as 保存リポジトリ
+  UI->>S: 通知先名とrevision
+  S->>S: 入力検査
+  S->>DB: revision一致時だけ更新
+  DB-->>S: コミット結果
+  S-->>UI: 保存結果

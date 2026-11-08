@@ -137,7 +137,7 @@
 ## OUT-01 入口と分野別文書を固定の名前で出力する
 
 - 軸: O1
-- ルール: output_dirにdesign.json、README.md、common.md、features.md、interfaces.md、data.md、ui.md、recovery.md、verification.md、evidence.md、review.htmlを1件ずつ置く。入口から各文書へリンクする。既定の出力先は実行記録配下とし、利用者が指定した保存先があればその場所を使う。
+- ルール: output_dirにdesign.json、README.md、common.md、features.md、interfaces.md、data.md、ui.md、recovery.md、verification.md、evidence.md、review.htmlを1件ずつ置く。出力先は利用者の明示指定、会話で合意した保存先、既存設計の保存先の順に決め、どれもなければdocs/detailed-designを提案値として使い報告する。.skill-runs配下を成果物の保存先に固定しない。実行記録は.skill-runs/write-detailed-design-documentに残し、成果物の保存先とは分ける。
 - 理由: 読み順と保存先を揃えるため。
 - 決め方: 機械で守らせられる答え
 - 守らせ方: validate: 出力のpath・countとscripts/design.py check
@@ -406,6 +406,44 @@
 
   ```text
   startingで照会できるが結果の遷移を持たない
+  ```
+
+## OUT-16 項目の直下にMermaidとPNGを置く
+
+- 軸: X8
+- ルール: 各Markdownの説明対象の項目直下に、その台帳項目を表す図を置く。処理は処理順、状態は状態と遷移、境界は要求と応答、表は物理列、確認は開始条件・事象・観測結果、他は項目と条件の対応を図示する。Mermaidフェンスと同内容の.mmdと、実際に変換した.pngをdiagramsへ保存する。図の直下に伝えることと厳密な条件の場所を示す。章末への一括配置、無関係な装飾図、画像欠落、MermaidとPNGの不一致を完了にしない。
+- 理由: 利用者が追加した価値を、出力と確認条件へ反映する。
+- 決め方: 依頼の指定
+- 守らせ方: validate, script: scripts/design.pyとscripts/presentation.pyが生成と一致を検査する。 scripts/contact_sheet.shが既存の描画環境で確認用の画像一覧を作る。
+- 分けた理由: 図の生成と参照の引用は独立に欠落し、別々の違反例で検出する。
+- 良い例:
+
+  ```text
+  機能の直下に処理順のMermaidとPNG、同じ項目の保存条件を置く。
+  ```
+- 悪い例:
+
+  ```text
+  全図を章末へ寄せ、PNGを作らない。
+  ```
+
+## OUT-17 参照を開かずに必要情報を読める
+
+- 軸: X9
+- ルール: 根拠と関連仕様のリンクには、その項目で必要な本文の引用または要約を添える。根拠は実際の引用を>で示し、関連仕様は条件・判断・観測結果を>または本文で取り出す。参照IDや資料名だけの表示、名前だけの言い換えで必要な条件を隠さない。目次・戻る・ダウンロードの操作リンクは対象外とする。要約は原文と区別し、原文と逆の意味や確定度を付けない。
+- 理由: 利用者が追加した価値を、出力と確認条件へ反映する。
+- 決め方: 依頼の指定
+- 守らせ方: validate, script: scripts/design.pyとscripts/presentation.pyが生成と一致を検査する。
+- 分けた理由: 図の生成と参照の引用は独立に欠落し、別々の違反例で検出する。
+- 良い例:
+
+  ```text
+  承認のリンクの直後に未回答かつ期限前だけ確定する条件を引用する。
+  ```
+- 悪い例:
+
+  ```text
+  関連: S001、C001というリンクだけを置く。
   ```
 
 ## RPT-01 最終の返答は finish の本文をそのまま使う
