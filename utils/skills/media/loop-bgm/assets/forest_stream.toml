@@ -1,0 +1,114 @@
+# 森の小川: 3拍子のオカリナと竪琴に、鳥の声と水音を重ねた曲
+
+[song]
+bpm = 96
+key = "D"
+mode = "major"
+bars = 16
+beats_per_bar = 3
+seed = 11
+humanize_ms = 6
+chords = ["1", "4", "1", "5", "6", "4", "1", "5",
+          "1", "4", "6", "3", "4", "1", "2", "5"]
+
+[mix]
+target_lufs = -18.0
+highpass_hz = 35.0
+voice_dip_db = -3.0   # 声と被りやすい帯域を削る量
+voice_dip_hz = 2000.0
+reverb_t60 = 1.8
+
+# ---- 自然の音 ----
+[parts.stream]
+kind = "ambience"
+instrument = "stream"
+gain_db = -11
+
+[parts.forest_air]
+kind = "ambience"
+instrument = "forest_air"
+gain_db = -12
+
+[parts.bird_warbler]
+kind = "drum"
+instrument = "bird_warbler"
+gain_db = -20
+pan = -0.65
+reverb = 0.35
+pattern = """
+. | . . . . x . | . | x . . . . . | . | . . x . . . | . | . . . . x .
+. | . | . . . x . . | . | . | . . . . . x | . | .
+"""
+
+[parts.bird_whistle]
+kind = "drum"
+instrument = "bird_whistle"
+gain_db = -23
+pan = 0.7
+reverb = 0.4
+pattern = """
+. | . | . | . . x . . . | . | . | . | . x . . . .
+. | . | . | . . x . . . | . | . | . | x . . . . .
+"""
+
+# ---- ベース ----
+[parts.bass]
+kind = "bass"
+instrument = "pizz_bass"
+octave = 2
+gain_db = -9
+reverb = 0.08
+pattern = "R . . 5 . . | R . . . . ."
+
+# ---- コード ----
+[parts.harp]
+kind = "chord"
+instrument = "harp"
+octave = 4
+gain_db = -15
+pan = -0.2
+reverb = 0.25
+strum_ms = 30
+pattern = """
+1 5 3 5 3 5 | 1 3 5 3 5 3 | 1 5 3 5 3 5 | 1 5 3 5 x .
+"""
+
+# ---- メロディ ----
+[parts.ocarina]
+kind = "melody"
+instrument = "ocarina"
+octave = 5
+gain_db = -11
+pan = 0.1
+reverb = 0.3
+pattern = """
+3 - - 5 - 3
+1 - - 6, - 5,
+3 - 5 - 6 5
+2 - - - 7, 2
+6, - 1 - 3 -
+6 - - 5 3 -
+3 - 2 1 - -
+5 - - 7, 2 -
+3 - - 5 - 1'
+1' - 6 - 5 6
+1' - - 3' - 2'
+7 - - 6 5 -
+6 - 1' - 2' -
+3' - - 2' 1' -
+6 - 4 - 2 -
+5 - 7, - 2 -
+"""
+
+# ---- 木漏れ日のきらめき ----
+[parts.glockenspiel]
+kind = "melody"
+instrument = "glockenspiel"
+octave = 6
+gain_db = -22
+pan = 0.4
+reverb = 0.4
+pattern = """
+1 . 5 . 3' . | . | . | . | 6 . 1' . 3' . | . | . | .
+1 . 5 . 3' . | . | . | . | 1 . 4 . 6 . | . | . | .
+"""
