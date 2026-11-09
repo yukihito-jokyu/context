@@ -68,4 +68,10 @@
 | [my-skill-creator](authoring/my-skill-creator/SKILL.md) | Skill の作成、改善、評価、最適化を行う。 |
 | [skill-refiner](authoring/skill-refiner/SKILL.md) | 1つのSkillを題材別の新規担当で検証し、人間の指摘から独立評価・改善をHTMLで進める。 |
 
+## 音声・メディア（`media/`）
+
+| Skill | 概要 |
+|---|---|
+| [local-tts](media/local-tts/SKILL.md) | ローカルのFish Audio S2 Proで文章の読み上げ・WAV生成・声の登録・OpenAI互換APIの起動を行う。 |
+
 explain-htmlのArchify必須ゲートは[契約と検査範囲](discovery/explain-html/references/archify-gate.md)を参照してください。hooksを使うClaude Code向け[plugin定義](../plugins/explain-html/README.md)はビルド可能ですが未導入です。
