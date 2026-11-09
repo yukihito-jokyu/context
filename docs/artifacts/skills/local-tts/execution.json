@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "skill": "local-tts",
+  "skill_source": "utils/skills/media/local-tts/SKILL.md",
+  "skill_sha256": "49258f71bd3a4f7b3e9cc8e3d2e4c7aaa428dc564e7046871d47e37c52767b64",
+  "recorded_at": "2026-11-09T08:00:52.409Z",
+  "executor": "Claude Code（サブエージェント）",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "afda2b473c2b78750",
+    "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してspeakでWAVにし、TTSサーバーを停止するまでを実行する"
+  },
+  "input": "input.md",
+  "summary": "2文の日本語をSSMLにして区切りを確認し、ローカルのS2 Pro（Metal）でWAVを生成しました。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。",
+  "stage": "WAVの生成とTTSサーバーの停止まで。音声の試聴は未実施",
+  "checks": [
+    "doctorでengine.readyがtrueであることを確認",
+    "planは発話2件で警告なし",
+    "speakは終了コード0で、4.78秒の音声を約36秒で生成（実時間の約7.5倍）",
+    "ffprobeで確かめたWAVの長さがtiming.jsonのaudio_secondsと一致",
+    "server stop後にserver statusでnot runningを確認",
+    "実行者は音声を聞けないため、読みの正しさは未確認。WAVはFish Audio Research Licenseでの公開の扱いが未確認のため非掲載"
+  ],
+  "downloads": [
+    {
+      "file": "output.md",
+      "label": "実行報告（Markdown）"
+    },
+    {
+      "file": "sample.ssml",
+      "label": "合成に使ったSSML"
+    },
+    {
+      "file": "plan.txt",
+      "label": "planの出力"
+    },
+    {
+      "file": "timing.json",
+      "label": "区間ごとの時間（JSON）"
+    }
+  ],
+  "text_output": "output.md",
+  "artifacts": [
+    {
+      "file": "input.md",
+      "sha256": "8c5438350eaea85b4cd6ef2ae3cf140cd2d39f9ece0303c659e99e359f1d307e",
+      "bytes": 240
+    },
+    {
+      "file": "output.md",
+      "sha256": "8fa9482290f7a4af96850837bb7ca0650573627342eeba2aa6f666b1818adfe5",
+      "bytes": 2707
+    },
+    {
+      "file": "plan.txt",
+      "sha256": "bf7c700dc298c8e655c305135cf7bab0304c7d2df7f30128490efb9d4ebda1db",
+      "bytes": 652
+    },
+    {
+      "file": "sample.ssml",
+      "sha256": "01a67c99305d108021e21c944401b58f872771f13a4e0b80fc0fb2e9ce331b3e",
+      "bytes": 256
+    },
+    {
+      "file": "timing.json",
+      "sha256": "3ac9f02dd31d9071a0d3c7f550c559be769b601a181f1d72a4243fa33f233f68",
+      "bytes": 678
+    }
+  ],
+  "source_files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "49258f71bd3a4f7b3e9cc8e3d2e4c7aaa428dc564e7046871d47e37c52767b64"
+    },
+    {
+      "file": "references/cleanup.md",
+      "sha256": "2b787c59bb547a5a17b7e84659e5c9a7f8c0c2f97178960864931dff399b49bf"
+    },
+    {
+      "file": "references/commands.md",
+      "sha256": "abe0c2cd7d06c1f9f9378a3e418af5554e9a97b9fa44ca8b3a2e3c28c1a113da"
+    },
+    {
+      "file": "references/cuda-wsl.md",
+      "sha256": "60cd87db7b7eb4876e3c0198709c2915eb1994f501184d7f837f79edb70bdea5"
+    },
+    {
+      "file": "references/engine.md",
+      "sha256": "1d6cff8e1232d2e863fa6b4a7c02735dfd91da4a995f6b6ad6e02e426f0605b9"
+    },
+    {
+      "file": "references/setup.md",
+      "sha256": "f9056bb0105663fb455cf0d6c2c2e11ae3e27ba9ec75fbc13da627a30ecf3f64"
+    },
+    {
+      "file": "references/upstream.md",
+      "sha256": "b8c991a3198cc9a7a8756e6e7e6f60149081491e4625358deadfbf88c816f49d"
+    },
+    {
+      "file": "tools/.python-version",
+      "sha256": "49a506dd32096b010d75205acf3430c9ae6c40351888129499e5a5e487126c93"
+    },
+    {
+      "file": "tools/LICENSE",
+      "sha256": "482cccd449d057fa1cf2b43d45bd61a00c6d2a2016cf1d1cd8ff3b65fc6d3de1"
+    },
+    {
+      "file": "tools/examples/latency.ssml",
+      "sha256": "3a79aaad6e74626bee6230f872ec436d566ded536b02e726563c9db71021f556"
+    },
+    {
+      "file": "tools/examples/presentation.ssml",
+      "sha256": "b510f2fbab46a38ab4be7c501424443bc727b3a0fec5d47011f1e9a77e6c10ee"
+    },
+    {
+      "file": "tools/presenter.example.toml",
+      "sha256": "f96c9b386eb46c4f9c96e3f83ea4a79fc7d733f690aba583df312591820961ff"
+    },
+    {
+      "file": "tools/pyproject.toml",
+      "sha256": "6ed14faa81b37a0978611b7cee9957d361cf119ecfd3de8a20b9048c47d53e75"
+    },
+    {
+      "file": "tools/scripts/check-wsl.sh",
+      "sha256": "4a4bc7690e59c134215f4088d66fbbbedd06a20c083fc985fe09343fcaca0904"
+    },
+    {
+      "file": "tools/scripts/fetch_s2.py",
+      "sha256": "78e7c591efa547b68c98d623a44c28de7eebbcee06053e9e4a8b1aa88cd4c8b4"
+    },
+    {
+      "file": "tools/scripts/macos_pcm_player.swift",
+      "sha256": "665c059fe086bb6d0a5bf69e9bcebe2a8c27295b60728ef7d55ca3075d94cdc4"
+    },
+    {
+      "file": "tools/scripts/setup-s2.ps1",
+      "sha256": "043c441ae9e9116b548fd171a50ce2cb6aed60fe4876ad5b838407ad968b353a"
+    },
+    {
+      "file": "tools/scripts/setup-s2.sh",
+      "sha256": "0ebe9c36125474d1a11829ca2c6e0c60c23cce0f530470cfab14aae702a5b20a"
+    },
+    {
+      "file": "tools/scripts/verify_local.py",
+      "sha256": "0c2e2c54257c5467a590fa19f77198acc8c1306a196bf268ac55335041cb19f2"
+    },
+    {
+      "file": "tools/src/presenter_tts/__init__.py",
+      "sha256": "f3bea324f469088d2c4cfddc292099b2f0a040fe42f11876be1e33a0c13d65ac"
+    },
+    {
+      "file": "tools/src/presenter_tts/__main__.py",
+      "sha256": "3d05a9a7c99b8fb6775a9d84bdc645c8f7cb2c0899bfb6b8424668a512a433a3"
+    },
+    {
+      "file": "tools/src/presenter_tts/api.py",
+      "sha256": "e4abc7f5e12afca2c4a5beeaa682cd4e2e92a4207a011f0fc7e23d77aa7b4f2a"
+    },
+    {
+      "file": "tools/src/presenter_tts/audio.py",
+      "sha256": "de32f5f8df36df2380dfb30cb029af4d39b83e4444874c2f6898f78ef47ed362"
+    },
+    {
+      "file": "tools/src/presenter_tts/cli.py",
+      "sha256": "36bf5428d386cefeebb804431a92f105ced7b3246befdf5bfc396fa2389df6d1"
+    },
+    {
+      "file": "tools/src/presenter_tts/fillers.py",
+      "sha256": "0d9e62ab02b3a8bfd0e62fc6e718a818dec288905f171039f7058e5e0998ce04"
+    },
+    {
+      "file": "tools/src/presenter_tts/runtime.py",
+      "sha256": "6d8136310013aae7a170b4a5bfa13a10cd3b7616ba8c486bcce77e3fdda66b5f"
+    },
+    {
+      "file": "tools/src/presenter_tts/say.py",
+      "sha256": "002ef5385a4d5efe43675134c228dcab33944d3df7973697e967d3562ac041d2"
+    },
+    {
+      "file": "tools/src/presenter_tts/server.py",
+      "sha256": "5e6508bcea1eff9803bb4f71cadbb7cc88c8ecc0da9ece78b3ab07df57c91522"
+    },
+    {
+      "file": "tools/src/presenter_tts/ssml.py",
+      "sha256": "10e0ed2c37099f26992419740b6151f1e4bd165d71cc9ab4acd00d5ea3d47c71"
+    },
+    {
+      "file": "tools/src/presenter_tts/voices.py",
+      "sha256": "10761121e75c25c54ffd8935769c49b2fc7dcfceb0e9dd3feabbf74e4a6a50e0"
+    },
+    {
+      "file": "tools/tests/test_api.py",
+      "sha256": "60e7001303eaea778ab4a0c90b80983160a4a307ff0caa85599614ba6356a2e9"
+    },
+    {
+      "file": "tools/tests/test_cli.py",
+      "sha256": "1a572d9f071640047fe41894df972df07f1c1685ba389f089b32bd098b934072"
+    },
+    {
+      "file": "tools/tests/test_fetch_s2.py",
+      "sha256": "8326d7d968a1a74f05e0d719459a45b68109ca6083bdccc5360b19570339c61e"
+    },
+    {
+      "file": "tools/tests/test_runtime.py",
+      "sha256": "dda936d26c12ebeaadcdc0e592e9736e4deae1d60369f461d2cc7bc4e276d443"
+    },
+    {
+      "file": "tools/tests/test_skill_layout.py",
+      "sha256": "6d085a1ccd936c445d0c91cd363c4d233be2b7c05f8095164b53b5135679bc57"
+    },
+    {
+      "file": "tools/tests/test_tts.py",
+      "sha256": "a4c17fafd7fb606190da67436fbf698c26cbffdc076e15ee7eb6b8b1a913fccd"
+    },
+    {
+      "file": "tools/uv.lock",
+      "sha256": "d15301f9bd7c68f2ac459e6ddd843bdb0be1fc85e7807469bb018a1b0375eb52"
+    }
+  ],
+  "source_sha256": "57bf843d549f50e7483ae10df55de22adc52ddb3ac0e6286de7bede27b27d742"
+}

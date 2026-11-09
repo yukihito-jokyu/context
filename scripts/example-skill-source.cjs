@@ -3,7 +3,7 @@ const path = require('node:path');
 const {createHash} = require('node:crypto');
 
 const digest = data => createHash('sha256').update(data).digest('hex');
-const ignoredDirectories = new Set(['.git', 'node_modules', '__pycache__']);
+const ignoredDirectories = new Set(['.git', 'node_modules', '__pycache__', '.venv']);
 
 function collectFiles(root, ignoreCaches = false) {
   const files = [];

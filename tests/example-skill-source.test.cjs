@@ -51,6 +51,12 @@ test('実行キャッシュだけはスキルの変更として扱わない', t 
   fs.writeFileSync(path.join(f.skillDir, '__pycache__', 'run.pyc'), 'cache');
   assert.equal(verifyExampleSkillSource(f), 'current');
 });
+test('uvが作る仮想環境はシンボリックリンクを含んでもスキルの変更として扱わない', t => {
+  const f = fixture(t);
+  fs.mkdirSync(path.join(f.skillDir, '.venv', 'bin'), {recursive: true});
+  fs.symlinkSync('/usr/bin/python3', path.join(f.skillDir, '.venv', 'bin', 'python'));
+  assert.equal(verifyExampleSkillSource(f), 'current');
+});
 test('共有しない検証記録の有無は配布ソースの一致に影響せず、開発仕様の変更は検出する', t => {
   const f = fixture(t);
   fs.mkdirSync(path.join(f.skillDir, 'dev', 'results'), {recursive: true});
