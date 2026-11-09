@@ -73,5 +73,6 @@
 | Skill | 概要 |
 |---|---|
 | [local-tts](media/local-tts/SKILL.md) | ローカルのFish Audio S2 Proで文章の読み上げ・WAV生成・声の登録・OpenAI互換APIの起動を行う。 |
+| [loop-bgm](media/loop-bgm/SKILL.md) | TOMLの設計図から数式合成でオリジナルのループBGMを作り、テンポ・調・楽器・パート単位で修正する。 |
 
 explain-htmlのArchify必須ゲートは[契約と検査範囲](discovery/explain-html/references/archify-gate.md)を参照してください。hooksを使うClaude Code向け[plugin定義](../plugins/explain-html/README.md)はビルド可能ですが未導入です。

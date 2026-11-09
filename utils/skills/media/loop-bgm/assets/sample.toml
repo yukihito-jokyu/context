@@ -1,0 +1,125 @@
+# 見本曲の設計図。書式は SKILL.md を参照。
+
+[song]
+bpm = 150
+key = "C"
+mode = "major"
+bars = 16
+beats_per_bar = 4
+seed = 1
+humanize_ms = 2.5
+chords = ["1", "5", "6", "3", "4", "1", "2", "5",
+          "1", "5", "6", "3", "4", "5", "1", "5"]
+
+[mix]
+target_lufs = -16.0
+highpass_hz = 35.0
+voice_dip_db = -4.0   # 声と被りやすい帯域を削る量
+voice_dip_hz = 2000.0
+reverb_t60 = 1.1
+
+# ---- リズム ----
+[parts.bongo_hi]
+kind = "drum"
+instrument = "bongo_hi"
+gain_db = -9
+pan = 0.25
+reverb = 0.08
+pattern = """
+x . . x . . X . | x . . x . . X . | x . . x . . X . | x x . x . x X x
+"""
+
+[parts.bongo_lo]
+kind = "drum"
+instrument = "bongo_lo"
+gain_db = -9
+pan = -0.2
+reverb = 0.08
+pattern = """
+. . x . . x . x | . . x . . x . x | . . x . . x . x | . . x . X . . .
+"""
+
+[parts.tambourine]
+kind = "drum"
+instrument = "tambourine"
+gain_db = -16
+pan = 0.4
+reverb = 0.05
+pattern = "o o X o o o X o"
+
+# ---- ベース ----
+[parts.bass]
+kind = "bass"
+instrument = "pizz_bass"
+octave = 2
+gain_db = -7
+reverb = 0.03
+pattern = """
+R . . 5 . . R . | R . . 5 . . 8 . | R . 5 . R . . 5 | R . . 3 . 5 8 5
+"""
+
+# ---- コード ----
+[parts.chords]
+kind = "chord"
+instrument = "pizz_violin"
+octave = 4
+gain_db = -11
+pan = -0.3
+reverb = 0.16
+strum_ms = 7
+pattern = """
+. . x . . x . x | x . x . . x . . | . . x . . x . x | x . x . x . . x
+"""
+
+# ---- メロディ ----
+[parts.melody]
+kind = "melody"
+instrument = "xylophone"
+octave = 5
+gain_db = -5
+reverb = 0.16
+pattern = """
+5 . 3 5 1' . 7 5
+7 . 5 7 2' . 1' 7
+6 . 3' . 2' 1' 7 .
+5 . 7 . 3' - - .
+4' . 3' 2' 1' . 6 .
+5 . 1' 3' 5' . 3' .
+4' . 3' 2' 6 . 2' .
+7 1' 2' 3' 2' . 7 5
+5 . 3 5 1' . 7 5
+7 . 5 7 2' . 1' 7
+6 . 1' 3' 6' . 5' 3'
+5' . 3' 7 3' - - .
+6' . 5' 4' 3' . 1' .
+2' . 7 2' 5' . 4' 2'
+1' . 5 3' 1' - - .
+5 6 7 1' 2' . 7 .
+"""
+
+# ---- アレンジ ----
+[parts.melody_octave]
+copy_of = "melody"
+octave = 6
+gain_db = -17
+pan = 0.15
+reverb = 0.2
+
+[parts.glockenspiel]
+kind = "melody"
+instrument = "glockenspiel"
+octave = 6
+gain_db = -15
+pan = 0.35
+reverb = 0.3
+pattern = """
+5 . 1' . 3' . . . | . | . | . | 4 . 6 . 1' . . . | . | . | .
+"""
+
+[parts.woodblock]
+kind = "drum"
+instrument = "woodblock"
+gain_db = -15
+pan = -0.45
+reverb = 0.1
+pattern = ". x . . . x . x | . . . x . x . ."
