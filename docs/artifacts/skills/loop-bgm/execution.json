@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "skill": "loop-bgm",
+  "skill_source": "utils/skills/media/loop-bgm/SKILL.md",
+  "skill_sha256": "eec7dcbd41259020e0f97d22b58a5e30eda1b9855a6f13eeb2b66a03bd016be4",
+  "recorded_at": "2026-11-09T08:50:36.458Z",
+  "executor": "Claude Code（サブエージェント）",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "a5f6ca185eeabcfbf",
+    "task": "loop-bgmのSKILL.mdに従い、ブラウザゲームのタイトル画面用の8小節のループBGMを設計図から作り、通常版とゲームボーイ風のWAVを書き出して音量の確認まで行う"
+  },
+  "input": "input.md",
+  "summary": "ブラウザゲームのタイトル画面向けに、BPM 152・D majorの8小節のループBGMを設計図から作り、通常版とゲームボーイ風のWAVを書き出しました。数式合成の音なので、WAVもそのまま掲載しています。",
+  "stage": "通常版とゲームボーイ風のWAVの書き出しと、音量の確認まで。音の試聴は未実施",
+  "checks": [
+    "通常版・ゲームボーイ風ともに、render.logの「つなぎ目」がOK",
+    "どちらも長さ12.632秒、-16.0 LUFS、リミッターの作用0.00%",
+    "afinfoで48 kHz、16bit、2チャンネルのWAVであることを確認",
+    "最終の設計図で再度書き出し、両方のWAVのハッシュが一致することを確認",
+    "通常版は打楽器とコードのgain_dbを上げて、音量の目安に近づくよう調整",
+    "ゲームボーイ風のch2とch3は見本の目安より1.7〜1.9 dB小さいが、gain_dbが効かないため未調整",
+    "実行者は音を聴けないため、雰囲気・メロディ・つなぎ目の聞こえ方は未確認"
+  ],
+  "downloads": [
+    {
+      "file": "title_screen.wav",
+      "label": "通常版のWAV"
+    },
+    {
+      "file": "title_screen_gameboy.wav",
+      "label": "ゲームボーイ風のWAV"
+    },
+    {
+      "file": "title_screen.toml",
+      "label": "設計図（TOML）"
+    },
+    {
+      "file": "render.log",
+      "label": "書き出しのログ"
+    },
+    {
+      "file": "output.md",
+      "label": "実行報告（Markdown）"
+    }
+  ],
+  "text_output": "output.md",
+  "artifacts": [
+    {
+      "file": "input.md",
+      "sha256": "6c4b766378d2f78ad4d7b9f16d91bf5aa0b4f77d3ccc2e3da9ec722cc2196505",
+      "bytes": 292
+    },
+    {
+      "file": "output.md",
+      "sha256": "ab3b4a41e52ec3ff26aefcaec708adfb3266861f2b628206f314130d566cc097",
+      "bytes": 6352
+    },
+    {
+      "file": "render.log",
+      "sha256": "a82875550bf343ccd6530c2e959e9135b11fc4b8b6a26858162536e68da2b0b7",
+      "bytes": 1295
+    },
+    {
+      "file": "title_screen.toml",
+      "sha256": "c7b444b563847f847184efad54eed4bfb786a2ad64a85e65275b824a3b9a0695",
+      "bytes": 1856
+    },
+    {
+      "file": "title_screen.wav",
+      "sha256": "a41b6270599e2f89cf039415024355372ce010795165d98e8ac6576fe1f77161",
+      "bytes": 2425308
+    },
+    {
+      "file": "title_screen_gameboy.wav",
+      "sha256": "1083481a513d908bd2354cc71044a7d3d86c4dbb8ba6e84e73f6f1984ea14fe8",
+      "bytes": 2425308
+    }
+  ],
+  "source_files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "eec7dcbd41259020e0f97d22b58a5e30eda1b9855a6f13eeb2b66a03bd016be4"
+    },
+    {
+      "file": "assets/forest_stream.toml",
+      "sha256": "eee61dde26e2e0604fda39e2a4a16e673731cbcf28052a540f8d33a2df3f9f03"
+    },
+    {
+      "file": "assets/sample.toml",
+      "sha256": "93256c20f1eb1fb2df7a9e548daa8b8c49901c7b58f4430977226ecbb93c4635"
+    },
+    {
+      "file": "scripts/bgm/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "scripts/bgm/__main__.py",
+      "sha256": "9406d4519bb0060ef0cf8f57c83db99a0e1adbd5ed41e86b887404aa7f0c1bac"
+    },
+    {
+      "file": "scripts/bgm/dsp.py",
+      "sha256": "ad97aed0e7b111b1db22d6cd03297b02bec74eed5a45fabe2ca72ba6c9e1b394"
+    },
+    {
+      "file": "scripts/bgm/gameboy.py",
+      "sha256": "3272875702bb71d22383e5baf433bb83f96275292ce977d21f0e51f67863321d"
+    },
+    {
+      "file": "scripts/bgm/instruments.py",
+      "sha256": "b8fbf3f1b6c26b297421541e7c836af8b5ed538b5ed98a88bd48197fae14dcfe"
+    },
+    {
+      "file": "scripts/bgm/render.py",
+      "sha256": "111ec4e6900f8e10553ff49eebdce241170b14f4421b7466dacc773ada536ee4"
+    },
+    {
+      "file": "scripts/bgm/score.py",
+      "sha256": "dc58f7e5b4ec24bb53fd6f669f3e13a3d3713f421f4727cd6e3772da1fb877ca"
+    },
+    {
+      "file": "scripts/render.py",
+      "sha256": "e6a0433f72ffff2ea1a286f48453ac4f6f9b37c7b6250d9202274d209d3febb2"
+    }
+  ],
+  "source_sha256": "f20d5373e6d001579466d0d1a35aa54425b2ae4e7b692e7e8086d1fe86db2a41"
+}
