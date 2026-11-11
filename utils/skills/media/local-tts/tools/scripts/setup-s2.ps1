@@ -7,9 +7,10 @@ param(
     [string]$Revision = 'main'
 )
 $ErrorActionPreference = 'Stop'
-# The uv project (.claude/skills/local-tts/tools) and the per-user home shared with presenter_tts.voices.
+# The uv project (.claude/skills/local-tts/tools) and the per-user home used by local_tts.home.
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$homeRoot = if ($env:PRESENTER_TTS_HOME) { $env:PRESENTER_TTS_HOME } else { Join-Path $env:LOCALAPPDATA 'presenter-tts' }
+# PRESENTER_TTS_HOME is the old name of LOCAL_TTS_HOME.
+$homeRoot = if ($env:LOCAL_TTS_HOME) { $env:LOCAL_TTS_HOME } elseif ($env:PRESENTER_TTS_HOME) { $env:PRESENTER_TTS_HOME } else { Join-Path $env:LOCALAPPDATA 'local-tts' }
 $runtimeRoot = Join-Path $homeRoot 'cache'
 
 function Find-CMake {
@@ -87,4 +88,4 @@ if ($LASTEXITCODE -ne 0) { throw 's2.cpp build failed.' }
 & $PythonExecutable (Join-Path $PSScriptRoot 'fetch_s2.py') --directory (Join-Path $runtimeRoot 'models')
 if ($LASTEXITCODE -ne 0) { throw 'Model download failed; the compiled engine was preserved.' }
 & git -C $SourceDir rev-parse HEAD | Set-Content -Encoding ascii (Join-Path $runtimeRoot 's2-source-revision.txt')
-Write-Output 'Setup finished. Run: uv run presenter-tts server start'
+Write-Output 'Setup finished. Run: uv run local-tts server start'

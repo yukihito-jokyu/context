@@ -1,3 +1,4 @@
+import _isolated_home  # noqa: F401  (must come before local_tts)
 import contextlib
 import hashlib
 import importlib.util

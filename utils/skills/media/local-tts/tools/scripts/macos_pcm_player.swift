@@ -1,4 +1,4 @@
-// Play s16le PCM from stdin as it arrives (presenter's --play on macOS), then exit when it is heard.
+// Play s16le PCM from stdin as it arrives (local-tts's --play on macOS), then exit when it is heard.
 // Usage: macos_pcm_player SAMPLE_RATE CHANNELS
 import AVFoundation
 import Foundation

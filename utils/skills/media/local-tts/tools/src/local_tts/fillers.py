@@ -39,7 +39,8 @@ def trim_and_fade(pcm, fmt, fade_ms):
 def filler_takes(backend):
     """Cached filler WAVs for the current voice, synthesizing missing ones once (runaways too,
     so they are not retried; filler_pool() skips them by length)."""
-    folder = voices.FILLER_CACHE / Path(backend.config.get("voice", "default")).stem
+    # Per engine and voice: the same voice sounds different on each engine.
+    folder = voices.FILLER_CACHE / backend.engine / Path(backend.config.get("voice", "default")).stem
     paths = []
     for text in FILLERS:
         path = folder / f"{text}.wav"

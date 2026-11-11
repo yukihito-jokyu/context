@@ -12,9 +12,9 @@ import sys
 import threading
 import time
 
-from . import voices
+from . import engines, server, voices
 from .audio import AudioError, Backend, filters
-from .say import segments
+from .say import group, segments
 from .ssml import Style
 
 # response_format -> FFmpeg output arguments and Content-Type, as in OpenAI's API.
@@ -27,7 +27,8 @@ FORMATS = {
     # OpenAI's pcm is raw signed 16-bit little-endian mono at 24 kHz.
     "pcm": (["-f", "s16le", "-ar", "24000"], "audio/pcm"),
 }
-MODELS = ("s2-pro", "tts-1", "tts-1-hd", "gpt-4o-mini-tts")
+# The engines' own names pick an engine; OpenAI's names mean the server's default engine.
+MODELS = (*(spec["api_model"] for spec in engines.ENGINES.values()), "tts-1", "tts-1-hd", "gpt-4o-mini-tts")
 MAX_INPUT = 4096  # OpenAI's limit for one request.
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 KEY_FILE = voices.HOME / "api-key.txt"  # A secret, so not under cache/ (which may be wiped).
@@ -55,7 +56,7 @@ class RequestError(ValueError):
 
 
 def parse(body):
-    """Validate a speech request body; returns (input, voice, response_format, speed)."""
+    """Validate a speech request body; returns (input, voice, response_format, speed, engine or None)."""
     try:
         request = json.loads(body)
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -74,7 +75,11 @@ def parse(body):
     if isinstance(speed, bool) or not isinstance(speed, (int, float)) or not .25 <= speed <= 4:
         raise RequestError("'speed' must be a number from 0.25 to 4.0", "speed")
     voice = request.get("voice")
-    return text, voice if isinstance(voice, str) else None, response_format, float(speed)
+    model = request.get("model")
+    engine = engines.by_api_model(model) if isinstance(model, str) else None
+    if isinstance(model, str) and engine is None and model not in MODELS:
+        raise RequestError(f"'model' must be one of {', '.join(MODELS)}", "model")
+    return text, voice if isinstance(voice, str) else None, response_format, float(speed), engine
 
 
 def with_voice(config, name):
@@ -94,7 +99,8 @@ def encode(config, text, speed, response_format, max_chars):
     if not ffmpeg:
         raise AudioError("FFmpeg is required to encode audio")
     backend = Backend(config)
-    parts = segments(text, False, max_chars)
+    limit = engines.request_chars(config)
+    parts = group(segments(text, False, 0), limit) if limit else segments(text, False, max_chars)
     ready, state = threading.Event(), {}
 
     def feed():
@@ -183,7 +189,7 @@ def handler(config, lock, max_chars, key=None):
                 return
             if self.path.split("?")[0].rstrip("/") == "/v1/models":
                 self.send_json(200, {"object": "list", "data": [
-                    {"id": m, "object": "model", "owned_by": "presenter-tts"} for m in MODELS]})
+                    {"id": m, "object": "model", "owned_by": "local-tts"} for m in MODELS]})
             else:
                 self.send_error_json(404, f"Unknown path: {self.path}")
 
@@ -197,15 +203,16 @@ def handler(config, lock, max_chars, key=None):
                 length = int(self.headers.get("Content-Length", 0))
                 if not 0 < length <= 64_000:
                     raise RequestError("The request body is missing or too large")
-                text, voice, response_format, speed = parse(self.rfile.read(length))
-                request_config = with_voice(config, voice)
+                text, voice, response_format, speed, engine = parse(self.rfile.read(length))
+                request_config = with_voice(engines.select(config, engine or config.get("engine")), voice)
             except (RequestError, AudioError) as exc:
                 self.send_error_json(getattr(exc, "status", 400), str(exc), getattr(exc, "param", None))
                 return
             started = time.perf_counter()
-            # s2.cpp synthesizes one request at a time, so callers queue here instead of getting 503.
+            # Engines synthesize one request at a time, so callers queue here instead of getting 503.
             with lock:
                 try:
+                    server.ensure(request_config)  # A request may name an engine that is not running yet.
                     audio = encode(request_config, text, speed, response_format, max_chars)
                     first = next(audio, b"")
                 except AudioError as exc:
@@ -229,7 +236,7 @@ def handler(config, lock, max_chars, key=None):
                 finally:
                     audio.close()
             name = Path(request_config.get("voice", "default")).stem
-            print(f"{datetime.now():%H:%M:%S} {name} {response_format} {len(text)} chars "
+            print(f"{datetime.now():%H:%M:%S} {request_config['engine']} {name} {response_format} {len(text)} chars "
                   f"{time.perf_counter() - started:.1f}s {outcome}", file=sys.stderr)
 
     return Handler

@@ -1,17 +1,43 @@
 # セットアップ手順
 
-TTSエンジン（s2.cpp）とモデルを用意し、音が出るところまで確かめる。
-`<local-tts>`はこのスキルのフォルダ。エンジンとモデルは`<home>/cache/`に置かれ、presenterスキルと共有する。presenter側で済んでいれば、もう一度ビルドしなくてよい。
+使うエンジンとモデルを用意し、音が出るところまで確かめる。
+`<local-tts>`はこのスキルのフォルダ。エンジンとモデルは`<home>/cache/`に置かれる。presenterスキルとは共有しないので、presenter側でビルド済みでも、このスキル用にもう一度用意する（旧フォルダからは`home migrate`で移せる）。
 ユーザーにやってもらうのは、**ソフトの導入とライセンスへの同意の承認**だけにする。それ以外のコマンドはこちらで実行する。
+
+## 0. どのエンジンを用意するか
+
+既定はVoxCPM2。用途で選ぶ（[engines.md](engines.md)）。必要なものだけを用意すればよい。
+
+| エンジン | 用意のしかた | 必要なもの | 容量 |
+|---|---|---|---|
+| OmniVoice | 下の「PyTorchのエンジン」 | uv、FFmpeg。WindowsはNVIDIA GPU（VRAM約4.5 GB以上、ドライバーがCUDA 12.8以上に対応） | 実行環境約1 GB、モデル約3 GB |
+| VoxCPM2 | 下の「PyTorchのエンジン」 | 同上（VRAM約8 GB以上） | 実行環境約1.5 GB、モデル約5 GB |
+| S2 | 手順1〜5（ビルド） | Git、CMake、WindowsはVisual StudioとCUDA Toolkit 12.4以上、MacはXcode CLT。**ライセンスへの同意** | 約4 GB |
+
+### PyTorchのエンジン（OmniVoice・VoxCPM2）
+
+1. `doctor`で`uv`・`ffmpeg`・`huggingface.co`を確かめる（足りなければ手順2の表で入れる）。Windowsは`nvidia-smi`の「CUDA Version」が12.8以上であること。
+2. 入れるもの（PyTorchとモデル、上の表の容量）と時間（回線次第で数分〜十数分）を伝えて承認を得る。
+3. 導入して確かめる。ダウンロードがあるので、時間がかかりそうならバックグラウンドで実行する。
+
+   ```console
+   uv run --project "<local-tts>/tools" local-tts engine install omnivoice
+   uv run --project "<local-tts>/tools" local-tts engine list
+   ```
+
+4. 手順5と同じく音を確かめる（`say --engine omnivoice ...`）。設定の見本がなければ手順4の終わりのとおり置く。
+
+ライセンスはどちらもApache-2.0で、S2のような同意は要らない。ただし、なりすまし・詐欺・偽情報への使用は禁じられている。
+以下の手順1〜5はS2（s2.cpp）を用意するときのもの。
 
 ## 1. いまの状態を調べる
 
 ```console
-uv run --project "<local-tts>/tools" presenter-tts doctor
+uv run --project "<local-tts>/tools" local-tts doctor
 ```
 
 uv自体がない場合はこのコマンドが動かないので、先に手順2でuvを入れる。
-出力のJSONから次を読む。**`engine.ready`がtrueなら手順5（動作確認）へ飛ぶ。**
+出力のJSONから次を読む。**`engine.ready`（S2の準備）がtrueなら手順5（動作確認）へ飛ぶ。**
 
 | 項目 | 必要な状態 |
 |---|---|
@@ -89,7 +115,7 @@ s2.cppのエンジンとS2 Proのモデルは**Fish Audio Research License**で�
 "<local-tts>/tools/scripts/setup-s2.sh"
 ```
 
-- 置き場所は`%LOCALAPPDATA%\presenter-tts\cache\`（Windows）または`~/.local/share/presenter-tts/cache/`（Mac）。`PRESENTER_TTS_HOME`があればその下。どのプロジェクトからも共有される。
+- 置き場所は`%LOCALAPPDATA%\local-tts\cache\`（Windows）または`~/.local/share/local-tts/cache/`（Mac）。`LOCAL_TTS_HOME`があればその下。どのプロジェクトからも共有される。
 - Windowsのビルド中に大量に出る`warning C4819`（文字コード）や`C4244`（型変換）は無害。どちらのOSも終わりに`Setup finished`が出れば成功。
 - 失敗したら、出力の`error`を含む行を探す。WindowsはCUDA、MacはXcode/Metal/CMakeを確認する。同じビルド先を別のバックエンドで構成し直して拒否された場合は、`cache/s2-build`を消してからやり直す（ユーザーに確認してから）。
 - モデルのダウンロードだけが失敗した場合、ビルドは残っている。もう一度同じコマンドを実行すればダウンロードから再開する。
@@ -97,37 +123,37 @@ s2.cppのエンジンとS2 Proのモデルは**Fish Audio Research License**で�
 設定ファイルがなければ、見本をコピーする（既存のものは上書きしない）。
 
 ```powershell
-$ttsHome = if ($env:PRESENTER_TTS_HOME) { $env:PRESENTER_TTS_HOME } else { Join-Path $env:LOCALAPPDATA 'presenter-tts' }
+$ttsHome = if ($env:LOCAL_TTS_HOME) { $env:LOCAL_TTS_HOME } else { Join-Path $env:LOCALAPPDATA 'local-tts' }
 $config = Join-Path $ttsHome 'config.toml'
 if (-not (Test-Path -LiteralPath $config)) {
     New-Item -ItemType Directory -Path $ttsHome -Force | Out-Null
-    Copy-Item "<local-tts>/tools/presenter.example.toml" -Destination $config
+    Copy-Item "<local-tts>/tools/local-tts.example.toml" -Destination $config
 }
 ```
 
-Macでは同じ見本を`~/.local/share/presenter-tts/config.toml`へ置く。既存ファイルは上書きしない。
+Macでは同じ見本を`~/.local/share/local-tts/config.toml`へ置く。既存ファイルは上書きしない。
 
 ```bash
-tts_home="${PRESENTER_TTS_HOME:-$HOME/.local/share/presenter-tts}"
+tts_home="${LOCAL_TTS_HOME:-$HOME/.local/share/local-tts}"
 mkdir -p "$tts_home"
-test -e "$tts_home/config.toml" || cp "<local-tts>/tools/presenter.example.toml" "$tts_home/config.toml"
+test -e "$tts_home/config.toml" || cp "<local-tts>/tools/local-tts.example.toml" "$tts_home/config.toml"
 ```
 
 ## 5. 音が出るか確かめる
 
 ```console
-uv run --project "<local-tts>/tools" presenter-tts doctor
-uv run --project "<local-tts>/tools" presenter-tts say "こんにちは。音声合成のテストです。"
+uv run --project "<local-tts>/tools" local-tts doctor
+uv run --project "<local-tts>/tools" local-tts say --engine s2 "こんにちは。音声合成のテストです。"
 ```
 
 `engine.ready`がtrueで、`say`がエラーなく終わったら、**ユーザーに聞こえたかを尋ねる**。
 生成も再生も成功しているのに聞こえない場合は、OSの出力デバイスとミュートを確かめてもらう（よくある原因）。
-サーバーの起動に失敗したら`<home>/cache/s2-server.log`の末尾を読む。GPUメモリまたはMacのユニファイドメモリ不足なら、`config.toml`の`[server] gpu_layers`を減らす（例: 18）。
+サーバーの起動に失敗したら`<home>/cache/s2-server.log`（PyTorchのエンジンは`<home>/cache/<エンジン>-server.log`）の末尾を読む。GPUメモリまたはMacのユニファイドメモリ不足なら、`config.toml`の`[server] gpu_layers`を減らす（例: 18）。
 
 確かめ終わったら、続けて使う予定がなければサーバーを止める（GPUのメモリを約4 GB使うため）。
 
 ```console
-uv run --project "<local-tts>/tools" presenter-tts server stop
+uv run --project "<local-tts>/tools" local-tts server stop
 ```
 
 ## 6. 声を登録する（任意）
@@ -140,8 +166,8 @@ uv run --project "<local-tts>/tools" presenter-tts server stop
 
 次をまとめて伝える。
 
-- 入れたソフトと版、ビルドしたバックエンド（CUDAまたはMetal）
-- 置き場所（Windowsは`%LOCALAPPDATA%\presenter-tts`、Macは`~/.local/share/presenter-tts`）と使った容量
+- 入れたソフトと版、用意したエンジン（S2はビルドしたバックエンド、CUDAまたはMetal）
+- 置き場所（Windowsは`%LOCALAPPDATA%\local-tts`、Macは`~/.local/share/local-tts`）と使った容量
 - 動作確認の結果（聞こえたかどうかを含む）
 - 次にできること（`say`で話させる、`speak`でWAVを作る）と、片付けの方法（[cleanup.md](cleanup.md)）
 
@@ -149,4 +175,6 @@ uv run --project "<local-tts>/tools" presenter-tts server stop
 
 - CUDA/Xcodeを更新した、ビルドが壊れた: `cache/s2-build`を消して手順4から。
 - モデルを消した: 手順4をもう一度実行する（ビルドは使い回され、ダウンロードだけが走る）。
-- 別のPCに移る: そのPCでこのスキルを最初から実行する。声は`<home>/voices/`をコピーすれば持っていける。
+- PyTorchのエンジンの実行環境が壊れた: `<home>/cache/engines/<名前>/`を消して`engine install <名前>`をもう一度（モデルは残っていれば照合だけ）。
+- 別のPCに移る: そのPCでこのスキルを最初から実行する。声は`<home>/voices/`をコピーすれば持っていける（エンジン別のプロファイルは向こうで作り直される）。
+- 旧presenter-ttsのフォルダがある: [commands.md](commands.md)の8節の`home migrate`で移す。

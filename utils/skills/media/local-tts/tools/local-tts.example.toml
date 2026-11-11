@@ -1,12 +1,33 @@
-# Copy to %LOCALAPPDATA%\presenter-tts\config.toml on Windows or
-# ~/.local/share/presenter-tts/config.toml on macOS (or pass --config) and adjust.
-backend = "s2cpp"
+# Copy to %LOCALAPPDATA%\local-tts\config.toml on Windows or
+# ~/.local/share/local-tts/config.toml on macOS (or pass --config) and adjust.
+# Engine for say/speak/api unless --engine says otherwise: voxcpm2 (default), omnivoice, s2, voicevox.
+engine = "voxcpm2"
+# Address of the S2 (s2.cpp) server and its request timeout; the other engines use [engines.<name>].
 url = "http://127.0.0.1:3030"
 timeout = 120
-# Default voice: a name from voices/ (uv run presenter-tts voice list), or a .s2voice path.
+# Default voice: a name from voices/ (local-tts voice list), or a .s2voice path.
 # Without it the model's own voice is used, which can vary between sentences.
 # voice = "myvoice"
 
+[engines.omnivoice]
+# Naming the language helps OmniVoice slightly (README); remove it for mixed-language text.
+language = "Japanese"
+# device = "auto"        # auto: CUDA, else Apple MPS, else CPU
+# dtype = "float16"      # float16 on GPUs, float32 on the CPU
+# num_step = 32          # diffusion steps; 16 is about twice as fast
+# request_chars = 200    # each request pays for the whole reference, so pack sentences (0 = one each)
+
+[engines.voxcpm2]
+# device = "auto"
+# cfg_value = 2.0
+# inference_timesteps = 10
+# Live playback (say) head start per character; 120 on macOS (RTF ~2 on an M4), 0 elsewhere.
+# stream_start_buffer_ms_per_char = 120
+
+# [engines.voicevox]
+# url = "http://127.0.0.1:50021"   # with engine = "voicevox"; pick the speaker with `speaker` at the root
+
+# S2 (s2.cpp) server settings.
 [server]
 # say/speak/api start the TTS server in the background when it is not running.
 auto_start = true
@@ -20,7 +41,7 @@ gpu_layers = 36
 codec_gpu = true
 # CPU threads per server. 0 = automatic: the performance cores on macOS, s2.cpp's choice on Windows.
 threads = 0
-# Used only by the presenter skill's narrate. say/speak/api talk to the first server, so keep this at 1.
+# say/speak/api talk to the first server only, so keep this at 1 (extra servers just hold memory).
 parallel = 1
 
 [generation]
@@ -55,4 +76,4 @@ filler_rate_min = 0.85
 filler_rate_max = 1.1
 filler_fade_ms = 30
 
-# For VOICEVOX instead of s2.cpp, see references/engine.md (backend/url/speaker go at the root).
+# For VOICEVOX, see references/engine.md (engine = "voicevox", speaker at the root).

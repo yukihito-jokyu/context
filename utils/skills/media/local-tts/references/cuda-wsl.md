@@ -25,7 +25,7 @@
 ```powershell
 & "<local-tts>/tools/scripts/setup-s2.ps1" -CudaRoot 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9' -CheckOnly
 & "<local-tts>/tools/scripts/setup-s2.ps1" -CudaRoot 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9'
-uv run --project "<local-tts>/tools" presenter-tts server start
+uv run --project "<local-tts>/tools" local-tts server start
 ```
 
 `-CheckOnly`はファイルとコンパイラーバージョンの確認で、MSVCとの組み合わせやGPU実行まで保証しない。
@@ -38,7 +38,7 @@ GPUドライバーは残す。フォルダーを直接削除しない。
 
 ## 検証結果をまとめて保存する
 
-通常のPowerShellで以下を実行する（`<local-tts>`はpresenterスキルのフォルダ）。モデルのダウンロード・インストール・WSL停止は行わない。
+通常のPowerShellで以下を実行する（`<local-tts>`はこのスキルのフォルダ）。モデルのダウンロード・インストール・WSL停止は行わない。
 
 ```powershell
 uv run --project "<local-tts>/tools" python "<local-tts>/tools/scripts/verify_local.py"
@@ -48,7 +48,7 @@ uv run --project "<local-tts>/tools" python "<local-tts>/tools/scripts/verify_lo
 依存関係は`uv run --project`が初回に`<local-tts>/tools/.venv`へそろえる。
 `checks_passed`がtrueでも、doctorに記録された通信や依存関係の警告・テストのスキップを確認する。実機での音声合成成功とは区別する。
 
-Toolkit導入とセットアップ後、`uv run --project "<local-tts>/tools" presenter-tts server start`でTTSサーバーを起動してから、以下を実行する。
+Toolkit導入とセットアップ後、`uv run --project "<local-tts>/tools" local-tts server start`でTTSサーバーを起動してから、以下を実行する。
 
 ```powershell
 uv run --project "<local-tts>/tools" python "<local-tts>/tools/scripts/verify_local.py" --synthesize --input "<local-tts>/tools/examples/latency.ssml" --runs 3
@@ -86,7 +86,7 @@ WSLでs2.cppをビルドする場合:
 - WSL-Ubuntu用のインストーラーか、`cuda-toolkit-X-Y`パッケージを選ぶ。ドライバーを含む`cuda`、`cuda-X-Y`、`cuda-drivers`を選ばない。Windowsの11.8を消してもLinuxのToolkitは更新されない。
 - Linux側の`nvcc --version`が12.4以上で、`nvidia-smi`がGPUを認識することを確認する。PATHにWindowsの`nvcc.exe`が混ざっていないか確認する。
 - ソース・モデル・ビルド出力はLinuxのホーム配下に置く。Windows版と同じCMakeビルドディレクトリを共用しない。ビルド方法は[s2.cppの上流手順](https://github.com/rodrigomatta/s2.cpp)に従う。
-- Linux側のサーバーは`127.0.0.1:3030`に限定して起動する。Windows側のコントローラーから`uv run --project "<local-tts>/tools" presenter-tts doctor`で到達性を確認する。localhost転送は既定で有効。届かない場合はWSLバージョンとネットワーク設定を確認してから変更する。
+- Linux側のサーバーは`127.0.0.1:3030`に限定して起動する。Windows側のコントローラーから`uv run --project "<local-tts>/tools" local-tts doctor`で到達性を確認する。localhost転送は既定で有効。届かない場合はWSLバージョンとネットワーク設定を確認してから変更する。
 
 `memory=16GB`はWSL全体のシステムRAM上限で、GPUのVRAMを増やす設定ではない。
 今回のQ4モデルでまず維持し、Linux側の`free -h`やOOMログを確認してから調整する。

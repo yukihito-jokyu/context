@@ -1,6 +1,6 @@
-# ローカルのプレゼン音声生成
+# SSMLとS2（s2.cpp）の詳細
 
-Python（uvで管理）でSSMLや入力文を解析し、量子化したFish Audio S2 Proを動かすs2.cppのHTTPサーバーへ渡す。
+Python（uvで管理）でSSMLや入力文を解析し、エンジンのHTTPサーバーへ渡す。この文書は主にS2（量子化したFish Audio S2 Proを動かすs2.cpp）について書く。OmniVoice・VoxCPM2は[engines.md](engines.md)。
 話速・音量・ピッチはFFmpegで処理し、受信したPCMからWAVとマーカー時刻のJSONを作る。
 `--play`を付けると受信中のPCMを再生プログラムへ送り、全文の音声完成を待たずに再生する。WindowsはFFplay、MacはCore Audioの補助プログラム（`tools/scripts/macos_pcm_player.swift`。セットアップか初回の再生で`<home>/cache/`へビルドする）を使い、Swiftがなければ FFplayを使う。
 Python側にPyTorchやモデルを読み込まないため、TTSサーバーと同じGPUメモリを二重に消費しない。
@@ -29,8 +29,8 @@ Python側にPyTorchやモデルを読み込まないため、TTSサーバーと�
 `uv run --project`が初回に`<local-tts>/tools/.venv`へ依存関係（Python 3.11、Typer）を入れる。`uv sync`や仮想環境の有効化は不要。
 
 ```console
-uv run --project "<local-tts>/tools" presenter-tts plan "<local-tts>/tools/examples/presentation.ssml"
-uv run --project "<local-tts>/tools" presenter-tts doctor
+uv run --project "<local-tts>/tools" local-tts plan "<local-tts>/tools/examples/presentation.ssml"
+uv run --project "<local-tts>/tools" local-tts doctor
 uv run --project "<local-tts>/tools" python -m unittest discover -s "<local-tts>/tools/tests" -v
 ```
 
@@ -72,7 +72,7 @@ GGUFは`rodrigomt/s2-pro-gguf`の`Q4_K_M`を取得する。
 モデルは`<home>/cache/models/`に置き、同じディレクトリに対応する`tokenizer.json`を置く。
 別形式のNF4・GPTQ・FP8チェックポイントをGGUFとして指定してはいけない。
 
-TTSサーバーは`uv run --project "<local-tts>/tools" presenter-tts server start`で裏で起動する（[使い方](commands.md#1-ttsサーバー)）。
+TTSサーバーは`uv run --project "<local-tts>/tools" local-tts server start`で裏で起動する（[使い方](commands.md#1-ttsサーバー)）。
 `say`・`speak`・`api`は、止まっていれば自動で起動する。出力は`<home>/cache/s2-server.log`に残る。
 
 既定はGPUに全36層。CUDAはコーデックもGPU、Metalは未対応のPAD演算があるためコーデックだけCPUで動かす。VRAMが足りずに起動できないときは、
@@ -81,17 +81,17 @@ TTSサーバーは`uv run --project "<local-tts>/tools" presenter-tts server sta
 `--max-tokens`を小さくしても、s2.cppが事前確保するKVキャッシュ全体が小さくなるわけではない。
 
 ```powershell
-Copy-Item "<local-tts>/tools/presenter.example.toml" "$env:LOCALAPPDATA\presenter-tts\config.toml"
-uv run --project "<local-tts>/tools" presenter-tts speak "<local-tts>/tools/examples/presentation.ssml" --output outputs/presentation.wav --play
+Copy-Item "<local-tts>/tools/local-tts.example.toml" "$env:LOCALAPPDATA\local-tts\config.toml"
+uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples/presentation.ssml" --output outputs/presentation.wav --play
 ```
 
 Macでは次のように設定を置く。
 
 ```bash
-tts_root="${PRESENTER_TTS_HOME:-$HOME/.local/share/presenter-tts}"
+tts_root="${LOCAL_TTS_HOME:-$HOME/.local/share/local-tts}"
 mkdir -p "$tts_root"
-test -e "$tts_root/config.toml" || cp "<local-tts>/tools/presenter.example.toml" "$tts_root/config.toml"
-uv run --project "<local-tts>/tools" presenter-tts speak "<local-tts>/tools/examples/presentation.ssml" --output outputs/presentation.wav --play
+test -e "$tts_root/config.toml" || cp "<local-tts>/tools/local-tts.example.toml" "$tts_root/config.toml"
+uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples/presentation.ssml" --output outputs/presentation.wav --play
 ```
 
 WAVと同名のJSONに、各発話の長さ・マーカーのフレーム位置・最初のPCM到着時間・RTFを保存する。
@@ -114,7 +114,7 @@ voice = "myvoice"
 録音と、その録音で話している内容をそのまま書いた文字起こしから、声のプロファイルを作る。
 
 ```console
-uv run --project "<local-tts>/tools" presenter-tts voice add myvoice 録音.wav --text "録音で話している内容"
+uv run --project "<local-tts>/tools" local-tts voice add myvoice 録音.wav --text "録音で話している内容"
 ```
 
 - 録音はFFmpegが読める形式なら何でもよい。44.1 kHzモノラルに変換し、ピークが-3 dBになるよう音量を上げてから登録する（小さい録音からは小さい声ができるため。`--no-boost`で無効）。
@@ -127,10 +127,10 @@ uv run --project "<local-tts>/tools" presenter-tts voice add myvoice 録音.wav 
 `<home>/cache/`（エンジン・モデル・キャッシュ）とは分けてあるので、容量を空けるために`cache/`を消しても声は残る。
 
 ```console
-uv run --project "<local-tts>/tools" presenter-tts voice list
-uv run --project "<local-tts>/tools" presenter-tts say --voice myvoice
-uv run --project "<local-tts>/tools" presenter-tts speak "<local-tts>/tools/examples/presentation.ssml" --voice myvoice --force
-uv run --project "<local-tts>/tools" presenter-tts voice remove myvoice
+uv run --project "<local-tts>/tools" local-tts voice list
+uv run --project "<local-tts>/tools" local-tts say --voice myvoice
+uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples/presentation.ssml" --voice myvoice --force
+uv run --project "<local-tts>/tools" local-tts voice remove myvoice
 ```
 
 `voice list`の`*`は`<home>/config.toml`の`voice`で選ばれている声。`--voice default`はクローンしない標準の声。
@@ -172,10 +172,14 @@ W3C文法の全体をXSDで検証しているわけではなく、対応サブ�
 標準VOICEVOX ENGINEを起動してから同じ`speak`コマンドを実行する。
 
 ```toml
-backend = "voicevox"
-url = "http://127.0.0.1:50021"
+engine = "voicevox"
 speaker = 3
+
+[engines.voicevox]
+url = "http://127.0.0.1:50021"
 ```
+
+1回だけ使うなら、設定はそのままで`--engine voicevox`を付けてもよい（話者は`speaker`、既定3）。古い書き方（`backend = "voicevox"`とルートの`url`）も読める。
 
 標準APIでは発話区間のWAV完成後に再生を始める。音声波形を逐次返すS2経路とは異なる。
 AivisSpeechは互換APIの仕様差があるため、この経路の検証対象に含めていない。

@@ -1,3 +1,4 @@
+import _isolated_home  # noqa: F401  (must come before local_tts)
 from contextlib import contextmanager
 from http.server import ThreadingHTTPServer
 import json
@@ -10,8 +11,8 @@ from unittest.mock import patch
 import urllib.error
 import urllib.request
 
-from presenter_tts import api
-from presenter_tts.audio import Format
+from local_tts import api
+from local_tts.audio import Format
 
 
 class StubBackend:
@@ -28,7 +29,10 @@ class StubBackend:
 
 class ParseTests(unittest.TestCase):
     def test_validation(self):
-        self.assertEqual(api.parse(b'{"input": "hi", "voice": "myvoice"}'), ('hi', 'myvoice', 'mp3', 1.0))
+        self.assertEqual(api.parse(b'{"input": "hi", "voice": "myvoice"}'), ('hi', 'myvoice', 'mp3', 1.0, None))
+        self.assertEqual(api.parse(b'{"input": "hi", "model": "voxcpm2"}')[4], 'voxcpm2')
+        self.assertEqual(api.parse(b'{"input": "hi", "model": "s2-pro"}')[4], 's2')
+        self.assertIsNone(api.parse(b'{"input": "hi", "model": "tts-1"}')[4])
         for body, param in ((b'[]', None), (b'{}', 'input'), (b'{"input": " "}', 'input'),
                             (b'{"input": "hi", "response_format": "ogg"}', 'response_format'),
                             (b'{"input": "hi", "response_format": []}', 'response_format'),
@@ -55,12 +59,13 @@ class SpeechEndpointTests(unittest.TestCase):
         StubBackend.texts = []
         self.voices = Path(tempfile.mkdtemp())
         (self.voices / 'myvoice.s2voice').write_bytes(b'v')
-        for target, value in (('presenter_tts.api.Backend', StubBackend),
-                              ('presenter_tts.voices.VOICES', self.voices)):
+        for target, value in (('local_tts.api.Backend', StubBackend),
+                              ('local_tts.voices.VOICES', self.voices),
+                              ('local_tts.api.server.ensure', lambda config: False)):
             patcher = patch(target, value)
             patcher.start()
             self.addCleanup(patcher.stop)
-        config = {'voice': 'C:/x/narrator.s2voice'}
+        config = {'engine': 's2', 'voice': 'C:/x/narrator.s2voice'}
         self.httpd = ThreadingHTTPServer(('127.0.0.1', 0), api.handler(config, threading.Lock(), 40, 'k3y'))
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
         self.addCleanup(self.httpd.server_close)
@@ -88,7 +93,7 @@ class SpeechEndpointTests(unittest.TestCase):
         self.assertEqual((status, kind), (200, 'audio/wav'))
         self.assertTrue(body.startswith(b'RIFF'))
         self.assertEqual([t for t, _ in StubBackend.texts], ['こんにちは。', '元気？'])
-        self.assertTrue(StubBackend.texts[0][1].endswith('/myvoice.s2voice'))
+        self.assertEqual(StubBackend.texts[0][1], 'myvoice')  # The name; s2 resolves the file itself
         StubBackend.texts = []
         status, kind, body = self.call('/audio/speech', {'input': 'hi', 'voice': 'alloy',
                                                          'response_format': 'pcm'})
