@@ -98,6 +98,7 @@ start をやり直しても、出力の基準は消えない。基準を取り�
 | `--features check,feedback` | 登録する機能を選ぶ。既定は両方。`feedback` だけなら、PostToolUse を除いた3つを `--no-check` 付きで登録する |
 | `--uninstall` | このスキルの hooks の項目を外す |
 | `--dry-run` | 変更せずに、することを表示する |
+| `--scope user` | ユーザー単位で登録する（`--project ~` と同じ）。下の「どのプロジェクトからでも使う」を参照 |
 
 契約の `control.feedback` が `false` なら、`--features` の指定によらず収集を登録しない。収集を付け外ししても、検査だけの登録の文字列は前と同じなので、Codex の信頼は外れない（[platforms.md](platforms.md)）。
 
@@ -107,13 +108,25 @@ start をやり直しても、出力の基準は消えない。基準を取り�
 
 | 使い方 | すること |
 |---|---|
-| `setup.py [--project <ルート>] [--plain]` | 対話の画面を開く。矢印キーとスペースで選ぶ（curses）。curses が使えないときと `--plain` では番号で選ぶ。最初のメニュー（「終わる」で抜ける）のほかは、どの画面でも「戻る」と「中止（何も書かない）」を選べる |
+| `setup.py [--project <ルート> \| --scope user] [--plain]` | 対話の画面を開く。矢印キーとスペースで選ぶ（curses）。curses が使えないときと `--plain` では番号で選ぶ。最初のメニュー（「終わる」で抜ける）のほかは、どの画面でも「戻る」と「中止（何も書かない）」を選べる |
 | `--status` | 今の hooks の登録、プラグインの hooks、ユーザーの設定の値と出どころを表示する |
 | `--hooks claude,codex --features check,feedback` | hooks を登録する製品と機能を選ぶ（非対話）。`--hooks none` なら今の登録を外す |
 | `--set <欄>.<項目>=<値>` | ユーザーの設定の値を選ぶ（非対話。例 `inputs.measure=run`、`convergence.agents=1`。`null` で値なし） |
 | `--yes` | 非対話で書く。無ければ書く前の差分を見せるだけにする |
 
 TTY が無いとき（AI のツール実行、CI など）に引数なしで実行すると、画面を開かずに、同じことを行う引数を示して終了コード2で止まる。AI は引数の形を使う。
+
+### どのプロジェクトからでも使う（ユーザー単位）
+
+スキルの本体を `~/.claude/skills/<name>`（またはそこへのリンク）に置き、`setup.py` か `install.py` を `--scope user`（または `--project ~`）で実行する。本体をホームのスキルの置き場（`~/.claude/skills`、`~/.agents/skills`）に置いたときは、`--project` を省いてもユーザー単位になる。プロジェクトの置き場と設定には書かない。
+
+| 項目 | プロジェクト単位 | ユーザー単位 |
+|---|---|---|
+| 置き場所 | `<ルート>/.claude/skills/<name>`、`<ルート>/.agents/skills/<name>` | `~/.claude/skills/<name>`、`~/.agents/skills/<name>` |
+| hooks の設定 | `<ルート>/.claude/settings.json`、`<ルート>/.codex/hooks.json` | `~/.claude/settings.json`、`~/.codex/hooks.json` |
+| hooks のコマンド | `$CLAUDE_PROJECT_DIR/...`（Codex は `git rev-parse --show-toplevel` か作業ディレクトリ）の置き場のスクリプト | `$HOME/...` の置き場のスクリプト。スクリプトが無いときは何もせず終了コード0で終わる |
+
+ユーザー単位の hooks はすべてのセッションで動くが、どれもセッションの作業ディレクトリ（hooks の入力の `cwd`）から `.git` を辿ってプロジェクトを決め、そのプロジェクトに実行中の記録が無ければ何もしない。スクリプト（`run.py` など）も、実行したときの作業ディレクトリから同じ規則でプロジェクトを決める。そのため、作ったスキル（`<base>/<name>/`）、実行記録（`.skill-runs/`）、収集の記録（`.skill-feedback/`）は、スキルを使ったセッションのプロジェクトに置かれ、ホームのスキルの中には書かれない。前の版で `--project ~` に登録した、`$CLAUDE_PROJECT_DIR` を指す項目は、ユーザー単位で登録し直すと置き換わる。
 
 ## 6. 利用中の指摘の収集（`feedback.py`）
 

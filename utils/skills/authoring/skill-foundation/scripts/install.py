@@ -12,6 +12,12 @@ hooks（スキルの contract.json の control.hooks が true のとき）:
 既にある設定は残し、このスキルの項目だけを足す（同じ項目があれば何もしない）。Codex は、足した hooks を
 利用者が `/hooks` で信頼するまで実行しない。
 
+ユーザー単位（どのプロジェクトからでも使う）: --project がホーム（~）か --scope user のとき、置き場所と設定ファイルは
+ホームの下（~/.claude/skills、~/.agents/skills、~/.claude/settings.json、~/.codex/hooks.json）になり、hooks は
+$HOME の置き場のスクリプトを指す（スクリプトが無ければ何もしない）。本体を ~/.claude/skills か ~/.agents/skills に
+置いたときは、--project を省くとユーザー単位になる。hooks はセッションの作業ディレクトリでプロジェクトを決めるので、
+作ったスキル・実行記録（.skill-runs/）・収集記録（.skill-feedback/）は、そのセッションのプロジェクトに置かれる。
+
 機能（--features。既定は check,feedback）: check は出力の検査、feedback は利用中の指摘の収集（feedback.py）。
 両方なら上の4つ、feedback だけなら PostToolUse を除く3つを登録する。契約の control.feedback が false なら
 feedback は登録しない。既定の登録の文字列は機能を足す前と同じなので、Codex の信頼はそのまま使える。
@@ -24,6 +30,7 @@ hooks は、そのうち契約の control.hook_targets（作るときに hooks �
 使い方:
   python3 <skill>/scripts/install.py --project <ルート> [--targets claude,codex] [--mode link|copy] [--no-hooks]
                                     [--no-feedback | --features check,feedback]
+  python3 <skill>/scripts/install.py --scope user [...]                # ユーザー単位（--project ~ と同じ）
   python3 <skill>/scripts/install.py --project <ルート> --check       # 置き場所と hooks が揃っているか（もう一方の置き場が本体へのリンクかも。--mode copy なら複製でよい）
   python3 <skill>/scripts/install.py --project <ルート> --uninstall   # このスキルの置き場所と hooks を外す
 """
@@ -53,14 +60,53 @@ FEATURES = ["check", "feedback"]  # 出力の検査、利用中の指摘の収�
 CHECK_ONLY = {"post-tool"}  # 収集だけのときは登録しないイベント
 
 
-def hook_command(platform: str, name: str, event: str, features: set[str] | None = None) -> str:
+def hook_command(platform: str, name: str, event: str, features: set[str] | None = None, user: bool = False) -> str:
+    features = set(FEATURES) if features is None else features
+    flags = "".join(f" --no-{f}" for f in FEATURES if f not in features)
+    if user:
+        # ユーザー単位の登録はどのプロジェクトのセッションでも動く。プロジェクトの置き場ではなくホームの置き場を指し、
+        # スクリプトが無いとき（スキルを外した後など）は何もしない（python3 の終了コード2は Claude Code では拒否になる）
+        script = f'"$HOME/{PLACES[platform]}/{name}/scripts/hook.py"'
+        return f"[ ! -f {script} ] || python3 {script} --platform {platform}{flags} {event}"
     if platform == "claude":
         base = f'"$CLAUDE_PROJECT_DIR/{PLACES["claude"]}/{name}/scripts/hook.py"'
     else:  # Codex には CLAUDE_PROJECT_DIR が無い。hook はセッションの作業ディレクトリで動く
         base = f'"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/{PLACES["codex"]}/{name}/scripts/hook.py"'
-    features = set(FEATURES) if features is None else features
-    flags = "".join(f" --no-{f}" for f in FEATURES if f not in features)
     return f"python3 {base} --platform {platform}{flags} {event}"
+
+
+def is_user_root(root: Path) -> bool:
+    """登録先がホーム（ユーザー単位）か。"""
+    try:
+        return root.resolve() == Path.home().resolve()
+    except (OSError, RuntimeError):
+        return False
+
+
+def user_installed(script: Path) -> bool:
+    """本体（script の2つ上）が、ホームのスキルの置き場（~/.claude/skills、~/.agents/skills）にあるか。
+    リンクで置いたときも分かるように、リンクをたどる前のパスと、たどった後のパスの両方で確かめる。"""
+    home = Path.home()
+    places = set()
+    for rel in PLACES.values():
+        places.add((home / rel).absolute())
+        with_links = home / rel
+        if with_links.exists():
+            places.add(with_links.resolve())
+    bodies = {script.absolute().parent.parent, rt.SKILL_DIR}
+    return any(body.parent in places for body in bodies)
+
+
+def default_root(project: str | None, script: str | Path, scope: str | None = None) -> Path:
+    """登録先のルート。--scope user ならホーム、--project があればそれ。どちらも無ければ、本体をホームのスキルの
+    置き場に置いたとき（どこからでも使う導入）はホーム、ほかは今のディレクトリから .git を辿ったプロジェクト。"""
+    if scope == "user":
+        return Path.home().resolve()
+    if project:
+        return Path(project).expanduser().resolve()
+    if scope != "project" and user_installed(Path(script)):
+        return Path.home().resolve()
+    return rt.project_root(Path.cwd())
 
 
 def is_ours(handler: dict, name: str) -> bool:
@@ -78,13 +124,14 @@ def load_config(path: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def wanted_entries(platform: str, name: str, features: set[str] | None = None) -> list[tuple[str, dict]]:
+def wanted_entries(platform: str, name: str, features: set[str] | None = None, user: bool = False) -> list[tuple[str, dict]]:
     features = set(FEATURES) if features is None else features
     entries = []
     for event, matcher, action, timeout in EVENTS[platform]:
         if not features or ("check" not in features and action in CHECK_ONLY):
             continue
-        group = {"hooks": [{"type": "command", "command": hook_command(platform, name, action, features), "timeout": timeout}]}
+        command = hook_command(platform, name, action, features, user)
+        group = {"hooks": [{"type": "command", "command": command, "timeout": timeout}]}
         if matcher:
             group = {"matcher": matcher, **group}
         entries.append((event, group))
@@ -116,7 +163,7 @@ def plan_hooks(root: Path, platform: str, name: str, remove: bool, features: set
     data = load_config(root / CONFIGS[platform])
     hooks = data.setdefault("hooks", {})
     changes = []
-    wanted = wanted_entries(platform, name, features)
+    wanted = wanted_entries(platform, name, features, is_user_root(root))
     if remove or len(wanted) < len(EVENTS[platform]):
         # 外すとき、または機能を減らしたときは、要らなくなったイベントから自分の項目を外す
         keep = set() if remove else {event for event, _ in wanted}
@@ -210,7 +257,7 @@ def check(root: Path, platforms: list[str], name: str, hooks_on: bool, mode: str
                             + ("" if target.is_symlink() else "。複製で置いたなら --mode copy を付けて確かめる"))
         if hooks_on and (hooked is None or platform in hooked):
             data = load_config(root / CONFIGS[platform])
-            for event, group in wanted_entries(platform, name, features):
+            for event, group in wanted_entries(platform, name, features, is_user_root(root)):
                 if not has_entry(data.get("hooks", {}).get(event, []), group):
                     problems.append(f"{CONFIGS[platform]} の {event} に {name} の hook がありません")
     return problems
@@ -218,7 +265,10 @@ def check(root: Path, platforms: list[str], name: str, hooks_on: bool, mode: str
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--project", required=True, help="プロジェクトのルート")
+    parser.add_argument("--project", help="プロジェクトのルート。ホーム（~）ならユーザー単位。省くと、本体がホームのスキルの置き場に"
+                                          "あればユーザー単位、ほかは今のディレクトリから .git を辿って決める")
+    parser.add_argument("--scope", choices=["project", "user"],
+                        help="user はホームに置いて登録する（どのプロジェクトからでも使う）。project は --project か今のプロジェクト")
     parser.add_argument("--targets", help="カンマ区切り（claude、codex）。省くと契約の targets（作るときに決めた対象の製品）")
     parser.add_argument("--mode", choices=["link", "copy"], default="link")
     parser.add_argument("--no-hooks", action="store_true", help="hooks を登録しない（収集も含めて何も登録しない）")
@@ -229,7 +279,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    root = Path(args.project).resolve()
+    root = default_root(args.project, __file__, args.scope)
     contract = rt.load_contract()
     name = contract.get("skill") or rt.SKILL_DIR.name
     platforms = ([p.strip() for p in args.targets.split(",") if p.strip()] if args.targets
@@ -259,6 +309,8 @@ def main() -> int:
             changes += apply_hooks(root, platform, name, args.uninstall, args.dry_run, features)
     for change in changes:
         rt.emit(("予定  " if args.dry_run else "") + change)
+    if is_user_root(root) and not args.uninstall:
+        rt.emit("ユーザー単位: hooks はどのプロジェクトのセッションでも動き、作ったスキルと実行記録はそのセッションのプロジェクトに置かれる")
     rt.emit(f"install: 変更 {len(changes)} 件")
     if "codex" in platforms and "codex" in hooked and hooks_on and not args.uninstall and any(".codex/hooks.json" in c for c in changes):
         rt.emit("注意: Codex は、足した hooks を利用者が Codex の `/hooks` で信頼するまで実行しない。"
