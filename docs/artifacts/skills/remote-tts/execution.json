@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "skill": "remote-tts",
+  "skill_source": "utils/skills/media/remote-tts/SKILL.md",
+  "skill_sha256": "6a36a51af27925a3aca23263edbfb970f4bc3ed8aa1c837c07b2c614593b4b42",
+  "recorded_at": "2026-11-11T09:15:40.454Z",
+  "executor": "Claude Code（サブエージェント）",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "a979dd859ae353b91",
+    "task": "remote-ttsのSKILL.mdに従い、2文をcheck・dry-run・speakでWAVにし、check・dry-run・speakの結果と報告を伏せ字にして保存する"
+  },
+  "input": "input.md",
+  "summary": "2文をremote-ttsで音声にしようとしましたが、リモートのAPIが接続タイムアウトになったため、このPCのlocal-tts（VoxCPM2）へ切り替えて8.0秒のWAVを生成しました。公開サイトにはWAVを掲載せず、check・dry-run・speakの結果と報告を掲載しています。サーバーのIP、絶対パス、個人名は伏せ字にしています。",
+  "stage": "ローカルへ切り替えてのWAVの生成まで。リモートでの生成と音声の試聴は未実施",
+  "checks": [
+    "checkでリモートのAPIがタイムアウトし、backendがlocal（local_readyがtrue、エンジンはvoxcpm2）であることを確認",
+    "dry-runで35文字・1リクエスト、リモートの目安30秒、ローカルの目安1分10秒と出ることを確認",
+    "speakはリモートにつながらずローカルのVoxCPM2へ切り替わり、終了コード0で53.4秒かけてWAVを生成",
+    "結果のJSONで、声が設定の既定のmyvoiceで、fallback_reasonが接続タイムアウトであることを確認",
+    "ffprobeで8.0秒・16bit PCM・48 kHz・モノラルのWAVで、audio_secondsと一致することを確認",
+    "切り替えで起動したローカルのサーバーが終了後に自動で止まっていることを確認",
+    "末尾まで無音がないため語尾が切れている可能性があり、試聴が必要な箇所として記録。実行者は音声を聞けないため読みの正しさは未確認"
+  ],
+  "downloads": [
+    {
+      "file": "output.md",
+      "label": "実行報告（Markdown）"
+    },
+    {
+      "file": "check.json",
+      "label": "checkの結果（JSON）"
+    },
+    {
+      "file": "dry-run.json",
+      "label": "分割と所要時間の目安（JSON）"
+    },
+    {
+      "file": "result.json",
+      "label": "speakの結果（JSON）"
+    }
+  ],
+  "text_output": "output.md",
+  "artifacts": [
+    {
+      "file": "check.json",
+      "sha256": "6c9ba3c24b1c90994c25dcf1670a7f3741ed04d0627237bf6dfcc416f52ea7dd",
+      "bytes": 244
+    },
+    {
+      "file": "dry-run.json",
+      "sha256": "c3bc58315575584aefe3f16ed29f356c1bd955261b910bc846d1c2dcbe7be8d5",
+      "bytes": 247
+    },
+    {
+      "file": "input.md",
+      "sha256": "6005a46ee223532b67d556317e6246e07f40e317c212b5a8d69e8edf4e0e255a",
+      "bytes": 250
+    },
+    {
+      "file": "output.md",
+      "sha256": "6d09bbeff2c6d6fe31d8628146ee9d23564212f60715a1bd7ea4270a0ce07036",
+      "bytes": 2934
+    },
+    {
+      "file": "result.json",
+      "sha256": "102b4a6dbe99b9eb8ccba11561ae53f96ed03bbbada70c77d9336cac689b8930",
+      "bytes": 248
+    }
+  ],
+  "source_files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "6a36a51af27925a3aca23263edbfb970f4bc3ed8aa1c837c07b2c614593b4b42"
+    },
+    {
+      "file": "references/api-notes.md",
+      "sha256": "81015184d566271a4717deb68a7ab393e6e0645c400d521da7d8c287052c0c76"
+    },
+    {
+      "file": "references/local-setup.md",
+      "sha256": "36589396e3a78cd5f6557858036bda751c9ce21e0f09616e9d1dbc52c78b44a6"
+    },
+    {
+      "file": "scripts/rtts.py",
+      "sha256": "22dcb1518069ac725e8f9e15273931c8ce89fa9ea3b54b760444328911751437"
+    }
+  ],
+  "source_sha256": "bb17e507121fada367572ae99e1edfbc7cb15f9c145ce9fdb48e3d739d967841"
+}
