@@ -1,26 +1,28 @@
 {
   "name": "skill-foundation",
   "kind": "plugin",
-  "executed_at": "2026-11-04T15:11:57.566845+00:00",
+  "executed_at": "2026-11-11T14:04:58.549982+00:00",
   "runner": {
     "kind": "subagent",
-    "agent_id": "/root/rebuild_plugin_example",
-    "task": "PR #104のCI修正として、現在の正本を変更せずにCodex・Claude Code両方のplugin配布物を全再生成し、隔離環境で移動・ZIP・展開・正本一致・自己テスト20段階・専用7テスト・hooks直接実行・収束準備・微修正後の再開と出力更新後の完了・manifestを検証し、公開記録とガイド例節を更新する。"
+    "agent_id": "a5614d366fe5722f5",
+    "task": "issue #111でユーザー単位の導入に対応した正本を変更せずに、Codex・Claude Code両方のplugin 0.4.2配布物を全再生成し、隔離したホームで移動・ZIP・展開・正本一致・ユーザー単位の段階を含む自己テスト20段階・専用7テスト・hooks直接実行・収束準備・微修正後の再開と出力更新後の完了・manifestを検証し、公開記録とガイド例節を更新する。"
   },
-  "summary": "現在の正本から両製品向けpluginを新しく生成し、hooksの設定・指摘収集・確認画面・収束準備と再開後の出力検査を隔離環境で検証した。",
-  "stage": "両配布物の生成・移動・展開・直接hooks・単体動作の検証に合格。restart後は生成出力を更新して完了（実ユーザー承認と独立AI収束は未実施）",
+  "summary": "現在の正本から両製品向けplugin 0.4.2を新しく生成し、ユーザー単位のhooks登録を含む自己テスト・hooksの設定・指摘収集・確認画面・収束準備と再開後の出力検査を隔離環境で検証した。",
+  "stage": "両配布物の生成・移動・展開・直接hooks・単体動作の検証に合格。restart後は生成出力を更新して完了（実ユーザー承認、実ホームへのユーザー単位導入、独立AI収束は未実施）",
   "input": "input.md",
   "text_output": "verification.txt",
   "validation": "validation.json",
   "reproduction": "verify_plugin.py",
   "checks": [
     "{\"check\":\"codex: feedback collection, review UI and Eval replay regression\",\"status\":\"passed\",\"selftest_stages\":20,\"synthetic_feedback_failures\":0,\"real_user_approvals\":0,\"feedback_schema_version\":1}",
-    "{\"check\":\"codex: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":79,\"runtime_files\":73,\"archive_sha256\":\"62d88b17af7feb1575bc2c172b72f1e5c41091df7f8ce6d5e768440d3a9574f2\"}",
+    "{\"check\":\"codex: bundled runtime selftest setup stage including user (global) scope\",\"status\":\"passed\",\"setup_stage\":\"passed\",\"user_scope_checked_in_selftest_temporary_home\":true,\"real_user_home_used\":false}",
+    "{\"check\":\"codex: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":79,\"runtime_files\":73,\"archive_sha256\":\"40cc57231ac1d137cf169b3f8464532b0610ef7c819a6520feae52358db4e017\"}",
     "{\"check\":\"codex: configured hook commands directly executed\",\"status\":\"passed\",\"events\":[\"PreToolUse\",\"PostToolUse\",\"Stop\",\"UserPromptSubmit\"],\"skill_edit_output\":\"\",\"direct_run_record_edit_decision\":\"deny\",\"legacy_seal_ignored\":true,\"restart_after_edit\":true,\"post_tool_decision\":\"block\",\"stop_decision\":\"block\",\"wait_stop_output\":\"\",\"resumed_status\":\"active\"}",
     "{\"check\":\"codex: convergence prepare/prompts\",\"status\":\"passed\",\"project_agent_directories\":0,\"tester_type\":\"skill-foundation:skill-foundation-tester\",\"independent_ai_sessions\":0}",
     "{\"check\":\"codex: changed skill can check and restart; finish requires updated output\",\"status\":\"passed\",\"stale_legacy_seal_ignored\":true,\"output_checks_preserved\":true,\"finish_without_output_update_exit\":1,\"finish_without_output_update_rule\":\"OUT-01\",\"output_updated_after_restart\":true,\"finish_after_output_update_exit\":0}",
     "{\"check\":\"claude-code: feedback collection, review UI and Eval replay regression\",\"status\":\"passed\",\"selftest_stages\":20,\"synthetic_feedback_failures\":0,\"real_user_approvals\":0,\"feedback_schema_version\":1}",
-    "{\"check\":\"claude-code: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":80,\"runtime_files\":73,\"archive_sha256\":\"679a48014ca069b680c1e223257cb34c323a52b08d60d6ff84615217402f5b01\"}",
+    "{\"check\":\"claude-code: bundled runtime selftest setup stage including user (global) scope\",\"status\":\"passed\",\"setup_stage\":\"passed\",\"user_scope_checked_in_selftest_temporary_home\":true,\"real_user_home_used\":false}",
+    "{\"check\":\"claude-code: relocation, zip, extraction, runtime, manifest, thin entry, hooks\",\"status\":\"passed\",\"distribution_files\":80,\"runtime_files\":73,\"archive_sha256\":\"287e65919b8ad9521a8ae69b6acf2f08793aa262105a6c1cd98484115a09d3c6\"}",
     "{\"check\":\"claude-code: configured hook commands directly executed\",\"status\":\"passed\",\"events\":[\"PreToolUse\",\"PostToolUse\",\"Stop\",\"UserPromptSubmit\"],\"skill_edit_output\":\"\",\"direct_run_record_edit_decision\":\"deny\",\"legacy_seal_ignored\":true,\"restart_after_edit\":true,\"post_tool_decision\":\"block\",\"stop_decision\":\"block\",\"wait_stop_output\":\"\",\"resumed_status\":\"active\"}",
     "{\"check\":\"Claude namespaced tester fence\",\"status\":\"passed\",\"allowed_inside\":true,\"denied_outside\":true,\"unrelated_agent_transparent\":true}",
     "{\"check\":\"claude-code: convergence prepare/prompts\",\"status\":\"passed\",\"project_agent_directories\":0,\"tester_type\":\"skill-foundation:skill-foundation-tester\",\"independent_ai_sessions\":0}",
@@ -29,7 +31,7 @@
     "{\"check\":\"Claude Code CLI manifest validation\",\"status\":\"passed\",\"model_sessions\":0,\"isolated_config_directory\":true}",
     "{\"check\":\"canonical sources unchanged\",\"status\":\"passed\",\"plugin_files\":12,\"skill_files\":73}"
   ],
-  "validation_check_count": 14,
+  "validation_check_count": 16,
   "executed_command_count": 65,
   "distribution_files": {
     "codex": 79,
@@ -40,6 +42,7 @@
     "Codex hooks trust UI",
     "Independent AI convergence execution",
     "Project installation",
+    "User (global) scope installation into the real home directory (only temporary HOME directories were used)",
     "Real user approval in the review UI (only synthetic regression events were tested)"
   ],
   "downloads": [
@@ -71,7 +74,7 @@
     },
     {
       "file": "bundle.json",
-      "sha256": "47251facfc3b8f4c6d66a50327b0f03bc028afcf44890cd57c9ba6cfd6d6b185"
+      "sha256": "d29b14e4511ac426d712b0fee74eafcf5eb6db4803f56419b743119c7e152347"
     },
     {
       "file": "claude-code/hooks.json",
@@ -79,7 +82,7 @@
     },
     {
       "file": "claude-code/plugin.json",
-      "sha256": "93fabdd0f401a1b358d47c3aa38675b0a09f3762c11aa97ea0acec889fd453af"
+      "sha256": "eccf2d1a59013ffa2c59a77b608266fdaca664996e43aad1f47b9bf8dd5343e3"
     },
     {
       "file": "codex/hooks.json",
@@ -87,7 +90,7 @@
     },
     {
       "file": "codex/plugin.json",
-      "sha256": "6f2328788f408ae4991cd322a35ff8fe0340155189e9770020c94c676f6a5e03"
+      "sha256": "8bd3e29bc378ce1d91e808dfc0bd3ba3ec3709004251ed09503ea4df09306177"
     },
     {
       "file": "entry.md",
@@ -106,14 +109,14 @@
       "sha256": "18fcc0f38bcd9e579134435945f25f0b0e3c2684e2b5c49ab1a7dc4eb2814d8f"
     }
   ],
-  "source_sha256": "5103c792347169d23c50c5fd0a887423d3a19dd2ce141af4ad9044b4ad82f35b",
+  "source_sha256": "08a9ebdb4c65c70d77eaaf5a7fef44ebe043b87f4953c64e18786fa24d16e636",
   "skill_sources": [
     {
       "file": "utils/skills/authoring/skill-foundation",
       "source_files": [
         {
           "file": "SKILL.md",
-          "sha256": "fe2c5cf47646cf773bdd5f11509ac8cf6c781b79c5bffd532223742d2d623e8a"
+          "sha256": "d3d17d14f72b1579048b8fae1c3da86b0320202164f16a6c83d8a1175f0e4622"
         },
         {
           "file": "assets/agents/skill-foundation-tester.md",
@@ -297,7 +300,7 @@
         },
         {
           "file": "references/runtime.md",
-          "sha256": "9c6d840cf437ee98ab7f3683eaa9a43cf57c27f5c2e9ba8625b132e8bb0aa6de"
+          "sha256": "34b876ab01c0d0f9c9fe9625a518833029f4b45a1dbb5a3042ba89f24655bcb3"
         },
         {
           "file": "references/skill-profiles.md",
@@ -365,7 +368,7 @@
         },
         {
           "file": "scripts/install.py",
-          "sha256": "cd72d87b3cfe3f6497278a394b1bdbc34fccfc74b0f736243abacfef6a91a887"
+          "sha256": "ad7a165acf74923fda2bfc49d2992607e6c41d28dc962eecb3c65303ca25d337"
         },
         {
           "file": "scripts/probe.py",
@@ -385,11 +388,11 @@
         },
         {
           "file": "scripts/selftest.py",
-          "sha256": "3685e86a004c4fb8f967126f9f74a3dcc7f75ee09df58d165d853c2f84c05ca9"
+          "sha256": "53904afa99df62f96d76ed69ae0df9a218cb5e603ace05fcaddd65ca97a6b731"
         },
         {
           "file": "scripts/setup.py",
-          "sha256": "92ffdb9440932df44ae7a1e2a6c750116fb1a3dc1a94dc6dda461c64831b5a68"
+          "sha256": "df53b7ce0f6d210f1364e92b4ff85c81de0edf4b779d9c53e5a1bd9741be3534"
         },
         {
           "file": "scripts/skill_lint.py",
@@ -404,7 +407,7 @@
           "sha256": "f76e514f41bd6c0932d7901c82a1d874882a104ed75479899c27f63e42f5834a"
         }
       ],
-      "source_sha256": "055566b08a0a1b40dfa5b8e64d35997a83961a1832cb99e9607acdb68274bd49"
+      "source_sha256": "a3b8c300920c0706580b73e5388b104b7df776cfd820d7ef836659d7e8385437"
     }
   ],
   "source_unchanged": {
@@ -413,43 +416,43 @@
   },
   "redactions": [
     "repository absolute path → <repository>",
-    "temporary workdir → <workdir>",
+    "temporary workdir (including the isolated HOME) → <workdir>",
     "user home absolute path → <user-home>",
     "system temporary path → <system-temp>"
   ],
-  "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. After an output is created and the run restarted, finish is first verified to reject the unchanged output with OUT-01; a validation note is then added to the generated SKILL.md and check/finish are verified to succeed. Canonical sources and user settings remain byte-identical.",
+  "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. Every command runs with HOME, CLAUDE_CONFIG_DIR and CODEX_HOME set to new directories inside the workdir, so the real user configuration is neither read nor written. After an output is created and the run restarted, finish is first verified to reject the unchanged output with OUT-01; a validation note is then added to the generated SKILL.md and check/finish are verified to succeed. Canonical sources and user settings remain byte-identical.",
   "artifacts": [
     {
       "file": "input.md",
-      "sha256": "f57ae9c947de42104cb85ffbd655eda9cad85f626a114bece821e8b10ad85eee"
+      "sha256": "c8de0a1016a3caf489b4ffc1780f5222864bf7c40e3ed9c257fbd35caa0b7bed"
     },
     {
       "file": "manifest-validation.log",
-      "sha256": "695916c1e181e4afc83ab8a17b1211bc72f58e48255910b263f312b2010e0517"
+      "sha256": "b08b318de3fc7c602f37feab1f068b14d557c2435b48f8f7e5130f57b43db2c0"
     },
     {
       "file": "skill-foundation-claude-code.zip",
-      "sha256": "679a48014ca069b680c1e223257cb34c323a52b08d60d6ff84615217402f5b01"
+      "sha256": "287e65919b8ad9521a8ae69b6acf2f08793aa262105a6c1cd98484115a09d3c6"
     },
     {
       "file": "skill-foundation-codex.zip",
-      "sha256": "62d88b17af7feb1575bc2c172b72f1e5c41091df7f8ce6d5e768440d3a9574f2"
+      "sha256": "40cc57231ac1d137cf169b3f8464532b0610ef7c819a6520feae52358db4e017"
     },
     {
       "file": "unit-tests.log",
-      "sha256": "c71761f7ed420808ab0def6dbd50ce9a2ec17ff4fcd5bde6ffe8e8cad664f6ac"
+      "sha256": "dab80064d04ad6feb4d50666b4f51453c6dfffe43899de1fa744370fcf69c742"
     },
     {
       "file": "validation.json",
-      "sha256": "dee14afe1319e63110f54a6f538cb74422be44ec908e471fab37b65bbaaaa76a"
+      "sha256": "c7165186b5415841e3e93179b504cceca10bea18c317e9b02e40371890b6402b"
     },
     {
       "file": "verification.txt",
-      "sha256": "33128583edee0d6a2725613428af0178f46b24210ff33f413b55de08b11b90a9"
+      "sha256": "0d6c68fc9731eded83cd4f3aa351adacdd657cca1b8430870b11b61de08545ce"
     },
     {
       "file": "verify_plugin.py",
-      "sha256": "322d03afa8f2c5f2eff9cf108b34cc87ddd4f7d6df0ac34eaa48ecd86852c234"
+      "sha256": "8b1acf5007fa60ab36588f92283c16ae098f989fe2c0470d965eada9ed98addd"
     }
   ]
 }

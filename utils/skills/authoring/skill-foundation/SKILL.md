@@ -33,7 +33,7 @@ description: "作りたいスキルの依頼から、ユーザーと確かめた
 
 ## 2. 手順
 
-このファイルがあるディレクトリを `<skill>` と呼ぶ。スクリプトは Python 3.9 以上の標準ライブラリだけで動く。手順は番号の順に行い、飛ばさない。
+このファイルがあるディレクトリを `<skill>` と呼ぶ。スクリプトは Python 3.9 以上の標準ライブラリだけで動く。手順は番号の順に行い、飛ばさない。コマンドはセッションの作業ディレクトリで実行し、`<skill>` に `cd` しない。スクリプトはそこから `.git` を辿ってプロジェクトを決め、作るスキル、`.skill-runs/`、`.skill-feedback/` をそのプロジェクトに置く（skill-foundation をホームに置いてどこからでも使うときも同じ）。
 
 1. 依頼が [references/intake.md](references/intake.md) の6章の対象外に当たるかを確かめる。当たれば start せず、ファイルも作らずに、代わりに使うものを返答して終える（IN-01）。当たらなければ、同じファイルの1章の表で「聞く」とある項目が依頼に無いかを確かめ、無ければここでまとめてユーザーに聞く（CTL-03）
 2. 名前を intake.md の2章（OUT-04）で、依頼文の言語を3章の表で決め、`python3 <skill>/scripts/run.py start --set name=<名前> --guess language=<依頼文の言語> "<依頼文>"` を実行する。`targets`、`language`、`base`、`measure`、`eval`、`hooks` は、依頼に指定があるときだけ `--set <キー>=<値>` で足す（intake.md の1章）。指定の無い値は、start が `<skill>/settings/user-setting.yaml`（ユーザーの設定）、`<skill>/settings/skill-setting.yaml`（スキルの設定）、`--guess`、既定値の順に補い、出どころを出力する（置き場は4章の表で `targets` から決まる。OUT-01）。終了コード3なら、出力された質問をユーザーに聞き、答えを `--set` で渡してやり直す（CTL-01）

@@ -27,6 +27,8 @@ plugin 経由では Claude Code の `/skill-foundation:skill-foundation`、Codex
 
 hooks を含む導入には [skill-foundation plugin](../../plugins/skill-foundation.md) を使います。スキル・hooks・専用エージェントを同じ単位で導入・更新・削除します。正本は `utils/skills/authoring/skill-foundation/` に維持し、plugin のビルドが正本全体を変更せずに同梱します。
 
+plugin を使わずにどのプロジェクトからでも使う場合は、本体を `~/.claude/skills/skill-foundation`（または正本へのリンク）に置き、ターミナルで `python3 ~/.claude/skills/skill-foundation/scripts/setup.py --scope user` を実行します。hooks は `~/.claude/settings.json` と `~/.codex/hooks.json` に登録され、`$HOME` の置き場のスクリプトを呼びます。スクリプトが無い場合は何もしません。Codex の互換配置として `~/.agents/skills/skill-foundation` を本体へのリンクにします。作ったスキル、実行記録の `.skill-runs/`、指摘の収集記録の `.skill-feedback/` は、スキルを使ったセッションのプロジェクトに置かれます。プロジェクトは作業ディレクトリから `.git` を辿って決まります。以前の版で `--project ~` に登録した hooks は、`$CLAUDE_PROJECT_DIR` 側の置き場を指すため、ほかのプロジェクトでは失敗します。上のコマンドで登録し直すと置き換わります。
+
 このプロジェクトでは両製品の plugin 管理へ導入し、`.codex/config.toml` と `.claude/settings.json` で有効にしています。Codex の互換配置として、`.codex/skills/skill-foundation` は正本へのシンボリックリンクにし、`.codex/hooks.json` にも直接 hooks を登録しています。Claude Code の呼び出しは `/skill-foundation:skill-foundation`、Codex は plugin または互換配置のスキルを選択します。再起動と hooks の信頼確認については plugin の導入手順を参照してください。
 
 ## 進め方
@@ -59,9 +61,9 @@ python3 <plugin-root>/runtime/skill-foundation/scripts/catalog.py --project .
 
 ## 成果物の例
 
-依頼でhooksの方針を指定し、最新の同梱仕様からコミットメッセージを書くスキルを生成した。hooksなしで本来の処理を実行した後、合成Stopで指摘収集の追加機能を検証した。
+依頼でhooksの方針を指定し、最新の同梱仕様からコミットメッセージを書くスキルを生成した。hooksなしで本来の処理を実行し、合成Stopで指摘収集の追加機能を検証した。#111で加わったユーザー単位の登録を、作業場所内の仮のホームで検証した。
 
-**到達点：hooks方針の決定・生成・配置・単体利用と追加機能の直接検証に合格。Evalと独立AI収束は省略、実ユーザー承認は未発生。**
+**到達点：skill-foundationの自己テスト、hooks方針の決定・生成・配置・単体利用、追加機能の直接検証、仮のホームでのユーザー単位の登録に合格。Evalと独立AI収束は省略、実ユーザー承認は未発生。**
 
 ### 実行した依頼
 
@@ -113,6 +115,8 @@ skill-foundation: 完了（検証に合格）
 - [検証結果](pathname:///skills/skill-foundation/validation.json#download)
 - [違反例とhooksの検証記録](pathname:///skills/skill-foundation/probe-results.json#download)
 - [最終lintの結果](pathname:///skills/skill-foundation/final-lint.txt#download)
+- [skill-foundationの自己テストの結果](pathname:///skills/skill-foundation/selftest.log#download)
+- [仮のホームでのユーザー単位の登録の記録](pathname:///skills/skill-foundation/user-scope.log#download)
 - [この作例を再実行するスクリプト](pathname:///skills/skill-foundation/reproduce_skill.py#download)
 - [実際のHTMLをブラウザで開く](pathname:///skills/skill-foundation/catalog.html)
 - [実行入力の原本](pathname:///skills/skill-foundation/input.md#download)
@@ -120,14 +124,17 @@ skill-foundation: 完了（検証に合格）
 
 ### 確認した結果
 
-- 通常フローを27コマンドで実行し、最終lintは17ルール・エラー0件。Evalと収束テストの明示省略による警告2件を記録した。
-- hooks_plan.pyで依頼のall方針を決定し、phase 0の検査に合格した。両製品への登録を確認した。
+- 通常フローを34コマンドで実行し、最終lintは17ルール・エラー0件。Evalと収束テストの明示省略による警告2件を記録した。
+- 正本のselftest.pyを作業場所内の一時ディレクトリで実行し、ユーザー単位の段階を含む20段階すべてに合格した。
+- hooks_plan.pyで依頼のall方針を決定し、phase 0の検査に合格した。隔離プロジェクトの両製品の設定への登録を確認した。
 - 違反例などのprobe 19件と、両製品のhooks接続22件に合格した。
 - 生成SKILL.md・ルール詳細・出力契約に、指摘収集の専用ルールや収集コマンドを入れていない。
 - setup.pyを含む共通runtime 7ファイル、収集schema、収集の参照文書が正本とバイト単位で一致した。
 - hooksを発火させずに差分なしの中断、チケットの正規化、2ファイルのコミットメッセージ作成、check・finishを実行し、収集記録が作られないことを確認した。
 - 合成Stopで提示版1件を保存し、合成データの印と記録の整合性を検査した。実ユーザーの指摘・承認は0件。
-- 実製品のhooks自動発火・信頼UI、実ユーザー承認、Evalの価値確認、独立AIの収束は未実施。
+- 作業場所内の仮のホームで生成スキルのinstall.py --scope userを実行し、ホームの置き場2か所のリンクと、$HOMEの置き場を指す両製品のhooks 4イベントずつを確認した。別プロジェクトには置き場・設定・実行記録を作らなかった。
+- ユーザー単位のStopのhookは、別プロジェクトのセッションで終了コード0、スクリプトを外した後も出力なし・終了コード0で終わった。--uninstallで登録とリンクを外し、隔離プロジェクトの登録は変わらなかった。
+- 実際のホームへの導入、実製品のhooks自動発火・信頼UI、実ユーザー承認、Evalの価値確認、独立AIの収束は未実施。
 
 ## 確認するポイント
 

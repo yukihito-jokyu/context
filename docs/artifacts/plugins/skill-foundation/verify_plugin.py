@@ -6,6 +6,9 @@ and the Claude Code CLI (manifest validation only). It does not launch a model.
 Use a new --workdir; results are written to its results/ directory.
 The fixture input explicitly targets both products so a local user setting cannot
 redirect its output away from the .claude fixture paths used by these checks.
+HOME, CLAUDE_CONFIG_DIR and CODEX_HOME point to new directories inside --workdir,
+so the real user configuration is neither read nor written. The bundled selftest's
+setup stage also checks the user (global) scope inside its own temporary HOME.
 """
 import argparse
 from datetime import datetime, timezone
@@ -42,8 +45,13 @@ def main():
     results = work / "results"
     results.mkdir()
     (work / "unit-test-temp").mkdir()
+    isolated_home = work / "isolated-home"
+    for directory in (isolated_home, isolated_home / ".claude", isolated_home / ".codex"):
+        directory.mkdir()
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "TMPDIR": str(work / "unit-test-temp"),
-           "CLAUDE_CONFIG_DIR": str(work / "isolated-claude-config")}
+           "HOME": str(isolated_home), "CLAUDE_CONFIG_DIR": str(isolated_home / ".claude"),
+           "CODEX_HOME": str(isolated_home / ".codex")}
+    env.pop("CLAUDE_PROJECT_DIR", None)
     commands, checks, bundles = [], [], {}
     aliases = [(str(repo), "<repository>"), (str(work), "<workdir>"),
                (str(Path.home()), "<user-home>"),
@@ -93,12 +101,17 @@ def main():
         selftest = run(agent + ": bundled runtime selftest", ["python3", str(runtime / "scripts/selftest.py")])
         assert "自己テスト: 20 段階中 失敗 0 件" in selftest.stdout, selftest.stdout
         assert "feedback_selftest.py" in selftest.stdout and "収集の自己テスト: 失敗 0 件" in selftest.stdout, selftest.stdout
+        # The setup stage now includes the user (global) scope checks; a skipped (no pty) stage is not accepted.
+        assert "成功  setup.py（画面と引数で" in selftest.stdout, selftest.stdout
+        assert "疑似端末が無い環境" not in selftest.stdout, selftest.stdout
         assert (runtime / "assets/feedback.schema.json").is_file()
         assert (runtime / "scripts/feedback.py").is_file()
         assert (runtime / "scripts/feedback_review.py").is_file()
         assert (runtime / "scripts/feedback_eval.py").is_file()
         check(agent + ": feedback collection, review UI and Eval replay regression", selftest_stages=20,
               synthetic_feedback_failures=0, real_user_approvals=0, feedback_schema_version=1)
+        check(agent + ": bundled runtime selftest setup stage including user (global) scope", setup_stage="passed",
+              user_scope_checked_in_selftest_temporary_home=True, real_user_home_used=False)
         metadata = ".codex-plugin" if agent == "codex" else ".claude-plugin"
         assert (unpacked / metadata / "plugin.json").read_bytes() == (plugin / agent / "plugin.json").read_bytes()
         manifest = json.loads((unpacked / metadata / "plugin.json").read_text())
@@ -245,11 +258,12 @@ def main():
               "purpose": "Rebuild and verify hooks configuration, feedback collection, review and convergence plugin artifacts from canonical sources",
               "checks": checks, "bundles": bundles, "commands": commands,
               "source_unchanged": {"plugin": True, "skill": True},
-              "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. After an output is created and the run restarted, finish is first verified to reject the unchanged output with OUT-01; a validation note is then added to the generated SKILL.md and check/finish are verified to succeed. Canonical sources and user settings remain byte-identical.",
+              "input_adjustment": "All start/restart fixture inputs explicitly set targets=claude,codex so user defaults cannot redirect the expected .claude output paths. Every command runs with HOME, CLAUDE_CONFIG_DIR and CODEX_HOME set to new directories inside the workdir, so the real user configuration is neither read nor written. After an output is created and the run restarted, finish is first verified to reject the unchanged output with OUT-01; a validation note is then added to the generated SKILL.md and check/finish are verified to succeed. Canonical sources and user settings remain byte-identical.",
               "unit_test_command": "python3 -m unittest discover -s utils/plugins/skill-foundation/tests -p 'test_*.py' -v",
               "not_verified": ["Automatic hooks from a real product session", "Codex hooks trust UI",
-                               "Independent AI convergence execution", "Project installation", "Real user approval in the review UI (only synthetic regression events were tested)"],
-              "redactions": ["repository absolute path → <repository>", "temporary workdir → <workdir>",
+                               "Independent AI convergence execution", "Project installation",
+                               "User (global) scope installation into the real home directory (only temporary HOME directories were used)", "Real user approval in the review UI (only synthetic regression events were tested)"],
+              "redactions": ["repository absolute path → <repository>", "temporary workdir (including the isolated HOME) → <workdir>",
                              "user home absolute path → <user-home>", "system temporary path → <system-temp>"],
               "reproduction": "Run this script with --repo-root pointing to the complete current repository and a new --workdir. The plugin-owned tests are imported from that repository; copying a test file alone is insufficient."}
     (results / "validation.json").write_text(redact(json.dumps(record, ensure_ascii=False, indent=2)) + "\n")

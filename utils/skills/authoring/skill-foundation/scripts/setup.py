@@ -10,8 +10,12 @@
                     書いた後に load_settings で読み直して検査する
 TTY が無いとき（AI のツール実行、CI など）は画面を開かず、終了コード2で、同じことを行う引数を示す。
 
+登録先は install.py と同じ規則で決める。--project がホーム（~）か --scope user ならユーザー単位（~/.claude/settings.json、
+~/.codex/hooks.json に登録し、どのプロジェクトのセッションでも動く）。本体を ~/.claude/skills か ~/.agents/skills に
+置いたときは、--project を省くとユーザー単位になる。
+
 使い方:
-  python3 <skill>/scripts/setup.py [--project <ルート>] [--plain]
+  python3 <skill>/scripts/setup.py [--project <ルート> | --scope user|project] [--plain]
   python3 <skill>/scripts/setup.py [--project <ルート>] --status
   python3 <skill>/scripts/setup.py [--project <ルート>] [--hooks claude,codex|none] [--features check,feedback]
                                    [--set inputs.measure=run ...] [--yes]     # 非対話。--yes が無ければ差分を見せるだけ
@@ -58,7 +62,7 @@ TEXT = {
         "need_one": "1つ以上選んでください",
         "products": "hooks を登録する製品を選んでください",
         "products_info": "選ばなかった製品からは、このスキルの hooks を外します。",
-        "product": {"claude": "Claude Code（.claude/settings.json）", "codex": "Codex（.codex/hooks.json）"},
+        "product": "{name}（{where}）",
         "product_name": {"claude": "Claude Code", "codex": "Codex"},
         "unhooked": "hooks の方針で登録しない製品: {products}",
         "features": "有効にする機能を選んでください",
@@ -67,8 +71,9 @@ TEXT = {
         "feature_name": {"check": "出力の検査", "feedback": "利用中の指摘の収集"},
         "dest": "hooks をどこに登録しますか",
         "dest_items": ["プロジェクトの設定ファイル", "登録しない（今の登録を外す）"],
+        "dest_user": "ユーザーの設定ファイル（{where}。どのプロジェクトのセッションでも動く）",
         "chosen": "選んだもの: {products}（{features}）",
-        "plugin_on": "注意: プラグインの hooks が有効です（{where}）。プロジェクトにも登録すると、hooks が二重に動きます",
+        "plugin_on": "注意: プラグインの hooks が有効です（{where}）。ここにも登録すると、hooks が二重に動きます",
         "nohooks": "このスキルは hooks を使わない方針です（契約の control.hooks が false）。登録を外すことだけができます。",
         "nofeedback": "このスキルは利用中の指摘を集めない方針です（契約の control.feedback が false）。",
         "now": "今: {state}",
@@ -114,6 +119,8 @@ TEXT = {
         "status": "今の状態",
         "status_skill": "スキル: {name}（{where}）",
         "status_hooks": "hooks の登録:",
+        "status_scope_user": "登録先: ユーザー単位（{root}）。作ったスキルと実行記録（.skill-runs/、.skill-feedback/）は、使ったセッションのプロジェクトに置かれる",
+        "status_scope_project": "登録先: プロジェクト（{root}）。どのプロジェクトからでも使うときは、本体を ~/.claude/skills に置いて --scope user を付ける",
         "status_plugins_none": "プラグインの hooks: 有効なものは無い",
         "status_plugins": "プラグインの hooks: 有効（{where}）",
         "status_settings": "ユーザーの設定: {user}（{state}）",
@@ -148,7 +155,7 @@ TEXT = {
         "need_one": "Select at least one",
         "products": "Choose the products to register hooks for",
         "products_info": "This skill's hooks are removed from products you do not choose.",
-        "product": {"claude": "Claude Code (.claude/settings.json)", "codex": "Codex (.codex/hooks.json)"},
+        "product": "{name} ({where})",
         "product_name": {"claude": "Claude Code", "codex": "Codex"},
         "unhooked": "Products the hooks plan leaves out: {products}",
         "features": "Choose the features to enable",
@@ -157,8 +164,9 @@ TEXT = {
         "feature_name": {"check": "output checks", "feedback": "feedback collection"},
         "dest": "Where should the hooks be registered?",
         "dest_items": ["The project's settings files", "Do not register (remove the current entries)"],
+        "dest_user": "The user's settings files ({where}; runs in every project's sessions)",
         "chosen": "Chosen: {products} ({features})",
-        "plugin_on": "Note: plugin hooks are enabled ({where}). Registering them in the project too runs the hooks twice",
+        "plugin_on": "Note: plugin hooks are enabled ({where}). Registering them here too runs the hooks twice",
         "nohooks": "This skill does not use hooks (control.hooks is false in the contract). You can only remove entries.",
         "nofeedback": "This skill does not collect feedback (control.feedback is false in the contract).",
         "now": "Now: {state}",
@@ -205,6 +213,8 @@ TEXT = {
         "status": "Current state",
         "status_skill": "Skill: {name} ({where})",
         "status_hooks": "Hook registration:",
+        "status_scope_user": "Scope: user ({root}). Skills you create and run records (.skill-runs/, .skill-feedback/) go to the project of the session that uses it",
+        "status_scope_project": "Scope: project ({root}). To use it from any project, put the skill in ~/.claude/skills and pass --scope user",
         "status_plugins_none": "Plugin hooks: none enabled",
         "status_plugins": "Plugin hooks: enabled ({where})",
         "status_settings": "User setting: {user} ({state})",
@@ -244,6 +254,7 @@ class Context:
 
     def __init__(self, root: Path):
         self.root = root
+        self.user = install.is_user_root(root)  # ユーザー単位（ホームに登録し、どのプロジェクトでも動く）
         self.skill_dir = rt.SKILL_DIR
         self.contract = rt.load_contract()
         self.name = self.contract.get("skill") or self.skill_dir.name
@@ -269,12 +280,24 @@ class Context:
             return {}
         return data if isinstance(data, dict) else {}
 
+    def config(self, platform: str) -> str:
+        """画面に出す、hooks の設定ファイルの場所。"""
+        return self.shown(self.root / install.CONFIGS[platform])
+
+    def dest_items(self) -> list[str]:
+        items = list(self.t["dest_items"])
+        if self.user:
+            items[0] = self.t["dest_user"].format(where=self.t["list_sep"].join(self.config(p) for p in self.hook_products))
+        return items
+
     def shown(self, path: Path) -> str:
         """画面に出すパス（プロジェクトの中は相対、ホームの中は ~/）。"""
         path = path.resolve() if path.exists() else path
-        for base, head in ((self.root, ""), (Path.home(), "~/")):
+        bases = ((Path.home(), "~/"), (self.root, "")) if self.user else ((self.root, ""), (Path.home(), "~/"))
+        for base, head in bases:
             try:
-                return head + path.relative_to(base).as_posix()
+                rel = path.relative_to(base).as_posix()
+                return (head + rel) if rel != "." else (head.rstrip("/") or ".")
             except ValueError:
                 continue
         return path.as_posix()
@@ -473,12 +496,14 @@ def registered_text(t: dict, features: set[str] | None) -> str:
 
 def status_lines(ctx: Context) -> list[str]:
     t = ctx.t
-    lines = [t["status_skill"].format(name=ctx.name, where=ctx.shown(ctx.skill_dir)), t["status_hooks"]]
+    lines = [t["status_skill"].format(name=ctx.name, where=ctx.shown(ctx.skill_dir)),
+             t["status_scope_user" if ctx.user else "status_scope_project"].format(root=ctx.shown(ctx.root) if ctx.user else ctx.root),
+             t["status_hooks"]]
     if not ctx.hooks_allowed:
         lines.append("  " + t["nohooks"])
     for p in ctx.hook_products:
         lines.append(f"  {t['product_name'][p]}: {registered_text(t, install.registered(ctx.root, p, ctx.name))}"
-                     f"（{install.CONFIGS[p]}）")
+                     f"（{ctx.config(p)}）")
     plugins = plugins_on(ctx)
     lines.append(t["status_plugins"].format(where=t["list_sep"].join(plugins)) if plugins else t["status_plugins_none"])
     user = ctx.skill_dir / USER_REL
@@ -503,7 +528,8 @@ def planned(ctx: Context, state: dict) -> tuple[list[dict], list[str]]:
             data, changes = install.plan_hooks(ctx.root, p, ctx.name, not on, features if on else None)
             if changes:
                 path = ctx.root / install.CONFIGS[p]
-                files.append({"rel": install.CONFIGS[p], "before": path.read_text(encoding="utf-8") if path.is_file() else None,
+                files.append({"rel": install.CONFIGS[p], "label": ctx.config(p),
+                              "before": path.read_text(encoding="utf-8") if path.is_file() else None,
                               "after": install.config_text(data), "lines": changes})
         if register and state.get("products"):
             for p in ctx.targets:
@@ -521,7 +547,7 @@ def preview(ctx: Context, files: list[dict], places: list[str]) -> list[str]:
     t = ctx.t
     lines = [t["place"].format(change=c) for c in places]
     for f in files:
-        lines += ["", t["file_new" if f["before"] is None else "file_change"].format(rel=f["rel"]), *f.get("lines", [])]
+        lines += ["", t["file_new" if f["before"] is None else "file_change"].format(rel=f.get("label", f["rel"])), *f.get("lines", [])]
         if f.get("whole"):
             lines += [t["whole"], *f["after"].splitlines()]
             if f["before"] is None:
@@ -556,11 +582,11 @@ def apply(ctx: Context, state: dict, files: list[dict], places: list[str]) -> in
                 rt.emit(t["placed"].format(change=change))
         for f in files:
             if not f.get("settings"):
-                rt.emit(t["written"].format(rel=f["rel"]))
+                rt.emit(t["written"].format(rel=f.get("label", f["rel"])))
         if register:
             found = install.check(ctx.root, ctx.targets, ctx.name, True, "link", features, state["products"])
         else:
-            found = [t["left"].format(rel=install.CONFIGS[p]) for p in ctx.hook_products
+            found = [t["left"].format(rel=ctx.config(p)) for p in ctx.hook_products
                      if install.registered(ctx.root, p, ctx.name) is not None]
         rt.emit(t["check"].format(n=len(found)))
         for problem in found:
@@ -868,7 +894,7 @@ def step_products(ui, ctx: Context, state: dict) -> None:
     lines += [t["unhooked"].format(products=t["list_sep"].join(left))] if left else []
     lines += [t["plugin_on"].format(where=t["list_sep"].join(plugins_on(ctx)))] if plugins_on(ctx) else []
     chosen = state.get("products") or [p for p in ctx.hook_products if current[p] is not None] or ctx.hook_products
-    _, picked = ui.pick_many(t["products"], lines, [t["product"][p] for p in ctx.hook_products],
+    _, picked = ui.pick_many(t["products"], lines, [t["product"].format(name=t["product_name"][p], where=ctx.config(p)) for p in ctx.hook_products],
                              {ctx.hook_products.index(p) for p in chosen})
     state["products"] = [ctx.hook_products[i] for i in sorted(picked)]
 
@@ -889,7 +915,7 @@ def step_dest(ui, ctx: Context, state: dict) -> None:
     features = t["sep"].join(t["feature_name"][f] for f in ctx.features if f in (state.get("features") or ctx.features))
     lines = [t["chosen"].format(products=names, features=features)]
     lines += [t["plugin_on"].format(where=t["list_sep"].join(plugins_on(ctx)))] if plugins_on(ctx) else []
-    index = ui.pick(t["dest"], lines, t["dest_items"], 0 if state.get("register", True) else 1)
+    index = ui.pick(t["dest"], lines, ctx.dest_items(), 0 if state.get("register", True) else 1)
     state["register"] = index == 0
 
 
@@ -897,7 +923,7 @@ def step_nohooks(ui, ctx: Context, state: dict) -> None:
     t = ctx.t
     lines = [t["nohooks"], *[f"{t['product_name'][p]}: {t['now'].format(state=registered_text(t, install.registered(ctx.root, p, ctx.name)))}"
                              for p in ctx.hook_products]]
-    ui.pick(t["dest"], lines, t["dest_items"][1:])
+    ui.pick(t["dest"], lines, ctx.dest_items()[1:])
     state["register"] = False
 
 
@@ -1079,11 +1105,12 @@ def no_tty(ctx: Context) -> int:
     item = next((i for i in setting_items(ctx) if how_to_pick(i)[0] == "one" and how_to_pick(i)[1]), None)
     rt.emit(t["no_tty"], sys.stderr)
     rt.emit(t["no_tty_args"], sys.stderr)
-    examples = [f"python3 {script} --project . --status"]
+    where = "--scope user" if ctx.user else "--project ."
+    examples = [f"python3 {script} {where} --status"]
     if ctx.hooks_allowed and ctx.hook_products:
-        examples.append(f"python3 {script} --project . --hooks {','.join(ctx.hook_products)} --features {','.join(ctx.features)} --yes")
+        examples.append(f"python3 {script} {where} --hooks {','.join(ctx.hook_products)} --features {','.join(ctx.features)} --yes")
     if item:
-        examples.append(f"python3 {script} --project . --set {'.'.join(item['path'])}={show(how_to_pick(item)[1][0])} --yes")
+        examples.append(f"python3 {script} {where} --set {'.'.join(item['path'])}={show(how_to_pick(item)[1][0])} --yes")
     for line in examples:
         rt.emit(f"  {line}", sys.stderr)
     return 2
@@ -1091,7 +1118,10 @@ def no_tty(ctx: Context) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--project", help="プロジェクトのルート。省くと今のディレクトリから .git を辿って決める")
+    parser.add_argument("--project", help="プロジェクトのルート。ホーム（~）ならユーザー単位。省くと、本体がホームのスキルの置き場に"
+                                          "あればユーザー単位、ほかは今のディレクトリから .git を辿って決める")
+    parser.add_argument("--scope", choices=["project", "user"],
+                        help="user はホームに登録する（どのプロジェクトからでも使う）。project は --project か今のプロジェクト")
     parser.add_argument("--plain", action="store_true", help="矢印キーの画面ではなく、番号で選ぶ画面にする")
     parser.add_argument("--status", action="store_true", help="今の状態を見る（何も書かない）")
     parser.add_argument("--hooks", help="非対話: hooks を登録する製品（カンマ区切り）。none なら今の登録を外す")
@@ -1100,7 +1130,7 @@ def main() -> int:
     parser.add_argument("--yes", action="store_true", help="非対話: 確かめずに書く。無ければ書く前の差分を見せるだけ")
     args = parser.parse_args()
 
-    ctx = Context(Path(args.project).resolve() if args.project else rt.project_root(Path.cwd()))
+    ctx = Context(install.default_root(args.project, __file__, args.scope))
     t = ctx.t
     if args.status:
         for line in status_lines(ctx):

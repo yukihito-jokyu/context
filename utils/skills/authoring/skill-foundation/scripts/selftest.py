@@ -1008,6 +1008,49 @@ def setup_problems(skill: Path, temp: Path) -> list[str]:
         code, _ = _lib.run(sf_setup + ["--set", bad, "--yes"], project, env=env)
         if code != 2 or sf_user.read_bytes() != written:
             problems.append(f"非対話モードが、使えない値 {bad} を止めない（終了コード {code}）")
+    return problems + user_scope_problems(temp)
+
+
+def user_scope_problems(temp: Path) -> list[str]:
+    """ホームに置いた skill-foundation（どこからでも使う導入）の登録と、別のプロジェクトのセッションでの働き。"""
+    py, problems = sys.executable, []
+    home, project = temp / "user-home", temp / "user-proj"
+    body = home / ".claude/skills/skill-foundation"
+    body.parent.mkdir(parents=True)
+    body.symlink_to(_lib.FOUNDATION_DIR, target_is_directory=True)  # 正本へのリンクで置いた形
+    old = 'python3 "$CLAUDE_PROJECT_DIR/.claude/skills/skill-foundation/scripts/hook.py" --platform claude stop'
+    (home / ".claude/settings.json").write_text(json.dumps({"hooks": {"Stop": [{"hooks": [{"type": "command", "command": old}]}]}}),
+                                                encoding="utf-8")  # 前の版で --project ~ に登録した形
+    project.mkdir()
+    _lib.git_init(project)
+    env = {**os.environ, "HOME": str(home), "CLAUDE_CONFIG_DIR": str(home / ".claude"), "CODEX_HOME": str(home / ".codex")}
+    env.pop("CLAUDE_PROJECT_DIR", None)
+    code, text = _lib.run([py, str(body / "scripts/setup.py"), "--hooks", "claude,codex", "--yes"], project, env=env)
+    settings = (home / ".claude/settings.json").read_text(encoding="utf-8") if (home / ".claude/settings.json").is_file() else ""
+    if code != 0 or '$HOME/.claude/skills/skill-foundation/scripts/hook.py' not in settings \
+            or '$HOME/.agents/skills/skill-foundation/scripts/hook.py' not in \
+            ((home / ".codex/hooks.json").read_text(encoding="utf-8") if (home / ".codex/hooks.json").is_file() else ""):
+        problems.append(f"ホームに置いたスキルの setup.py が、ホームの設定に $HOME の置き場を指す hooks を登録しない（終了コード {code}）")
+    if "$CLAUDE_PROJECT_DIR" in settings:
+        problems.append("ユーザー単位で登録し直しても、プロジェクトの置き場を指す前の項目が残る")
+    if any((project / rel).exists() for rel in (".claude", ".agents", ".codex")):
+        problems.append("ユーザー単位の登録が、使ったプロジェクトに置き場か設定を作った")
+    code, _ = _lib.run([py, str(body / "scripts/run.py"), "start", "--set", "name=write-note", "--set", "measure=skip",
+                        "--guess", "language=ja", "メモを書くスキルを作って"], project, env=env)
+    if code != 0 or not (project / ".skill-runs/skill-foundation/state.json").is_file():
+        problems.append(f"ホームに置いたスキルの run.py start が、セッションのプロジェクトに実行記録を作らない（終了コード {code}）")
+    stop = next((h["command"] for g in json.loads(settings or "{}").get("hooks", {}).get("Stop", []) for h in g.get("hooks", [])
+                 if "skill-foundation" in h.get("command", "")), "")
+    event = json.dumps({"cwd": str(project), "session_id": "selftest"})
+    code, text = _lib.run(stop, project, env=env, stdin=event)
+    if code != 0 or '"block"' not in text:
+        problems.append(f"ユーザー単位の Stop の hook が、セッションのプロジェクトの実行を検査しない（終了コード {code}）")
+    if (_lib.FOUNDATION_DIR / ".skill-runs").exists() or (home / ".skill-runs").exists():
+        problems.append("実行記録を、セッションのプロジェクトではなくスキルかホームに作った")
+    body.unlink()
+    code, text = _lib.run(stop, project, env=env, stdin=event)
+    if code != 0:
+        problems.append(f"スキルを外した後のユーザー単位の hook が、終了コード {code} で終わる（Claude Code では 2 が拒否になる）")
     return problems
 
 
