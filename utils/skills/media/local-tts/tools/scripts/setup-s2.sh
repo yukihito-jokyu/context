@@ -19,7 +19,8 @@ done
 [[ $(uname -s) == Darwin ]] || { printf 'setup-s2.sh supports macOS only.\n' >&2; exit 2; }
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$script_dir/.." && pwd)
-home_root=${PRESENTER_TTS_HOME:-"$HOME/.local/share/presenter-tts"}
+# PRESENTER_TTS_HOME is the old name of LOCAL_TTS_HOME.
+home_root=${LOCAL_TTS_HOME:-${PRESENTER_TTS_HOME:-"$HOME/.local/share/local-tts"}}
 runtime_root="$home_root/cache"
 
 for tool in git uv xcrun patch; do
@@ -67,6 +68,6 @@ build_dir="$runtime_root/s2-build"
 "$python_executable" "$script_dir/fetch_s2.py" --directory "$runtime_root/models"
 git -C "$source_dir" rev-parse HEAD > "$runtime_root/s2-source-revision.txt"
 # Build the Core Audio playback helper now, so the first `say` does not wait for swiftc.
-"$python_executable" -c 'from presenter_tts.audio import mac_pcm_player; mac_pcm_player()' \
+"$python_executable" -c 'from local_tts.audio import mac_pcm_player; mac_pcm_player()' \
     || printf 'Warning: the macOS playback helper did not build; --play will use ffplay.\n' >&2
-printf 'Setup finished. Run: uv run presenter-tts server start\n'
+printf 'Setup finished. Run: uv run local-tts server start\n'

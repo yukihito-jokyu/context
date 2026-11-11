@@ -1,0 +1,27 @@
+[project]
+name = "local-tts-engine-omnivoice"
+version = "0.1.0"
+description = "OmniVoice engine server for local-tts"
+requires-python = ">=3.11,<3.13"
+license = "MIT"
+# torch 2.8.0: what OmniVoice's README installs; CUDA 12.8 wheels on Windows/Linux, MPS on macOS.
+dependencies = [
+    "omnivoice==0.2.1",
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "numpy",
+    "soundfile",
+    "huggingface-hub",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+torchaudio = [{ index = "pytorch-cu128", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

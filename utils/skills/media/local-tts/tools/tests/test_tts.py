@@ -1,3 +1,4 @@
+import _isolated_home  # noqa: F401  (must come before local_tts)
 import array
 from contextlib import contextmanager
 from email.message import Message
@@ -16,14 +17,19 @@ import unittest
 from unittest.mock import patch
 import wave
 
-from presenter_tts.audio import AudioError, Backend, Format, read_pcm, render, transform
-from presenter_tts.ssml import Mark, Pause, Speech, SSMLError, Style, compile_ssml
+from local_tts.audio import AudioError, Backend, Format, read_pcm, render, transform
+from local_tts.ssml import Mark, Pause, Speech, SSMLError, Style, compile_ssml
 
 
 def document(body):
     return ('<speak xmlns="http://www.w3.org/2001/10/synthesis" version="1.1" '
             'xml:lang="ja-JP">' + body + '</speak>')
 
+
+
+# An S2 profile file: s2 requests send its path, so it has to exist.
+S2VOICE = Path(tempfile.mkdtemp()) / 'myvoice.s2voice'
+S2VOICE.write_bytes(b'v')
 
 class SSMLTests(unittest.TestCase):
     def test_mixed_text_and_alias_are_preserved(self):
@@ -126,7 +132,7 @@ class RenderTests(unittest.TestCase):
         self.assertNotIn('filler', prompt)
 
     def test_filler_is_trimmed_and_faded(self):
-        from presenter_tts.fillers import trim_and_fade
+        from local_tts.fillers import trim_and_fade
         pcm = array.array('h', [0] * 10 + [1000] * 100 + [0] * 10).tobytes()
         out = array.array('h', trim_and_fade(pcm, Format(8000), .375))  # 3-sample fades
         self.assertEqual(len(out), 100)
@@ -147,10 +153,10 @@ class RenderTests(unittest.TestCase):
             with self.assertRaises(AudioError):
                 render([Speech('hello', Style())], BrokenBackend(), path, force=True)
             self.assertEqual(path.read_bytes(), b'previous')
-            self.assertEqual(list(Path(directory).glob('.presenter-*')), [])
+            self.assertEqual(list(Path(directory).glob('.local-tts-*')), [])
 
     def test_missing_filter_dependency_fails_before_synthesis(self):
-        with tempfile.TemporaryDirectory() as directory, patch('presenter_tts.audio.shutil.which', return_value=None):
+        with tempfile.TemporaryDirectory() as directory, patch('local_tts.audio.shutil.which', return_value=None):
             with self.assertRaisesRegex(AudioError, 'FFmpeg'):
                 render([Speech('hello', Style(rate=.9))], StubBackend(), Path(directory) / 'x.wav')
 
@@ -167,7 +173,7 @@ class RenderTests(unittest.TestCase):
 
     def test_remote_endpoints_are_rejected(self):
         with self.assertRaises(AudioError):
-            Backend({'url': 'https://example.com'})
+            Backend({'engine': 's2', 'url': 'https://example.com'})
 
     @unittest.skipUnless(shutil.which('ffmpeg'), 'FFmpeg is not installed')
     def test_real_ffmpeg_changes_duration_and_pitch(self):
@@ -271,7 +277,8 @@ class WireTests(unittest.TestCase):
     def test_real_http_s2_multipart_pcm_to_wav(self):
         events, _ = compile_ssml(document('こんにちは。<break time="100ms"/><mark name="slide"/>次です。'))
         with tempfile.TemporaryDirectory() as directory:
-            report = render(events, Backend({'url': self.url, 'voice': 'presenter'}), Path(directory) / 'out.wav')
+            report = render(events, Backend({'engine': 's2', 'url': self.url, 'voice': str(S2VOICE)}),
+                            Path(directory) / 'out.wav')
         self.assertAlmostEqual(report['audio_seconds'], .3)
         path, content_type, body = self.requests[-1]
         self.assertEqual(path, '/generate')
@@ -279,7 +286,7 @@ class WireTests(unittest.TestCase):
         self.assertIn(b'"stream": true', body)
         self.assertIn(b'"chunked": true', body)
         self.assertIn(b'pcm_s16le', body)
-        self.assertIn(b'presenter', body)
+        self.assertIn(b'myvoice', body)
         self.assertNotIn(b'<speak', body)
 
     def test_real_http_voicevox_queries(self):
@@ -295,10 +302,10 @@ class MacPlaybackTests(unittest.TestCase):
         popen = MagicMock()
         popen.return_value.wait.return_value = 0
         with tempfile.TemporaryDirectory() as folder, \
-                patch('presenter_tts.audio.sys.platform', 'darwin'), \
-                patch('presenter_tts.audio.mac_pcm_player', **mac_player), \
-                patch('presenter_tts.audio.shutil.which', return_value='/bin/ffplay'), \
-                patch('presenter_tts.audio.subprocess.Popen', popen):
+                patch('local_tts.audio.sys.platform', 'darwin'), \
+                patch('local_tts.audio.mac_pcm_player', **mac_player), \
+                patch('local_tts.audio.shutil.which', return_value='/bin/ffplay'), \
+                patch('local_tts.audio.subprocess.Popen', popen):
             render([Speech('a', Style())], StubBackend(), Path(folder) / 'out.wav', play=True)
         return popen.call_args.args[0], popen.return_value.stdin
 
@@ -313,7 +320,7 @@ class MacPlaybackTests(unittest.TestCase):
         self.assertEqual(command[0], '/bin/ffplay')
 
     def test_helper_is_built_once_per_source_content(self):
-        from presenter_tts import audio
+        from local_tts import audio
         built = []
 
         def swiftc(command, **kwargs):
@@ -322,17 +329,17 @@ class MacPlaybackTests(unittest.TestCase):
             return type('Done', (), {'returncode': 0, 'stderr': ''})()
 
         with tempfile.TemporaryDirectory() as folder, \
-                patch('presenter_tts.voices.RUNTIME', Path(folder)), \
-                patch('presenter_tts.audio.shutil.which', return_value='/usr/bin/swiftc'), \
-                patch('presenter_tts.audio.subprocess.run', side_effect=swiftc):
+                patch('local_tts.voices.RUNTIME', Path(folder)), \
+                patch('local_tts.audio.shutil.which', return_value='/usr/bin/swiftc'), \
+                patch('local_tts.audio.subprocess.run', side_effect=swiftc):
             first = audio.mac_pcm_player()
             self.assertEqual(audio.mac_pcm_player(), first)
             self.assertRegex(Path(first).name, r'^macos-pcm-player-[0-9a-f]{12}$')
         self.assertEqual(len(built), 1)
 
     def test_no_swift_means_no_helper(self):
-        from presenter_tts import audio
-        with patch('presenter_tts.audio.shutil.which', return_value=None):
+        from local_tts import audio
+        with patch('local_tts.audio.shutil.which', return_value=None):
             self.assertIsNone(audio.mac_pcm_player())
 
 
@@ -341,9 +348,9 @@ class HTTPContractTests(unittest.TestCase):
         response = io.BytesIO(b'\1\0' * 160)
         response.headers = {'X-Audio-Encoding': 'pcm_s16le', 'X-Audio-Sample-Rate': '16000',
                             'X-Audio-Channels': '1', 'Content-Length': '320'}
-        with patch('presenter_tts.audio.urllib.request.build_opener') as build:
+        with patch('local_tts.audio.urllib.request.build_opener') as build:
             build.return_value.open.return_value = response
-            with Backend({'voice': 'presenter'}).synthesize('hello') as (fmt, chunks):
+            with Backend({'engine': 's2', 'voice': str(S2VOICE)}).synthesize('hello') as (fmt, chunks):
                 self.assertEqual(fmt, Format(16000))
                 self.assertEqual(len(b''.join(chunks)), 320)
             request = build.return_value.open.call_args.args[0]
@@ -351,28 +358,28 @@ class HTTPContractTests(unittest.TestCase):
             self.assertIn(b'"stream": true', request.data)
             self.assertIn(b'"chunked": true', request.data)
             self.assertIn(b'pcm_s16le', request.data)
-            self.assertIn(b'presenter', request.data)
+            self.assertIn(b'myvoice', request.data)
 
     def test_bad_server_format_is_rejected(self):
         response = io.BytesIO(b'RIFF')
         response.headers = {'Content-Type': 'audio/wav'}
-        with patch('presenter_tts.audio.urllib.request.build_opener') as build:
+        with patch('local_tts.audio.urllib.request.build_opener') as build:
             build.return_value.open.return_value = response
             with self.assertRaisesRegex(AudioError, 'X-Audio-Encoding'):
-                with Backend({}).synthesize('hello'):
+                with Backend({'engine': 's2'}).synthesize('hello'):
                     pass
 
     def test_busy_server_is_retried(self):
         import urllib.error
         busy = urllib.error.HTTPError('u', 503, 'busy', {}, io.BytesIO(b'busy'))
-        with patch('presenter_tts.audio.urllib.request.build_opener') as build, \
-                patch('presenter_tts.audio.time.sleep') as sleep:
+        with patch('local_tts.audio.urllib.request.build_opener') as build, \
+                patch('local_tts.audio.time.sleep') as sleep:
             build.return_value.open.side_effect = [busy, 'ok']
-            self.assertEqual(Backend({}).post('/generate', b''), 'ok')
+            self.assertEqual(Backend({'engine': 's2'}).post('/generate', b''), 'ok')
         sleep.assert_called_once()
 
     def test_start_buffer_scales_with_text_length(self):
-        backend = Backend({'generation': {'stream_start_buffer_ms_per_char': 50}})
+        backend = Backend({'engine': 's2', 'generation': {'stream_start_buffer_ms_per_char': 50}})
         with patch.object(backend, 'post', side_effect=AudioError('stop')) as post:
             with self.assertRaises(AudioError):
                 with backend.synthesize('あいうえお。'):
@@ -382,8 +389,8 @@ class HTTPContractTests(unittest.TestCase):
 
     def test_cpu_codec_decodes_once_unless_someone_listens(self):
         def request(platform, live):
-            backend = Backend({'generation': {'stream_decode_stride_frames': 16}})
-            with patch('presenter_tts.runtime.sys.platform', platform), \
+            backend = Backend({'engine': 's2', 'generation': {'stream_decode_stride_frames': 16}})
+            with patch('local_tts.runtime.sys.platform', platform), \
                     patch.object(backend, 'post', side_effect=AudioError('stop')) as post:
                 with self.assertRaises(AudioError):
                     with backend.synthesize('hello', live=live):
@@ -399,22 +406,22 @@ class HTTPContractTests(unittest.TestCase):
         self.assertIn(b'"stream_decode_stride_frames": 16', request('win32', False)[0])
 
     def test_voice_switching(self):
-        from presenter_tts.voices import set_voice
+        from local_tts.voices import set_voice
         with tempfile.TemporaryDirectory() as folder:
             Path(folder, 'myvoice.s2voice').write_bytes(b'x')
             config = {'voice': 'old.s2voice'}
-            with patch('presenter_tts.voices.VOICES', Path(folder)):
+            with patch('local_tts.voices.VOICES', Path(folder)):
                 set_voice(config, 'myvoice')
-                self.assertTrue(config['voice'].endswith('/myvoice.s2voice'))
+                self.assertEqual(config['voice'], 'myvoice')  # A name; S2 maps it to the .s2voice file
                 with self.assertRaisesRegex(AudioError, 'available: default, myvoice'):
                     set_voice(config, 'nobody')
                 set_voice(config, 'default')
         self.assertNotIn('voice', config)
 
     def test_filler_pool_drops_runaways(self):
-        import presenter_tts.fillers as main
+        import local_tts.fillers as main
         with tempfile.TemporaryDirectory() as folder:
-            takes = Path(folder, 'fillers', 'default')
+            takes = Path(folder, 'fillers', 's2', 'default')
             takes.mkdir(parents=True)
             for name, seconds in (('a', .2), ('b', .2), ('long', 3)):
                 with wave.open(str(takes / f'{name}.wav'), 'wb') as clip:
@@ -422,13 +429,13 @@ class HTTPContractTests(unittest.TestCase):
                     clip.writeframes(b'\xe8\x03' * int(8000 * seconds))
             settings = {'filler_max_seconds': 1, 'filler_pitch_semitones': 0,
                         'filler_rate_min': 1, 'filler_rate_max': 1}
-            with patch('presenter_tts.voices.FILLER_CACHE', Path(folder, 'fillers')), \
+            with patch('local_tts.voices.FILLER_CACHE', Path(folder, 'fillers')), \
                     patch.object(main, 'FILLERS', ('a', 'b', 'long')):
-                pool = main.filler_pool(Backend({}), settings)
+                pool = main.filler_pool(Backend({'engine': 's2'}), settings)
         self.assertEqual([p.name for p, _ in pool], ['a.wav', 'b.wav'])
 
     def test_pick_filler_fits_the_wait(self):
-        from presenter_tts.fillers import pick_filler
+        from local_tts.fillers import pick_filler
         pool = [(name, (Format(8000), b'\0\0' * int(8000 * s)))
                 for name, s in (('s', .3), ('m', .6), ('l', .9), ('xl', 1.2), ('xs', .1))]
         picks = {pick_filler(pool, 1.0, last='l')[0] for _ in range(50)}
@@ -436,28 +443,28 @@ class HTTPContractTests(unittest.TestCase):
         self.assertIsNone(pick_filler(pool, .05))
 
     def test_say_skips_filler_by_probability_and_expected_arrival(self):
-        from presenter_tts.say import say
+        from local_tts.say import say
         clip = ('take', (Format(8000), b'\0\0' * 4000))  # 0.5 s
         config = {'say': {'filler': True, 'filler_probability': .5, 'filler_after_ms': 1000,
                           'arrival_base_ms': 0, 'arrival_ms_per_char': 100}}
-        with patch('presenter_tts.say.render', return_value={}) as fake, \
-                patch('presenter_tts.fillers.filler_pool', return_value=[clip]), \
-                patch('presenter_tts.fillers.random.random', return_value=.1):
+        with patch('local_tts.say.render', return_value={}) as fake, \
+                patch('local_tts.fillers.filler_pool', return_value=[clip]), \
+                patch('local_tts.fillers.random.random', return_value=.1):
             say(Backend(config), 'あ' * 15, Path('x.wav'))  # body expected at 1.5 s: filler fits
             say(Backend(config), 'あ' * 14, Path('x.wav'))  # 1.4 s: filler would delay the body
-            with patch('presenter_tts.fillers.random.random', return_value=.9):
+            with patch('local_tts.fillers.random.random', return_value=.9):
                 say(Backend(config), 'あ' * 15, Path('x.wav'))  # fits, but skipped by chance
         self.assertEqual([c.kwargs['filler'] for c in fake.call_args_list], [clip[1], None, None])
 
     def test_first_clause_can_be_split(self):
-        from presenter_tts.say import segments
+        from local_tts.say import segments
         line = '今日は、いい天気です。明日も、晴れ。'
         self.assertEqual(segments(line, True), ['今日は、', 'いい天気です。', '明日も、晴れ。'])
         self.assertEqual(segments(line, False), ['今日は、いい天気です。', '明日も、晴れ。'])
         self.assertEqual(segments('はい、', True), ['はい、'])
 
     def test_long_sentences_are_cut_at_commas_outside_brackets(self):
-        from presenter_tts.say import clauses
+        from local_tts.say import clauses
         sentence = 'ああ、いい、「う、え」、おおおおお、かか。'
         self.assertEqual(clauses(sentence, 8), ['ああ、いい、', '「う、え」、', 'おおおおお、', 'かか。'])
         self.assertEqual(clauses(sentence, 0), [sentence])
@@ -467,21 +474,21 @@ class HTTPContractTests(unittest.TestCase):
         self.assertEqual(clauses('雑誌「言葉」を創刊した人物です。', 5), ['雑誌「言葉」を創刊した人物です。'])
 
     def test_say_skips_punctuation_only_input(self):
-        from presenter_tts.say import say
-        backend = Backend({'say': {'filler': True}})
-        with patch('presenter_tts.say.render') as fake, \
-                patch('presenter_tts.fillers.filler_pool', return_value=[]), \
+        from local_tts.say import say
+        backend = Backend({'engine': 's2', 'say': {'filler': True}})
+        with patch('local_tts.say.render') as fake, \
+                patch('local_tts.fillers.filler_pool', return_value=[]), \
                 patch('builtins.input', side_effect=['！？', EOFError]):
             self.assertEqual(say(backend, '！？', Path('x.wav')), 0)  # One-shot: returns
             self.assertEqual(say(backend, '', Path('x.wav')), 0)      # Interactive: keeps going
         fake.assert_not_called()
 
     def test_say_speaks_each_typed_line(self):
-        from presenter_tts.say import say
-        with patch('presenter_tts.say.render') as fake, \
-                patch('presenter_tts.fillers.filler_pool', return_value=[('take', (Format(8000), b''))]), \
+        from local_tts.say import say
+        with patch('local_tts.say.render') as fake, \
+                patch('local_tts.fillers.filler_pool', return_value=[('take', (Format(8000), b''))]), \
                 patch('builtins.input', side_effect=['こんにちは。元気？ はい', '', EOFError]):
-            self.assertEqual(say(Backend({'say': {'filler': True, 'filler_after_ms': 400}}),
+            self.assertEqual(say(Backend({'engine': 's2', 'say': {'filler': True, 'filler_after_ms': 400}}),
                                  '', Path('x.wav')), 0)
         fake.assert_called_once()
         self.assertTrue(fake.call_args.kwargs['play'])

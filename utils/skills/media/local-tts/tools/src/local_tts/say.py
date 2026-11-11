@@ -6,7 +6,7 @@ import sys
 from . import voices
 from .audio import AudioError, render
 from .fillers import Fillers
-from .ssml import Speech, Style
+from .ssml import Pause, Speech, Style
 
 SENTENCE = re.compile(r"[^。！？!?]+[。！？!?]*")
 
@@ -47,6 +47,40 @@ def segments(line, split_first_clause, max_chars=0):
     return parts
 
 
+def joined(left, right):
+    """Two pieces of text as one request: no space after Japanese, a space between other words."""
+    if not left:
+        return right
+    return left + ("" if not left[-1].isascii() or left[-1] in "、。" else " ") + right
+
+
+def group(parts, limit):
+    """Consecutive parts packed into requests of up to `limit` characters (a longer part stays whole)."""
+    packed = []
+    for part in parts:
+        if packed and len(packed[-1]) + len(part) <= limit:
+            packed[-1] = joined(packed[-1], part)
+        else:
+            packed.append(part)
+    return packed
+
+
+def merge_speech(events, limit):
+    """SSML events with runs of same-style speech (no real pause or mark between) packed up to `limit`
+    characters per request. The timing JSON then has one segment per packed request."""
+    merged = []
+    for event in events:
+        if isinstance(event, Pause) and not event.seconds:
+            continue  # The zero-length break SSML puts between sentences does not separate requests.
+        last = merged[-1] if merged else None
+        if (isinstance(event, Speech) and isinstance(last, Speech) and last.style == event.style
+                and len(last.text) + len(event.text) <= limit):
+            merged[-1] = Speech(joined(last.text, event.text), event.style)
+        else:
+            merged.append(event)
+    return merged
+
+
 def say(backend, text, output):
     """Speak the given text once, or each typed line until Ctrl+Z/Ctrl+D; "/voice NAME" switches."""
     settings = backend.config.get("say", {})
@@ -69,8 +103,14 @@ def say(backend, text, output):
         # Each sentence gets its own server head start, so pauses fall between sentences,
         # never inside one. An optional filler plays only if the first audio is late.
         # Punctuation-only input ("！？") yields no sentences and is skipped.
-        sentences = segments(line, settings.get("split_first_clause", False),
-                             int(settings.get("max_chars", 40)))
+        from . import engines
+        limit = engines.request_chars(backend.config, backend.engine)
+        if limit:
+            # This engine pays a fixed cost per request, so short first clauses would only add waits.
+            sentences = group(segments(line, False, 0), limit)
+        else:
+            sentences = segments(line, settings.get("split_first_clause", False),
+                                 int(settings.get("max_chars", 40)))
         if sentences:
             try:
                 report = render([Speech(s, Style()) for s in sentences], backend, output, play=True,

@@ -10,9 +10,11 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-# Same per-user home as presenter_tts.voices: reports go there, not into the installed skill.
-HOME = Path(os.environ.get("PRESENTER_TTS_HOME") or Path(
-    os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "presenter-tts")
+# Same per-user home as local_tts.voices: reports go there, not into the installed skill.
+sys.path.insert(0, str(ROOT / "src"))
+from local_tts.home import resolve  # noqa: E402
+
+HOME = resolve()[0]
 
 
 def decode(data):
@@ -62,7 +64,7 @@ def main():
         if compiler := shutil.which("nvcc"):
             run("cuda-compiler-on-path", [compiler, "--version"])
         ok = run("tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
-        cli = [sys.executable, "-m", "presenter_tts", *(["--config", str(args.config)] if args.config else [])]
+        cli = [sys.executable, "-m", "local_tts", *(["--config", str(args.config)] if args.config else [])]
         ok = run("ssml-plan", cli + ["plan", str(args.input)]) and ok
         ok = run("doctor", cli + ["doctor"]) and ok
         if args.synthesize and ok:

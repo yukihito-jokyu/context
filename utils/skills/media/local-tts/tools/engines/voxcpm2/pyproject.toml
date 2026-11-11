@@ -1,0 +1,34 @@
+[project]
+name = "local-tts-engine-voxcpm2"
+version = "0.1.0"
+description = "VoxCPM2 engine server for local-tts"
+requires-python = ">=3.11,<3.13"
+license = "MIT"
+# VoxCPM at the commit measured for local-tts (2026-11-09); PyPI's 2.0.3 is from 2026-05.
+# macOS: torch 2.15.0, measured on an M4 (MPS): torch 2.8.0 ran VoxCPM2 about 1.6x slower there.
+# Windows/Linux: torch 2.8.0 with CUDA 12.8 wheels. torch 2.15 is only built for CUDA 13.2, which
+# needs a much newer NVIDIA driver than the CUDA 12.x setups local-tts was verified with.
+dependencies = [
+    "voxcpm @ git+https://github.com/OpenBMB/VoxCPM@300e4260b509066151d623dc9c0aa922cf82232b",
+    "torch==2.15.0; sys_platform == 'darwin'",
+    "torchaudio==2.11.1; sys_platform == 'darwin'",
+    "torchcodec==0.17.0; sys_platform == 'darwin'",
+    "torch==2.8.0; sys_platform != 'darwin'",
+    "torchaudio==2.8.0; sys_platform != 'darwin'",
+    "torchcodec==0.7.0; sys_platform != 'darwin'",
+    "numpy",
+    "soundfile",
+    "huggingface-hub",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+torchaudio = [{ index = "pytorch-cu128", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
