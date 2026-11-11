@@ -4,6 +4,8 @@
 Requires the complete Context Repository and a new work directory. No external
 posting, model sessions or installation into an actual user project is performed.
 Only the isolated work project receives generated skill placements and hooks.
+The user-scope (global) registration added in issue #111 is exercised only with a
+fake HOME inside the work directory; the real ~/.claude and ~/.codex are untouched.
 """
 import argparse
 from datetime import datetime, timezone
@@ -50,10 +52,11 @@ def main():
            'SKILL_FEEDBACK_SYNTHETIC': '1'}
     logs = []
 
-    def run(stage, command, expected=0, stdin=None):
-        result = subprocess.run(list(map(str, command)), cwd=project, env=env, input=stdin,
-                                text=True, capture_output=True, timeout=180)
-        logs.append({'stage': stage, 'cwd': str(project), 'command': list(map(str, command)),
+    def run(stage, command, expected=0, stdin=None, cwd=None, run_env=None, timeout=180):
+        cwd = cwd or project
+        result = subprocess.run(list(map(str, command)), cwd=cwd, env=run_env or env, input=stdin,
+                                text=True, capture_output=True, timeout=timeout)
+        logs.append({'stage': stage, 'cwd': str(cwd), 'command': list(map(str, command)),
                      'exit_code': result.returncode, 'output': result.stdout + result.stderr})
         assert result.returncode == expected, stage + '\n' + result.stdout + result.stderr
         print(f'PASS {stage}', flush=True)
@@ -67,6 +70,12 @@ def main():
         path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
 
     run('init-temporary-project', ['git', 'init', '-q'])
+    # The canonical selftest (including the user-scope stage added in #111) with its temp files inside the work dir.
+    selftest_tmp = work / 'selftest-tmp'
+    selftest_tmp.mkdir()
+    selftest = foundation('foundation-selftest', 'selftest.py',
+                          run_env={**env, 'TMPDIR': str(selftest_tmp)}, timeout=900)
+    assert not [p for p in selftest_tmp.iterdir() if p.is_dir()], 'selftest must clean its temporary projects'
     foundation('foundation-start', 'run.py', 'start', '--set', 'name=write-commit-message',
                '--set', 'targets=claude,codex', '--set', 'base=.claude/skills', '--set', 'language=ja',
                '--set', 'measure=skip', '--set', 'eval=skip', '--set', 'hooks=all', REQUEST)
@@ -150,12 +159,55 @@ def main():
     feedback = json.loads((project / '.skill-feedback/write-commit-message/feedback.json').read_text())
     assert len(feedback['deliveries']) == 1 and not feedback['cases'] and not feedback['messages']
     assert feedback['synthetic'] is True
+    # User (global) scope of the generated skill, with a fake HOME inside the work directory.
+    home = work / 'user-home'
+    other = work / 'other-project'
+    home.mkdir()
+    other.mkdir()
+    user_env = {**env, 'HOME': str(home), 'CLAUDE_CONFIG_DIR': str(home / '.claude'), 'CODEX_HOME': str(home / '.codex')}
+    user_env.pop('CLAUDE_PROJECT_DIR', None)
+    run('user-scope-other-project', ['git', 'init', '-q'], cwd=other, run_env=user_env)
+    user_install = run('user-scope-install', ['python3', generated / 'scripts/install.py', '--scope', 'user'],
+                       cwd=other, run_env=user_env)
+    run('user-scope-check', ['python3', generated / 'scripts/install.py', '--scope', 'user', '--check'],
+        cwd=other, run_env=user_env)
+    places = {'claude': home / '.claude/skills/write-commit-message', 'codex': home / '.agents/skills/write-commit-message'}
+    assert all(p.is_symlink() and p.resolve() == generated.resolve() for p in places.values())
+    user_configs = {'claude': home / '.claude/settings.json', 'codex': home / '.codex/hooks.json'}
+    user_hooks = {k: json.loads(v.read_text())['hooks'] for k, v in user_configs.items()}
+    user_commands = {k: [h['command'] for groups in v.values() for g in groups for h in g['hooks']] for k, v in user_hooks.items()}
+    assert all(sorted(v) == ['PostToolUse', 'PreToolUse', 'Stop', 'UserPromptSubmit'] for v in user_hooks.values())
+    assert all('"$HOME/.claude/skills/write-commit-message/scripts/hook.py"' in c and c.startswith('[ ! -f ')
+               for c in user_commands['claude'])
+    assert all('"$HOME/.agents/skills/write-commit-message/scripts/hook.py"' in c for c in user_commands['codex'])
+    assert not any('CLAUDE_PROJECT_DIR' in c or 'rev-parse' in c for v in user_commands.values() for c in v)
+    assert not any((other / rel).exists() for rel in ('.claude', '.agents', '.codex')), 'user scope must not write into the project'
+    stop_cmd = next(c for c in user_commands['claude'] if c.endswith(' stop'))
+    event = json.dumps({'cwd': str(other), 'session_id': 'public-example-user-scope'})
+    user_stop = run('user-scope-stop-other-project', ['sh', '-c', stop_cmd], cwd=other, run_env=user_env, stdin=event)
+    assert not any((other / rel).exists() for rel in ('.skill-runs', '.skill-feedback'))
+    assert not (generated / '.skill-runs').exists() and not (home / '.skill-runs').exists()
+    places['claude'].unlink()
+    missing_stop = run('user-scope-stop-missing-script', ['sh', '-c', stop_cmd], cwd=other, run_env=user_env, stdin=event)
+    assert missing_stop == ''
+    run('user-scope-uninstall', ['python3', generated / 'scripts/install.py', '--scope', 'user', '--uninstall'],
+        cwd=other, run_env=user_env)
+    assert not any(c for k, v in user_configs.items() if v.is_file()
+                   for groups in json.loads(v.read_text()).get('hooks', {}).values() for g in groups for h in g['hooks']
+                   for c in [h['command']] if '/write-commit-message/scripts/hook.py' in c)
+    assert not places['codex'].exists()
+    # The project-scope registration of the isolated project is untouched by the user-scope steps.
+    assert {name: sorted(json.loads((project / path).read_text())['hooks'])
+            for name, path in [('claude', '.claude/settings.json'), ('codex', '.codex/hooks.json')]} == hooks
     foundation('foundation-check', 'run.py', 'check')
     foundation('foundation-finish', 'run.py', 'finish')
     assert inventory(source) == before
 
     def redact(value):
-        return value.replace(str(repo), '<repository>').replace(str(work), '<workdir>').replace(str(Path.home()), '<user-home>')
+        value = value.replace(str(repo), '<repository>').replace(str(work), '<workdir>')
+        if str(work).startswith('/private/'):
+            value = value.replace(str(work)[len('/private'):], '<workdir>')
+        return value.replace(str(Path.home()), '<user-home>')
 
     (results / 'execution-log.jsonl').write_text(''.join(redact(json.dumps(item, ensure_ascii=False)) + '\n' for item in logs))
     (results / 'input.md').write_text(REQUEST + '\n\n作成元: 最新の正本に同梱した assets/example/write-commit-message。\n'
@@ -165,7 +217,10 @@ def main():
     for name, content in [('commit-message.txt', output.read_text()), ('usage-diff.patch', diff),
                           ('usage-report.md', (project / '.skill-runs/write-commit-message/report.md').read_text()),
                           ('output.md', (project / '.skill-runs/skill-foundation/report.md').read_text()),
-                          ('final-lint.txt', lint), ('probe.log', probe)]:
+                          ('final-lint.txt', lint), ('probe.log', probe), ('selftest.log', selftest),
+                          ('user-scope.log', '$ install.py --scope user\n' + user_install
+                           + '\n$ Stop hook (other project)\n' + user_stop
+                           + '\n$ Stop hook (script removed)\n' + (missing_stop or '(no output, exit 0)\n'))]:
         (results / name).write_text(redact(content))
     shutil.copyfile(dev / 'results/probe-results.json', results / 'probe-results.json')
     shutil.copyfile(project / '.skill-runs/catalog.html', results / 'catalog.html')
@@ -188,8 +243,16 @@ def main():
                       'registered_hooks': hooks, 'stored_deliveries': len(feedback['deliveries']),
                       'synthetic': feedback['synthetic'],
                       'real_user_feedback_cases': 0, 'real_user_approvals': 0},
+                  'foundation_selftest': {'passed': True, 'tmpdir_inside_workdir': True},
+                  'user_scope': {'fake_home_inside_workdir': True, 'real_home_touched': False,
+                      'scope_flag': '--scope user', 'places': ['.claude/skills/write-commit-message', '.agents/skills/write-commit-message'],
+                      'configs': ['.claude/settings.json', '.codex/hooks.json'],
+                      'registered_hooks': {k: sorted(v) for k, v in user_hooks.items()},
+                      'commands_point_to_home': True, 'other_project_untouched': True,
+                      'stop_in_other_project_exit_code': 0, 'stop_with_missing_script_exit_code': 0,
+                      'stop_with_missing_script_output': missing_stop, 'uninstall_removed_entries': True},
                   'eval_skipped': SKIP, 'independent_ai_convergence_skipped': SKIP,
-                  'not_verified': ['製品内でのhooks自動発火', 'Codex hooks信頼UI', '実ユーザーによる確認画面の承認',
+                  'not_verified': ['製品内でのhooks自動発火', '実際のホーム（~/.claude、~/.codex）へのユーザー単位の導入', 'Codex hooks信頼UI', '実ユーザーによる確認画面の承認',
                                    '一般化したEvalのユーザー確認', '独立AIによる改善効果と収束の測定'],
                   'source_materials': 'Current bundled write-commit-message example; research.md retains its original source checks.',
                   'redactions': ['repository absolute path → <repository>', 'work directory → <workdir>', 'user home → <user-home>']}
