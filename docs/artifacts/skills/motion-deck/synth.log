@@ -1,0 +1,32 @@
+# synth --dry-run
+SSML: <work>/git-branch/build/ssml（3シーン、読み上げ 428 文字）
+合成（local-tts）: 3シーン、428文字。voice=既定 engine=既定
+目安: 約3分
+  idea（136文字）
+  switch（151文字）
+  merge（141文字）
+
+# synth（目安が1分を超えるため、バックグラウンドで実行）
+SSML: <work>/git-branch/build/ssml（3シーン、読み上げ 428 文字）
+合成（local-tts）: 3シーン、428文字。voice=既定 engine=既定
+目安: 約3分
+[synth] 08:03:15 idea（136文字）
+        21.9秒の音声（63秒かかりました）
+[synth] 08:04:18 switch（151文字）
+        24.3秒の音声（46秒かかりました）
+[synth] 08:05:04 merge（141文字）
+        23.0秒の音声（44秒かかりました）
+合成が終わりました。続けて timeline を実行してください。
+使い終わったらエンジンを止める: uv run --project "<local-tts>/tools" local-tts server stop
+（終了コード 0、実時間 153.1秒）
+
+# 解決された既定の声とエンジン（local-tts の設定とサーバーのログで確認）
+engine = voxcpm2
+voice  = <個人名>
+
+# server stop / server status
+Stopped
+voxcpm2: http://127.0.0.1:3031: not running
+
+# timeline
+timeline.js: 3シーン、1.25分（2250フレーム @30fps）、音声あり
