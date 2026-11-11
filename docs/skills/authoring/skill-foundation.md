@@ -27,6 +27,8 @@ plugin 経由では Claude Code の `/skill-foundation:skill-foundation`、Codex
 
 hooks を含む導入には [skill-foundation plugin](../../plugins/skill-foundation.md) を使います。スキル・hooks・専用エージェントを同じ単位で導入・更新・削除します。正本は `utils/skills/authoring/skill-foundation/` に維持し、plugin のビルドが正本全体を変更せずに同梱します。
 
+plugin を使わずにどのプロジェクトからでも使う場合は、本体を `~/.claude/skills/skill-foundation`（または正本へのリンク）に置き、ターミナルで `python3 ~/.claude/skills/skill-foundation/scripts/setup.py --scope user` を実行します。hooks は `~/.claude/settings.json` と `~/.codex/hooks.json` に登録され、`$HOME` の置き場のスクリプトを呼びます。スクリプトが無い場合は何もしません。Codex の互換配置として `~/.agents/skills/skill-foundation` を本体へのリンクにします。作ったスキル、実行記録の `.skill-runs/`、指摘の収集記録の `.skill-feedback/` は、スキルを使ったセッションのプロジェクトに置かれます。プロジェクトは作業ディレクトリから `.git` を辿って決まります。以前の版で `--project ~` に登録した hooks は、`$CLAUDE_PROJECT_DIR` 側の置き場を指すため、ほかのプロジェクトでは失敗します。上のコマンドで登録し直すと置き換わります。
+
 このプロジェクトでは両製品の plugin 管理へ導入し、`.codex/config.toml` と `.claude/settings.json` で有効にしています。Codex の互換配置として、`.codex/skills/skill-foundation` は正本へのシンボリックリンクにし、`.codex/hooks.json` にも直接 hooks を登録しています。Claude Code の呼び出しは `/skill-foundation:skill-foundation`、Codex は plugin または互換配置のスキルを選択します。再起動と hooks の信頼確認については plugin の導入手順を参照してください。
 
 ## 進め方
