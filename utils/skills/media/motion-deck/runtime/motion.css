@@ -1,0 +1,257 @@
+/* motion.css — 実行系の土台とプレイヤーUI。デッキの見た目は theme.css に書く。 */
+
+/* ───────── コンポジション（書き出される範囲） ───────── */
+#composition {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg, #fff);
+  color: var(--ink, #111);
+  --safe-top: 120px;
+  --safe-bottom: 180px;
+  --safe-x: 100px;
+}
+#composition > [data-scene] {
+  position: absolute;
+  inset: 0;
+  display: none;
+  box-sizing: border-box;
+}
+#composition > [data-scene].is-current { display: block; z-index: 1; }
+#composition > [data-scene].is-under { display: block; z-index: 0; }
+/* 要素の出現前のちらつき防止。最初の描画で実行系が上書きする */
+#composition [data-at] { visibility: hidden; }
+#composition > [data-scene].is-current [data-at],
+#composition > [data-scene].is-under [data-at] { visibility: visible; }
+
+/* 蛍光ペン：--p（0→1）で左から塗る */
+#composition [data-anim~="highlight"] {
+  background: linear-gradient(var(--highlight, #fde68a), var(--highlight, #fde68a)) no-repeat 0 88% / calc(var(--p, 0) * 100%) 42%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* 取り消し線：--p で左から引く */
+#composition [data-anim~="strike"] {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / calc(var(--p, 0) * 100%) 0.09em;
+}
+/* 進捗バー：--p で幅が伸びる */
+#composition [data-anim~="progress"] { width: calc(var(--p, 0) * 100%); }
+
+/* 章バー（data-chapter-bar） */
+.md-chapters {
+  position: absolute;
+  left: var(--safe-x);
+  right: var(--safe-x);
+  top: 34px;
+  height: 54px;
+  display: flex;
+  gap: 8px;
+  z-index: 50;
+  pointer-events: none;
+}
+.md-chapter { min-width: 0; }
+.md-chapter-name {
+  font-size: 24px;
+  height: 38px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted, #667);
+  font-weight: 500;
+}
+.md-chapter.is-current .md-chapter-name { color: var(--ink, #111); font-weight: 800; }
+.md-chapter-track { height: 8px; border-radius: 4px; overflow: hidden; background: var(--track, rgba(0, 0, 0, 0.1)); }
+.md-chapter-fill { height: 100%; width: 0; background: var(--accent, #0b84f3); }
+
+/* 字幕 */
+.md-subtitle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 26px;
+  display: flex;
+  justify-content: center;
+  z-index: 60;
+  pointer-events: none;
+}
+.md-subtitle-text {
+  max-width: 1660px;
+  background: var(--sub-bg, rgba(17, 20, 26, 0.92));
+  color: var(--sub-ink, #fff);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.42;
+  padding: 12px 40px;
+  border-radius: 16px;
+  text-align: center;
+  text-wrap: balance;
+  word-break: auto-phrase;
+}
+
+/* ───────── 書き出しモード（?render=1） ───────── */
+html.md-render, html.md-render body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+
+/* ───────── プレイヤー（Remotion Studio 風） ───────── */
+html.md-player, html.md-player body {
+  margin: 0;
+  height: 100%;
+  background: #0d0f12;
+  overflow: hidden;
+}
+#md-app {
+  --ui-bg: #16191e;
+  --ui-bg2: #1e2228;
+  --ui-line: #2b3038;
+  --ui-text: #e6e9ee;
+  --ui-muted: #8b93a1;
+  --ui-accent: #0b84f3;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr auto 0;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
+  color: var(--ui-text);
+  user-select: none;
+}
+#md-app.show-timeline { grid-template-rows: 1fr auto 168px; }
+#md-viewport { position: relative; overflow: hidden; cursor: pointer; background: #0d0f12; }
+#md-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+#md-app.is-idle #md-bar, #md-app.is-idle #md-timeline { opacity: 0; }
+#md-app.is-idle #md-viewport { cursor: none; }
+
+#md-bar {
+  background: var(--ui-bg);
+  border-top: 1px solid var(--ui-line);
+  padding: 0 12px 8px;
+  transition: opacity 0.3s;
+}
+.md-row { display: flex; align-items: center; gap: 6px; height: 40px; }
+.md-spacer { flex: 1; }
+.md-btn, .md-chip, .md-select {
+  background: transparent;
+  color: var(--ui-text);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+.md-btn { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; }
+.md-btn svg { width: 18px; height: 18px; }
+.md-btn:hover, .md-chip:hover { background: var(--ui-bg2); }
+.md-chip { padding: 4px 10px; border-color: var(--ui-line); }
+.md-chip.is-on { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
+.md-select { padding: 4px 6px; border-color: var(--ui-line); background: var(--ui-bg); }
+.md-time { font-variant-numeric: tabular-nums; margin-left: 8px; min-width: 150px; }
+.md-frame { font-variant-numeric: tabular-nums; color: var(--ui-muted); min-width: 64px; }
+.md-scene-label { color: var(--ui-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 38vw; }
+.md-badge:not(:empty) { color: #fbbf24; border: 1px solid #fbbf2466; border-radius: 6px; padding: 2px 8px; }
+
+.md-scrub { position: relative; height: 22px; cursor: pointer; touch-action: none; }
+.md-scrub-track { position: absolute; left: 0; right: 0; top: 8px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--ui-bg2); }
+.md-scrub-seg { position: absolute; top: 0; bottom: 0; background: var(--c); opacity: 0.35; }
+.md-scrub-scene { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, 0.35); }
+.md-scrub-played { position: absolute; left: 0; top: 8px; height: 6px; border-radius: 3px; background: var(--ui-accent); pointer-events: none; }
+.md-scrub-head { position: absolute; top: 4px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px var(--ui-accent); pointer-events: none; }
+.md-tip {
+  position: absolute;
+  bottom: 26px;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+}
+.md-scrub:hover .md-tip { opacity: 1; }
+
+#md-timeline { display: none; background: var(--ui-bg); border-top: 1px solid var(--ui-line); overflow: hidden; }
+#md-app.show-timeline #md-timeline { display: flex; }
+.md-tl-side { width: 96px; flex: none; border-right: 1px solid var(--ui-line); }
+.md-tl-zoom { height: 26px; display: flex; gap: 4px; padding: 2px 6px; }
+.md-tl-zoom .md-chip { padding: 0 8px; }
+.md-tl-label { height: 44px; line-height: 44px; padding-left: 12px; color: var(--ui-muted); border-top: 1px solid var(--ui-line); }
+.md-tl-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; }
+.md-tl-content { position: relative; height: 100%; cursor: text; }
+.md-tl-ruler { position: relative; height: 26px; }
+.md-tl-tick { position: absolute; top: 6px; padding-left: 4px; border-left: 1px solid var(--ui-line); color: var(--ui-muted); font-size: 11px; height: 20px; }
+.md-tl-row { position: relative; height: 44px; border-top: 1px solid var(--ui-line); }
+.md-tl-block {
+  position: absolute;
+  top: 6px;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.md-tl-chapter { background: color-mix(in srgb, var(--c) 30%, transparent); border: 1px solid color-mix(in srgb, var(--c) 70%, transparent); }
+.md-tl-scene { background: color-mix(in srgb, var(--c) 55%, #111); }
+.md-tl-scene.is-estimated { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 45%, #111) 0 6px, color-mix(in srgb, var(--c) 30%, #111) 6px 12px); }
+.md-tl-cue { background: #2a3039; color: #c9d1dc; }
+.md-tl-cue.is-active { background: #3b4656; color: #fff; box-shadow: inset 0 0 0 1px var(--ui-accent); }
+.md-tl-playhead { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; margin-left: -1px; background: #ff4d4f; pointer-events: none; }
+.md-tl-playhead::before { content: ""; position: absolute; top: 0; left: -5px; border: 6px solid transparent; border-top: 8px solid #ff4d4f; }
+
+#md-help { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: none; place-items: center; z-index: 100; }
+#md-help.is-open { display: grid; }
+.md-help-card { background: var(--ui-bg); border: 1px solid var(--ui-line); border-radius: 12px; padding: 20px 28px; max-width: 560px; }
+.md-help-card h2 { margin: 0 0 12px; font-size: 16px; }
+.md-help-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+.md-help-card dt { font-family: ui-monospace, Menlo, monospace; color: #9ecbff; }
+.md-help-card dd { margin: 0; }
+.md-help-card p { color: var(--ui-muted); margin: 14px 0 0; }
+
+#md-error {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  max-width: 560px;
+  max-height: 60vh;
+  overflow: auto;
+  background: #2a1215;
+  border: 1px solid #f87171;
+  color: #fecaca;
+  border-radius: 10px;
+  padding: 12px 16px;
+  z-index: 110;
+  font: 12px/1.5 ui-monospace, Menlo, monospace;
+}
+.md-error-title { font-weight: 700; color: #fff; margin-bottom: 6px; }
+.md-error-item { margin-bottom: 6px; white-space: pre-wrap; }
+
+@media (max-width: 720px) {
+  .md-frame, .md-scene-label, .md-badge { display: none; }
+  .md-time { min-width: 0; }
+}
+
+/* ───────── 動画 / 発表 の切り替え ───────── */
+.md-segs { display: flex; border: 1px solid var(--ui-line); border-radius: 7px; overflow: hidden; }
+.md-seg { background: transparent; color: var(--ui-muted); border: 0; padding: 4px 12px; font: inherit; cursor: pointer; }
+.md-seg + .md-seg { border-left: 1px solid var(--ui-line); }
+.md-seg.is-on { background: var(--ui-accent); color: #fff; }
+#md-app:not(.is-live) .md-live-only { display: none; }
+#md-app.is-live .md-video-only { display: none; }
+#md-app.is-live .md-time { min-width: 120px; }
+.md-btn.md-step-next { width: 44px; background: var(--ui-bg2); border-color: var(--ui-line); }
+#md-app.is-live.is-last-step .md-step-next { opacity: 0.35; }
+.md-scrub-stop { position: absolute; top: 1px; bottom: 1px; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, 0.55); }
+#md-app.is-live #md-viewport { cursor: default; }
+
+/* 画面を隠す（B: 黒 / W: 白） */
+#md-blackout { position: absolute; inset: 0; display: none; background: #000; z-index: 5; }
+#md-blackout[data-color="white"] { background: #fff; }
+#md-blackout.is-on { display: block; }

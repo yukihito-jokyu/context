@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>motion-deck 入門</title>
+</head>
+<body>
+<!--
+  1つの section が script.json の1シーン（data-scene は id と同じ）。
+  data-at="文の番号か名前" で、その文が読まれ始めたときに現れる。動きは data-anim。
+  見た目は motion/kit.css の部品（.h .card .tile .code .terminal .gantt .hbars .runner …）だけで組む。
+-->
+<main id="composition" data-chapter-bar>
+
+  <!-- 表紙：一本の道が二つに分かれ、走者が進む（goroutine 入門の表紙と同じ構図） -->
+  <section data-scene="title" data-chrome="none" data-transition="none">
+    <div class="title-wrap">
+      <div class="sub" style="font-size:40px" data-at="start" data-anim="fade">ナレーションで動くスライド</div>
+      <div class="display" data-at="start" data-delay="6"><span class="mono">motion-deck</span> 入門</div>
+    </div>
+    <div class="branch diagram">
+      <svg width="1460" height="300" viewBox="0 0 1460 300">
+        <path id="p-main" d="M0 150 L560 150" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="0" data-anim="draw" data-dur="40"/>
+        <path id="p-up" d="M560 150 C 680 150, 660 50, 800 50 L1400 50" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="split" data-anim="draw" data-dur="40"/>
+        <path id="p-down" d="M560 150 C 680 150, 660 250, 800 250 L1400 250" fill="none" stroke="var(--coral)" stroke-width="8" stroke-linecap="round" data-at="split" data-anim="draw" data-dur="40"/>
+      </svg>
+      <!-- data-anim="follow"：文のあいだに線に沿って進む。data-anchor="bottom" で足元を線に合わせる -->
+      <div class="runner at" data-size="84" data-at="0" data-anim="follow" data-follow="#p-main" data-anchor="bottom" data-dur="40" data-until="split"></div>
+      <div class="runner at" data-size="84" data-color="cyan" data-seed="2" data-at="split" data-anim="follow" data-follow="#p-up" data-anchor="bottom" data-dur="40"></div>
+      <div class="runner at" data-size="84" data-color="coral" data-seed="4" data-at="split" data-anim="follow" data-follow="#p-down" data-anchor="bottom" data-dur="40"></div>
+      <div class="at" style="left:1130px;top:-40px" data-at="split" data-delay="40" data-anim="pop" data-loop="float"><span class="bubble cyan">動画</span></div>
+      <div class="at" style="left:1130px;top:290px" data-at="split" data-delay="48" data-anim="pop" data-loop="float"><span class="bubble coral">発表</span></div>
+    </div>
+  </section>
+
+  <!-- 道のり：番号と色つきのカードを、文ごとに出す -->
+  <section data-scene="roadmap">
+    <h2 class="h" data-at="0">今日の道のり</h2>
+    <div class="sub muted" data-at="0" data-delay="8">進むステップは 3つ</div>
+    <div class="roadmap" style="margin-top:56px;width:1560px">
+      <div class="stop" data-at="1"><div class="num">1</div><div class="card cyan"><h3>原稿を書く</h3><p>文が、時間の目盛りになる</p></div></div>
+      <div class="stop" data-at="2"><div class="num">2</div><div class="card yellow"><h3>動きを付ける</h3><p><span class="kw">data-at</span> と <span class="kw">data-anim</span></p></div></div>
+      <div class="stop" data-at="3"><div class="num">3</div><div class="card green"><h3>声と仕上げ</h3><p>local-tts で声、発表か MP4</p></div></div>
+    </div>
+  </section>
+
+  <!-- 時間の帯：文ごとに帯が伸び、走者が再生位置を歩く -->
+  <section data-scene="timing" data-transition="slide">
+    <div class="title-bar cyan" data-at="0" data-anim="left">
+      <div><div class="kicker">考え方</div><div class="h">動きのきっかけは「文」</div></div>
+    </div>
+    <div class="gantt" id="t-gantt" data-max="12" data-ticks="0,3,6,9,12" data-unit="秒" data-width="1720" data-label-width="260" style="margin-top:96px" data-at="0" data-delay="10" data-anim="fade">
+      <div data-label="ナレーション">
+        <div class="bar bg-paper-deep" data-start="0" data-end="3">文 0</div>
+        <div class="bar bg-cyan-soft" data-start="3" data-end="6" data-at="head" data-anim="wipe">文 1</div>
+        <div class="bar bg-yellow-soft" data-start="6" data-end="9" data-at="figure" data-anim="wipe">文 2</div>
+        <div class="bar bg-green-soft" data-start="9" data-end="12" data-at="card" data-anim="wipe">文 3</div>
+      </div>
+      <div data-label="見出し"><div class="bar" data-color="cyan" data-start="3" data-end="12" data-at="head" data-anim="wipe">表示</div></div>
+      <div data-label="図"><div class="bar" data-color="yellow" data-hatch data-start="6" data-end="12" data-at="figure" data-anim="wipe">描く</div></div>
+      <div class="runner" id="t-runner" data-size="64" style="position:absolute;top:-78px"></div>
+    </div>
+    <div class="card yellow bold" style="position:absolute;right:var(--safe-x);bottom:calc(var(--safe-bottom) + 20px)" data-at="card" data-anim="pop">長さが変わっても、追従する</div>
+  </section>
+
+  <!-- コードとターミナル：文ごとに強調する行が移る -->
+  <section data-scene="markup">
+    <h2 class="h" data-at="0">書き方は、<span class="c-cyan">印を付けるだけ</span></h2>
+    <div style="display:flex;gap:44px;margin-top:34px;align-items:flex-start">
+      <pre class="code" data-title="index.html" data-lang="html" data-width="1060" data-size="32" data-focus="1:2; 2:3-4; 3:5" data-at="0" data-delay="10">
+&lt;section data-scene="timing"&gt;
+  &lt;h2 data-at="0"&gt;見出し&lt;/h2&gt;
+  &lt;svg data-at="figure"&gt;…&lt;/svg&gt;
+  &lt;div data-at="card"
+       data-anim="pop"&gt;…&lt;/div&gt;
+&lt;/section&gt;
+</pre>
+      <div class="terminal" data-show="run" data-at="run" data-command="motion.mjs synth" data-width="600" data-size="30">
+        <div data-at="run" data-delay="26" class="dim">[synth] timing</div>
+        <div data-at="run" data-delay="34" class="dim">[synth] markup</div>
+        <div data-at="4" class="ok">原稿が同じなら [skip]</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 数字：横棒グラフとタイル（TTS 比較の動画と同じ部品） -->
+  <section data-scene="speed" data-transition="wipe">
+    <div class="title-bar green" data-at="0" data-anim="left">
+      <div><div class="kicker">このMacでの実測（M4）</div><div class="h">1文字あたりの生成時間</div></div>
+    </div>
+    <div class="hbars" data-max="1.8" data-width="1180" data-label-width="300" style="margin-top:60px">
+      <div data-label="VoxCPM2" data-value="0.33" data-color="cyan" data-at="1">約0.33秒</div>
+      <div data-label="OmniVoice" data-value="0.30" data-color="green" data-at="1" data-delay="8">約0.30秒</div>
+      <div data-label="S2 Pro" data-value="1.7" data-color="coral" data-hatch data-at="1" data-delay="16">約1.7秒</div>
+    </div>
+    <div class="tile cyan" style="position:absolute;right:var(--safe-x);top:300px;width:420px" data-at="pick" data-anim="scale">
+      <div class="label">10分の解説なら</div>
+      <div class="value">約<span data-at="pick" data-anim="count" data-to="25">0</span><small>分</small></div>
+      <div class="sub-text">約4,200文字・VoxCPM2</div>
+    </div>
+    <div class="points" style="margin-top:46px">
+      <div class="point good" data-at="pick" data-delay="10" data-anim="left">ふだんは VoxCPM2（既定）</div>
+    </div>
+  </section>
+
+  <!-- まとめ：キーと値の行を文ごとに -->
+  <section data-scene="summary" data-transition="iris">
+    <h2 class="h" data-at="0">今日のまとめ</h2>
+    <div class="summary" style="margin-top:40px;width:1500px">
+      <div class="row" data-at="1"><div class="key">f(frame)</div><div class="val">画面は、時間の関数として書く</div></div>
+      <div class="row" data-at="2"><div class="key">data-at</div><div class="val">時間の目盛りは、ナレーションの文</div></div>
+      <div class="row" data-at="3"><div class="key">P キー</div><div class="val">動画 ⇄ 手で進める発表 を切り替える</div></div>
+    </div>
+    <div class="next-link" style="margin-top:48px" data-at="3" data-delay="20" data-anim="words" data-dur="24">次は、自分の原稿で試してみる</div>
+  </section>
+
+</main>
+<!-- 読み込みはこの1行だけ（実行系・部品・theme.css・timeline.js・scenes.js を順に読み、起動する） -->
+<script src="motion/boot.js"></script>
+</body>
+</html>
