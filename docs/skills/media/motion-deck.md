@@ -11,6 +11,16 @@ sidebar_label: motion-deck
 
 Remotionのプロジェクト（React）として作る場合、文章を読み上げるだけの場合（[local-tts](local-tts.md)）、既存の`.pptx`を編集する場合は対象外です。
 
+## 解説動画
+
+motion-deckの使い方を動画で紹介しています。
+
+<div class="video-embed">
+  <iframe src="https://www.youtube-nocookie.com/embed/CTrRRXWexjc" title="motion-deckの解説動画" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
+
+[YouTubeで見る](https://youtu.be/CTrRRXWexjc)
+
 ## 導入と前提
 
 hooksを同梱しない単一Skillなので、[`npx skills add`](../../plugins/distribution.md)で導入します。ナレーションは隣に置いた[local-tts](local-tts.md)で作るため、両方を導入します。
