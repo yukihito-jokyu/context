@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "skill": "motion-deck",
+  "skill_source": "utils/skills/media/motion-deck/SKILL.md",
+  "skill_sha256": "801f6920d2535e8e04ea8c0429c2bac849a744fac726a1348ab3e62617e0d55d",
+  "recorded_at": "2026-11-11T23:07:52.646Z",
+  "executor": "Claude Code（サブエージェント）",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "ad712c4cbb97432e7",
+    "task": "motion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキとしてinit・原稿・シーン・check・still・synth・timeline・still --live・pptxまで作り、公開できる成果物を伏せ字にして保存する"
+  },
+  "input": "input.md",
+  "summary": "「Gitのブランチ入門」を3シーン・15文（433文字）のmotion-deckのデッキにし、local-ttsの既定の声とVoxCPM2でナレーションを付けて、1分15秒の動画・15ステップの発表・3スライドのPowerPointにしました。公開物は原稿・シーンのスクリプト・一覧画像・PPTX・checkとsynthの記録で、個人の声による音声は載せていません。声の名前と絶対パスは伏せ字にしています。",
+  "stage": "PPTXの書き出しとエンジン停止まで。音声の試聴、MP4の書き出し、bundleは未実施",
+  "checks": [
+    "initで雛形を作り、script.jsonを3シーン・15文・433文字（読み上げ428文字）に書き換えた",
+    "音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）を確認し、still --cuesの一覧を見て1シーン目の空いた画面を直した",
+    "synth --dry-runで3シーン・428文字・目安約3分と出たため、synthをバックグラウンドで実行し、終了コード0・153秒で3シーン（21.9秒・24.3秒・23.0秒）の音声ができた",
+    "既定の声と既定のエンジン（VoxCPM2）が使われたことを、local-ttsの設定とサーバーのログで確認",
+    "local-tts server stopでエンジンを止め、server statusでvoxcpm2がnot runningであることを確認",
+    "timelineで3シーン・1.25分（2250フレーム）・音声ありになり、ffprobeでnarration.m4aが75.0秒であることを確認",
+    "合成後のcheckでエラー0件・注意0件、発表モード15ステップを確認",
+    "合成後のstill --cues（15枚）とstill --live（15枚）の一覧画像を見て、見出しが左上、太枠とずらした影のカード、章バーと字幕の帯、色の意味がそろっていることを確認",
+    "pptxで3スライド・絵58枚・要素のアニメーション15ステップ・差分の重ね6ステップのPPTXができ、ノートに台本とメモが入っていることを確認",
+    "実行者は音声を聞けないため、読みの正しさは未確認。試聴が必要な箇所をoutput.mdにシーンと文番号で記録"
+  ],
+  "preview": "contact.png",
+  "preview_alt": "紙色の背景に、ブランチの分岐を描いた線と走るキャラクター、ターミナル風のコードと注釈カード、合流の図とまとめの表が、各文の終わりごとに15枚並んだ一覧画像",
+  "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で差し替わる注釈カードは消えかけの薄い状態で写る（発表の各ステップは live-contact.png）",
+  "downloads": [
+    {
+      "file": "output.md",
+      "label": "実行報告（Markdown）"
+    },
+    {
+      "file": "git-branch.pptx",
+      "label": "PowerPointの書き出し（PPTX）"
+    },
+    {
+      "file": "live-contact.png",
+      "label": "発表モードの各ステップの一覧画像（PNG）"
+    },
+    {
+      "file": "script.json",
+      "label": "原稿（script.json）"
+    },
+    {
+      "file": "scenes.js",
+      "label": "シーンのフレームの関数（scenes.js）"
+    },
+    {
+      "file": "check.log",
+      "label": "最終のcheckの出力"
+    },
+    {
+      "file": "synth.log",
+      "label": "synthとtimelineの出力（要点）"
+    },
+    {
+      "file": "index.html",
+      "label": "デッキのHTML（シーンの構成）"
+    },
+    {
+      "file": "theme.css",
+      "label": "デッキのテーマ（CSS）"
+    }
+  ],
+  "text_output": "output.md",
+  "artifacts": [
+    {
+      "file": "check.log",
+      "sha256": "fbcb3e540351f8c1a30cafbb674981eea4420061849148e2f1bc75dcfbc0e721",
+      "bytes": 98
+    },
+    {
+      "file": "contact.png",
+      "sha256": "a38e47b703a46c3e118c85da2da36d1e2037ba4f9da763fad0b8e851978cd19e",
+      "bytes": 502896
+    },
+    {
+      "file": "git-branch.pptx",
+      "sha256": "01885fb01fd94b3a30359fba53754f3431f8fc70ae201b71d2059b113ed8abd5",
+      "bytes": 976467
+    },
+    {
+      "file": "index.html",
+      "sha256": "e4bfb6736c51bbc1c5f02584c2daa91847199aada193469ef9937a3c9cb68980",
+      "bytes": 8165
+    },
+    {
+      "file": "input.md",
+      "sha256": "99ef3aa911b9ab62b15c4f8dea58db49da6fd24559548c62c8c36c16f20b060b",
+      "bytes": 345
+    },
+    {
+      "file": "live-contact.png",
+      "sha256": "a697a1407e13e163d0a1afb5b3d8681f01e161b49c0cc7f20a357f229cfd9708",
+      "bytes": 349767
+    },
+    {
+      "file": "output.md",
+      "sha256": "c2d73a3e12c84bfc199464c14fc307272e4857b9f4561e6b6075d1a8f540c24b",
+      "bytes": 5761
+    },
+    {
+      "file": "scenes.js",
+      "sha256": "e981b82142d27b57e5488bc19f1337ebe5c335198114cc8b727fcc8ab1a7ad88",
+      "bytes": 945
+    },
+    {
+      "file": "script.json",
+      "sha256": "f46ec862c879c04103570e00d8f33fb4a240e465e92731657e94ffd66247dff3",
+      "bytes": 3252
+    },
+    {
+      "file": "synth.log",
+      "sha256": "671accd909550854c01150a1fee8fb686f6cf8aec3fe2c974af777c3fc8f488e",
+      "bytes": 1327
+    },
+    {
+      "file": "theme.css",
+      "sha256": "c3945807044b6793db9328db8a807e68499853ee76852e183a97ab9e9580e3a0",
+      "bytes": 1851
+    }
+  ],
+  "source_files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "801f6920d2535e8e04ea8c0429c2bac849a744fac726a1348ab3e62617e0d55d"
+    },
+    {
+      "file": "references/authoring.md",
+      "sha256": "f7e17ad3da34732783b5608166abc6d8545fdfd66140c866e14d18a2e799d6f7"
+    },
+    {
+      "file": "references/narration.md",
+      "sha256": "983578a580dded73e1706a64a93fc99db94dda1cf53dc5653db8726ca9e606ac"
+    },
+    {
+      "file": "references/player.md",
+      "sha256": "bf92ff06accb465f639b58836b15ee8e9392d098b502027a6662a4761605b68f"
+    },
+    {
+      "file": "references/style.md",
+      "sha256": "a4813aeae67954b008838d2f9b1afd95f0da5d4a041e5e7a6a95fb39de35bedf"
+    },
+    {
+      "file": "runtime/boot.js",
+      "sha256": "f0d6882a163de550a4f12dc49d94de168b1f02c78d7ef35ac57e23a758b77422"
+    },
+    {
+      "file": "runtime/fonts/OFL.txt",
+      "sha256": "a76abf002c49097d146e86740a3105a5d00450b1592e820a1109a8c5680cd697"
+    },
+    {
+      "file": "runtime/fonts/jetbrains-mono-400.woff2",
+      "sha256": "7c53386f55c866c1b4c9309c4bcf74eda10896aab3a1780b0af5cc4976e27a27"
+    },
+    {
+      "file": "runtime/fonts/jetbrains-mono-700.woff2",
+      "sha256": "ed8b8f71b22bf3b6e1ec1cf9b24dd999785aae33d6256950c1f86c97e423b6ef"
+    },
+    {
+      "file": "runtime/kit.css",
+      "sha256": "01a0edc1d861af95d79e580c2c8ccfd9ef20346c762b4186c0def984994f1fce"
+    },
+    {
+      "file": "runtime/kit.js",
+      "sha256": "4fd6d7900fb97b007b7c975833f6f313b5ebadfdc287f70a2bc7ded63f275a7e"
+    },
+    {
+      "file": "runtime/motion.css",
+      "sha256": "7f08fd3af237534f474487aa12ff13814e1bffc4aad5ab459238554267230880"
+    },
+    {
+      "file": "runtime/motion.js",
+      "sha256": "d344df7c184630f0692e940cf3743d44db7b4b1bf2a12499cf8c6816a8fc2522"
+    },
+    {
+      "file": "scripts/motion.mjs",
+      "sha256": "a30a11b7764dfdb840992c85f6c1739497c612d55defafb9d569eed3a416e6e0"
+    },
+    {
+      "file": "scripts/pptx.mjs",
+      "sha256": "e12f1fe5dc1a4590c4dd69fa24394cb6a5d946ad4aca7066953cac42f7948848"
+    },
+    {
+      "file": "template/index.html",
+      "sha256": "f1a055cfb4b62240c36e94d96ecaa993e7ffde6c3162a4a4d7c467a97ad373cf"
+    },
+    {
+      "file": "template/lexicon.json",
+      "sha256": "26df614390a9c663bfc2cbf63e59e42c1051b10c939510fcd7b67b9d559cb3e2"
+    },
+    {
+      "file": "template/scenes.js",
+      "sha256": "2570ef0509ba7aed8738b83c052170bfafd8892beb0bb1ef5c8839aeb3963172"
+    },
+    {
+      "file": "template/script.json",
+      "sha256": "e14e69acbd809984fd2912271fb5787a16779a6b41489fd618fadf466c7299c8"
+    },
+    {
+      "file": "template/theme.css",
+      "sha256": "a77bf1998d4d5a896742672845d306560aa60ed154ab22e816c0bc7c2ae5fedc"
+    }
+  ],
+  "source_sha256": "b348695f288284030964c66b69c6481e73e99179b3fe620109fac882a948d631"
+}

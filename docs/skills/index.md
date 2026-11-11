@@ -26,6 +26,7 @@ AIエージェントに作業を頼むとき、目的に合うスキルを選び
 | スキルの判断や出力を揃え、検査で確かめる | [スキル作成・管理](authoring/index.md) | [skill-foundation](authoring/skill-foundation.md) |
 | 文章を外部に送らず音声にする、声を登録する | [音声・メディア](media/index.md) | [local-tts](media/local-tts.md) |
 | LAN上の別PCのAPIで文章を音声にする | [音声・メディア](media/index.md) | [remote-tts](media/remote-tts.md) |
+| ナレーション付きで動く発表資料・解説動画を作る | [音声・メディア](media/index.md) | [motion-deck](media/motion-deck.md) |
 | 動画やゲーム向けのオリジナルのループBGMを作る | [音声・メディア](media/index.md) | [loop-bgm](media/loop-bgm.md) |
 
 ## ガイドと正本の関係
