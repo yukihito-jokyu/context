@@ -808,7 +808,7 @@
     state.mode = mode;
     setLayout(mode);
     store.set('mode', mode);
-    if (state.ui) { buildTracks(); state.ui.app.classList.toggle('is-live', mode === 'live'); }
+    if (state.ui) { buildTracks(); state.ui.app.classList.toggle('is-live', mode === 'live'); if (state.ui.edit) setEditOpen(mode === 'video'); }
     if (state.chapterBar) buildChapterBar();
     seek(target != null ? target : mode === 'live' ? state.stops[0] : 0);
     if (state.ui) updateUI(true);
@@ -986,8 +986,9 @@
   }
 
   function sceneIndex() { return state.scenes.indexOf(sceneAt(Math.floor(state.frame))); }
-  function goScene(delta) {
-    const i = clamp(sceneIndex() + delta, 0, state.scenes.length - 1);
+  function goScene(delta) { goSceneAt(sceneIndex() + delta); }
+  function goSceneAt(index) {
+    const i = clamp(index, 0, state.scenes.length - 1);
     const rec = state.scenes[i];
     if (state.mode === 'live') {
       // シーンの最初のステップへ
@@ -1188,6 +1189,8 @@
       <dt>Home / End</dt><dd>最初・最後へ</dd>
       <dt>B / W</dt><dd>画面を黒・白にする（もう一度で戻る）</dd>
       <dt>C / T / F</dt><dd>字幕・タイムライン・全画面</dd>
+      <dt>E</dt><dd>修正の指示を書く左右の列を出す・隠す（動画では最初から出ている）</dd>
+      <dt>I</dt><dd>DOM選択：ステージの要素をクリックして指示の対象にする（Esc でやめる）</dd>
     </dl><h2>発表（手動で進める）</h2><dl>
       <dt>→ ↓ Space Enter PageDown / クリック</dt><dd>次のステップを動かす（動いている途中なら最後まで飛ばす）</dd>
       <dt>← ↑ Backspace PageUp</dt><dd>前のステップへ戻る</dd>
@@ -1244,9 +1247,9 @@
     scrub.addEventListener('pointerup', endDrag);
     scrub.addEventListener('pointercancel', endDrag);
 
-    viewport.addEventListener('click', (e) => { if (e.detail === 1) toggle(); });
-    viewport.addEventListener('dblclick', () => toggleFullscreen());
-    viewport.addEventListener('contextmenu', (e) => { if (state.mode === 'live') { e.preventDefault(); prev(); } });
+    viewport.addEventListener('click', (e) => { if (!inspecting() && e.detail === 1) toggle(); });
+    viewport.addEventListener('dblclick', () => { if (!inspecting()) toggleFullscreen(); });
+    viewport.addEventListener('contextmenu', (e) => { if (!inspecting() && state.mode === 'live') { e.preventDefault(); prev(); } });
 
     // 全画面で再生中・発表中はUIを隠す
     let idle;
@@ -1261,6 +1264,7 @@
     state.zoom = store.get('zoom', 24);
     if (params.has('timeline') ? params.get('timeline') !== '0' : store.get('timeline', false)) app.classList.add('show-timeline');
     app.classList.toggle('is-live', state.mode === 'live');
+    if (!BUNDLED()) buildEditor();
     buildTracks();
     fit();
     new ResizeObserver(fit).observe(viewport);
@@ -1269,6 +1273,324 @@
     document.addEventListener('fullscreenchange', () => { fit(); wake(); });
     window.addEventListener('beforeunload', () => { if (state.notes && !state.notes.closed) state.notes.close(); });
     showErrors();
+  }
+
+  // ───────────────────────── 修正の指示（左：シーンの一覧／右：DOM選択・原稿・対象と指示・溜めた指示） ─────────────────────────
+  //
+  // 人がプレーヤーで「どこを・どう直すか」を書き溜め、まとめてコピーして Claude に貼る。
+  // 動画モードでは最初から出し、発表モードでは隠す（E で出し入れ）。全画面と bundle では出さない。
+  // 指示はデッキのフォルダごとにブラウザへ保存する（コピーしても消えない）。
+
+  function BUNDLED() { return !!(global.__motionBoot && global.__motionBoot.bundled); }
+  function inspecting() { return !!(state.ui && state.ui.edit && state.ui.edit.inspecting); }
+  function deckDir() {
+    let p = location.pathname;
+    try { p = decodeURIComponent(p); } catch (e) { /* noop */ }
+    return p.replace(/\/[^/]*$/, '') || '/';
+  }
+  const clip = (s, n) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+  const EDIT_KINDS = { element: '要素', cue: '原稿の文', scene: 'シーン全体' };
+
+  function sceneHeading(rec) {
+    const el = rec.el.querySelector('.h, .display, h1, h2');
+    return el ? clip(el.textContent, 40) : '';
+  }
+
+  /** シーンの section から要素までのセレクタ（実行系が付けるクラスは除く） */
+  function cssPath(el, rec) {
+    const parts = [];
+    for (let n = el; n && n !== rec.el; n = n.parentElement) {
+      let s = n.tagName.toLowerCase();
+      const cls = Array.from(n.classList).filter((c) => !/^(is-|md-|pptx-)/.test(c));
+      if (cls.length) s += '.' + cls.map((c) => CSS.escape(c)).join('.');
+      const p = n.parentElement;
+      if (p) {
+        let same = [];
+        try { same = Array.from(p.children).filter((c) => c.matches(s)); } catch (e) { /* noop */ }
+        if (same.length !== 1) s += `:nth-child(${Array.from(p.children).indexOf(n) + 1})`;
+      }
+      parts.unshift(s);
+    }
+    return `section[data-scene="${rec.tl.id}"]` + (parts.length ? ' > ' + parts.join(' > ') : '');
+  }
+
+  function dataAttrs(el) {
+    return Array.from(el.attributes)
+      .filter((a) => a.name.startsWith('data-') && a.name !== 'data-pptx-id')
+      .map((a) => `${a.name}="${a.value}"`).join(' ');
+  }
+
+  /** 指示を書いたときに見ていた画面（文）。フレームやステップの番号は入れない（直す範囲を時点に狭めて読まれないように） */
+  function pointLabel() {
+    const { idx, cue } = cueState();
+    return idx >= 0 ? `文${idx}${cue && cue.name ? '（' + cue.name + '）' : ''}のとき` : 'シーンの頭';
+  }
+
+  function buildEditor() {
+    const ui = state.ui;
+    const key = 'edits:' + deckDir();
+    const E = ui.edit = { inspecting: false, target: null, targetEl: null, items: store.get(key, []), sceneId: null };
+    if (!Array.isArray(E.items)) E.items = [];
+    const save = () => store.set(key, E.items);
+
+    // ─ 左：シーンの一覧
+    const sceneList = h('div', { class: 'md-ed-list' });
+    state.scenes.forEach((rec, i) => {
+      const plus = h('button', { class: 'md-chip md-ed-plus', text: '＋', title: 'このシーン全体を指示の対象にする', onclick: (e) => { e.stopPropagation(); setTarget({ kind: 'scene', scene: rec.tl.id, heading: sceneHeading(rec) }); } });
+      const row = h('div', { class: 'md-ed-scene', title: rec.tl.id, onclick: () => goSceneAt(i) }, [
+        h('div', { class: 'md-ed-num', text: String(i + 1) }),
+        h('div', { class: 'md-ed-name' }, [
+          rec.tl.chapter ? h('div', { class: 'md-ed-chapter', text: rec.tl.chapter }) : null,
+          h('div', { class: 'md-ed-id', text: rec.tl.id }),
+          h('div', { class: 'md-ed-heading', text: sceneHeading(rec) }),
+        ]),
+        plus,
+      ]);
+      row.dataset.scene = rec.tl.id;
+      sceneList.appendChild(row);
+    });
+    const left = h('aside', { id: 'md-scenes' }, [h('div', { class: 'md-ed-title', text: 'シーン' }), sceneList]);
+
+    // ─ 右：DOM選択・原稿・対象と指示・溜めた指示
+    const pickBtn = h('button', { class: 'md-chip md-ed-pick', text: '↖ DOM選択', title: 'ステージの要素をクリックして指示の対象にする（I）。Esc でやめる', onclick: () => setInspect(!E.inspecting) });
+    const cueList = h('div', { class: 'md-ed-cues' });
+    const targetBox = h('div', { class: 'md-ed-target' });
+    const input = h('textarea', { class: 'md-ed-input', rows: '4', placeholder: '対象を選んで、直したいことを書く（⌘/Ctrl + Enter で追加）' });
+    const addBtn = h('button', { class: 'md-chip md-ed-add', text: '指示を追加', onclick: () => addItem() });
+    const count = h('span', { class: 'md-ed-count' });
+    const itemList = h('div', { class: 'md-ed-items' });
+    const copyBtn = h('button', { class: 'md-chip', text: '全部コピー', onclick: () => copyItems() });
+    const clearBtn = h('button', { class: 'md-chip', text: '全部消す', onclick: () => {
+      if (!E.items.length || !window.confirm('溜めた指示を全部消しますか？')) return;
+      E.items = []; save(); renderItems();
+    } });
+    const right = h('aside', { id: 'md-edit' }, [
+      h('div', { class: 'md-ed-sec md-ed-head' }, [pickBtn]),
+      h('div', { class: 'md-ed-sec md-ed-grow' }, [h('div', { class: 'md-ed-title', text: '原稿' }), cueList]),
+      h('div', { class: 'md-ed-sec' }, [h('div', { class: 'md-ed-title', text: '対象と指示' }), targetBox, input, h('div', { class: 'md-ed-actions' }, [addBtn])]),
+      h('div', { class: 'md-ed-sec md-ed-grow' }, [h('div', { class: 'md-ed-title' }, [document.createTextNode('溜めた指示 '), count]), itemList, h('div', { class: 'md-ed-actions' }, [copyBtn, clearBtn])]),
+    ]);
+    ui.app.append(left, right);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addItem(); } });
+
+    // ─ ステージの上の枠（乗せている要素・選んだ要素）
+    const hover = h('div', { class: 'md-ed-hl' });
+    const picked = h('div', { class: 'md-ed-hl is-picked' });
+    ui.viewport.append(hover, picked);
+    const place = (box, el) => {
+      if (!el || !el.isConnected) { box.style.display = 'none'; return; }
+      const r = el.getBoundingClientRect(), v = ui.viewport.getBoundingClientRect();
+      Object.assign(box.style, { display: 'block', left: r.left - v.left + 'px', top: r.top - v.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    };
+    // 見えている（不透明で表示中の）、今のシーンの要素だけを選ぶ
+    const pickAt = (x, y) => {
+      const rec = sceneAt(Math.floor(state.frame));
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (el === rec.el || !rec.el.contains(el)) continue;
+        if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+        return { el, rec };
+      }
+      return null;
+    };
+    ui.viewport.addEventListener('pointermove', (e) => {
+      if (!E.inspecting) return;
+      const hit = pickAt(e.clientX, e.clientY);
+      place(hover, hit && hit.el);
+      hover.title = hit ? cssPath(hit.el, hit.rec) : '';
+    });
+    ui.viewport.addEventListener('pointerleave', () => { hover.style.display = 'none'; });
+    ui.viewport.addEventListener('click', (e) => {
+      if (!E.inspecting) return;
+      e.preventDefault();
+      const hit = pickAt(e.clientX, e.clientY);
+      if (!hit) return;
+      selectElement(hit.el, hit.rec);
+      setInspect(false);
+      input.focus();
+    });
+
+    function selectElement(el, rec) {
+      E.targetEl = el;
+      setTarget({
+        kind: 'element', scene: rec.tl.id, heading: sceneHeading(rec), point: pointLabel(),
+        selector: cssPath(el, rec), attrs: dataAttrs(el), text: clip(el.textContent, 80),
+      }, true);
+    }
+
+    function setTarget(t, keepEl) {
+      if (!keepEl) E.targetEl = null;
+      E.target = t;
+      renderTarget();
+      sceneList.querySelectorAll('.md-ed-scene').forEach((r) => r.classList.toggle('is-target', !!t && t.kind === 'scene' && r.dataset.scene === t.scene));
+      E.sceneId = null; // 原稿の対象の印を付け直す
+      updateEditor();
+    }
+
+    function renderTarget() {
+      const t = E.target;
+      targetBox.innerHTML = '';
+      if (!t) { targetBox.appendChild(h('div', { class: 'md-ed-empty', text: 'DOM選択・原稿の文・シーンの「＋」で対象を選ぶ' })); return; }
+      const rows = [['種類', EDIT_KINDS[t.kind]], ['シーン', t.scene + (t.heading ? `「${t.heading}」` : '')]];
+      if (t.kind === 'element') {
+        rows.push(['要素', t.selector, true]);
+        if (t.attrs) rows.push(['属性', t.attrs, true]);
+        if (t.text) rows.push(['文字', t.text]);
+        rows.push(['見ていた画面', t.point]);
+      }
+      if (t.kind === 'cue') rows.push(['文', `${t.cueIndex}${t.cueName ? '（' + t.cueName + '）' : ''} ${t.cueText}`]);
+      const dl = h('dl');
+      rows.forEach(([k, v, mono]) => dl.append(h('dt', { text: k }), h('dd', { class: mono ? 'md-ed-mono' : '', text: v })));
+      targetBox.appendChild(dl);
+      if (t.kind === 'element' && E.targetEl) {
+        const rec = state.scenes.find((r) => r.tl.id === t.scene);
+        const parent = E.targetEl.parentElement;
+        const up = h('button', { class: 'md-chip', text: '親へ', title: '1つ外側の要素を選び直す', onclick: () => selectElement(parent, rec) });
+        if (!rec || !parent || parent === rec.el) up.disabled = true;
+        targetBox.appendChild(h('div', { class: 'md-ed-actions md-ed-inline' }, [up, h('button', { class: 'md-chip', text: '解除', onclick: () => setTarget(null) })]));
+      } else {
+        targetBox.appendChild(h('div', { class: 'md-ed-actions md-ed-inline' }, [h('button', { class: 'md-chip', text: '解除', onclick: () => setTarget(null) })]));
+      }
+    }
+
+    function addItem() {
+      const note = input.value.trim();
+      if (!E.target) { input.placeholder = '先に対象を選んでください（DOM選択・原稿の文・シーンの「＋」）'; return; }
+      if (!note) { input.focus(); return; }
+      E.items.push(Object.assign({}, E.target, { note }));
+      save();
+      input.value = '';
+      renderItems();
+      itemList.scrollTop = itemList.scrollHeight;
+    }
+
+    function itemHead(it, i) {
+      const where = it.kind === 'element' ? it.selector.replace(/^section\[data-scene="[^"]*"\]\s*>?\s*/, '') || '(シーンの section)'
+        : it.kind === 'cue' ? `文${it.cueIndex}${it.cueName ? '（' + it.cueName + '）' : ''}` : 'シーン全体';
+      return `${i + 1}. ${it.scene}｜${where}`;
+    }
+
+    function renderItems() {
+      itemList.innerHTML = '';
+      count.textContent = E.items.length ? `${E.items.length}件` : '';
+      if (!E.items.length) { itemList.appendChild(h('div', { class: 'md-ed-empty', text: 'まだありません' })); return; }
+      E.items.forEach((it, i) => {
+        const rec = state.scenes.findIndex((r) => r.tl.id === it.scene);
+        itemList.appendChild(h('div', { class: 'md-ed-item' }, [
+          h('div', { class: 'md-ed-item-head', text: itemHead(it, i), title: 'そのシーンへ', onclick: () => { if (rec >= 0) goSceneAt(rec); } }),
+          h('button', { class: 'md-chip md-ed-del', text: '×', title: 'この指示を消す', onclick: () => { E.items.splice(i, 1); save(); renderItems(); } }),
+          h('div', { class: 'md-ed-item-note', text: it.note }),
+        ]));
+      });
+    }
+
+    function copyText() {
+      const ind = (s) => s.split('\n').join('\n  ');
+      const out = ['motion-deck のデッキを直してください。', `デッキ: ${deckDir()}`];
+      if (E.items.some((it) => it.kind === 'element')) out.push('（「見ていた画面」は指示を書いたときの目安です。直すのはその時点だけでなく、要素そのものです）');
+      E.items.forEach((it, i) => {
+        out.push('');
+        const head = `${it.scene}${it.heading ? ' 「' + it.heading + '」' : ''}`;
+        if (it.kind === 'element') {
+          out.push(`## ${i + 1}. ${head}`, `- 要素: ${it.selector}`);
+          if (it.attrs) out.push(`  ${it.attrs}`);
+          if (it.text) out.push(`  文字: 「${it.text}」`);
+          out.push(`- 見ていた画面: ${it.point}`);
+        } else if (it.kind === 'cue') {
+          out.push(`## ${i + 1}. ${it.scene} 文${it.cueIndex}${it.cueName ? '（' + it.cueName + '）' : ''}（原稿）`, `- 文: 「${it.cueText}」`);
+        } else {
+          out.push(`## ${i + 1}. ${head}（シーン全体）`);
+        }
+        out.push(`- 指示: ${ind(it.note)}`);
+      });
+      return out.join('\n') + '\n';
+    }
+
+    function copyItems() {
+      if (!E.items.length) return;
+      const text = copyText();
+      const done = (ok) => { copyBtn.textContent = ok ? 'コピーしました' : 'コピーできません'; setTimeout(() => { copyBtn.textContent = '全部コピー'; }, 1600); };
+      const fallback = () => {
+        const ta = h('textarea', { style: 'position:fixed;left:-9999px;top:0' });
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { /* noop */ }
+        ta.remove();
+        done(ok);
+      };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => done(true), fallback);
+      else fallback();
+    }
+
+    E.renderCues = (rec) => {
+      cueList.innerHTML = '';
+      rec.tl.cues.forEach((c, i) => {
+        const row = h('div', { class: 'md-ed-cue', title: 'この文へ移って、指示の対象にする', onclick: () => {
+          const f = rec.tl.start + Math.max(c.start, c.end - 1);
+          if (state.mode === 'live') { const s = state.stops.find((x) => x >= rec.tl.start + c.end); seek(s != null ? s : f); } else seek(f);
+          setTarget({ kind: 'cue', scene: rec.tl.id, heading: sceneHeading(rec), cueIndex: i, cueName: c.name || '', cueText: c.text });
+        } }, [
+          h('span', { class: 'md-ed-cue-n', text: String(i) }),
+          h('span', {}, [c.name ? h('span', { class: 'md-ed-cue-name', text: c.name }) : null, document.createTextNode(c.text)]),
+        ]);
+        const t = E.target;
+        row.classList.toggle('is-target', !!t && t.kind === 'cue' && t.scene === rec.tl.id && t.cueIndex === i);
+        cueList.appendChild(row);
+      });
+    };
+    E.place = () => {
+      const el = E.targetEl;
+      const rec = sceneAt(Math.floor(state.frame));
+      const shown = el && el.isConnected && rec.el.contains(el) && (!el.checkVisibility || el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+      place(picked, shown ? el : null);
+    };
+    E.hover = hover;
+    E.pickBtn = pickBtn;
+    E.sceneRows = sceneList;
+    E.cueList = cueList;
+    renderTarget();
+    renderItems();
+    setEditOpen(state.mode === 'video');
+  }
+
+  /** 今のシーン・文に合わせて、一覧の強調・原稿・選んだ要素の枠を更新する */
+  function updateEditor() {
+    const E = state.ui.edit;
+    const { rec, idx } = cueState();
+    if (E.sceneId !== rec.tl.id) {
+      E.sceneId = rec.tl.id;
+      E.sceneRows.querySelectorAll('.md-ed-scene').forEach((r) => {
+        const on = r.dataset.scene === rec.tl.id;
+        r.classList.toggle('is-active', on);
+        if (on && state.ui.app.classList.contains('show-edit')) r.scrollIntoView({ block: 'nearest' });
+      });
+      E.renderCues(rec);
+    }
+    const rows = E.cueList.querySelectorAll('.md-ed-cue');
+    rows.forEach((r, i) => r.classList.toggle('is-active', i === idx));
+    E.place();
+  }
+
+  function setEditOpen(on) {
+    const ui = state.ui;
+    if (!ui || !ui.edit) return;
+    ui.app.classList.toggle('show-edit', !!on);
+    if (!on) setInspect(false);
+    requestAnimationFrame(() => { fit(); if (ui.edit) ui.edit.place(); });
+  }
+
+  function setInspect(on) {
+    const ui = state.ui;
+    if (!ui || !ui.edit) return;
+    ui.edit.inspecting = !!on;
+    ui.app.classList.toggle('is-inspecting', !!on);
+    ui.edit.pickBtn.classList.toggle('is-on', !!on);
+    ui.edit.hover.style.display = 'none';
+    if (on) {
+      if (state.playing) pause();
+      if (!ui.app.classList.contains('show-edit')) setEditOpen(true);
+    }
   }
 
   /** スクラブバーとタイムラインの中身（時間軸を切り替えたら作り直す） */
@@ -1349,6 +1671,7 @@
     ui.stage.style.width = state.width + 'px';
     ui.stage.style.height = state.height + 'px';
     ui.stage.style.transform = `translate(${(vw - state.width * scale) / 2}px, ${(vh - state.height * scale) / 2}px) scale(${scale})`;
+    if (ui.edit && ui.edit.place) ui.edit.place();
   }
 
   function updateUI(force) {
@@ -1373,6 +1696,7 @@
         const s = Number(b.dataset.start), e = s + Number(b.dataset.frames);
         b.classList.toggle('is-active', fi >= s && fi < e);
       });
+      if (ui.edit) updateEditor();
     }
     const pct = (f / Math.max(1, state.total - 1)) * 100;
     ui.scrubPlayed.style.width = pct + '%';
@@ -1443,7 +1767,9 @@
     if (k === 't' || k === 'T') { handled(); toggleTimeline(); return; }
     if (k === 'f' || k === 'F') { handled(); toggleFullscreen(); return; }
     if (k === '?') { handled(); toggleHelp(); return; }
-    if (k === 'Escape') { toggleHelp(false); return; }
+    if (k === 'Escape') { toggleHelp(false); if (inspecting()) setInspect(false); return; }
+    if (state.ui && state.ui.edit && (k === 'e' || k === 'E')) { handled(); setEditOpen(!state.ui.app.classList.contains('show-edit')); return; }
+    if (state.ui && state.ui.edit && (k === 'i' || k === 'I')) { handled(); setInspect(!inspecting()); return; }
     if (live && (k === 'v' || k === 'V')) { handled(); setLiveNarration(!state.liveNarration); return; }
     if (live && (k === 'm' || k === 'M')) { handled(); state.ui.muteBtn.click(); return; }
     if (live) {
@@ -1700,6 +2026,7 @@
         blackout: !!ui.blackout,
         help: !!ui.help,
         keyboard: !!state.keyboard,
+        editPanel: !!ui.edit || BUNDLED(),
       });
     }
     return f;
@@ -1899,6 +2226,8 @@
       get step() { return stepIndex(); },
       get playing() { return state.playing; },
       get narration() { return state.liveNarration; },
+      get editOpen() { return !!state.ui && state.ui.app.classList.contains('show-edit'); },
+      get inspecting() { return inspecting(); },
       features,
       setNarration: setLiveNarration,
       get audioTime() { return state.audio ? state.audio.currentTime : null; },

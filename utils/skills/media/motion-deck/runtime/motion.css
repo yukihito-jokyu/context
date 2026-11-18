@@ -251,6 +251,60 @@ html.md-player, html.md-player body {
 .md-scrub-stop { position: absolute; top: 1px; bottom: 1px; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, 0.55); }
 #md-app.is-live #md-viewport { cursor: default; }
 
+/* ───────── 修正の指示（左：シーンの一覧／右：DOM選択・原稿・対象と指示・溜めた指示） ───────── */
+#md-app { grid-template-columns: 0 minmax(0, 1fr) 0; grid-template-areas: "left view right" "bar bar bar" "tl tl tl"; }
+#md-viewport { grid-area: view; }
+#md-bar { grid-area: bar; }
+#md-timeline { grid-area: tl; }
+#md-scenes { grid-area: left; border-right: 1px solid var(--ui-line); }
+#md-edit { grid-area: right; border-left: 1px solid var(--ui-line); }
+#md-scenes, #md-edit { display: none; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--ui-bg); }
+#md-app.show-edit { grid-template-columns: 220px minmax(0, 1fr) 340px; }
+#md-app.show-edit #md-scenes, #md-app.show-edit #md-edit { display: flex; }
+#md-app:fullscreen { grid-template-columns: 0 minmax(0, 1fr) 0; }
+#md-app:fullscreen #md-scenes, #md-app:fullscreen #md-edit { display: none; }
+@media (max-width: 960px) {
+  #md-app.show-edit { grid-template-columns: 0 minmax(0, 1fr) 300px; }
+  #md-app.show-edit #md-scenes { display: none; }
+}
+.md-ed-title { padding: 8px 12px 6px; color: var(--ui-muted); font-size: 12px; font-weight: 600; flex: none; }
+.md-ed-list, .md-ed-cues, .md-ed-items { flex: 1; min-height: 56px; overflow-y: auto; padding: 0 8px 8px; }
+.md-ed-scene { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 6px; border-radius: 6px; cursor: pointer; }
+.md-ed-scene:hover, .md-ed-cue:hover { background: var(--ui-bg2); }
+.md-ed-scene.is-active, .md-ed-cue.is-active { background: #23324a; box-shadow: inset 2px 0 0 var(--ui-accent); color: #fff; }
+.md-ed-scene.is-target, .md-ed-cue.is-target { outline: 1px solid #fbbf24; outline-offset: -1px; }
+.md-ed-num { color: var(--ui-muted); font-variant-numeric: tabular-nums; text-align: right; }
+.md-ed-chapter { color: var(--ui-muted); font-size: 11px; }
+.md-ed-id { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.md-ed-heading { font-size: 12px; color: #c9d1dc; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.md-ed-plus, .md-ed-del { padding: 0 7px; line-height: 20px; }
+.md-ed-sec { display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid var(--ui-line); }
+.md-ed-sec:last-child { border-bottom: 0; }
+.md-ed-grow { flex: 1; }
+.md-ed-head { flex-direction: row; padding: 8px 12px; }
+.md-ed-pick { flex: 1; padding: 6px 10px; }
+.md-ed-cue { display: flex; gap: 6px; padding: 5px 6px; border-radius: 6px; cursor: pointer; color: #c9d1dc; }
+.md-ed-cue-n { flex: none; min-width: 1.4em; text-align: right; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.md-ed-cue-name { margin-right: 6px; color: #9ecbff; font: 11px ui-monospace, Menlo, monospace; }
+.md-ed-target { padding: 0 12px 6px; }
+.md-ed-target dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; margin: 0; font-size: 12px; }
+.md-ed-target dt { color: var(--ui-muted); }
+.md-ed-target dd { margin: 0; word-break: break-all; user-select: text; }
+.md-ed-mono { font: 11px/1.5 ui-monospace, Menlo, monospace; }
+.md-ed-empty { color: var(--ui-muted); font-size: 12px; padding: 2px 4px; }
+.md-ed-input { margin: 0 12px; min-height: 64px; resize: vertical; padding: 6px 8px; border: 1px solid var(--ui-line); border-radius: 6px; background: #0d0f12; color: var(--ui-text); font: inherit; user-select: text; }
+.md-ed-input:focus { outline: 1px solid var(--ui-accent); }
+.md-ed-actions { display: flex; justify-content: flex-end; gap: 6px; padding: 6px 12px 10px; flex: none; }
+.md-ed-actions.md-ed-inline { padding: 6px 0 0; justify-content: flex-start; }
+.md-ed-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 6px; margin-bottom: 6px; padding: 6px 8px; border: 1px solid var(--ui-line); border-radius: 6px; }
+.md-ed-item-head { color: var(--ui-muted); font-size: 11px; word-break: break-all; cursor: pointer; }
+.md-ed-item-note { white-space: pre-wrap; user-select: text; }
+.md-ed-del { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+.md-chip:disabled { opacity: 0.35; cursor: default; }
+.md-ed-hl { position: absolute; display: none; z-index: 4; pointer-events: none; border: 2px solid #fbbf24; border-radius: 3px; background: rgba(251, 191, 36, 0.12); }
+.md-ed-hl.is-picked { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+#md-app.is-inspecting #md-viewport { cursor: crosshair; }
+
 /* 画面を隠す（B: 黒 / W: 白） */
 #md-blackout { position: absolute; inset: 0; display: none; background: #000; z-index: 5; }
 #md-blackout[data-color="white"] { background: #fff; }

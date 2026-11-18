@@ -178,7 +178,7 @@ const sceneHash = (ssml, t) => sha([ssml, t.tts, t.voice || '', t.engine || ''].
 // ───────────────────────── 必ず備わる機能 ─────────────────────────
 
 const BOOT_TAG = /<script\s+src=["']motion\/boot\.js["'][^>]*><\/script>/g;
-const PLAYER_REQUIRED = ['player', 'scrubber', 'timelinePanel', 'modeToggle', 'presenterView', 'narrationToggle', 'blackout', 'help', 'keyboard'];
+const PLAYER_REQUIRED = ['player', 'scrubber', 'timelinePanel', 'modeToggle', 'presenterView', 'narrationToggle', 'blackout', 'help', 'keyboard', 'editPanel'];
 const REQUIRED = ['boot', 'composition', 'scenes', 'theme', 'kit', 'chapterBar', 'subtitles', 'liveLayout', 'transitions', 'fonts'];
 
 function bootLists() {
@@ -714,11 +714,12 @@ async function cmdCheck(pos, opt) {
         key('p'); r.toVideo = P.mode === 'video'; key('p'); r.toLive = P.mode === 'live';
         key('b'); r.blackOn = !!bo() && bo().classList.contains('is-on'); key('b'); r.blackOff = !!bo() && !bo().classList.contains('is-on');
         const h = document.getElementById('md-help'); key('?'); r.help = !!h && h.classList.contains('is-open'); key('Escape'); r.helpClose = !!h && !h.classList.contains('is-open');
+        r.editHidden = !P.editOpen; key('e'); r.editOn = P.editOpen; key('i'); r.inspect = P.inspecting; key('Escape'); r.inspectOff = !P.inspecting; key('e'); r.editOff = !P.editOpen;
         r.hasAudio = P.audioTime !== null;
         if (r.hasAudio) { const n0 = P.narration; key('v'); r.voice = P.narration === !n0; key('v'); r.voiceBack = P.narration === n0; }
         return r;
       })()`);
-      const PROBES = { startLive: '?mode=live で発表モードになる', play: '→でステップの動きが始まる', next: '→をもう一度で次のステップの終わりへ', prev: '←で前のステップ', toVideo: 'P で動画モード', toLive: 'P で発表モードに戻る', blackOn: 'B で画面を隠す', blackOff: 'B で戻す', help: '? でヘルプ', helpClose: 'Esc でヘルプを閉じる', voice: 'V でナレーションのオン・オフ', voiceBack: 'V で戻す' };
+      const PROBES = { startLive: '?mode=live で発表モードになる', play: '→でステップの動きが始まる', next: '→をもう一度で次のステップの終わりへ', prev: '←で前のステップ', toVideo: 'P で動画モード', toLive: 'P で発表モードに戻る', blackOn: 'B で画面を隠す', blackOff: 'B で戻す', help: '? でヘルプ', helpClose: 'Esc でヘルプを閉じる', editHidden: '発表モードでは修正の列を隠す', editOn: 'E で修正の列を出す', inspect: 'I で DOM選択', inspectOff: 'Esc で DOM選択をやめる', editOff: 'E で修正の列を隠す', voice: 'V でナレーションのオン・オフ', voiceBack: 'V で戻す' };
       for (const [k, label] of Object.entries(PROBES)) if (k in probe && !probe[k]) errors.push(`[操作] ${label} が動きません`);
       if (!probe.hasAudio) warnings.push('[音声] narration がないので、ナレーションのオン・オフは確かめていません（synth のあとで check し直してください）');
       pl.pageErrors.forEach((e) => errors.push('[ブラウザ] ' + e));
@@ -874,10 +875,38 @@ async function cmdRender(pos, opt) {
 //              背景＋切り出した絵を重ねた結果が本物の絵と一致するかを確かめてから使う。
 //   差分モード：一致しない（強調の移動、消える要素、独自の動きなど）ときは、変わった範囲だけを
 //              本物の絵から切り出してフェードで重ねる。見た目は必ず本物と同じになる。
+//   スライドの区切り：1画面＝1スライド。シーンの途中で見出し（.h）が消えたら画面が入れ替わったとみなし、
+//              そのステップから新しいスライドにする（背景はそのステップで現れる要素を隠した絵）。
 
 const PPTX_HELPERS = `
 window.__pptx = {
   style: null,
+  hideStyle: null,
+  // 今見えている見出し（.h）。シーンの section の中での順番で返す
+  headings(sceneId) {
+    const sec = document.querySelector('#composition [data-scene="' + sceneId + '"]');
+    if (!sec) return [];
+    return Array.from(sec.querySelectorAll('.h')).map((el, i) => {
+      const r = el.getBoundingClientRect();
+      const shown = r.width > 0 && r.height > 0 && (!el.checkVisibility || el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+      return shown ? i : -1;
+    }).filter((i) => i >= 0);
+  },
+  // 指定した要素を隠す（新しいスライドの背景を撮るため）
+  hide(ids) {
+    if (!this.hideStyle) {
+      this.hideStyle = document.createElement('style');
+      this.hideStyle.textContent = '.pptx-hide, .pptx-hide * { visibility: hidden !important; }';
+      document.head.appendChild(this.hideStyle);
+    }
+    for (const id of ids) {
+      const el = document.querySelector('[data-pptx-id="' + id + '"]');
+      if (el) el.classList.add('pptx-hide');
+    }
+  },
+  unhide() {
+    document.querySelectorAll('.pptx-hide').forEach((e) => e.classList.remove('pptx-hide'));
+  },
   iso(id) {
     if (!this.style) {
       this.style = document.createElement('style');
@@ -954,23 +983,39 @@ async function cmdPptx(pos, opt) {
     const scenes = await page.evaluate('__motion.sceneInfo()');
     const shot = async () => (await page.capture('png')).toString('base64');
     const transparent = (on) => page.send('Emulation.setDefaultBackgroundColorOverride', on ? { color: { r: 0, g: 0, b: 0, a: 0 } } : {});
+    const SPRINGY = ['up', 'down', 'left', 'right', 'scale', 'zoom', 'pop', 'fade', 'blur'];
+    const TWEENY = ['draw', 'wipe', 'grow', 'grow-y', 'type', 'words', 'highlight', 'wipe-down', 'progress', 'strike'];
     for (const sc of scenes) {
       const mine = stops.filter((s) => s >= sc.start && s < sc.start + sc.duration);
       await page.seek(sc.start);
-      const background = await shot();
-      let prev = background;
-      const pictures = [];
-      const steps = [];
-      const notes = [];
-      if (sc.notes) notes.push(sc.notes, '');
+      // 1画面＝1スライド。シーンの最初のスライドはシーンの切り替え、途中で分けたスライドはフェードで入る
+      let cur = null;
+      const sceneSlides = [];
+      const startSlide = (b64, transition) => {
+        cur = { background: b64, transition, notes: [], pictures: [], steps: [], visible: [], layerOf: new Map(), clicks: 0 };
+        sceneSlides.push(cur);
+      };
+      startSlide(await shot(), { kind: sc.transition, dir: sc.direction });
+      if (sc.notes) cur.notes.push(sc.notes, '');
+      let prev = cur.background;
+      let heads = await page.evaluate(`__pptx.headings(${JSON.stringify(sc.id)})`);
       let from = sc.start - 1;
-      let visible = []; // 背景の上に今見えている絵（重なり順）
-      const layerOf = new Map(); // 要素の id → 絵の番号
       for (let k = 0; k < mine.length; k++) {
         const stop = mine[k];
         await page.seek(stop);
         const next = await shot();
         const ents = await page.evaluate(`__motion.entering(${from}, ${stop})`);
+        // 見出しが消えたら画面の入れ替わり：このステップから新しいスライドにする
+        const nowHeads = await page.evaluate(`__pptx.headings(${JSON.stringify(sc.id)})`);
+        const split = k > 0 && heads.some((i) => !nowHeads.includes(i));
+        heads = nowHeads;
+        if (split) {
+          await page.evaluate(`__pptx.hide(${JSON.stringify(ents.map((e) => e.id))}); true`);
+          const bg = await shot();
+          await page.evaluate('__pptx.unhide(); true');
+          startSlide(bg, { kind: 'fade' });
+          prev = bg;
+        }
         // 要素を透明な絵に切り出す
         const pieces = [];
         await transparent(true);
@@ -984,32 +1029,32 @@ async function cmdPptx(pos, opt) {
           pieces.push({ e, b64, x, y, w, h });
         }
         await transparent(false);
-        // 消える要素（前に絵として出したもの）
-        const exits = (await page.evaluate(`__motion.exiting(${from}, ${stop})`)).filter((x) => layerOf.has(x.id));
-        const layersAfter = visible.filter((l) => !exits.some((x) => x.id === l.id)).concat(pieces.map((p) => ({ id: p.e.id, b64: p.b64, x: p.x, y: p.y })));
-        const res = await page.evaluate(`__pptx.check(${JSON.stringify(prev)}, ${JSON.stringify(next)}, ${JSON.stringify(background)}, ${JSON.stringify(layersAfter)}, ${W}, ${H})`);
-        if (process.env.MOTION_DEBUG) log(`    [${sc.id} ${k}] 現れる${pieces.length} 消える${exits.length} 差 ${res.box ? res.box.n : 0} 残り ${res.rest ? res.rest.n + ' (' + res.rest.x + ',' + res.rest.y + ' ' + res.rest.w + 'x' + res.rest.h + ')' : '-'}`);
+        // 消える要素（このスライドで前に絵として出したもの）
+        const exits = (await page.evaluate(`__motion.exiting(${from}, ${stop})`)).filter((x) => cur.layerOf.has(x.id));
+        const layersAfter = cur.visible.filter((l) => !exits.some((x) => x.id === l.id)).concat(pieces.map((p) => ({ id: p.e.id, b64: p.b64, x: p.x, y: p.y })));
+        const res = await page.evaluate(`__pptx.check(${JSON.stringify(prev)}, ${JSON.stringify(next)}, ${JSON.stringify(cur.background)}, ${JSON.stringify(layersAfter)}, ${W}, ${H})`);
+        if (process.env.MOTION_DEBUG) log(`    [${sc.id} ${k}]${split ? ' 新しいスライド' : ''} 現れる${pieces.length} 消える${exits.length} 差 ${res.box ? res.box.n : 0} 残り ${res.rest ? res.rest.n + ' (' + res.rest.x + ',' + res.rest.y + ' ' + res.rest.w + 'x' + res.rest.h + ')' : '-'}`);
         // このステップに属する文（台本）
         const lines = sc.cues.filter((c) => c.start > from && c.start <= stop);
-        const label = k === 0 ? '【スライド開始】' : `【クリック ${k}】`;
-        if (!res.box) {
+        const first = cur.steps.length === 0 && (k === 0 || split);
+        const label = first ? '【スライド開始】' : `【クリック ${cur.clicks + 1}】`;
+        if (!res.box && !split) {
           // 見た目が変わらないステップはクリックにしない（前のステップに続けて読む）
-          lines.forEach((c) => notes.push(`${label} ${c.text}`, ...(c.note ? [`　メモ: ${c.note}`] : [])));
+          const last = cur.clicks ? `【クリック ${cur.clicks}】` : '【スライド開始】';
+          lines.forEach((c) => cur.notes.push(`${last} ${c.text}`, ...(c.note ? [`　メモ: ${c.note}`] : [])));
           from = stop; prev = next;
           continue;
         }
         const t0 = Math.min(...ents.map((e) => e.begin), Infinity);
-        const SPRINGY = ['up', 'down', 'left', 'right', 'scale', 'zoom', 'pop', 'fade', 'blur'];
-        const TWEENY = ['draw', 'wipe', 'grow', 'grow-y', 'type', 'words', 'highlight', 'wipe-down', 'progress', 'strike'];
         const effects = [];
-        for (const x of exits) effects.push({ pic: layerOf.get(x.id), kind: 'exitFade', dur: 300, delay: 0 });
+        for (const x of exits) effects.push({ pic: cur.layerOf.get(x.id), kind: 'exitFade', dur: 300, delay: 0 });
         for (const p of pieces) {
-          pictures.push({ png: Buffer.from(p.b64, 'base64'), x: p.x, y: p.y, w: p.w, h: p.h, name: p.e.text.slice(0, 30) || p.e.anims.join(' '), alt: p.e.text });
-          layerOf.set(p.e.id, pictures.length - 1);
+          cur.pictures.push({ png: Buffer.from(p.b64, 'base64'), x: p.x, y: p.y, w: p.w, h: p.h, name: p.e.text.slice(0, 30) || p.e.anims.join(' '), alt: p.e.text });
+          cur.layerOf.set(p.e.id, cur.pictures.length - 1);
           const springOnly = p.e.anims.some((a) => SPRINGY.includes(a)) && !p.e.anims.some((a) => TWEENY.includes(a));
-          effects.push({ pic: pictures.length - 1, kind: effectFor(p.e.anims), dur: Math.min(3000, ((springOnly ? 15 : p.e.dur) * 1000) / fps), delay: ((p.e.begin - t0) * 1000) / fps });
+          effects.push({ pic: cur.pictures.length - 1, kind: effectFor(p.e.anims), dur: Math.min(3000, ((springOnly ? 15 : p.e.dur) * 1000) / fps), delay: ((p.e.begin - t0) * 1000) / fps });
         }
-        visible = layersAfter;
+        cur.visible = layersAfter;
         if (pieces.length) elementSteps++;
         if (res.rest) {
           // 要素の出し入れで説明できない変化（強調の移動、独自の動き）は、その範囲だけ本物の絵で重ねる
@@ -1017,17 +1062,18 @@ async function cmdPptx(pos, opt) {
           const b = res.rest;
           const x = Math.max(0, b.x - 4), y = Math.max(0, b.y - 4), w = Math.min(W - x, b.w + 8), h = Math.min(H - y, b.h + 8);
           const b64 = await page.evaluate(`__pptx.crop(${JSON.stringify(next)}, ${x}, ${y}, ${w}, ${h})`);
-          pictures.push({ png: Buffer.from(b64, 'base64'), x, y, w, h, name: `ステップ${k}の変化`, alt: lines.map((c) => c.text).join(' ') });
-          effects.push({ pic: pictures.length - 1, kind: 'fade', dur: 400, delay: 0 });
-          visible.push({ id: 'patch' + pictures.length, b64, x, y });
+          cur.pictures.push({ png: Buffer.from(b64, 'base64'), x, y, w, h, name: `ステップ${k}の変化`, alt: lines.map((c) => c.text).join(' ') });
+          effects.push({ pic: cur.pictures.length - 1, kind: 'fade', dur: 400, delay: 0 });
+          cur.visible.push({ id: 'patch' + cur.pictures.length, b64, x, y });
         }
-        steps.push({ auto: k === 0, effects });
-        lines.forEach((c) => notes.push(`${label} ${c.text}`, ...(c.note ? [`　メモ: ${c.note}`] : [])));
+        cur.steps.push({ auto: first, effects });
+        if (!first) cur.clicks++;
+        lines.forEach((c) => cur.notes.push(`${label} ${c.text}`, ...(c.note ? [`　メモ: ${c.note}`] : [])));
         from = stop;
         prev = next;
       }
-      slides.push({ background: Buffer.from(background, 'base64'), transition: { kind: sc.transition, dir: sc.direction }, notes, pictures, steps });
-      log(`  ${sc.id}: ${steps.filter((s) => !s.auto).length}クリック、絵 ${pictures.length}枚`);
+      for (const s of sceneSlides) slides.push({ background: Buffer.from(s.background, 'base64'), transition: s.transition, notes: s.notes, pictures: s.pictures, steps: s.steps });
+      log(`  ${sc.id}: ${sceneSlides.length}スライド、${sceneSlides.reduce((n, s) => n + s.clicks, 0) + sceneSlides.length - 1}クリック、絵 ${sceneSlides.reduce((n, s) => n + s.pictures.length, 0)}枚`);
     }
     await page.close();
   } finally {
