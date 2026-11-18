@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>シーケンシャルリビール（Sequential Reveal） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-sequential-reveal" style="position: relative; width: 220px; height: 110px">
+        <span
+          class="sb-check-circle ac-sequential-reveal-n"
+          style="position: absolute; left: 6px; top: 30px; width: 36px; height: 36px; box-shadow: none; --k: 0"
+        ></span
+        ><span
+          class="sb-bar sb-bar--xs sb-bar--strong ac-sequential-reveal-l"
+          style="position: absolute; left: 0px; top: 80px; width: 48px; --k: 0"
+        ></span
+        ><span
+          class="sb-check-circle ac-sequential-reveal-n"
+          style="position: absolute; left: 92px; top: 30px; width: 36px; height: 36px; box-shadow: none; --k: 2"
+        ></span
+        ><span
+          class="sb-bar sb-bar--xs sb-bar--strong ac-sequential-reveal-l"
+          style="position: absolute; left: 86px; top: 80px; width: 48px; --k: 2"
+        ></span
+        ><span
+          class="sb-check-circle ac-sequential-reveal-n"
+          style="position: absolute; left: 178px; top: 30px; width: 36px; height: 36px; box-shadow: none; --k: 4"
+        ></span
+        ><span
+          class="sb-bar sb-bar--xs sb-bar--strong ac-sequential-reveal-l"
+          style="position: absolute; left: 172px; top: 80px; width: 48px; --k: 4"
+        ></span
+        ><span class="ac-sequential-reveal-c" style="left: 46px; --k: 1"></span
+        ><span class="ac-sequential-reveal-c" style="left: 132px; --k: 3"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sequential-reveal .ac-sequential-reveal-n {
+        animation: ac-sequential-reveal-pop calc(var(--step, 400ms) * 0.8) cubic-bezier(0.34, 1.56, 0.64, 1)
+          calc(var(--step, 400ms) * var(--k)) both;
+      }
+      .ac-sequential-reveal .ac-sequential-reveal-l {
+        animation: ac-sequential-reveal-fade var(--step, 400ms) cubic-bezier(0.22, 1, 0.36, 1)
+          calc(var(--step, 400ms) * var(--k) + 120ms) both;
+      }
+      .ac-sequential-reveal .ac-sequential-reveal-c {
+        position: absolute;
+        top: 47px;
+        width: 42px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--blue);
+        transform-origin: left;
+        animation: ac-sequential-reveal-line var(--step, 400ms) cubic-bezier(0.65, 0, 0.35, 1)
+          calc(var(--step, 400ms) * var(--k)) both;
+      }
+      @keyframes ac-sequential-reveal-pop {
+        from {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-sequential-reveal-line {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes ac-sequential-reveal-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-sequential-reveal .ac-sequential-reveal-n,
+        .ac-sequential-reveal .ac-sequential-reveal-l,
+        .ac-sequential-reveal .ac-sequential-reveal-c {
+          animation: ac-sequential-reveal-fade 200ms both;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sequential-reveal",
+        name: "シーケンシャルリビール",
+        en: "Sequential Reveal",
+        cat: "順序・タイミング",
+        kind: "motion",
+        description:
+          "情報を、説明したい順番どおりに1つずつ明かしていく演出です。点が現れ、線が次へ伸び、次の点が現れる……と進むので、手順や因果のつながりが追いやすくなります。",
+        use: "手順の説明、サービスの流れ、インフォグラフィック、オンボーディング。",
+        params: [{ key: "step", label: "1段の時間", value: 400, min: 200, max: 800, step: 20, unit: "ms" }],
+        total: (p) => p["step"] * 5,
+        spec: [
+          ["点", "<code>scale(0.6 → 1)</code> と <code>opacity</code>｜spring"],
+          ["線", "<code>scaleX(0 → 1)</code>（<code>transform-origin: left</code>）｜in-out"],
+          ["順番", "点1 → 線 → 点2 → 線 → 点3。各段は「1段の時間」ずつ遅らせる。下のバーは点のあとに透明度で出す"],
+          ["動きを減らす設定", "順番の演出をやめ、まとめて透明度で表示する"],
+          ["出典", "ChatGPT との会話（演出・構成の語彙）"],
+        ],
+        loop: 3600,
+      });
+    </script>
+  </body>
+</html>

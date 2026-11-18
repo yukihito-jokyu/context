@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画素の軌跡（Cursor pixel trail） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-cursor-pixel-trail" style="position: relative; width: 220px; height: 150px">
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cursor-pixel-trail",
+        name: "画素の軌跡",
+        en: "Cursor pixel trail",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "ポインターの通り道に、格子にそろった小さな四角（画素）が次々と残り、少しずつ消えていく動きです。ドット絵のような、レトロでデジタルな尾が描かれます。",
+        use: "レトロ・ゲーム系のサイト、テック系のヒーロー、遊び心のある背景。",
+        params: [
+          { key: "size", label: "画素の大きさ", value: 8, min: 4, max: 16, step: 1, unit: "px" },
+          { key: "fade", label: "消える時間", value: 600, min: 200, max: 1500, step: 50, unit: "ms" },
+        ],
+        spec: [
+          [
+            "出す",
+            "ポインターの位置を画素の大きさにそろえ（<code>Math.floor(x / 大きさ) × 大きさ</code>）、新しいマスに来たら四角を置く",
+          ],
+          [
+            "消す",
+            "置いた四角を <code>opacity 1 → 0</code>（400–800ms）。消え方に少し <code>scale</code> を加えてもよい",
+          ],
+          ["描画", "数が多いときは DOM ではなく canvas に描く"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/pixel-trail" target="_blank" rel="noopener">React Bits: Pixel Trail</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const root = stage.firstElementChild,
+              s = v.size;
+            let last = "";
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const [x, y] = loop8(t * 1.2);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              const gx = Math.floor(x / s) * s,
+                gy = Math.floor(y / s) * s,
+                k = gx + "," + gy;
+              if (rm || k === last) return;
+              last = k;
+              const p = document.createElement("i");
+              p.style.cssText = `position:absolute;left:${gx}px;top:${gy}px;width:${s}px;height:${s}px;background:var(--blue)`;
+              root.insertBefore(p, cur);
+              p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: v.fade, easing: "ease-in" }).onfinish = () =>
+                p.remove();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

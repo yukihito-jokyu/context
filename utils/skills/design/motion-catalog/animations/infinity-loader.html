@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>無限大を描くローダー（Infinity loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-infinity-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <svg class="ac-infinity-loader-s" viewBox="0 0 100 50" width="110" height="55">
+          <path
+            class="ac-infinity-loader-bg"
+            pathLength="100"
+            d="M50,25 C38,8 14,8 14,25 C14,42 38,42 50,25 C62,8 86,8 86,25 C86,42 62,42 50,25 Z"
+          />
+          <path
+            class="ac-infinity-loader-fg"
+            pathLength="100"
+            d="M50,25 C38,8 14,8 14,25 C14,42 38,42 50,25 C62,8 86,8 86,25 C86,42 62,42 50,25 Z"
+          />
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-infinity-loader .ac-infinity-loader-s path {
+        fill: none;
+        stroke-width: 5;
+        stroke-linecap: round;
+      }
+      .ac-infinity-loader .ac-infinity-loader-s .ac-infinity-loader-bg {
+        stroke: var(--blue-soft);
+      }
+      .ac-infinity-loader .ac-infinity-loader-s .ac-infinity-loader-fg {
+        stroke: var(--blue);
+        stroke-dasharray: 22 78;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-infinity-loader .ac-infinity-loader-s .ac-infinity-loader-fg {
+          animation: ac-infinity-loader-run var(--dur, 1600ms) linear infinite;
+        }
+      }
+      @keyframes ac-infinity-loader-run {
+        to {
+          stroke-dashoffset: -100;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "infinity-loader",
+        name: "無限大を描くローダー",
+        en: "Infinity loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "∞（無限大）の形の軌道に沿って、光る線が追いかけるように流れ続けるローダーです。終わりのない流れが、なめらかに処理を続けている印象を与えます。",
+        use: "ボタン・カード・画面の読み込み中、待ち時間の短い処理。",
+        params: [{ key: "dur", label: "周期", value: 1600, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          ["形", '∞ の SVG パスに <code>pathLength="100"</code>。下に薄い色の同じ線を敷く'],
+          [
+            "動き",
+            "<code>stroke-dasharray: 22 78</code>（線の長さと隙間）で一部だけ描き、<code>stroke-dashoffset: 0 → -100</code>｜linear｜くり返し",
+          ],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          ["出典", '<a href="https://css-loaders.com/" target="_blank" rel="noopener">CSS Loaders</a>'],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

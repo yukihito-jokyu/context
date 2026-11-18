@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マーキー（Marquee） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-marquee"
+        style="position: relative; width: 220px; height: 60px; display: flex; align-items: center"
+      >
+        <div class="ac-marquee-track" tabindex="0">
+          <div class="ac-marquee-row">
+            <div>
+              <span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 40px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 56px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 34px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 48px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 62px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 38px"></span
+              ></span>
+            </div>
+            <div aria-hidden="true">
+              <span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 40px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 56px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 34px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 48px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 62px"></span></span
+              ><span class="sb-chip" style="height: 36px; padding: 0 14px; flex: none"
+                ><span class="sb-bar sb-bar--xs" style="width: 38px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-marquee .ac-marquee-track {
+        width: 100%;
+        overflow-x: auto;
+      }
+      .ac-marquee .ac-marquee-row,
+      .ac-marquee .ac-marquee-row > div {
+        display: flex;
+        gap: 10px;
+        width: max-content;
+      }
+      .ac-marquee .ac-marquee-row > [aria-hidden="true"] {
+        display: none;
+      }
+      .ac-marquee:focus-within {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+      @keyframes ac-marquee-flow {
+        to {
+          transform: translateX(calc(-50% - 5px));
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-marquee .ac-marquee-track {
+          overflow: clip;
+          mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+        }
+        .ac-marquee .ac-marquee-row {
+          animation: ac-marquee-flow var(--dur, 8000ms) linear infinite;
+        }
+        .ac-marquee .ac-marquee-row > [aria-hidden="true"] {
+          display: flex;
+        }
+        .ac-marquee:hover .ac-marquee-row {
+          animation-play-state: paused;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "marquee",
+        name: "マーキー",
+        en: "Marquee",
+        cat: "ループ・常時の動き",
+        kind: "motion",
+        description: "文字や要素の列が、横に流れ続ける動きです。同じ並びを2つつなげて、途切れずに一周させます。",
+        use: "ロゴの帯、お知らせのティッカー、タグの帯、横に長い見出しの演出。",
+        params: [{ key: "dur", label: "一周の時間", value: 8000, min: 2000, max: 20000, step: 500, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "並びを2回置き、<code>translateX(0 → -50% - 5px)</code>｜<code>linear</code>｜<code>infinite</code>",
+          ],
+          ["操作", "ホバーで <code>animation-play-state: paused</code> にして読めるようにする"],
+          ["端", "左右を <code>mask-image</code> のグラデーションで薄くすると自然"],
+          ["動きを減らす設定", "流すのをやめ、並びを止めて表示する（横スクロールで見られるようにする）"],
+          ["出典", "Animation Vocabulary（Looping & Ambient Motion）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

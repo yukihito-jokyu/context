@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>格子のマスが巡る（Animated grid pattern） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-animated-grid-pattern"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-animated-grid-pattern-g"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-animated-grid-pattern .ac-animated-grid-pattern-g {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+        background-size: 20px 20px;
+        -webkit-mask: radial-gradient(ellipse at center, #000 40%, transparent 85%);
+        mask: radial-gradient(ellipse at center, #000 40%, transparent 85%);
+      }
+      .ac-animated-grid-pattern .ac-animated-grid-pattern-c {
+        position: absolute;
+        width: 19px;
+        height: 19px;
+        margin: 1px 0 0 1px;
+        background: var(--blue-soft);
+        border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
+        box-sizing: border-box;
+        animation: ac-animated-grid-pattern-f var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) both;
+      }
+      @keyframes ac-animated-grid-pattern-f {
+        0%,
+        100% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "animated-grid-pattern",
+        name: "格子のマスが巡る",
+        en: "Animated grid pattern",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "うっすらした格子の背景の中で、いくつかのマスがふわっと色づいては消え、別の場所でまた色づく、をくり返す背景です。静かな格子に、ほどよい生命感が加わります。",
+        use: "SaaS・開発者向けのヒーロー、機能紹介のセクション、ダッシュボードの空の状態。",
+        params: [
+          { key: "n", label: "同時に光るマス", value: 8, min: 2, max: 20, step: 1, unit: "個" },
+          { key: "dur", label: "1マスの時間", value: 2400, min: 800, max: 5000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "格子",
+            "<code>background-image</code> の線（<code>linear-gradient</code> 2本）で描く。外側はマスクで薄くフェード",
+          ],
+          [
+            "マス",
+            "ランダムな位置のマスに <code>opacity 0 → 1 → 0</code>（1マス 2–3秒）｜in-out。消えたら別の位置で出し直す",
+          ],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/animated-grid-pattern" target="_blank" rel="noopener">Magic UI: Animated Grid Pattern</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const gr = stage.querySelector(".ac-animated-grid-pattern-g");
+            const spawn = (d) => {
+              const c = document.createElement("span");
+              c.className = "ac-animated-grid-pattern-c";
+              c.style.left = `${Math.floor(Math.random() * 11) * 20}px`;
+              c.style.top = `${Math.floor(Math.random() * 7) * 20}px`;
+              if (rm) {
+                c.style.animation = "none";
+                c.style.opacity = 0.7;
+                gr.appendChild(c);
+                return;
+              }
+              c.style.animationDelay = `${d}ms`;
+              gr.appendChild(c);
+              c.addEventListener("animationend", () => {
+                c.remove();
+                spawn(0);
+              });
+            };
+            for (let i = 0; i < v.n; i++) spawn((i * v.dur) / v.n);
+            return null;
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

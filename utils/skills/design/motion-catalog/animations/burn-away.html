@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>焼けて消える（Burn away） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-burn-away"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-burn-away-s"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+        <div class="ac-burn-away-w">
+          <div
+            class="ac-burn-away-s ac-burn-away-a"
+            style="
+              background:
+                radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                linear-gradient(160deg, var(--ice), var(--sky));
+            "
+          ></div>
+          <div class="ac-burn-away-s ac-burn-away-ring"></div>
+        </div>
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-burn-away-f">
+            <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="7" />
+            <feDisplacementMap in="SourceGraphic" scale="26" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-burn-away .ac-burn-away-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-burn-away .ac-burn-away-w {
+        position: absolute;
+        inset: -20px;
+        filter: url(#ac-burn-away-f);
+      }
+      .ac-burn-away .ac-burn-away-a {
+        inset: 20px;
+        -webkit-mask:
+          radial-gradient(circle closest-side, #000 calc(100% - 1px), transparent) 87px 89px / 2px 2px no-repeat,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          radial-gradient(circle closest-side, #000 calc(100% - 1px), transparent) 87px 89px / 2px 2px no-repeat,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-burn-away .ac-burn-away-a {
+          animation: ac-burn-away-hole var(--dur, 2600ms) cubic-bezier(0.55, 0, 1, 0.45) infinite alternate;
+        }
+      }
+      /* 光の輪：外側の半径 = r + 16px */
+      .ac-burn-away .ac-burn-away-ring {
+        inset: 20px;
+        background: radial-gradient(
+            circle closest-side,
+            transparent calc(100% - 17px),
+            #fff3c4 calc(100% - 16px),
+            #ff9a3c calc(100% - 12px),
+            rgba(80, 30, 0, 0.85) calc(100% - 7px),
+            transparent
+          )
+          72px 74px / 32px 32px no-repeat;
+        animation: ac-burn-away-ring var(--dur, 2600ms) cubic-bezier(0.55, 0, 1, 0.45) infinite alternate;
+      }
+      @keyframes ac-burn-away-hole {
+        0%,
+        20% {
+          -webkit-mask-size:
+            2px 2px,
+            auto;
+          mask-size:
+            2px 2px,
+            auto;
+          -webkit-mask-position:
+            87px 89px,
+            0 0;
+          mask-position:
+            87px 89px,
+            0 0;
+        }
+        85%,
+        100% {
+          -webkit-mask-size:
+            382px 382px,
+            auto;
+          mask-size:
+            382px 382px,
+            auto;
+          -webkit-mask-position:
+            -103px -101px,
+            0 0;
+          mask-position:
+            -103px -101px,
+            0 0;
+        }
+      }
+      @keyframes ac-burn-away-ring {
+        0%,
+        20% {
+          background-size: 32px 32px;
+          background-position: 72px 74px;
+        }
+        85%,
+        100% {
+          background-size: 412px 412px;
+          background-position: -118px -116px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-burn-away .ac-burn-away-w {
+          filter: none;
+          animation: ac-burn-away-rf3 var(--dur, 2600ms) infinite alternate;
+        }
+        .ac-burn-away .ac-burn-away-ring {
+          display: none;
+        }
+      }
+      @keyframes ac-burn-away-rf3 {
+        0%,
+        45% {
+          opacity: 1;
+        }
+        55%,
+        100% {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "burn-away",
+        name: "焼けて消える",
+        en: "Burn away",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "前のショットが、紙が燃えるように縁を光らせながら穴を広げて消え、その下から次のショットが現れる切り替えです。劇的で、少し不穏な雰囲気も出せます。プレビューは、ぎざぎざの縁が広がる形で近く見せています。",
+        use: "ドラマチックな場面転換、ハロウィンなど季節の演出、ゲームの章の始まり、古い写真を見せる演出。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "A の <code>mask</code> に円と全面を重ねて <code>mask-composite: exclude</code> で穴にし、円の <code>mask-size</code> を広げる。同じ大きさで光の輪を重ねる",
+          ],
+          [
+            "縁",
+            "A と輪をまとめて SVG フィルター（<code>feTurbulence</code> + <code>feDisplacementMap</code>）でゆがめ、焦げた縁にする",
+          ],
+          ["本格的に", "動画編集ソフトの Burn Away（DaVinci Resolve）や、シェーダーのノイズのしきい値で作る"],
+          ["動きを減らす設定", "燃える縁の動きをやめ、クロスフェードにする"],
+          [
+            "出典",
+            '<a href="https://docs.imaster.org/davinci-resolve-21-manual/part-7-editing-effects-and-transitions/ch.-55-using-transitions" target="_blank" rel="noopener">DaVinci Resolve 21 リファレンスマニュアル（写し）: Using Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

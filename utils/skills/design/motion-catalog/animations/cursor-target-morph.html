@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>対象に吸い付くカーソル（Cursor target morph） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-cursor-target-morph" style="position: relative; width: 220px; height: 130px">
+        <span class="sb-icon-btn ac-cursor-target-morph-b" style="left: 40px"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="sb-icon-btn ac-cursor-target-morph-b" style="left: 92px"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="sb-icon-btn ac-cursor-target-morph-b" style="left: 144px"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="ac-cursor-target-morph-c"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cursor-target-morph .ac-cursor-target-morph-b {
+        position: absolute;
+        top: 44px;
+        z-index: 2;
+        box-shadow: none !important;
+        background: transparent !important;
+      }
+      .ac-cursor-target-morph .ac-cursor-target-morph-c {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 1;
+        background: rgba(120, 140, 170, 0.28);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cursor-target-morph",
+        name: "対象に吸い付くカーソル",
+        en: "Cursor target morph",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "丸いカーソルがボタンに近づくと、ボタンの形に広がって吸い付き、ボタン全体を淡くハイライトする動きです。ボタンもポインターの方向へ少し引っぱられます（iPad のポインターのような操作感）。",
+        use: "ツールバー、アイコンボタンの並び、タブ、ナビゲーション。",
+        params: [],
+        spec: [
+          [
+            "吸い付く",
+            "ボタンの上に来たら、カーソルの位置・幅・高さ・角丸をボタンに合わせる（spring 200–300ms）。カーソルは半透明の面にしてボタンの下へ",
+          ],
+          ["引っぱり", "ボタンの中でのポインターのずれ × 0.1–0.2 だけ、ボタンとカーソルを一緒に動かす"],
+          ["離れる", "ボタンの外に出たら、小さな丸に戻ってポインターへ"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://motion.dev/examples/react-ios-pointer" target="_blank" rel="noopener">Motion: iOS pointer</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const bs = [...stage.querySelectorAll(".ac-cursor-target-morph-b")],
+              c = stage.querySelector(".ac-cursor-target-morph-c"),
+              root = stage.firstElementChild;
+            const way = mkway(
+              [
+                [30, 110],
+                [58, 66],
+                [64, 60],
+                [110, 64],
+                [116, 70],
+                [162, 62],
+                [200, 110],
+              ],
+              0.9,
+              0.2,
+            );
+            let cx = 30,
+              cy = 110,
+              cw = 16,
+              ch = 16,
+              cr = 8;
+            return raf((t) => {
+              const [x, y] = way(t);
+              let hit = null;
+              c.hidden = rm;
+              if (rm) return; // offsetLeft などは transform の影響を受けないので、動かしたボタンでも同じ枠で判定できる
+              bs.forEach((el) => {
+                const L = el.offsetLeft,
+                  T = el.offsetTop,
+                  w = el.offsetWidth,
+                  h = el.offsetHeight;
+                if (x > L - 6 && x < L + w + 6 && y > T - 6 && y < T + h + 6) hit = [el, L, T, w, h];
+                else el.style.transform = "";
+              });
+              let tx, ty, tw, th, tr;
+              if (hit) {
+                const [el, L, T, w, h] = hit,
+                  ox = (x - L - w / 2) * 0.15,
+                  oy = (y - T - h / 2) * 0.15;
+                el.style.transform = rm ? "" : `translate(${ox}px, ${oy}px)`;
+                tx = L + w / 2 + ox;
+                ty = T + h / 2 + oy;
+                tw = w + 10;
+                th = h + 10;
+                tr = 16;
+              } else {
+                tx = x;
+                ty = y;
+                tw = th = 16;
+                tr = 8;
+              }
+              const k = rm ? 1 : 0.25;
+              cx += (tx - cx) * k;
+              cy += (ty - cy) * k;
+              cw += (tw - cw) * k;
+              ch += (th - ch) * k;
+              cr += (tr - cr) * k;
+              Object.assign(c.style, {
+                transform: `translate(${cx - cw / 2}px, ${cy - ch / 2}px)`,
+                width: `${cw}px`,
+                height: `${ch}px`,
+                borderRadius: `${cr}px`,
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

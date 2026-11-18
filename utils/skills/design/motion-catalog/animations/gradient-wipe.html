@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>グラデーションワイプ（Gradient wipe (luminance wipe)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-gradient-wipe"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-gradient-wipe-s ac-gradient-wipe-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-gradient-wipe-s ac-gradient-wipe-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-gradient-wipe-f" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="4" result="n" />
+            <feColorMatrix in="n" type="luminanceToAlpha" result="l" />
+            <feComponentTransfer in="l" result="m">
+              <feFuncA type="linear" slope="6">
+                <animate
+                  attributeName="intercept"
+                  values="-5;-5;1;1;-5"
+                  keyTimes="0;0.15;0.5;0.85;1"
+                  dur="5.2s"
+                  repeatCount="indefinite"
+                />
+              </feFuncA>
+            </feComponentTransfer>
+            <feComposite in="SourceGraphic" in2="m" operator="in" />
+          </filter>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-gradient-wipe .ac-gradient-wipe-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-gradient-wipe .ac-gradient-wipe-b {
+        filter: url(#ac-gradient-wipe-f);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-gradient-wipe .ac-gradient-wipe-b {
+          filter: none;
+          animation: ac-gradient-wipe-rf2 5200ms infinite alternate;
+        }
+      }
+      @keyframes ac-gradient-wipe-rf2 {
+        0%,
+        45% {
+          opacity: 0;
+        }
+        55%,
+        100% {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "gradient-wipe",
+        name: "グラデーションワイプ",
+        en: "Gradient wipe (luminance wipe)",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "白黒の濃淡の地図（雲のような模様やグラデーション）を使い、明るい所から暗い所へ順に次のショットが現れていく切り替えです。地図の模様しだいで、雲が晴れるような、溶けるような入れ替わり方になります。",
+        use: "雰囲気のある場面転換、ヒーロー画像の切り替え、ゆっくりした写真のスライドショー。",
+        params: [],
+        spec: [
+          [
+            "書き方",
+            "SVG フィルターで模様（<code>feTurbulence</code>）を作り、<code>feComponentTransfer</code> の傾き（境目の柔らかさ）と切片（進み具合）で次のショットの透明度を決める",
+          ],
+          [
+            "模様",
+            "グラデーション画像を <code>mask-image</code> に使い、<code>mask-size</code> や位置を動かす方法でもよい",
+          ],
+          ["境目", "傾きを小さくするとふんわり、大きくするとくっきり"],
+          ["動きを減らす設定", "模様による切り替えをやめ、クロスフェードにする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Transition）</a>、<a href="https://helpx.adobe.com/premiere/desktop/add-video-effects/effects-and-transitions-library/list-of-video-transitions.html" target="_blank" rel="noopener">Adobe Premiere: List of Video transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

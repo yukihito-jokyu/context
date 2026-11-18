@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スクロールの受け渡し（Scroll chaining） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-scroll-chaining"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-scroll-chaining-pg">
+          <b class="ac-scroll-chaining-h"></b><i></i><i></i>
+          <div class="ac-scroll-chaining-in">
+            <div class="ac-scroll-chaining-il">
+              <div class="ac-scroll-chaining-row"><i></i><b></b></div>
+              <div class="ac-scroll-chaining-row"><i></i><b></b></div>
+              <div class="ac-scroll-chaining-row"><i></i><b></b></div>
+              <div class="ac-scroll-chaining-row"><i></i><b></b></div>
+              <div class="ac-scroll-chaining-row"><i></i><b></b></div>
+              <div class="ac-scroll-chaining-row"><i></i><b></b></div>
+            </div>
+          </div>
+          <i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-chaining .ac-scroll-chaining-row {
+        height: 26px;
+        margin: 6px 8px;
+        border-radius: 8px;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        box-shadow: 0 1px 2px rgba(27, 58, 138, 0.08);
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-row i {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        background: var(--sky);
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-row b {
+        height: 6px;
+        width: 70px;
+        border-radius: 3px;
+        background: var(--bar);
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-row:nth-child(4n + 2) i {
+        background: var(--blue);
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-pg {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        padding: 14px 20px;
+        display: grid;
+        gap: 10px;
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-pg > i {
+        display: block;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--bar);
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-pg > i:nth-child(3) {
+        width: 60%;
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-h {
+        display: block;
+        height: 14px;
+        width: 90px;
+        border-radius: 7px;
+        background: var(--sky);
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-in {
+        height: 72px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--ice);
+        box-shadow: inset 0 0 0 2px var(--blue);
+      }
+      .ac-scroll-chaining .ac-scroll-chaining-in .ac-scroll-chaining-row {
+        height: 18px;
+        margin: 5px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-chaining",
+        name: "スクロールの受け渡し",
+        en: "Scroll chaining",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "ページの中のスクロールできる枠を最後までスクロールし切ると、残りが外側のページへ引き継がれ、ページ全体が動き出す振る舞いです。拡大・縮小でも同じように受け渡されます。",
+        use: "ページ内のチャット欄・コード・地図・モーダルの中身。",
+        params: [
+          { key: "dur", label: "1回のスクロールの時間", value: 3000, min: 1500, max: 6000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "仕組み",
+            "内側の枠がスクロールの端に着いたあとの残りの量（と慣性）を、外側のスクロールに渡す。ブラウザの標準の振る舞い",
+          ],
+          [
+            "止めたいとき",
+            "<code>overscroll-behavior: contain</code> で外側へ渡さない（モーダルやチャット欄の背景のページが動かないように）。<code>none</code> なら引っぱりの演出も止める",
+          ],
+          [
+            "気をつけること",
+            "受け渡す瞬間に速さが急に変わらないようにする。受け渡すかどうかを、スクロールを始めた位置で決める実装もある",
+          ],
+          ["動きを減らす設定", "なめらかに送らず、内側と外側を一定の量ずつ送る"],
+          [
+            "出典",
+            '<a href="https://learn.microsoft.com/en-us/windows/apps/develop/input/guidelines-for-panning" target="_blank" rel="noopener">learn.microsoft.com（guidelines-for-panning）</a>、<a href="https://developer.android.com/develop/ui/compose/touch-input/scroll/nested-scroll-modifiers?authuser=102" target="_blank" rel="noopener">developer.android.com（nested-scroll-modifiers）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const il = stage.querySelector(".ac-scroll-chaining-il"),
+              pg = stage.querySelector(".ac-scroll-chaining-pg");
+            return raf((t) => {
+              const T = v.dur / 1000,
+                k = t % (T + 1.6),
+                s = rm ? (k < T ? Math.floor((k / T) * 6) / 6 : 1) * 150 : Math.min(1, k / T) * 150,
+                inner = Math.min(s, 76),
+                outer = Math.max(0, s - 76) * 0.9,
+                back = k > T + 0.8 ? (k - T - 0.8) / 0.8 : 0,
+                e = back * back * (3 - 2 * back);
+              il.style.transform = `translateY(${-inner * (1 - e)}px)`;
+              pg.style.transform = `translateY(${-outer * (1 - e)}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

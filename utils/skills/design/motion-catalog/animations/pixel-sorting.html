@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ピクセルソート（Animated pixel sorting） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-pixel-sorting"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "pixel-sorting",
+        name: "ピクセルソート",
+        en: "Animated pixel sorting",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像の縦（または横）の並びのうち、決めた条件に当てはまる区間の画素を、明るさの順に並べ替えていく表現です。並べ替えが進むにつれて、画像から光の筋がしたたるように伸び、溶けるように流れます。",
+        use: "ミュージックビデオ、グリッチ系のビジュアル、アート寄りの画像の切り替え、ポスター。",
+        params: [{ key: "passes", label: "1フレームの並べ替え回数", value: 2, min: 1, max: 6, step: 1, unit: "回" }],
+        spec: [
+          ["仕組み", "列ごとに、明るさがしきい値を超える画素の続いた区間を探し、その中を明るさの順に並べる"],
+          [
+            "動かすとき",
+            "一気に並べず、隣どうしを 1 回ずつ入れ替える（バブルソートを 1 段ずつ進める）と、筋が伸びていく途中が見える。しきい値を動かしても筋が伸び縮みする",
+          ],
+          [
+            "Web では",
+            "canvas の <code>getImageData</code> で並べ替えて戻す。大きな画像は WebGL で、奇数・偶数の組を交互に比べて入れ替える",
+          ],
+          ["動きを減らす設定", "並べ替えの動きをやめ、並べ替えた後の静止画にする"],
+          [
+            "出典",
+            '<a href="https://gsapvault.com/effects/pixel-sort-drag" target="_blank" rel="noopener">gsapvault.com（pixel-sort-drag）</a>、<a href="https://lukecochrane.com/blog/pixel-sorting" target="_blank" rel="noopener">lukecochrane.com（pixel-sorting）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lw = 110,
+              lh = 75,
+              off = document.createElement("canvas");
+            off.width = lw;
+            off.height = lh;
+            const og = off.getContext("2d"),
+              img = og.createImageData(lw, lh),
+              px = img.data;
+            const blit = () => {
+              og.putImageData(img, 0, 0);
+              g.imageSmoothingEnabled = false;
+              g.drawImage(off, 0, 0, W, H);
+            };
+            const put = (i, r, gg, b) => {
+              px[i * 4] = r;
+              px[i * 4 + 1] = gg;
+              px[i * 4 + 2] = b;
+              px[i * 4 + 3] = 255;
+            };
+            const N = lw * lh,
+              base = new Float32Array(N * 3),
+              cur = new Float32Array(N * 3);
+            for (let y = 0; y < lh; y++)
+              for (let x = 0; x < lw; x++) {
+                const i = (y * lw + x) * 3,
+                  b = Math.exp(-((x - 55) ** 2 + (y - 30) ** 2) / 300),
+                  s = y / lh;
+                base[i] = 40 + 200 * b + 30 * s;
+                base[i + 1] = 80 + 160 * b + 60 * s;
+                base[i + 2] = 170 + 85 * b;
+                if (((x / 9) | 0) % 3 === 0 && y > 45) {
+                  base[i] *= 0.5;
+                  base[i + 1] *= 0.6;
+                }
+              }
+            const L = (i) => cur[i * 3] * 0.3 + cur[i * 3 + 1] * 0.6 + cur[i * 3 + 2] * 0.1;
+            const pass = (odd) => {
+              for (let x = 0; x < lw; x++)
+                for (let y = odd; y < lh - 1; y += 2) {
+                  const a = y * lw + x,
+                    b = a + lw;
+                  if (L(a) > 110 && L(b) > 110 && L(a) < L(b))
+                    for (let c = 0; c < 3; c++) {
+                      const tmp = cur[a * 3 + c];
+                      cur[a * 3 + c] = cur[b * 3 + c];
+                      cur[b * 3 + c] = tmp;
+                    }
+                }
+            };
+            let n = 0;
+            cur.set(base);
+            if (rm) for (let i = 0; i < 160; i++) pass(i & 1);
+            return raf(() => {
+              if (!rm) {
+                for (let k = 0; k < v.passes; k++) pass(n++ & 1);
+                if (n > 260) {
+                  cur.set(base);
+                  n = 0;
+                }
+              }
+              for (let i = 0; i < N; i++) put(i, cur[i * 3], cur[i * 3 + 1], cur[i * 3 + 2]);
+              blit();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>カードを扇に広げる（Card fan） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-card-fan" style="position: relative; width: 220px; height: 150px">
+        <span class="sb-card ac-card-fan-c" style="--i: -2; --d: 2"
+          ><span class="sb-hero sb-grad-aqua" style="display: block; height: 40px; border-radius: 10px"></span></span
+        ><span class="sb-card ac-card-fan-c" style="--i: -1; --d: 1"
+          ><span class="sb-hero sb-grad-sky" style="display: block; height: 40px; border-radius: 10px"></span></span
+        ><span class="sb-card ac-card-fan-c" style="--i: 1; --d: 1"
+          ><span class="sb-hero sb-grad-deep" style="display: block; height: 40px; border-radius: 10px"></span></span
+        ><span class="sb-card ac-card-fan-c" style="--i: 2; --d: 2"
+          ><span class="sb-hero sb-grad-hero" style="display: block; height: 40px; border-radius: 10px"></span></span
+        ><span class="sb-card ac-card-fan-c" style="--i: 0; --d: 0"
+          ><span class="sb-hero sb-grad-sky" style="display: block; height: 40px; border-radius: 10px"></span
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-card-fan .ac-card-fan-c {
+        position: absolute;
+        left: 82px;
+        top: 26px;
+        width: 56px;
+        height: 80px;
+        padding: 8px;
+        box-sizing: border-box;
+        border-radius: 12px;
+        transform-origin: 50% 130%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-card-fan .ac-card-fan-c {
+          animation:
+            ac-card-fan-fan var(--dur, 500ms) cubic-bezier(0.34, 1.56, 0.64, 1)
+              calc(400ms + var(--d) * var(--gap, 40ms)) both,
+            ac-card-fan-close var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1)
+              calc(1600ms + (2 - var(--d)) * var(--gap, 40ms)) forwards;
+        }
+      }
+      .ac-card-fan .ac-card-fan-c:last-child {
+        animation: none;
+      }
+      @keyframes ac-card-fan-fan {
+        from {
+          transform: none;
+        }
+        to {
+          transform: translateX(calc(var(--i) * 14px)) rotate(calc(var(--i) * var(--spread, 12deg)));
+        }
+      }
+      @keyframes ac-card-fan-close {
+        from {
+          transform: translateX(calc(var(--i) * 14px)) rotate(calc(var(--i) * var(--spread, 12deg)));
+        }
+        to {
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-card-fan .ac-card-fan-c {
+          transform: translateX(calc(var(--i) * 20px));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "card-fan",
+        name: "カードを扇に広げる",
+        en: "Card fan",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "重なったカードの束が、下の一点を軸にして扇のように広がる動きです。何枚あるか、どんな種類があるかが一目で分かり、手札を広げるような楽しさがあります。",
+        use: "写真やカードのコレクション、選択肢の提示、ホバーで中身を見せるフォルダ、ゲームの手札。",
+        params: [
+          { key: "spread", label: "広がる角度", value: 12, min: 4, max: 25, step: 1, unit: "deg" },
+          { key: "dur", label: "時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" },
+          { key: "gap", label: "1枚ごとの遅れ", value: 40, min: 0, max: 120, step: 10, unit: "ms" },
+        ],
+        spec: [
+          [
+            "動き",
+            "i 枚目（中央が 0）を <code>translateX(i × 14px) rotate(i × 広がる角度)</code>｜<code>transform-origin: 50% 130%</code>（下の一点）｜spring",
+          ],
+          ["順番", "外側のカードほど少し遅らせる（1枚ごとの遅れ）"],
+          ["きっかけ", "ホバー・クリック。閉じるときは同じ道を戻す"],
+          ["動きを減らす設定", "回転をやめ、少し横にずらして並べるだけにする"],
+          ["出典", '<a href="https://animata.design/docs" target="_blank" rel="noopener">Animata</a>'],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

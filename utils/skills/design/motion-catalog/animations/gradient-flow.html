@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れるグラデーション（Gradient flow） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-gradient-flow"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+          background: var(--ice);
+        "
+      >
+        <span class="ac-gradient-flow-b ac-gradient-flow-b1"></span
+        ><span class="ac-gradient-flow-b ac-gradient-flow-b2"></span
+        ><span class="ac-gradient-flow-b ac-gradient-flow-b3"></span
+        ><span class="ac-gradient-flow-b ac-gradient-flow-b4"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-gradient-flow .ac-gradient-flow-b {
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        filter: blur(var(--blur, 28px));
+        opacity: 0.85;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-gradient-flow .ac-gradient-flow-b {
+          animation: ac-gradient-flow-m var(--dur, 10000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-gradient-flow .ac-gradient-flow-b1 {
+        left: -20px;
+        top: -30px;
+        background: var(--sky);
+      }
+      .ac-gradient-flow .ac-gradient-flow-b2 {
+        right: -30px;
+        top: 10px;
+        background: var(--aqua);
+        animation-duration: calc(var(--dur, 10000ms) * 1.3);
+        animation-direction: alternate-reverse;
+      }
+      .ac-gradient-flow .ac-gradient-flow-b3 {
+        left: 40px;
+        bottom: -50px;
+        background: var(--cobalt);
+        animation-duration: calc(var(--dur, 10000ms) * 0.8);
+      }
+      .ac-gradient-flow .ac-gradient-flow-b4 {
+        right: 20px;
+        bottom: -40px;
+        width: 90px;
+        height: 90px;
+        background: #c9b8ff;
+        animation-duration: calc(var(--dur, 10000ms) * 1.1);
+        animation-direction: alternate-reverse;
+      }
+      @keyframes ac-gradient-flow-m {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(50px, 20px) scale(1.2);
+        }
+        100% {
+          transform: translate(-20px, 40px) scale(0.9);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "gradient-flow",
+        name: "流れるグラデーション",
+        en: "Gradient flow",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "いくつかの色のにじみ（ぼかした円）が、画面の中をゆっくり漂いながら重なり合い、色が溶け合って移ろう背景です。メッシュグラデーションが生きて動いているように見えます。",
+        use: "ヒーロー・ログイン画面の背景、アプリのスプラッシュ、ブランドカラーを印象づけるセクション。",
+        params: [
+          { key: "dur", label: "漂う周期", value: 10000, min: 3000, max: 25000, step: 500, unit: "ms" },
+          { key: "blur", label: "ぼかし", value: 28, min: 10, max: 50, step: 1, unit: "px" },
+        ],
+        spec: [
+          [
+            "にじみ",
+            "色ごとの大きな円（<code>radial-gradient</code>）を重ね、<code>filter: blur(30px)</code> で溶かす（<code>mix-blend-mode</code> で混ぜてもよい）",
+          ],
+          ["動き", "円ごとに違う周期・違う軌道で <code>translate</code> を往復（または円運動）｜in-out"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/background-gradient-animation" target="_blank" rel="noopener">Aceternity UI: Background Gradient Animation</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>レイアウトスラッシング（Layout thrashing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-layout-thrashing"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div style="display: flex; align-items: center; gap: 10px; height: 32px">
+          <span class="ac-layout-thrashing-w"></span
+          ><span class="sb-thumb sb-grad-aqua" style="width: 28px; height: 28px; border-radius: 9px"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; height: 32px; margin-top: 20px">
+          <span class="ac-layout-thrashing-s"></span
+          ><span class="sb-thumb sb-grad-aqua" style="width: 28px; height: 28px; border-radius: 9px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-layout-thrashing .ac-layout-thrashing-w,
+      .ac-layout-thrashing .ac-layout-thrashing-s {
+        display: block;
+        height: 14px;
+        border-radius: 999px;
+        background: var(--cobalt);
+      }
+      .ac-layout-thrashing .ac-layout-thrashing-w {
+        position: relative;
+        width: 60px;
+      }
+      .ac-layout-thrashing .ac-layout-thrashing-s {
+        width: 140px;
+        transform-origin: left;
+      }
+      .ac-layout-thrashing .ac-layout-thrashing-w::after {
+        content: "";
+        position: absolute;
+        left: 150px;
+        top: -7px;
+        box-sizing: border-box;
+        width: 28px;
+        height: 28px;
+        border: 2px dashed var(--bar-strong);
+        border-radius: 9px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-layout-thrashing .ac-layout-thrashing-w {
+          animation: ac-layout-thrashing-width 1400ms cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-layout-thrashing .ac-layout-thrashing-s {
+          animation: ac-layout-thrashing-scale 1400ms cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-layout-thrashing .ac-layout-thrashing-w::after {
+          content: none;
+        }
+      }
+      @keyframes ac-layout-thrashing-width {
+        to {
+          width: 140px;
+        }
+      }
+      @keyframes ac-layout-thrashing-scale {
+        from {
+          transform: scaleX(0.43);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "layout-thrashing",
+        name: "レイアウトスラッシング",
+        en: "Layout thrashing",
+        cat: "パフォーマンス",
+        kind: "concept",
+        description:
+          "width・height・top・left などを動かすと、毎フレーム周りのレイアウトを計算し直すことになり、カクつきの原因になります。上は幅を動かしたので、右の四角まで毎フレーム押されて動いています。下は transform で伸ばしたので、周りに影響しません。",
+        use: "アニメーションでどのプロパティを動かすかを決めるとき、カクつきの原因を調べるとき。",
+        params: [],
+        spec: [
+          ["上（避ける）", "<code>width: 60px → 140px</code>：レイアウトの再計算が毎フレーム起き、隣の要素も動く"],
+          ["下（推奨）", "<code>transform: scaleX()</code>：見た目だけが変わり、レイアウトはそのまま"],
+          [
+            "JS での注意",
+            "読み取り（<code>offsetWidth</code> など）と書き込みを交互にくり返さない。まとめて読んでからまとめて書く",
+          ],
+          ["動きを減らす設定", "上段は移動先を点線で表示"],
+          ["出典", "Animation Vocabulary（Performance）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

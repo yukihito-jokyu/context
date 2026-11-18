@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>モーフカット（Morph cut） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-morph-cut"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-morph-cut-s"
+          style="
+            background:
+              radial-gradient(ellipse at 50% 120%, var(--aqua) 0 45%, transparent 46%),
+              repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 28px),
+              linear-gradient(180deg, #e6efff, var(--ice));
+          "
+        ></div>
+        <span class="ac-morph-cut-p"><i></i></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-morph-cut .ac-morph-cut-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-morph-cut .ac-morph-cut-p {
+        position: absolute;
+        left: 80px;
+        bottom: 28px;
+        width: 50px;
+        height: 70px;
+        border-radius: 25px 25px 12px 12px;
+        background: var(--blue);
+        animation: ac-morph-cut-t var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      .ac-morph-cut .ac-morph-cut-p i {
+        position: absolute;
+        left: 12px;
+        top: -30px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      @keyframes ac-morph-cut-t {
+        0%,
+        42% {
+          transform: translateX(0) rotate(0);
+          filter: blur(0);
+        }
+        50% {
+          filter: blur(1.5px);
+          opacity: 0.85;
+        }
+        58%,
+        100% {
+          transform: translateX(24px) rotate(5deg);
+          filter: blur(0);
+          opacity: 1;
+        }
+      }
+      @keyframes ac-morph-cut-cut {
+        0% {
+          transform: none;
+        }
+        50%,
+        100% {
+          transform: translateX(24px) rotate(5deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-morph-cut .ac-morph-cut-p {
+          animation-name: ac-morph-cut-cut;
+          animation-timing-function: step-end;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "morph-cut",
+        name: "モーフカット",
+        en: "Morph cut",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "話している人の映像で、言いよどみなどを切り取ったときにできる小さな「飛び」を、前後の映像を混ぜ合わせながら形をなめらかにつないで目立たなくする方法です。プレビューは、ずれた位置をなめらかに補う動きで近い形を見せています。",
+        use: "インタビューや解説動画の編集、同じ構図の写真を次々と見せるときのつなぎ。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["書き方", "前後のショットを 200〜400ms 重ね、主役の位置・形の差を補間しながらクロスフェード"],
+          [
+            "本格的に",
+            "動画編集ソフトのモーフカット（Premiere）やスムーズカット（DaVinci Resolve）を使う。顔の追跡とオプティカルフローで中間のコマを作る",
+          ],
+          ["向く条件", "背景が動かず、主役の動きが小さいときだけ自然に見える"],
+          ["動きを減らす設定", "補間をやめ、ふつうのカットにする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/premiere/desktop/add-video-effects/effects-and-transitions-library/list-of-video-transitions.html" target="_blank" rel="noopener">Adobe Premiere: List of Video transitions</a>、<a href="https://docs.imaster.org/davinci-resolve-21-manual/part-7-editing-effects-and-transitions/ch.-55-using-transitions" target="_blank" rel="noopener">DaVinci Resolve 21 リファレンスマニュアル（写し）: Using Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>影絵アニメ（Silhouette animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-silhouette-animation"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: linear-gradient(180deg, var(--ice), #ffd9b8);
+        "
+      >
+        <span class="ac-silhouette-animation-sun"></span><span class="ac-silhouette-animation-hill"></span
+        ><span class="ac-silhouette-animation-bird"
+          ><i class="ac-silhouette-animation-w1"></i><i class="ac-silhouette-animation-bd"></i
+          ><i class="ac-silhouette-animation-w2"></i
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-silhouette-animation .ac-silhouette-animation-sun {
+        position: absolute;
+        left: 130px;
+        top: 40px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #fff4e6;
+      }
+      .ac-silhouette-animation .ac-silhouette-animation-hill {
+        position: absolute;
+        left: -20px;
+        right: -20px;
+        bottom: -60px;
+        height: 110px;
+        border-radius: 50%;
+        background: var(--navy);
+      }
+      .ac-silhouette-animation .ac-silhouette-animation-bird {
+        position: absolute;
+        left: 0;
+        top: 40px;
+        width: 40px;
+        height: 20px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-silhouette-animation .ac-silhouette-animation-bird {
+          animation: ac-silhouette-animation-fly var(--fly, 7000ms) linear infinite;
+        }
+      }
+      .ac-silhouette-animation .ac-silhouette-animation-bd {
+        position: absolute;
+        left: 8px;
+        top: 8px;
+        width: 24px;
+        height: 7px;
+        border-radius: 6px 10px 4px 4px;
+        background: var(--navy);
+      }
+      .ac-silhouette-animation .ac-silhouette-animation-w1,
+      .ac-silhouette-animation .ac-silhouette-animation-w2 {
+        position: absolute;
+        left: 14px;
+        top: 9px;
+        width: 14px;
+        height: 4px;
+        border-radius: 4px 4px 0 0;
+        background: var(--navy);
+        transform-origin: 0 50%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-silhouette-animation .ac-silhouette-animation-w1,
+        .ac-silhouette-animation .ac-silhouette-animation-w2 {
+          animation: ac-silhouette-animation-flap var(--dur, 600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-silhouette-animation .ac-silhouette-animation-w2 {
+        animation-delay: calc(var(--dur, 600ms) * -0.2);
+        opacity: 0.7;
+      }
+      @keyframes ac-silhouette-animation-flap {
+        from {
+          transform: rotate(-60deg);
+        }
+        to {
+          transform: rotate(40deg);
+        }
+      }
+      @keyframes ac-silhouette-animation-fly {
+        from {
+          transform: translate(-40px, 10px);
+        }
+        50% {
+          transform: translate(110px, -10px);
+        }
+        to {
+          transform: translate(240px, 6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-silhouette-animation .ac-silhouette-animation-bird {
+          transform: translate(90px, 0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "silhouette-animation",
+        name: "影絵アニメ",
+        en: "Silhouette animation",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "明るい背景の前で、細部を省いた濃い影の形だけを動かす表現です。輪郭だけで動きが伝わり、物語的で詩的な雰囲気になります。",
+        use: "ストーリー仕立てのヒーロー、夜・夕暮れの演出、ブランドの物語、イベントのビジュアル。",
+        params: [
+          { key: "dur", label: "羽ばたきの周期", value: 600, min: 300, max: 1500, step: 50, unit: "ms" },
+          { key: "fly", label: "横切る時間", value: 7000, min: 3000, max: 15000, step: 500, unit: "ms" },
+        ],
+        spec: [
+          ["表現形式", "明るいグラデーションの背景 ＋ 1色の濃い影（輪郭だけで読み取れる形）"],
+          ["演出", "影の輪郭がはっきり読める横向きのポーズを選ぶ。前後の重なりは影の濃さの差で"],
+          ["個別の動き", "羽・手足を関節で <code>rotate</code>（cutout と同じ）、全体はゆっくり画面を横切る"],
+          ["時間・質感", "羽ばたきは in-out で往復。横切る動きは linear でゆっくり"],
+          ["カタログの関連", "cutout-animation / parallax-2-5d / alternate"],
+          ["動きを減らす設定", "羽ばたきと移動を止め、静止した影絵にする"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/stop-motion-animation.html" target="_blank" rel="noopener">Adobe: stop motion animation</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

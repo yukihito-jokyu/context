@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スライドイン（Slide in） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-slide-in" style="position: relative; width: 210px; height: 60px">
+        <div class="sb-item ac-slide-in-r" style="width: 210px; padding: 10px 14px; gap: 12px; box-sizing: border-box">
+          <span class="sb-thumb sb-grad-aqua" style="width: 32px; height: 32px; border-radius: 10px"></span
+          ><span class="sb-lines" style="gap: 8px"
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 60px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-slide-in .ac-slide-in-r {
+        animation: ac-slide-in-in var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes ac-slide-in-in {
+        from {
+          opacity: 0;
+          transform: translateX(calc(var(--dist, 40px) * -1));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-slide-in-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "slide-in",
+        name: "スライドイン",
+        en: "Slide in",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "画面の外や少し離れた位置から、すべり込むように現れる動きです。どの方向から来たかで、要素がどこから来たのか（どこへ戻るのか）を伝えられます。",
+        use: "サイドパネル、通知、次の項目の表示、カルーセル。",
+        params: [
+          { key: "dist", label: "移動の距離", value: 40, min: 8, max: 120, step: 4, unit: "px" },
+          { key: "dur", label: "時間", value: 260, min: 100, max: 800, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>translateX(-移動の距離) → 0</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["方向", "来た方向へ戻す（左から来たら左へ出る）。距離は 8–16px が控えめ、画面外からなら 100%"],
+          ["動きを減らす設定", "移動をやめ、透明度の切り替えだけにする"],
+          ["出典", "Animation Vocabulary（Entrances & Exits）"],
+        ],
+        loop: 1800,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>光が強まる（Glow transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-glow-transition"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          place-items: center;
+          background: var(--navy);
+          border-radius: 20px;
+        "
+      >
+        <span class="ac-glow-transition-b"
+          ><span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 60px"></span
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-glow-transition .ac-glow-transition-b {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 140px;
+        height: 46px;
+        border-radius: 999px;
+        background: var(--blue);
+      }
+      .ac-glow-transition .ac-glow-transition-b::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow:
+          0 0 22px 4px rgba(122, 184, 255, 0.75),
+          inset 0 0 12px rgba(255, 255, 255, 0.45);
+        opacity: 0;
+        transition: opacity var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-glow-transition .ac-glow-transition-b.is-on::after {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "glow-transition",
+        name: "光が強まる",
+        en: "Glow transition",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "ボタンにポインターを乗せたり、選択したりすると、まわりの光（グロー）がふわっと強まり、輪郭が明るく浮かび上がる動きです。ダークな画面で、操作できる場所をはっきり示せます。",
+        use: "ダークテーマのボタン、フォーカス中の入力欄、ゲームの選択肢、ネオン風の UI。",
+        params: [{ key: "dur", label: "時間", value: 300, min: 100, max: 800, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "光",
+            "<code>box-shadow: 0 0 0 0 色 → 0 0 24px 4px 色</code>（外側）と <code>inset</code> の光（内側）を重ねる｜out",
+          ],
+          ["色", "要素と同系の明るい色を、少し透けさせる"],
+          ["軽く", "光だけの疑似要素の <code>opacity</code> を切り替えると軽い"],
+          ["動きを減らす設定", "光の変化はそのままでよい（移動がないため）。時間を短くしてもよい"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const el = stage.querySelector(".ac-glow-transition-b");
+            return seq(2600, [
+              [600, () => el.classList.add("is-on")],
+              [1900, () => el.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

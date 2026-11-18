@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ツールチップの出し入れ（Tooltip transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-tooltip-transition" style="position: relative; width: 220px; height: 150px">
+        <span
+          class="sb-icon-btn ac-tooltip-transition-b"
+          style="box-shadow: var(--shadow-card); position: absolute; left: 56px; top: 84px"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="ac-tooltip-transition-tip" style="left: 38px"
+          ><span class="sb-bar sb-bar--xs sb-bar--on-dark" style="width: 44px"></span></span
+        ><span
+          class="sb-icon-btn ac-tooltip-transition-b"
+          style="box-shadow: var(--shadow-card); position: absolute; left: 116px; top: 84px"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="ac-tooltip-transition-tip" style="left: 98px"
+          ><span class="sb-bar sb-bar--xs sb-bar--on-dark" style="width: 44px"></span></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-tooltip-transition .ac-tooltip-transition-tip {
+        position: absolute;
+        top: 40px;
+        display: grid;
+        place-items: center;
+        width: 76px;
+        height: 32px;
+        border-radius: 10px;
+        background: var(--toast);
+        transform-origin: 50% 100%;
+        opacity: 0;
+        transform: translateY(4px) scale(0.96);
+        transition:
+          opacity var(--out, 100ms) cubic-bezier(0.55, 0, 1, 0.45),
+          transform 0ms var(--out, 100ms);
+      }
+      .ac-tooltip-transition .ac-tooltip-transition-tip.is-on {
+        opacity: 1;
+        transform: none;
+        transition:
+          opacity var(--in, 150ms) cubic-bezier(0.22, 1, 0.36, 1),
+          transform var(--in, 150ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-tooltip-transition .ac-tooltip-transition-tip {
+          transform: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "tooltip-transition",
+        name: "ツールチップの出し入れ",
+        en: "Tooltip transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "ボタンにポインターを乗せて少し待つと、説明の吹き出しがボタンの近くに小さく現れ、離れると素早く消える動きです。一度出たあとは、隣のボタンに移っても待たずにすぐ出ます。",
+        use: "アイコンボタンの説明、ツールバー、グラフの値の表示、省略された文字の全文表示。",
+        params: [
+          { key: "delay", label: "出るまでの待ち", value: 400, min: 0, max: 1000, step: 50, unit: "ms" },
+          { key: "in", label: "現れる時間", value: 150, min: 60, max: 400, step: 10, unit: "ms" },
+          { key: "out", label: "消える時間", value: 100, min: 40, max: 300, step: 10, unit: "ms" },
+        ],
+        spec: [
+          [
+            "現れる",
+            "<code>opacity 0 → 1</code>、<code>translateY(4px) → 0</code>、<code>scale(.96 → 1)</code>｜out｜<code>transform-origin</code> はボタン側",
+          ],
+          ["消える", "<code>opacity → 0</code>｜現れるより短く｜待ちなし"],
+          ["続けて", "1つ出たあと 300ms ほどの間は、隣に移っても待ちをなくす（すぐ出す）"],
+          ["動きを減らす設定", "移動と拡大をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://motion.dev/examples/vue-radix-tooltip" target="_blank" rel="noopener">Motion: tooltip</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const tips = stage.querySelectorAll(".ac-tooltip-transition-tip");
+            const on = (i) => () => tips.forEach((t, j) => t.classList.toggle("is-on", j === i));
+            move(200, 150, 0);
+            return seq(4400, [
+              [
+                100,
+                () => {
+                  show(1);
+                  move(76, 104, 500);
+                },
+              ],
+              [600 + v.delay, on(0)],
+              [1800, () => move(136, 104, 300)],
+              [1950, on(-1)],
+              [2100, on(1)],
+              [3200, () => move(200, 150, 400)],
+              [3300, on(-1)],
+              [3700, () => show(0)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

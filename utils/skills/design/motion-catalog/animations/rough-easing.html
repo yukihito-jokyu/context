@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ざらついたイージング（Rough easing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rough-easing"
+        style="
+          position: relative;
+          width: 200px;
+          height: 150px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 18px;
+        "
+      >
+        <div class="ac-rough-easing-g">
+          <svg viewBox="0 0 80 80" width="80" height="80" style="overflow: visible">
+            <path d="M0,80 L80,80 M0,80 L0,0" stroke="var(--bar)" stroke-width="2" fill="none" />
+            <path d="M0,80 L80,0" stroke="var(--bar)" stroke-width="1.5" stroke-dasharray="3 4" fill="none" />
+            <path
+              class="ac-rough-easing-curve"
+              d="M0,80 L80,0"
+              stroke="var(--cobalt)"
+              stroke-width="3"
+              fill="none"
+              stroke-linecap="round"
+            /></svg
+          ><span class="ac-rough-easing-dx"><span class="ac-rough-easing-dy"></span></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-rough-easing-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-rough-easing .ac-rough-easing-g {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      .ac-rough-easing .ac-rough-easing-dx {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 10px;
+        height: 80px;
+        margin-left: -5px;
+        animation: ac-rough-easing-x var(--dur, 1000ms) linear both;
+      }
+      .ac-rough-easing .ac-rough-easing-dy {
+        position: absolute;
+        left: 0;
+        bottom: -5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 3px #fff;
+        animation: ac-rough-easing-y var(--dur, 1000ms) var(--ease, linear) both;
+      }
+      .ac-rough-easing .ac-rough-easing-t {
+        animation: ac-rough-easing-m var(--dur, 1000ms) var(--ease, linear) both;
+      }
+      @keyframes ac-rough-easing-x {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(80px);
+        }
+      }
+      @keyframes ac-rough-easing-y {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-80px);
+        }
+      }
+      @keyframes ac-rough-easing-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-rough-easing-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-rough-easing .ac-rough-easing-dx {
+          transform: translateX(80px);
+          animation-name: none;
+        }
+        .ac-rough-easing .ac-rough-easing-dy {
+          transform: translateY(-80px);
+          animation-name: ac-rough-easing-fade;
+        }
+        .ac-rough-easing .ac-rough-easing-t {
+          transform: translateX(168px);
+          animation-name: ac-rough-easing-fade;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rough-easing",
+        name: "ざらついたイージング",
+        en: "Rough easing",
+        cat: "イージング",
+        kind: "concept",
+        description:
+          "進み具合をわざと不規則に上下させ、なめらかさを崩したイージングです。全体としては目的地へ向かいながら、途中でガタガタと揺れるので、震え・故障・緊張感を表せます。再生のたびに揺れ方が変わります。",
+        use: "壊れた・不安定な表現、ホラーやゲームの演出、電気のちらつき、手ぶれ風の動き。",
+        params: [
+          { key: "dur", label: "時間", value: 1200, min: 400, max: 3000, step: 50, unit: "ms" },
+          { key: "amp", label: "揺れの強さ", value: 0.12, min: 0, max: 0.3, step: 0.01, unit: "" },
+          { key: "n", label: "揺れの数", value: 16, min: 4, max: 40, step: 1, unit: "点" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "作り方",
+            "直線（または ease）の進み具合の上に、ランダムな上下のずれ（揺れの強さ）を「揺れの数」だけ足した点を作り、<code>linear()</code> に入れる",
+          ],
+          ["終わり", "最後の点は必ず 1（目的地）にする。揺れは途中ほど大きく、端ほど小さくするとよい"],
+          ["GSAP", "<code>RoughEase</code>（strength・points・taper などで揺れ方を指定）"],
+          ["グラフ", "横が時間、縦が進み具合"],
+          ["動きを減らす設定", "終点に固定し、透明度だけを変える"],
+          [
+            "出典",
+            '<a href="https://gsap.com/docs/v3/Eases/RoughEase/" target="_blank" rel="noopener">GSAP: RoughEase</a>',
+          ],
+        ],
+        loop: 2600,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const pts = [0];
+            for (let i = 1; i < v.n; i++) {
+              const t = i / v.n,
+                base = 1 - Math.pow(1 - t, 2),
+                taper = Math.sin(Math.PI * t);
+              pts.push(+(base + (Math.random() * 2 - 1) * v.amp * taper).toFixed(3));
+            }
+            pts.push(1);
+            stage.firstElementChild.style.setProperty("--ease", `linear(${pts.join(", ")})`);
+            stage
+              .querySelector(".ac-rough-easing-curve")
+              .setAttribute(
+                "d",
+                "M" +
+                  pts
+                    .map((p, i) => `${((i / (pts.length - 1)) * 80).toFixed(1)},${((1 - p) * 80).toFixed(1)}`)
+                    .join(" L"),
+              );
+            return null;
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

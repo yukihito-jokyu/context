@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>気づかれない向きの補正（Redirected walking (VR)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-redirected-walking"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "redirected-walking",
+        name: "気づかれない向きの補正",
+        en: "Redirected walking (VR)",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "VR の中をまっすぐ歩いているつもりの人に対して、気づかないほど少しずつ景色を回して、実際の部屋の中では大きな円を描くように歩かせる方法です。狭い部屋でも、仮想の世界では長い距離を歩き続けられます。左が仮想の道、右が実際の部屋です。",
+        use: "部屋の広さで歩き回る VR、アトラクション・展示の VR、研究用の移動。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "歩いている間、視点の向きに少しずつ回転を足す（曲率の補正）。気づかれない範囲は、半径 22m 前後の円を描かせる程度の曲がり方と言われる",
+          ],
+          [
+            "ほかの補正",
+            "頭を回したときの回転を少し増減する（回転の利得）、歩いた距離を少し伸び縮みさせる（移動の利得）",
+          ],
+          ["壁に近づいたら", "補正で避けきれないときは、いったん止めて向きを変えさせる（リセット）"],
+          ["動きを減らす設定", "歩く動きを止め、仮想の道と実際の道を並べた静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.frontiersin.org/journals/virtual-reality/articles/10.3389/frvir.2023.1259816/full" target="_blank" rel="noopener">frontiersin.org（full）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            return raf((t) => {
+              const T = rm ? 1 : (t % 6) / 6;
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(14, 10, 90, 118);
+              g.strokeStyle = col("blue");
+              g.lineWidth = 2;
+              g.setLineDash([4, 4]);
+              g.beginPath();
+              g.moveTo(59, 122);
+              g.lineTo(59, 16);
+              g.stroke();
+              g.setLineDash([]);
+              dot(59, 122 - T * 106, 5, col("cobalt"));
+              g.strokeStyle = col("line");
+              g.lineWidth = 2;
+              g.strokeRect(126, 30, 80, 80);
+              g.strokeStyle = col("blue");
+              g.setLineDash([4, 4]);
+              g.beginPath();
+              g.arc(166, 70, 28, Math.PI / 2, Math.PI / 2 + TAU * 0.95);
+              g.stroke();
+              g.setLineDash([]);
+              const a = Math.PI / 2 + T * TAU * 0.95;
+              dot(166 + cos(a) * 28, 70 + sin(a) * 28, 5, col("cobalt"));
+              g.fillStyle = col("ink-muted");
+              g.font = "600 11px sans-serif";
+              g.textAlign = "center";
+              g.fillText("仮想", 59, 143);
+              g.fillText("実際の部屋", 166, 128);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

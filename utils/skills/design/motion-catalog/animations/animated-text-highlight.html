@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マーカーで強調（Animated text highlight） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-animated-text-highlight"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 19px;
+            line-height: 24px;
+            font-weight: 700;
+            max-width: 200px;
+            text-align: center;
+          "
+        >
+          動きは<span class="ac-animated-text-highlight-m" style="--k: 0">意味</span>を<br />持つときに<span
+            class="ac-animated-text-highlight-m"
+            style="--k: 1"
+            >効く</span
+          >。
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-animated-text-highlight .ac-animated-text-highlight-m {
+        background: linear-gradient(
+            color-mix(in srgb, var(--sky) 50%, transparent),
+            color-mix(in srgb, var(--sky) 50%, transparent)
+          )
+          no-repeat left 85% / 0% 50%;
+        padding: 0 2px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-animated-text-highlight .ac-animated-text-highlight-m {
+          animation: ac-animated-text-highlight-hl var(--dur, 600ms) cubic-bezier(0.65, 0, 0.35, 1)
+            calc(300ms + var(--k) * (var(--dur, 600ms) + var(--gap, 300ms))) forwards;
+        }
+      }
+      @keyframes ac-animated-text-highlight-hl {
+        to {
+          background-size: 100% 50%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-animated-text-highlight .ac-animated-text-highlight-m {
+          background-size: 100% 50%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "animated-text-highlight",
+        name: "マーカーで強調",
+        en: "Animated text highlight",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文章の中の大事な言葉に、マーカーを引くように左から右へ色の帯が伸びていく動きです。読む順番に合わせて引かれるので、要点が自然と目に入ります。",
+        use: "ランディングページのキャッチコピー、記事の要点、料金や数字の強調、説明文のキーワード。",
+        params: [
+          { key: "dur", label: "1語の時間", value: 600, min: 200, max: 1500, step: 50, unit: "ms" },
+          { key: "gap", label: "次の語までの間", value: 300, min: 0, max: 1000, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["dur"] * 2 + p["gap"],
+        spec: [
+          ["書き方", "強調する語に <code>background: linear-gradient(色, 色) no-repeat left bottom / 0% 45%</code>"],
+          [
+            "動き",
+            "<code>background-size: 0% → 100%</code>｜in-out｜複数の語は順に。複数行にまたがるなら <code>box-decoration-break: clone</code>",
+          ],
+          ["手描き風", "SVG の線（下線・丸囲み）を <code>stroke-dashoffset</code> で描く型もある"],
+          ["動きを減らす設定", "帯を伸ばす動きをやめ、最初から引いた状態にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/highlighter" target="_blank" rel="noopener">Magic UI: Highlighter</a>',
+          ],
+        ],
+        loop: 2800,
+      });
+    </script>
+  </body>
+</html>

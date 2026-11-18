@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>穴に吸い込まれる（Hole disappearance） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hole-disappearance"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center; perspective: 600px"
+      >
+        <div
+          class="sb-card ac-hole-disappearance-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hole-disappearance .ac-hole-disappearance-c {
+        animation:
+          ac-hole-disappearance-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-hole-disappearance-out var(--out, 600ms) cubic-bezier(0.55, 0, 1, 0.45) 1200ms forwards;
+      }
+      @keyframes ac-hole-disappearance-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-hole-disappearance-out {
+        from {
+          opacity: 1;
+          transform: scale(1) rotateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0) rotateX(180deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-hole-disappearance-out {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hole-disappearance",
+        name: "穴に吸い込まれる",
+        en: "Hole disappearance",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "要素が前後に回転しながら小さくなり、点に吸い込まれるように消える退出の動きです。消えた先が一点にまとまるので、「片付いた」印象になります。",
+        use: "ゴミ箱への削除、アーカイブ、ブラックホール風の演出。",
+        params: [{ key: "out", label: "退出の時間", value: 600, min: 200, max: 1500, step: 50, unit: "ms" }],
+        total: (p) => 300 + 900 + p["out"],
+        spec: [
+          ["退出", "<code>scale(1 → 0)</code> と <code>rotateX(0 → 180deg)</code>、<code>opacity 1 → 0</code>｜in"],
+          ["行き先", "吸い込まれる先（ゴミ箱など）があるなら、<code>transform-origin</code> をその方向に寄せる"],
+          ["動きを減らす設定", "回転と縮みをやめ、透明度で消すだけにする"],
+          [
+            "出典",
+            '<a href="https://www.minimamente.com/project/magic/" target="_blank" rel="noopener">Magic Animations</a>',
+          ],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

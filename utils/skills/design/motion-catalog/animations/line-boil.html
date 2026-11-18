@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>手描き線のゆらぎ（Line boil） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-line-boil" style="position: relative; width: 200px; height: 140px">
+        <svg width="200" height="140" viewBox="0 0 200 140">
+          <defs>
+            <filter id="ac-lb-f">
+              <feTurbulence class="ac-line-boil-tu" type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="1" />
+              <feDisplacementMap in="SourceGraphic" class="ac-line-boil-dm" scale="4" />
+            </filter>
+          </defs>
+          <g
+            filter="url(#ac-lb-f)"
+            fill="none"
+            stroke="var(--ink)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M40,110 L40,60 L100,24 L160,60 L160,110 Z" />
+            <path d="M84,110 V80 H116 V110" />
+            <circle cx="130" cy="66" r="8" />
+            <path d="M20,110 H180" stroke="var(--blue)" />
+          </g>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "line-boil",
+        name: "手描き線のゆらぎ",
+        en: "Line boil",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "止まっている絵でも、線がコマごとにわずかに震え続ける表現です。手描きの線を毎コマ描き直したような揺らぎが、静止画に生きている気配を与えます。",
+        use: "手描き風のイラスト、空の状態、ホワイトボード風の説明、遊び心のあるアイコン。",
+        params: [
+          { key: "amount", label: "ゆらぎの大きさ", value: 2, min: 0.5, max: 5, step: 0.5, unit: "" },
+          { key: "fps", label: "1秒あたりの描き直し", value: 8, min: 4, max: 16, step: 1, unit: "" },
+        ],
+        spec: [
+          ["表現形式", "手描きの線画（太さにむらのある線）"],
+          ["演出", "形は動かさず、線の質感だけを震わせ続ける"],
+          [
+            "個別の動き",
+            "SVG の <code>feTurbulence</code>（<code>seed</code> を変える）と <code>feDisplacementMap</code>、または少しずつ違う線画を3枚用意して切り替える",
+          ],
+          ["時間・質感", "8–12回/秒の <code>steps()</code>。ゆらぎは 1–3px と小さく"],
+          ["カタログの関連", "whiteboard-animation / stepped-animation / line-drawing"],
+          ["動きを減らす設定", "ゆらぎを止め、静止した線画にする"],
+          [
+            "出典",
+            '<a href="https://www.toonboom.com/making-of-the-dukes-game-part-2-rigging-animation-comp" target="_blank" rel="noopener">Toon Boom: line boil</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const tu = stage.querySelector(".ac-line-boil-tu"),
+              dm = stage.querySelector(".ac-line-boil-dm");
+            dm.setAttribute("scale", v.amount * 2);
+            if (rm) {
+              dm.setAttribute("scale", 0);
+              return null;
+            }
+            let s = 1;
+            const iv = setInterval(() => {
+              s = (s % 3) + 1;
+              tu.setAttribute("seed", s);
+            }, 1000 / v.fps);
+            return () => clearInterval(iv);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

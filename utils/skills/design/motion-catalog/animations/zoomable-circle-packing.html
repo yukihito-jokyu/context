@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>入れ子の円へのズーム（Zoomable circle packing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-zoomable-circle-packing" style="position: relative; width: 220px; height: 150px">
+        <svg
+          class="ac-zoomable-circle-packing-s"
+          width="220"
+          height="150"
+          viewBox="0 0 220 150"
+          style="position: absolute; inset: 0; overflow: visible"
+        ></svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "zoomable-circle-packing",
+        name: "入れ子の円へのズーム",
+        en: "Zoomable circle packing",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "大きな円の中に小さな円が詰まった階層の図で、ある円を選ぶと、その円が画面いっぱいになるまで滑らかに近づき、中の小さな円が見えてくる動きです。戻ると全体へ引いていきます。階層の深さを、カメラの移動として体験できます。",
+        use: "組織・予算・ファイルサイズの内訳、カテゴリーの階層、データの探索。",
+        params: [{ key: "dur", label: "時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "仕組み",
+            "全体を1つの <code>&lt;g&gt;</code> に入れ、選んだ円の中心と半径に合わせて <code>translate</code> と <code>scale</code>（= 画面の大きさ ÷ 円の直径）を補間する",
+          ],
+          ["時間", "in-out 700–1000ms。D3 の <code>interpolateZoom</code> を使うと、遠い移動でも自然な速さになる"],
+          ["文字", "拡大した階層のラベルだけ表示し、ほかは消す"],
+          ["動きを減らす設定", "補間をやめ、新しい状態の図をすぐ表示する（またはフェードで切り替える）"],
+          [
+            "出典",
+            '<a href="https://observablehq.com/@d3/zoomable-circle-packing" target="_blank" rel="noopener">D3 example</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const svg = stage.querySelector(".ac-zoomable-circle-packing-s");
+            const NS = "http://www.w3.org/2000/svg",
+              el = (n, a = {}, p) => {
+                const e = document.createElementNS(NS, n);
+                for (const k in a) e.setAttribute(k, a[k]);
+                (p || svg).appendChild(e);
+                return e;
+              };
+            const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+            const tween = (ms, fn) => {
+              const t0 = performance.now();
+              let id;
+              const f = (now) => {
+                const k = Math.min(1, (now - t0) / ms);
+                fn(rm ? 1 : ease(k));
+                if (k < 1) id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => cancelAnimationFrame(id);
+            };
+            const gg = el("g"),
+              C = [
+                [110, 75, 66, "var(--blue-soft)"],
+                [86, 60, 30, "var(--sky)"],
+                [140, 92, 26, "var(--sky)"],
+                [96, 108, 16, "var(--sky)"],
+                [78, 52, 10, "var(--blue)"],
+                [96, 66, 9, "var(--blue)"],
+                [80, 72, 7, "var(--cobalt)"],
+                [134, 84, 10, "var(--blue)"],
+                [150, 100, 9, "var(--cobalt)"],
+                [94, 106, 7, "var(--blue)"],
+              ];
+            C.forEach(([x, y, r, f]) => el("circle", { cx: x, cy: y, r, fill: f, opacity: 0.92 }, gg));
+            let cx = 110,
+              cy = 75,
+              s = 1,
+              stopT = null;
+            const set = () => gg.setAttribute("transform", `translate(110,75) scale(${s}) translate(${-cx},${-cy})`);
+            set();
+            const to = (x, y, r) => () => {
+              const x0 = cx,
+                y0 = cy,
+                s0 = s,
+                s1 = 66 / r;
+              stopT && stopT();
+              stopT = tween(v.dur, (k) => {
+                cx = x0 + (x - x0) * k;
+                cy = y0 + (y - y0) * k;
+                s = Math.exp(Math.log(s0) + (Math.log(s1) - Math.log(s0)) * k);
+                set();
+              });
+            };
+            const stop = seq(5400, [
+              [600, to(86, 60, 30)],
+              [2200, to(140, 92, 26)],
+              [3800, to(110, 75, 66)],
+            ]);
+            return () => {
+              stop();
+              stopT && stopT();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

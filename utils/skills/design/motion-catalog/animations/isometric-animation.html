@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>アイソメトリック（Isometric Animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-isometric-animation"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-isometric-animation-iso">
+          <span class="ac-isometric-animation-l sb-grad-deep" style="--i: 0"></span
+          ><span class="ac-isometric-animation-l sb-grad-sky" style="--i: 1"></span
+          ><span class="ac-isometric-animation-l sb-grad-aqua" style="--i: 2"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-isometric-animation .ac-isometric-animation-iso {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        transform: rotateX(60deg) rotateZ(-45deg);
+        transform-style: preserve-3d;
+      }
+      .ac-isometric-animation .ac-isometric-animation-l {
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        box-shadow:
+          0 0 0 2px rgba(255, 255, 255, 0.6) inset,
+          -6px 6px 0 rgba(27, 58, 138, 0.18);
+        transform: translateZ(calc(var(--i) * 22px));
+        animation: ac-isometric-animation-drop 500ms cubic-bezier(0.34, 1.56, 0.64, 1)
+          calc(300ms + var(--i) * var(--step, 250ms)) both;
+      }
+      @keyframes ac-isometric-animation-drop {
+        from {
+          opacity: 0;
+          transform: translateZ(calc(var(--i) * 22px + 80px));
+        }
+        to {
+          opacity: 1;
+          transform: translateZ(calc(var(--i) * 22px));
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-isometric-animation-drop {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "isometric-animation",
+        name: "アイソメトリック",
+        en: "Isometric Animation",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "斜め上から見た立体的な視点（等角投影）で、図形が組み上がっていく表現形式です。仕組みや構造（層・積み重ね・流れ）を立体で説明できます。",
+        use: "システム構成の説明、サービスの仕組み、プロダクトの機能紹介、ヒーローのイラスト。",
+        params: [{ key: "step", label: "積み上がる間隔", value: 250, min: 100, max: 600, step: 25, unit: "ms" }],
+        total: (p) => p["step"] * 2 + 500,
+        spec: [
+          ["表現形式", "Isometric（<code>rotateX(60deg) rotateZ(-45deg)</code> の等角の視点）"],
+          ["演出", "下の層から順に積み上げて、構造を組み立てる"],
+          ["個別の動き", "各層は <code>translateZ(上から → 自分の高さ)</code> で降りてくる + Stagger"],
+          ["時間・質感", "1層 500ms、spring で着地"],
+          ["カタログの関連", "stagger / pop-in / compositing（層の考え方）"],
+          ["動きを減らす設定", "積み上げの動きをやめ、完成した形を透明度で表示する"],
+          ["出典", "ChatGPT との会話（表現スタイルの語彙）"],
+        ],
+        loop: 3000,
+      });
+    </script>
+  </body>
+</html>

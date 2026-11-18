@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>クリップパス（Clip-path） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-clip-path"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="sb-hero sb-grad-hero ac-clip-path-h" style="display: block; width: 200px; height: 130px"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-clip-path .ac-clip-path-h {
+        animation: ac-clip-path-in var(--dur, 700ms) cubic-bezier(0.65, 0, 0.35, 1) both;
+      }
+      @keyframes ac-clip-path-in {
+        from {
+          clip-path: circle(0% at 50% 50%);
+        }
+        to {
+          clip-path: circle(75% at 50% 50%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-clip-path-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "clip-path",
+        name: "クリップパス",
+        en: "Clip-path",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "要素を決めた形（円・多角形・四角）で切り抜き、その形を動かして見せる範囲を変える表現です。ここでは中心から円が広がって画像が現れます。",
+        use: "リビール、画像の切り替え、ボタンからの円形の展開、ビフォー・アフター。",
+        params: [{ key: "dur", label: "時間", value: 700, min: 200, max: 1500, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>clip-path: circle(0% at 50% 50%) → circle(75% at 50% 50%)</code>｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>",
+          ],
+          [
+            "形",
+            "<code>inset()</code>（四角）、<code>circle()</code>、<code>ellipse()</code>、<code>polygon()</code>。同じ種類・同じ点の数どうしなら補間できる",
+          ],
+          ["起点", "押したボタンの位置を円の中心にすると、そこから広がって見える"],
+          ["動きを減らす設定", "切り抜きの動きをやめ、透明度の切り替えにする"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

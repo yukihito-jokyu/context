@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>光漏れ（Light leak） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-light-leak"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-light-leak-s ac-light-leak-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-light-leak-s ac-light-leak-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+        <span class="ac-light-leak-lk"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-light-leak .ac-light-leak-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-light-leak .ac-light-leak-lk {
+        position: absolute;
+        inset: -60px -120px;
+        mix-blend-mode: screen;
+        filter: blur(18px);
+        background:
+          radial-gradient(circle at 30% 50%, rgba(255, 170, 90, 0.95) 0 50px, transparent 90px),
+          radial-gradient(circle at 55% 35%, rgba(255, 110, 150, 0.8) 0 40px, transparent 80px),
+          radial-gradient(circle at 70% 70%, rgba(255, 230, 140, 0.9) 0 36px, transparent 76px);
+        animation: ac-light-leak-l var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      .ac-light-leak .ac-light-leak-b {
+        animation: ac-light-leak-t var(--dur, 2600ms) linear infinite alternate;
+      }
+      @keyframes ac-light-leak-l {
+        0%,
+        15% {
+          transform: translateX(-220px);
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        85%,
+        100% {
+          transform: translateX(220px);
+          opacity: 0;
+        }
+      }
+      @keyframes ac-light-leak-t {
+        0%,
+        44% {
+          opacity: 0;
+        }
+        56%,
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-light-leak .ac-light-leak-lk {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "light-leak",
+        name: "光漏れ",
+        en: "Light leak",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "フィルムカメラに光が漏れたような、暖かい色の光のにじみが画面を横切り、いちばん明るくなった瞬間に次のショットへ入れ替わる切り替えです。懐かしさや、やわらかく夢のような雰囲気が出ます。",
+        use: "ライフスタイル・旅行の動画、結婚式やアルバムのスライドショー、ブランドの情緒的な場面転換。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "暖色の大きなぼかしの円を 2〜3 個（<code>radial-gradient</code>、<code>mix-blend-mode: screen</code>）を斜めに横切らせ、光が強い時間に A → B をクロスフェード",
+          ],
+          ["色", "オレンジ・ピンク・黄色。<code>filter: blur(20px)</code> で輪郭を消す"],
+          ["時間", "光の通過 1〜1.5 秒。入れ替えは光が最も強い 200〜300ms の間"],
+          ["動きを減らす設定", "光の通過をなくし、クロスフェードだけにする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/premiere/desktop/add-video-effects/effects-and-transitions-library/list-of-video-transitions.html" target="_blank" rel="noopener">Adobe Premiere: List of Video transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

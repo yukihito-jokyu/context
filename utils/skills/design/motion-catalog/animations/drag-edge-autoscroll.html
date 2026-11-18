@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>端で自動スクロール（Drag edge auto-scroll） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-drag-edge-autoscroll"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-drag-edge-autoscroll-vp">
+          <div class="ac-drag-edge-autoscroll-ls">
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+            <div class="ac-drag-edge-autoscroll-row"><i></i><b></b></div>
+          </div>
+          <span class="ac-drag-edge-autoscroll-z ac-drag-edge-autoscroll-zt"></span
+          ><span class="ac-drag-edge-autoscroll-z ac-drag-edge-autoscroll-zb"></span>
+        </div>
+        <div class="ac-drag-edge-autoscroll-gh"><i></i><b></b></div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-row {
+        height: 26px;
+        margin: 6px 8px;
+        border-radius: 8px;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        box-shadow: 0 1px 2px rgba(27, 58, 138, 0.08);
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-row i {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        background: var(--sky);
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-row b {
+        height: 6px;
+        width: 70px;
+        border-radius: 3px;
+        background: var(--bar);
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-row:nth-child(4n + 2) i {
+        background: var(--blue);
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-vp {
+        position: absolute;
+        left: 30px;
+        top: 10px;
+        width: 160px;
+        height: 130px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--ice);
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-z {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 24px;
+        opacity: 0;
+        transition: opacity 150ms;
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-z.is-on {
+        opacity: 1;
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-zt {
+        top: 0;
+        background: linear-gradient(rgba(59, 130, 246, 0.3), transparent);
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-zb {
+        bottom: 0;
+        background: linear-gradient(transparent, rgba(59, 130, 246, 0.3));
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-gh {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 140px;
+        height: 26px;
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 8px 18px rgba(27, 58, 138, 0.25);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        box-sizing: border-box;
+        opacity: 0;
+        z-index: 4;
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-gh i {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        background: var(--blue);
+      }
+      .ac-drag-edge-autoscroll .ac-drag-edge-autoscroll-gh b {
+        height: 6px;
+        width: 70px;
+        border-radius: 3px;
+        background: var(--bar);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "drag-edge-autoscroll",
+        name: "端で自動スクロール",
+        en: "Drag edge auto-scroll",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "項目をドラッグしたまま、スクロールできる枠の上端や下端に近づけると、枠が自動でスクロールして、画面の外にある置き場所まで運べるようにする動きです。端に深く入るほど速くスクロールします。",
+        use: "並べ替えできる長いリスト、カンバンのボード、ファイルの移動、カレンダーの予定のドラッグ。",
+        params: [
+          { key: "max", label: "いちばん速いスクロール", value: 220, min: 60, max: 600, step: 10, unit: "px/秒" },
+        ],
+        spec: [
+          [
+            "仕組み",
+            "ドラッグ中、ポインターが枠の端から一定の幅（高さの 10〜20%）に入ったら、毎フレーム枠をスクロールする。速さは端への入り込みの深さに比例させる",
+          ],
+          [
+            "気をつけること",
+            "端に入ってすぐは遅く、少しずつ速くする（意図しないスクロールを防ぐ）。スクロールの端に着いたら止める。ドロップの目印も一緒に動かす",
+          ],
+          ["ライブラリでは", "dnd-kit の AutoScroller、Pragmatic drag and drop の auto-scroll"],
+          ["動きを減らす設定", "スクロールをなめらかにせず、端にいる間は一定の量ずつ送る"],
+          [
+            "出典",
+            '<a href="https://dndkit.com/extend/plugins/auto-scroller/" target="_blank" rel="noopener">dndkit.com（auto-scroller）</a>、<a href="https://github.com/atlassian/pragmatic-drag-and-drop/tree/main/packages/auto-scroll" target="_blank" rel="noopener">github.com（auto-scroll）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const keyAt = (K, T) => {
+              let i = 0;
+              while (i < K.length - 2 && T >= K[i + 1][0]) i++;
+              const a = K[i],
+                b = K[i + 1],
+                f = Math.min(1, Math.max(0, (T - a[0]) / Math.max(1e-6, b[0] - a[0]))),
+                e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+              return [a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e];
+            };
+            const ls = stage.querySelector(".ac-drag-edge-autoscroll-ls"),
+              gh = stage.querySelector(".ac-drag-edge-autoscroll-gh"),
+              zt = stage.querySelector(".ac-drag-edge-autoscroll-zt"),
+              zb = stage.querySelector(".ac-drag-edge-autoscroll-zb");
+            const K = [
+              [0, 110, 34],
+              [0.6, 110, 34],
+              [1.4, 110, 134],
+              [3.4, 110, 134],
+              [4.2, 110, 16],
+              [5.4, 110, 16],
+              [6, 110, 75],
+              [7.5, 110, 75],
+            ];
+            let y = 0,
+              last = 0,
+              wait = 0;
+            show(1);
+            cur.style.transition = "none";
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              const T = t % 7.5,
+                [px, py] = keyAt(K, T),
+                drag = T > 0.4 && T < 6;
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              gh.style.opacity = drag ? 1 : 0;
+              gh.style.transform = `translate(${px - 70}px, ${py - 13}px)`;
+              const dB = Math.max(0, (py - 116) / 24),
+                dT = Math.max(0, (34 - py) / 24);
+              zb.classList.toggle("is-on", drag && dB > 0);
+              zt.classList.toggle("is-on", drag && dT > 0);
+              if (drag && rm) {
+                wait = dB || dT ? wait + dt : 0;
+                if (wait >= 0.3) {
+                  wait = 0;
+                  y += Math.sign(dB - dT) * 24;
+                }
+              } else if (drag) y += (dB - dT) * v.max * dt;
+              y = Math.min(254, Math.max(0, y));
+              ls.style.transform = `translateY(${-y}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

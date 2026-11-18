@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ホイールで選ぶ（Wheel picker） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-wheel-picker" style="position: relative; width: 200px; height: 160px; perspective: 400px">
+        <span class="ac-wheel-picker-band"></span>
+        <div class="ac-wheel-picker-w">
+          <span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 40px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 60px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 34px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 52px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 46px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 64px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 38px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 56px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 44px"></span></span
+          ><span class="ac-wheel-picker-i"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 50px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-wheel-picker .ac-wheel-picker-band {
+        position: absolute;
+        left: 30px;
+        right: 30px;
+        top: 62px;
+        height: 36px;
+        border-radius: 12px;
+        background: var(--blue-soft);
+      }
+      .ac-wheel-picker .ac-wheel-picker-w {
+        position: absolute;
+        left: 30px;
+        right: 30px;
+        top: 62px;
+        height: 36px;
+        transform-style: preserve-3d;
+      }
+      .ac-wheel-picker .ac-wheel-picker-i {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        backface-visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "wheel-picker",
+        name: "ホイールで選ぶ",
+        en: "Wheel picker",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "選択肢が円筒の表面に並んでいて、回すと奥へ倒れながら流れ、止めると真ん中の項目がぴたりと選ばれる動きです。真ん中の帯にある項目が今の選択です。",
+        use: "日付・時刻の選択、数量の選択、スマホの設定、ルーレット風の選択。",
+        params: [
+          { key: "dur", label: "吸着の時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" },
+          { key: "tilt", label: "1項目の傾き", value: 20, min: 10, max: 30, step: 1, unit: "deg" },
+        ],
+        spec: [
+          [
+            "並べ方",
+            "i 番目を <code>rotateX(-(i - 今の位置) × 傾き) translateZ(半径)</code>｜親に <code>perspective</code>｜中心から遠いほど <code>opacity</code> を下げる",
+          ],
+          ["止まるとき", "慣性で回したあと、いちばん近い項目の位置へ吸着（spring か out）"],
+          [
+            "ネイティブ",
+            "スクロール領域と <code>scroll-snap-type: y mandatory</code> で作り、見た目だけを傾けてもよい",
+          ],
+          ["動きを減らす設定", "傾きをやめ、平らなリストのスクロールにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/components/option-wheel" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const is = [...stage.querySelectorAll(".ac-wheel-picker-i")],
+              R = 80;
+            let pos = 2,
+              from = 2,
+              to = 2,
+              t0 = 0,
+              dur = 1;
+            const draw = () =>
+              is.forEach((el, i) => {
+                const d = i - pos,
+                  a = d * v.tilt;
+                el.style.transform = rm
+                  ? `translateY(${d * 36}px)`
+                  : `rotateX(${-a}deg) translateZ(${R}px) translateZ(${-R}px)`;
+                el.style.transformOrigin = `50% 50% ${-R}px`;
+                el.style.opacity = Math.max(0, 1 - Math.abs(d) * 0.3);
+                const b = el.firstElementChild;
+                b.style.background = Math.abs(d) < 0.5 ? "var(--blue)" : "";
+              });
+            const go = (n, ms) => () => {
+              from = pos;
+              to = n;
+              t0 = performance.now();
+              dur = ms;
+            };
+            const stopR = raf(() => {
+              const p = Math.min(1, (performance.now() - t0) / dur),
+                e = 1 - Math.pow(1 - p, 3);
+              pos = from + (to - from) * e;
+              draw();
+            });
+            const stop = seq(4800, [
+              [300, go(6, 900 + v.dur)],
+              [2300, go(3, 700 + v.dur)],
+              [3800, go(2, v.dur)],
+            ]);
+            return () => {
+              stop();
+              stopR();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

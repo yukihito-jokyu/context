@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>当たった瞬間の光（Hit flash） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hit-flash"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="sb-thumb sb-grad-sky ac-hit-flash-t" style="width: 60px; height: 60px; border-radius: 18px"></span
+        ><span class="ac-hit-flash-ball"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hit-flash .ac-hit-flash-ball {
+        position: absolute;
+        left: 0;
+        top: 66px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--navy);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-hit-flash .ac-hit-flash-ball {
+          animation: ac-hit-flash-throw 1800ms cubic-bezier(0.55, 0, 1, 0.45) infinite;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-hit-flash .ac-hit-flash-t {
+          animation: ac-hit-flash-flash 1800ms infinite;
+        }
+      }
+      @keyframes ac-hit-flash-throw {
+        0% {
+          transform: translateX(10px);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        32% {
+          transform: translateX(72px);
+          opacity: 1;
+        }
+        33%,
+        100% {
+          transform: translateX(72px);
+          opacity: 0;
+        }
+      }
+      @keyframes ac-hit-flash-flash {
+        0%,
+        32% {
+          filter: none;
+          transform: none;
+        }
+        33% {
+          filter: brightness(0) invert(1);
+          transform: translateX(8px);
+        }
+        37% {
+          filter: brightness(0) invert(1);
+        }
+        38% {
+          filter: none;
+        }
+        55%,
+        100% {
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-hit-flash .ac-hit-flash-ball {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hit-flash",
+        name: "当たった瞬間の光",
+        en: "Hit flash",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "物が当たった・ダメージを受けた瞬間に、対象が一瞬だけ真っ白に光り、少し後ろへはじかれる動きです。ゲームでおなじみの、衝撃をはっきり伝える合図です。",
+        use: "ゲームの被ダメージ、誤操作・エラーの強い合図、クリックの手応え、対戦・クイズの不正解。",
+        params: [],
+        spec: [
+          [
+            "光",
+            "<code>filter: brightness(3)</code>（または白で塗りつぶす層）を 50–80ms だけ。白一色にすると形だけが残って衝撃が強い",
+          ],
+          ["はじき", "当たった向きと逆へ <code>translateX(6px)</code> → 戻す｜out"],
+          ["注意", "強い明滅を何度もくり返さない（光過敏への配慮）"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://github.com/reeboolabs/sprite-juice-kit-lite" target="_blank" rel="noopener">Sprite Juice Kit</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

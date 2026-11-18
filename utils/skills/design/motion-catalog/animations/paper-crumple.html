@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>紙を丸めて捨てる（Paper crumple） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-paper-crumple"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-paper-crumple-c">
+          <span class="sb-hero sb-grad-sky" style="display: block; height: 46px; border-radius: 10px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 60px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-paper-crumple .ac-paper-crumple-c {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 130px;
+        padding: 12px;
+        box-sizing: border-box;
+        background: var(--surface);
+        filter: drop-shadow(0 6px 12px rgba(18, 26, 43, 0.12));
+        clip-path: polygon(
+          0 0,
+          25% 0,
+          50% 0,
+          75% 0,
+          100% 0,
+          100% 25%,
+          100% 50%,
+          100% 75%,
+          100% 100%,
+          75% 100%,
+          50% 100%,
+          25% 100%,
+          0 100%,
+          0 75%,
+          0 50%,
+          0 25%
+        );
+        animation:
+          ac-paper-crumple-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-paper-crumple-cr var(--dur, 600ms) cubic-bezier(0.65, 0, 0.35, 1) 900ms forwards,
+          ac-paper-crumple-toss var(--toss, 500ms) cubic-bezier(0.55, 0, 1, 0.45) calc(900ms + var(--dur, 600ms))
+            forwards;
+      }
+      @keyframes ac-paper-crumple-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-paper-crumple-cr {
+        to {
+          transform: scale(0.35) rotate(40deg);
+          border-radius: 40%;
+          background: #e9edf5;
+          clip-path: polygon(
+            10% 18%,
+            30% 2%,
+            52% 12%,
+            78% 0,
+            96% 20%,
+            86% 38%,
+            100% 58%,
+            88% 80%,
+            98% 96%,
+            70% 90%,
+            48% 100%,
+            30% 86%,
+            6% 98%,
+            14% 70%,
+            0 48%,
+            12% 34%
+          );
+        }
+      }
+      @keyframes ac-paper-crumple-toss {
+        from {
+          transform: scale(0.35) rotate(40deg);
+          opacity: 1;
+        }
+        to {
+          transform: translate(60px, 90px) scale(0.3) rotate(200deg);
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-paper-crumple .ac-paper-crumple-c {
+          animation:
+            ac-paper-crumple-in 300ms both,
+            ac-paper-crumple-out 300ms 1200ms forwards;
+        }
+        @keyframes ac-paper-crumple-out {
+          to {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "paper-crumple",
+        name: "紙を丸めて捨てる",
+        en: "Paper crumple",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "カードを紙のようにくしゃくしゃに丸め、小さな玉にして投げ捨てる動きです。削除や破棄を、物理的な手触りのある楽しい表現にします。プレビューは切り抜きの形を変えて近い形を作っています（元の作例は WebGL で紙のしわを描く）。",
+        use: "下書きの破棄、メモの削除、ゲームの演出、遊び心のある「やり直し」。",
+        params: [
+          { key: "dur", label: "丸める時間", value: 600, min: 300, max: 1200, step: 50, unit: "ms" },
+          { key: "toss", label: "捨てる時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" },
+        ],
+        total: (p) => 300 + 600 + p["dur"] + p["toss"],
+        spec: [
+          [
+            "丸める",
+            "<code>clip-path: polygon()</code> を四角からギザギザの多角形へ、<code>scale(1 → .35)</code>、<code>rotate(→ 40deg)</code>、しわの影を濃くする｜in-out",
+          ],
+          ["捨てる", "弧を描いて下へ落とし（<code>translate</code>）、<code>opacity → 0</code>｜in"],
+          ["本格的に", "WebGL で面を細かく分割し、頂点をしわの形に動かす"],
+          ["動きを減らす設定", "丸めと投げをやめ、透明度で消すだけにする"],
+          ["出典", '<a href="https://reactbits.dev/micro/paper-crumple" target="_blank" rel="noopener">React Bits</a>'],
+        ],
+        loop: 3200,
+      });
+    </script>
+  </body>
+</html>

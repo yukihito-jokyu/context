@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IK と FK の切り替え（IK/FK switching with pose matching） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ik-fk-switch"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ik-fk-switch",
+        name: "IK と FK の切り替え",
+        en: "IK/FK switching with pose matching",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "腕や脚を、根元から順に回す操作（FK）と、手先の目標を動かして関節を自動で決める操作（IK）で切り替えて動かすとき、切り替えの瞬間に新しい側の操作の値を今のポーズに合わせて、腕が飛ばないようにする方法です。",
+        use: "キャラクターのリグ、腕を振る（FK）と物をつかむ（IK）を行き来する動き、3D ツールの操作。",
+        params: [],
+        spec: [
+          [
+            "FK → IK",
+            "今の手先の位置に IK の目標を置き、肘の向き（ポールベクター）も今の肘の位置に合わせてから切り替える",
+          ],
+          ["IK → FK", "今の各関節の回転を FK の操作の値に写してから切り替える。切り替えを数コマかけて混ぜてもよい"],
+          ["ツールでは", "Blender・Maya のリグの IK/FK スイッチと「スナップ」、Spine・Rive の IK 制約の強さ（Mix）"],
+          ["動きを減らす設定", "動きを止め、代表的なポーズの静止画にする"],
+          [
+            "出典",
+            '<a href="https://help.autodesk.com/cloudhelp/2022/ENU/Maya-Animation/files/GUID-C5ACDDBC-9E30-443C-8419-F07FC41E9A86.htm" target="_blank" rel="noopener">help.autodesk.com（GUID-C5ACDDBC-9E30-443C-8419）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            const seg = (x, y, a, l) => [x + sin(a) * l, y + cos(a) * l];
+            const line = (pts, w, c) => {
+              g.lineCap = "round";
+              g.lineJoin = "round";
+              g.lineWidth = w;
+              g.strokeStyle = c;
+              g.beginPath();
+              g.moveTo(pts[0][0], pts[0][1]);
+              for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+              g.stroke();
+            };
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const limb = (x, y, a1, l1, a2, l2, w, c) => {
+              const k = seg(x, y, a1, l1),
+                f = seg(k[0], k[1], a1 + a2, l2);
+              line([[x, y], k, f], w, c);
+              return [k, f];
+            };
+            // 人：hip（腰）の位置と pose（lean 体の傾き, t1/s1 手前の脚, t2/s2 奥の脚, u1/f1 手前の腕, u2/f2 奥の腕）
+            const figure = (x, y, p, L = { t: 18, s: 18, b: 30, u: 14, f: 13, h: 9 }) => {
+              const near = col("blue"),
+                far = col("sky"),
+                nx = x + sin(p.lean || 0) * L.b,
+                ny = y - cos(p.lean || 0) * L.b;
+              limb(x, y, p.t2, L.t, p.s2, L.s, 7, far);
+              limb(nx, ny + 3, p.u2, L.u, p.f2, L.f, 6, far);
+              line(
+                [
+                  [x, y],
+                  [nx, ny],
+                ],
+                11,
+                near,
+              );
+              dot(nx + sin(p.lean || 0) * (L.h + 3), ny - cos(p.lean || 0) * (L.h + 3), L.h, near);
+              limb(x, y, p.t1, L.t, p.s1, L.s, 7, near);
+              limb(nx, ny + 3, p.u1, L.u, p.f1, L.f, 6, near);
+            };
+            const ground = (y, off, gap = 22) => {
+              g.fillStyle = col("ice");
+              g.fillRect(0, y, W, H - y);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 2;
+              for (let x = -((off % gap) + gap) % gap; x < W; x += gap) {
+                g.beginPath();
+                g.moveTo(x, y + 8);
+                g.lineTo(x + 8, y + 8);
+                g.stroke();
+              }
+            };
+            // 2本の骨の IK：根元 (x, y) から長さ a, b で目標 (tx, ty) へ。bend = ±1 で曲がる向き。関節の位置を返す
+            const ik2 = (x, y, tx, ty, a, b, bend = 1) => {
+              let dx = tx - x,
+                dy = ty - y,
+                d = Math.hypot(dx, dy);
+              const dd = Math.max(Math.abs(a - b) + 0.01, Math.min(d, a + b - 0.01)),
+                base = d ? Math.atan2(dy, dx) : -Math.PI / 2,
+                c = Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd))),
+                th = base - bend * Math.acos(c);
+              return [x + cos(th) * a, y + sin(th) * a, x + cos(base) * dd, y + sin(base) * dd];
+            };
+            const lp = (a, b, k) => {
+              const o = {};
+              for (const key in a) o[key] = a[key] + (b[key] - a[key]) * k;
+              return o;
+            };
+            const ez = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2),
+              cl = (u) => Math.min(1, Math.max(0, u));
+            const txt = (s, x, y, c = col("ink-muted"), al = "left") => {
+              g.fillStyle = c;
+              g.font = "600 10px sans-serif";
+              g.textAlign = al;
+              g.fillText(s, x, y);
+            };
+            const GUARD = { lean: 0.05, t1: 0.35, s1: -0.3, t2: -0.3, s2: -0.1, u1: 2.2, f1: 1.6, u2: 2.4, f2: 1.7 };
+            const sh = [80, 50],
+              A = 34,
+              B = 30;
+            const fk = (T) => {
+              const a1 = 0.6 + 0.5 * sin(T * 1.6),
+                a2 = 0.8 + 0.4 * sin(T * 2.1),
+                e = [sh[0] + cos(a1) * A, sh[1] + sin(a1) * A];
+              return [a1, a2, e, [e[0] + cos(a1 + a2) * B, e[1] + sin(a1 + a2) * B]];
+            };
+            const H0 = fk(3)[3],
+              H1 = fk(0)[3]; /* FK → IK の切り替えの手先、IK → FK の切り替えの手先 */
+            const frame = (t) => {
+              const T = rm ? 1 : t % 6,
+                ik = T >= 3;
+              let a1, a2, tx, ty;
+              g.clearRect(0, 0, W, H);
+              if (!ik) {
+                let e;
+                [a1, a2, e, [tx, ty]] = fk(T);
+                g.strokeStyle = "rgba(37,99,235,.4)";
+                g.lineWidth = 1.5;
+                g.beginPath();
+                g.arc(sh[0], sh[1], 12, a1 - 0.6, a1 + 0.6);
+                g.stroke();
+                g.beginPath();
+                g.arc(e[0], e[1], 10, a1 + a2 - 0.6, a1 + a2 + 0.6);
+                g.stroke();
+                line([sh, e, [tx, ty]], 6, col("blue"));
+              } else {
+                const u = (T - 3) / 3,
+                  m = u * u * (3 - 2 * u);
+                tx = H0[0] + (H1[0] - H0[0]) * m + 34 * sin(u * Math.PI);
+                ty = H0[1] + (H1[1] - H0[1]) * m + 22 * sin(u * 2 * Math.PI);
+                const [ex, ey] = ik2(sh[0], sh[1], tx, ty, A, B, -1);
+                line([sh, [ex, ey], [tx, ty]], 6, col("blue"));
+                g.strokeStyle = "#e5484d";
+                g.lineWidth = 1.5;
+                g.beginPath();
+                g.arc(tx, ty, 7, 0, TAU);
+                g.stroke();
+              }
+              dot(sh[0], sh[1], 5, col("navy"));
+              g.fillStyle = col("ice");
+              g.beginPath();
+              g.roundRect(150, 12, 60, 18, 9);
+              g.fill();
+              g.fillStyle = col("blue");
+              g.beginPath();
+              g.roundRect(ik ? 180 : 150, 12, 30, 18, 9);
+              g.fill();
+              txt("FK", 165, 25, ik ? col("ink-muted") : "#fff", "center");
+              txt("IK", 195, 25, ik ? "#fff" : col("ink-muted"), "center");
+            };
+            if (rm) {
+              frame(0);
+              return null;
+            } // 動きを減らす設定：代表的なポーズを一度だけ描く
+            return raf(frame);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>格子に残る軌跡（Cursor grid trail） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-cursor-grid-trail" style="position: relative; width: 220px; height: 140px">
+        <div class="ac-cursor-grid-trail-g">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cursor-grid-trail .ac-cursor-grid-trail-g {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(11, 20px);
+        grid-auto-rows: 20px;
+        background-image:
+          linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+      .ac-cursor-grid-trail .ac-cursor-grid-trail-g i {
+        background: var(--blue);
+        opacity: 0;
+        border-radius: 3px;
+        margin: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cursor-grid-trail",
+        name: "格子に残る軌跡",
+        en: "Cursor grid trail",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "ポインターが通った格子のマスがぱっと色づき、少しずつ消えていく動きです。通り道がモザイクの尾のように残ります。",
+        use: "ヒーローの背景、テック系のランディングページ、インタラクティブな装飾。",
+        params: [{ key: "fade", label: "消える時間", value: 800, min: 200, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          ["点灯", "ポインターのいるマスを、すぐに <code>opacity: 1</code> にする（遷移なし）"],
+          ["消える", "そのあと <code>opacity → 0</code>（600–1000ms の out）。マスを出るたびにやり直す"],
+          [
+            "格子",
+            "CSS グリッドで同じ大きさのマスを並べる。マスの判定は位置 ÷ マスの大きさ で計算する（要素ごとの hover より軽い）",
+          ],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/cursor-grid" target="_blank" rel="noopener">React Bits: Cursor Grid</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const cs = stage.querySelectorAll(".ac-cursor-grid-trail-g i");
+            let last = -1;
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const [x, y] = loop8(t * 1.1, 110, 70, 95, 55);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              const i =
+                Math.min(6, Math.max(0, Math.floor(y / 20))) * 11 + Math.min(10, Math.max(0, Math.floor(x / 20)));
+              if (rm || i === last || !cs[i]) return;
+              const p = cs[last];
+              if (p) {
+                p.style.transition = `opacity ${v.fade}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+                p.style.opacity = 0;
+              }
+              last = i;
+              cs[i].style.transition = "none";
+              cs[i].style.opacity = 1;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

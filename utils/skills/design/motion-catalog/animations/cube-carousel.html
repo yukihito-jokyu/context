@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>立方体で切り替え（Cube carousel） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-cube-carousel" style="position: relative; width: 200px; height: 150px; perspective: 600px">
+        <div class="ac-cube-carousel-cube">
+          <span
+            class="sb-grad-aqua"
+            style="
+              position: relative;
+              display: block;
+              flex: none;
+              width: 110px;
+              height: 110px;
+              border-radius: 16px;
+              overflow: hidden;
+              position: absolute;
+              inset: 0;
+              border-radius: 6px;
+              transform: rotateY(0deg) translateZ(55px);
+              backface-visibility: hidden;
+            "
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                top: 14px;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.85);
+              "
+            ></i
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                bottom: 14px;
+                width: 60px;
+                height: 8px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.7);
+              "
+            ></i></span
+          ><span
+            class="sb-grad-sky"
+            style="
+              position: relative;
+              display: block;
+              flex: none;
+              width: 110px;
+              height: 110px;
+              border-radius: 16px;
+              overflow: hidden;
+              position: absolute;
+              inset: 0;
+              border-radius: 6px;
+              transform: rotateY(90deg) translateZ(55px);
+              backface-visibility: hidden;
+            "
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                top: 14px;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.85);
+              "
+            ></i
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                bottom: 14px;
+                width: 60px;
+                height: 8px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.7);
+              "
+            ></i></span
+          ><span
+            class="sb-grad-deep"
+            style="
+              position: relative;
+              display: block;
+              flex: none;
+              width: 110px;
+              height: 110px;
+              border-radius: 16px;
+              overflow: hidden;
+              position: absolute;
+              inset: 0;
+              border-radius: 6px;
+              transform: rotateY(180deg) translateZ(55px);
+              backface-visibility: hidden;
+            "
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                top: 14px;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.85);
+              "
+            ></i
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                bottom: 14px;
+                width: 60px;
+                height: 8px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.7);
+              "
+            ></i></span
+          ><span
+            class="sb-grad-hero"
+            style="
+              position: relative;
+              display: block;
+              flex: none;
+              width: 110px;
+              height: 110px;
+              border-radius: 16px;
+              overflow: hidden;
+              position: absolute;
+              inset: 0;
+              border-radius: 6px;
+              transform: rotateY(270deg) translateZ(55px);
+              backface-visibility: hidden;
+            "
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                top: 14px;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.85);
+              "
+            ></i
+            ><i
+              style="
+                position: absolute;
+                left: 14px;
+                bottom: 14px;
+                width: 60px;
+                height: 8px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.7);
+              "
+            ></i
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cube-carousel .ac-cube-carousel-cube {
+        position: absolute;
+        left: 45px;
+        top: 20px;
+        width: 110px;
+        height: 110px;
+        transform-style: preserve-3d;
+        transform: translateZ(-55px);
+        transition: transform var(--dur, 700ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cube-carousel",
+        name: "立方体で切り替え",
+        en: "Cube carousel",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "スライドを立方体の側面に貼り、立方体を90度回して次の面を見せる切り替えです。今の面が奥へ倒れ、隣の面が回り込んでくるので、空間の中を移動しているように感じます。",
+        use: "ストーリーの切り替え（Instagram 風）、オンボーディング、ギャラリー、ゲームのメニュー。",
+        params: [{ key: "dur", label: "回る時間", value: 700, min: 300, max: 1400, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "組み方",
+            "4つの面を <code>rotateY(i × 90deg) translateZ(幅 / 2)</code>｜親に <code>transform-style: preserve-3d</code> と <code>perspective</code>",
+          ],
+          ["回す", "立方体を <code>translateZ(-幅 / 2) rotateY(-90deg × 番号)</code>｜in-out"],
+          ["影", '回っている面に暗さを重ねると立体感が増す。Swiper の <code>effect: "cube"</code>'],
+          ["動きを減らす設定", "回転をやめ、面の入れ替えをフェードにする"],
+          ["出典", '<a href="https://swiperjs.com/demos" target="_blank" rel="noopener">Swiper demos</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const c = stage.querySelector(".ac-cube-carousel-cube");
+            let i = 0;
+            if (rm) return null;
+            return seq(1600, [
+              [
+                400,
+                () => {
+                  i++;
+                  c.style.transform = `translateZ(-55px) rotateY(${-90 * i}deg)`;
+                },
+              ],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

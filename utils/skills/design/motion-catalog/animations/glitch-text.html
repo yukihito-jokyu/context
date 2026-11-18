@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>グリッチ文字（Glitch text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-glitch-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="ac-glitch-text-t"
+          data-t="GLITCH"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 36px;
+            line-height: 46px;
+          "
+        >
+          GLITCH
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-glitch-text .ac-glitch-text-t {
+        position: relative;
+        color: var(--ink);
+      }
+      .ac-glitch-text .ac-glitch-text-t::before,
+      .ac-glitch-text .ac-glitch-text-t::after {
+        content: attr(data-t);
+        content: attr(data-t) / "";
+        position: absolute;
+        inset: 0;
+        mix-blend-mode: multiply;
+      }
+      .ac-glitch-text .ac-glitch-text-t::before {
+        color: var(--aqua);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-glitch-text .ac-glitch-text-t::before {
+          animation: ac-glitch-text-a var(--dur, 2000ms) steps(1) infinite;
+        }
+      }
+      .ac-glitch-text .ac-glitch-text-t::after {
+        color: var(--cobalt);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-glitch-text .ac-glitch-text-t::after {
+          animation: ac-glitch-text-b var(--dur, 2000ms) steps(1) infinite;
+        }
+      }
+      @keyframes ac-glitch-text-a {
+        0%,
+        70%,
+        100% {
+          transform: none;
+          clip-path: inset(0);
+          opacity: 0;
+        }
+        72% {
+          opacity: 1;
+          transform: translate(calc(var(--shift, 3px) * -1), 0);
+          clip-path: inset(10% 0 55% 0);
+        }
+        76% {
+          opacity: 1;
+          transform: translate(var(--shift, 3px), 0);
+          clip-path: inset(60% 0 10% 0);
+        }
+        80% {
+          opacity: 1;
+          transform: translate(calc(var(--shift, 3px) * -1), 0);
+          clip-path: inset(30% 0 40% 0);
+        }
+        84% {
+          opacity: 1;
+          transform: translate(calc(var(--shift, 3px) * -0.5), 0);
+          clip-path: inset(0);
+        }
+        88% {
+          opacity: 0;
+        }
+      }
+      @keyframes ac-glitch-text-b {
+        0%,
+        70%,
+        100% {
+          transform: none;
+          clip-path: inset(0);
+          opacity: 0;
+        }
+        72% {
+          opacity: 1;
+          transform: translate(var(--shift, 3px), 0);
+          clip-path: inset(50% 0 20% 0);
+        }
+        76% {
+          opacity: 1;
+          transform: translate(calc(var(--shift, 3px) * -1), 0);
+          clip-path: inset(5% 0 70% 0);
+        }
+        80% {
+          opacity: 1;
+          transform: translate(var(--shift, 3px), 0);
+          clip-path: inset(70% 0 5% 0);
+        }
+        84% {
+          opacity: 1;
+          transform: translate(calc(var(--shift, 3px) * 0.5), 0);
+          clip-path: inset(0);
+        }
+        88% {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-glitch-text .ac-glitch-text-t::before,
+        .ac-glitch-text .ac-glitch-text-t::after {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "glitch-text",
+        name: "グリッチ文字",
+        en: "Glitch text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字の色が青と水色にずれて重なり、横に切れた断片がときどきずれる表現です。映像信号が乱れたような、デジタルで鋭い印象になります。",
+        use: "テック・ゲーム・音楽系のタイトル、エラー・ハッキングの演出、イベントのビジュアル。",
+        params: [
+          { key: "dur", label: "乱れの周期", value: 2000, min: 600, max: 5000, step: 100, unit: "ms" },
+          { key: "shift", label: "ずれ", value: 3, min: 1, max: 8, step: 1, unit: "px" },
+        ],
+        spec: [
+          ["重ね方", "同じ文字を擬似要素2つで重ね、色を変えて（ここでは aqua と cobalt）左右にずらす"],
+          [
+            "断片",
+            "擬似要素に <code>clip-path: inset(上 0 下 0)</code> を <code>steps()</code> で切り替え、横の帯だけをずらす",
+          ],
+          ["間隔", "乱れるのは周期の一部だけにし、普段は静かにする"],
+          ["動きを減らす設定", "乱れを止め、色のずれのない文字にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/glitch-text" target="_blank" rel="noopener">React Bits: Glitch Text</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

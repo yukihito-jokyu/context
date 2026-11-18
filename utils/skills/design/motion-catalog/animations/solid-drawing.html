@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>立体感と体積を保つ（Solid drawing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-solid-drawing"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          place-items: center;
+        "
+      >
+        <div class="ac-solid-drawing-l">
+          <div class="ac-solid-drawing-w">
+            <span class="ac-solid-drawing-ball ac-solid-drawing-a" style="filter: grayscale(1); opacity: 0.55"></span
+            ><i></i>
+          </div>
+        </div>
+        <div class="ac-solid-drawing-r">
+          <div class="ac-solid-drawing-w"><span class="ac-solid-drawing-ball ac-solid-drawing-b"></span><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-solid-drawing .ac-solid-drawing-w {
+        position: relative;
+        width: 80px;
+        height: 120px;
+      }
+      .ac-solid-drawing .ac-solid-drawing-w i {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 2px;
+        background: var(--bar);
+      }
+      .ac-solid-drawing .ac-solid-drawing-ball {
+        position: absolute;
+        left: 22px;
+        bottom: 2px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, var(--sky), var(--blue));
+        transform-origin: 50% 100%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-solid-drawing .ac-solid-drawing-a {
+          animation: ac-solid-drawing-ya var(--dur, 900ms) infinite;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-solid-drawing .ac-solid-drawing-b {
+          animation: ac-solid-drawing-yb var(--dur, 900ms) infinite;
+        }
+      }
+      @keyframes ac-solid-drawing-ya {
+        0%,
+        100% {
+          transform: translateY(-70px);
+          animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+        }
+        45% {
+          transform: translateY(0);
+        }
+        55% {
+          transform: scaleY(var(--sq, 0.6));
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        65% {
+          transform: none;
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+      @keyframes ac-solid-drawing-yb {
+        0%,
+        100% {
+          transform: translateY(-70px) scale(0.9, 1.12);
+          animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+        }
+        45% {
+          transform: translateY(0) scale(0.9, 1.12);
+        }
+        55% {
+          transform: scale(calc(1 / var(--sq, 0.6)), var(--sq, 0.6));
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        65% {
+          transform: none;
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "solid-drawing",
+        name: "立体感と体積を保つ",
+        en: "Solid drawing",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "形が変わっても、重さ・体積・立体としてのつじつまを保つという原則です。左のボールは潰れたときに縦だけ縮んで小さくなったように見え、右は縦に潰れた分だけ横に広がるので、同じ量の柔らかい物に見えます。",
+        use: "潰れ・伸び（squash & stretch）を使うすべての動き、3D 風のカード、立体的なアイコン。",
+        params: [
+          { key: "dur", label: "時間", value: 900, min: 400, max: 1800, step: 50, unit: "ms" },
+          { key: "sq", label: "潰れる量", value: 0.6, min: 0.3, max: 0.9, step: 0.05, unit: "" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["体積", "<code>scaleY(s)</code> で潰すなら <code>scaleX(1 / s)</code> で広げる（面積を一定に）"],
+          ["立体", "回転・傾きでは、影や光の向きも一緒に変えて、同じ立体に見えるようにする"],
+          ["比べる", "左（灰色）がこの原則なし、右（青）がこの原則あり"],
+          ["動きを減らす設定", "跳ねと潰れをやめ、静止させる"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/principles-of-animation.html" target="_blank" rel="noopener">Adobe: 12 principles of animation</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ぼかした仮画像から本画像へ（Image blur-up） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-image-blur-up"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-image-blur-up-f">
+          <span class="ac-image-blur-up-lq"></span><span class="ac-image-blur-up-hq"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-image-blur-up .ac-image-blur-up-f {
+        position: relative;
+        width: 180px;
+        height: 110px;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .ac-image-blur-up .ac-image-blur-up-lq,
+      .ac-image-blur-up .ac-image-blur-up-hq {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 74% 34%, #fff 0 14px, transparent 15px),
+          radial-gradient(ellipse at 30% 110%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-image-blur-up .ac-image-blur-up-lq {
+        filter: blur(var(--blur, 14px));
+        transform: scale(1.1);
+      }
+      .ac-image-blur-up .ac-image-blur-up-hq {
+        opacity: 0;
+        animation: ac-image-blur-up-in var(--dur, 500ms) cubic-bezier(0.22, 1, 0.36, 1) 1200ms forwards;
+      }
+      @keyframes ac-image-blur-up-in {
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "image-blur-up",
+        name: "ぼかした仮画像から本画像へ",
+        en: "Image blur-up",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "画像の読み込み中は、とても小さな画像を引き伸ばしてぼかしたものを仮に表示し、本物の画像が届いたら、ピントが合うようになめらかに入れ替える表現です。空白や灰色の箱より、待ち時間が短く感じられます。",
+        use: "写真の多いサイト、記事のアイキャッチ、商品画像、SNS のタイムライン。",
+        params: [
+          { key: "dur", label: "入れ替えの時間", value: 500, min: 200, max: 1200, step: 50, unit: "ms" },
+          { key: "blur", label: "仮画像のぼかし", value: 14, min: 4, max: 30, step: 1, unit: "px" },
+        ],
+        spec: [
+          [
+            "仮画像",
+            "20px 程度の極小画像（または平均色・BlurHash）を本画像と同じ大きさに引き伸ばし、<code>filter: blur(ぼかし)</code> と <code>scale(1.05)</code>（ぼかしで縁が透けるのを隠す）",
+          ],
+          [
+            "入れ替え",
+            "本画像の <code>load</code> イベントで、本画像を <code>opacity 0 → 1</code>｜out。仮画像は本画像の下に置いたままでよい",
+          ],
+          ["枠", "画像の縦横比で場所を先に確保しておく（<code>aspect-ratio</code>）。読み込みで周りがずれない"],
+          ["動きを減らす設定", "ぼかしからの変化は透明度だけで行う（そのままでも大きな動きはない）"],
+          [
+            "出典",
+            '<a href="https://www.gatsbyjs.com/features/jamstack/gatsby-vs-nextjs-vs-jekyll-vs-hugo-vs-nuxtjs/" target="_blank" rel="noopener">Gatsby</a>',
+          ],
+        ],
+        loop: 3200,
+      });
+    </script>
+  </body>
+</html>

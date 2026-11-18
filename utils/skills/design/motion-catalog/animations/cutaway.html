@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>カットアウェイ（Cutaway） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-cutaway"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-cutaway-s ac-cutaway-a"
+          style="
+            background:
+              radial-gradient(ellipse at 50% 120%, var(--aqua) 0 45%, transparent 46%),
+              repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 28px),
+              linear-gradient(180deg, #e6efff, var(--ice));
+          "
+        ></div>
+        <div
+          class="ac-cutaway-s ac-cutaway-b"
+          style="
+            background:
+              radial-gradient(circle at 50% 45%, var(--blue) 0 26px, transparent 27px),
+              linear-gradient(135deg, #f2f5fa, #dfe8f7);
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cutaway .ac-cutaway-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-cutaway .ac-cutaway-b {
+        animation: ac-cutaway-t var(--dur, 2600ms) step-end infinite;
+      }
+      @keyframes ac-cutaway-t {
+        0% {
+          opacity: 0;
+        }
+        40% {
+          opacity: 1;
+        }
+        72% {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-cutaway .ac-cutaway-s {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cutaway",
+        name: "カットアウェイ",
+        en: "Cutaway",
+        cat: "映像の切り替え",
+        kind: "concept",
+        description:
+          "主な場面からいったん別のショット（周りの様子や手元など）に切り替え、また元に戻る方法です。話の補足になるだけでなく、元の場面の途中を省いても不自然になりません。",
+        use: "インタビュー動画、製品の使い方の説明、話している人とスライドを行き来する画面。",
+        params: [{ key: "dur", label: "ひと回りの長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["書き方", "A → B → A の順にカット。B は全体の 1/3 くらいの長さ"],
+          ["中身", "B は A と関係のあるもの（話題の物、周りの反応）にする"],
+          ["省略", "A に戻ったとき、時間が少し進んでいてもつながって見える"],
+          ["動きを減らす設定", "もともとカットなので、そのままでよい"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

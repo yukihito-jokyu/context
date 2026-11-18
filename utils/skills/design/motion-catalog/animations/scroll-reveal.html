@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スクロールリビール（Scroll reveal） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-scroll-reveal" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-scroll-reveal-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px">
+            <div
+              class="sb-item ac-scroll-reveal-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-scroll-reveal-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-scroll-reveal-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-scroll-reveal-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-scroll-reveal-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-scroll-reveal-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-scroll-reveal-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 86px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-reveal .ac-scroll-reveal-r {
+        opacity: 0;
+        transform: translateY(var(--dist, 16px));
+        transition:
+          opacity var(--dur, 400ms) cubic-bezier(0.22, 1, 0.36, 1),
+          transform var(--dur, 400ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-scroll-reveal .ac-scroll-reveal-r.in {
+        opacity: 1;
+        transform: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-scroll-reveal .ac-scroll-reveal-r {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-reveal",
+        name: "スクロールリビール",
+        en: "Scroll reveal",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "スクロールして要素が画面に入ったときに、ふわっと浮き上がって現れる動きです。読み進めるのに合わせて中身が届くので、ページに動きと区切りが生まれます。",
+        use: "ランディングページのセクション、ブログのカード、特徴の紹介。",
+        params: [
+          { key: "dur", label: "時間", value: 400, min: 150, max: 1000, step: 50, unit: "ms" },
+          { key: "dist", label: "浮き上がる距離", value: 16, min: 0, max: 40, step: 2, unit: "px" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["きっかけ", "要素の面積の30%が表示領域に入ったとき（<code>IntersectionObserver</code>）"],
+          [
+            "動き",
+            "<code>translateY(距離) → 0</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["CSS だけで", "<code>animation-timeline: view()</code> と <code>animation-range: entry</code> でもできる"],
+          ["注意", "一度出したら戻さないのが基本（デモは見せるために戻している）"],
+          ["動きを減らす設定", "移動をやめ、透明度だけで表示する（または最初から表示しておく）"],
+          ["出典", "Animation Vocabulary（Scroll）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const auto = (sc, ms) => {
+            let raf,
+              start = null;
+            const tick = (now) => {
+              if (start === null) start = now;
+              const t = (now - start) % (ms + 1000),
+                p = Math.min(1, t / ms),
+                max = sc.scrollHeight - sc.clientHeight;
+              sc.scrollTop = max * (0.5 - Math.cos(Math.PI * p) / 2);
+              raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+            return () => cancelAnimationFrame(raf);
+          };
+          const sc = stage.querySelector(".ac-scroll-reveal-sc");
+          const threshold = 0.3;
+          const io = new IntersectionObserver(
+            (entries) => {
+              for (const { target, intersectionRatio } of entries) {
+                target.firstElementChild.classList.toggle("in", intersectionRatio >= threshold);
+              }
+            },
+            { root: sc, threshold },
+          );
+          // 行の移動で交差率が変わらないよう、動かない親を監視する。
+          sc.querySelectorAll(".ac-scroll-reveal-r").forEach((row) => {
+            const wrapper = document.createElement("div");
+            row.before(wrapper);
+            wrapper.append(row);
+            io.observe(wrapper);
+          });
+          const stop = auto(sc, 3000);
+          return () => {
+            stop();
+            io.disconnect();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

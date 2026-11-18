@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>モーションキャプチャ（Performance capture / motion capture） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-motion-capture"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "motion-capture",
+        name: "モーションキャプチャ",
+        en: "Performance capture / motion capture",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "演じる人の体や顔に付けた印（マーカー）やカメラの映像から動きを記録し、キャラクターの骨の動きに変換（ソルブ）して使う方法です。人の細かい重心の移動や癖がそのまま入り、リアルな動きになります。点が記録した印、線が変換した骨です。",
+        use: "リアルなキャラクター、スポーツ・ダンス、顔の表情、VTuber。",
+        params: [],
+        spec: [
+          [
+            "流れ",
+            "記録（光学式マーカー・慣性センサー・映像からの推定）→ 印の整理（抜け・入れ替わりの修正）→ 骨への変換 → キャラクターへのリターゲット → 手直し",
+          ],
+          ["手直し", "足の滑り・ぶつかり・ノイズを直し、ゲーム用にループや切り替えの区切りを作る"],
+          ["各環境では", "Vicon・OptiTrack（光学式）、Xsens（慣性）、Move AI・Rokoko（映像）"],
+          ["動きを減らす設定", "動きを止め、代表的なポーズの静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.metahuman.com/animate" target="_blank" rel="noopener">metahuman.com（animate）</a>、<a href="https://dev.epicgames.com/documentation/unreal-engine/game-animation-sample-project-in-unreal-engine" target="_blank" rel="noopener">dev.epicgames.com（game-animation-sample-projec）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            const seg = (x, y, a, l) => [x + sin(a) * l, y + cos(a) * l];
+            const line = (pts, w, c) => {
+              g.lineCap = "round";
+              g.lineJoin = "round";
+              g.lineWidth = w;
+              g.strokeStyle = c;
+              g.beginPath();
+              g.moveTo(pts[0][0], pts[0][1]);
+              for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+              g.stroke();
+            };
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const limb = (x, y, a1, l1, a2, l2, w, c) => {
+              const k = seg(x, y, a1, l1),
+                f = seg(k[0], k[1], a1 + a2, l2);
+              line([[x, y], k, f], w, c);
+              return [k, f];
+            };
+            // 人：hip（腰）の位置と pose（lean 体の傾き, t1/s1 手前の脚, t2/s2 奥の脚, u1/f1 手前の腕, u2/f2 奥の腕）
+            const figure = (x, y, p, L = { t: 18, s: 18, b: 30, u: 14, f: 13, h: 9 }) => {
+              const near = col("blue"),
+                far = col("sky"),
+                nx = x + sin(p.lean || 0) * L.b,
+                ny = y - cos(p.lean || 0) * L.b;
+              limb(x, y, p.t2, L.t, p.s2, L.s, 7, far);
+              limb(nx, ny + 3, p.u2, L.u, p.f2, L.f, 6, far);
+              line(
+                [
+                  [x, y],
+                  [nx, ny],
+                ],
+                11,
+                near,
+              );
+              dot(nx + sin(p.lean || 0) * (L.h + 3), ny - cos(p.lean || 0) * (L.h + 3), L.h, near);
+              limb(x, y, p.t1, L.t, p.s1, L.s, 7, near);
+              limb(nx, ny + 3, p.u1, L.u, p.f1, L.f, 6, near);
+            };
+            const ground = (y, off, gap = 22) => {
+              g.fillStyle = col("ice");
+              g.fillRect(0, y, W, H - y);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 2;
+              for (let x = -((off % gap) + gap) % gap; x < W; x += gap) {
+                g.beginPath();
+                g.moveTo(x, y + 8);
+                g.lineTo(x + 8, y + 8);
+                g.stroke();
+              }
+            };
+            // 2本の骨の IK：根元 (x, y) から長さ a, b で目標 (tx, ty) へ。bend = ±1 で曲がる向き。関節の位置を返す
+            const ik2 = (x, y, tx, ty, a, b, bend = 1) => {
+              let dx = tx - x,
+                dy = ty - y,
+                d = Math.hypot(dx, dy);
+              const dd = Math.max(Math.abs(a - b) + 0.01, Math.min(d, a + b - 0.01)),
+                base = d ? Math.atan2(dy, dx) : -Math.PI / 2,
+                c = Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd))),
+                th = base - bend * Math.acos(c);
+              return [x + cos(th) * a, y + sin(th) * a, x + cos(base) * dd, y + sin(base) * dd];
+            };
+            const lp = (a, b, k) => {
+              const o = {};
+              for (const key in a) o[key] = a[key] + (b[key] - a[key]) * k;
+              return o;
+            };
+            const ez = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2),
+              cl = (u) => Math.min(1, Math.max(0, u));
+            const txt = (s, x, y, c = col("ink-muted"), al = "left") => {
+              g.fillStyle = c;
+              g.font = "600 10px sans-serif";
+              g.textAlign = al;
+              g.fillText(s, x, y);
+            };
+            const GUARD = { lean: 0.05, t1: 0.35, s1: -0.3, t2: -0.3, s2: -0.1, u1: 2.2, f1: 1.6, u2: 2.4, f2: 1.7 };
+            return raf((t) => {
+              const T = rm ? 0.5 : t,
+                ph = T * 4,
+                p = {
+                  lean: 0.1,
+                  t1: 0.5 * sin(ph),
+                  s1: -0.6 * Math.max(0, cos(ph)),
+                  t2: -0.5 * sin(ph),
+                  s2: -0.6 * Math.max(0, -cos(ph)),
+                  u1: -0.6 * sin(ph),
+                  f1: 0.6,
+                  u2: 0.6 * sin(ph),
+                  f2: 0.6,
+                };
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = "#0f1a3d";
+              g.fillRect(0, 0, 105, H);
+              g.fillStyle = col("surface");
+              g.fillRect(105, 0, 115, H);
+              const J = (x, y) => {
+                const L = { t: 18, s: 18, b: 30, u: 14, f: 13 },
+                  nx = x + sin(p.lean) * L.b,
+                  ny = y - cos(p.lean) * L.b,
+                  k1 = seg(x, y, p.t1, L.t),
+                  a1 = seg(k1[0], k1[1], p.t1 + p.s1, L.s),
+                  k2 = seg(x, y, p.t2, L.t),
+                  a2 = seg(k2[0], k2[1], p.t2 + p.s2, L.s),
+                  e1 = seg(nx, ny + 3, p.u1, L.u),
+                  w1 = seg(e1[0], e1[1], p.u1 + p.f1, L.f),
+                  e2 = seg(nx, ny + 3, p.u2, L.u),
+                  w2 = seg(e2[0], e2[1], p.u2 + p.f2, L.f);
+                return [[x, y], [nx, ny], [nx, ny - 14], k1, a1, k2, a2, e1, w1, e2, w2];
+              };
+              for (const [x, y] of J(52, 90))
+                dot(x + (rm ? 0 : sin(T * 37 + x) * 0.8), y + (rm ? 0 : cos(T * 29 + y) * 0.8), 2.4, "#7dd3fc");
+              figure(162, 90, p);
+              txt("記録した印", 8, 16, "#7dd3fc");
+              txt("キャラクター", 112, 16);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

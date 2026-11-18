@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>慣性（モメンタム）（Momentum） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-momentum" style="position: relative; width: 220px; height: 150px">
+        <span
+          class="sb-thumb sb-grad-sky ac-momentum-t"
+          style="position: absolute; left: 0; top: 56px; width: 44px; height: 44px; border-radius: 14px"
+        ></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-momentum .ac-momentum-t {
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "momentum",
+        name: "慣性（モメンタム）",
+        en: "Momentum",
+        cat: "スプリング",
+        kind: "motion",
+        description:
+          "ドラッグして払うように離したとき、その勢いを保ったまま進み、だんだん減速して止まる動きです。指を離した瞬間にピタッと止まらないので、本物の物を投げたような感覚になります。慣性（Inertia）とも呼びます。",
+        use: "スクロール、カルーセル、地図、スワイプ、投げて並べ替えるカード。",
+        params: [{ key: "decay", label: "減速の時間", value: 700, min: 200, max: 1500, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "離した瞬間の速さを初速にして進み、指数関数的に減速：<code>位置 = 速さ × 時定数 × (1 - e^(-t / 時定数))</code>",
+          ],
+          ["止まる位置", "止まる位置を先に計算して、近いスナップ位置に合わせると気持ちよく止まる"],
+          [
+            "実装",
+            'Framer Motion の <code>type: "inertia"</code>、自前なら <code>requestAnimationFrame</code> で毎フレーム速さに摩擦を掛ける',
+          ],
+          ["動きを減らす設定", "慣性をやめ、離した位置で止める"],
+          ["出典", "Animation Vocabulary（Spring Animations）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const t = stage.querySelector(".ac-momentum-t");
+          const pts = Array.from({ length: 41 }, (_, i) => (1 - Math.exp((-5 * i) / 40)) / (1 - Math.exp(-5)));
+          const ease = `linear(${pts.map((p) => p.toFixed(4)).join(", ")})`;
+          const at = (x, ms, e) => {
+            t.style.transition = `transform ${ms}ms ${e}`;
+            t.style.transform = `translateX(${x}px)`;
+            if (!ms) void t.offsetWidth;
+          };
+          at(0, 0, "linear");
+          move(30, 140, 0);
+          const drag = Math.round(
+            (58 * v.decay) / (118 * pts[1] * 40),
+          ); /* 減速曲線の初めの傾き × 距離 118px ÷ 時間 = 引く速さ（58px） */
+          return seq(3000, [
+            [
+              100,
+              () => {
+                show(1);
+                move(22, 78, 400);
+              },
+            ],
+            [
+              550,
+              () => {
+                move(80, 78, drag);
+                at(58, drag, "linear");
+              },
+            ],
+            [
+              550 + drag,
+              () => {
+                at(rm ? 58 : 176, rm ? 0 : v.decay, ease);
+                move(110, 140, 400);
+              },
+            ],
+            [1300, () => show(0)],
+            [2300, () => at(0, 500, "cubic-bezier(0.65, 0, 0.35, 1)")],
+          ]);
+        },
+      });
+    </script>
+  </body>
+</html>

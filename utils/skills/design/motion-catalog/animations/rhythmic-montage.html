@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>リズムのモンタージュ（Rhythmic montage） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rhythmic-montage"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rhythmic-montage",
+        name: "リズムのモンタージュ",
+        en: "Rhythmic montage",
+        cat: "映像の切り替え",
+        kind: "concept",
+        description:
+          "ショットの長さと、画面の中の動きの向き・速さを組み合わせて、カットのつながりにリズムを作る考え方です。左へ動くショットと右へ動くショットをぶつけると衝突感が、同じ向きでつなぐと流れが生まれます。",
+        use: "アクション・スポーツの映像、音楽に合わせた編集、プロダクト動画のテンポづくり、UI の連続する演出。",
+        params: [{ key: "beat", label: "1拍の長さ", value: 600, min: 300, max: 1200, step: 20, unit: "ms" }],
+        spec: [
+          [
+            "組み立て",
+            "ショットの長さ（拍）と、画面の中の動きの向き（左右・上下）・速さをそろえるか、わざとぶつけるかを決める",
+          ],
+          ["衝突", "向きの違う動き、大きさの違う物を交互につなぐと緊張が高まる。同じ向きでつなぐと流れて落ち着く"],
+          ["動きを減らす設定", "切り替えを短いクロスフェード（200ms 前後）にし、映像の中の動きを止める"],
+          [
+            "出典",
+            '<a href="https://api.pageplace.de/preview/DT0400.9781040528822_A63759456/preview-9781040528822_A63759456.pdf" target="_blank" rel="noopener">api.pageplace.de（preview-9781040528822_A63759）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const VH = 106;
+            const view = (c1, c2) => {
+              const gr = g.createLinearGradient(0, 0, 0, VH);
+              gr.addColorStop(0, c1);
+              gr.addColorStop(1, c2);
+              g.fillStyle = gr;
+              g.fillRect(0, 0, W, VH);
+            };
+            const hill = (c, y, r, x = 110) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.ellipse(x, y + r * 0.9, r * 1.6, r, 0, 0, TAU);
+              g.fill();
+            };
+            const person = (x, y, s, c, dir = 1) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.roundRect(x - 9 * s, y - 22 * s, 18 * s, 26 * s, 8 * s);
+              g.fill();
+              g.beginPath();
+              g.arc(x, y - 30 * s, 8 * s, 0, TAU);
+              g.fill();
+              g.fillStyle = "#fff";
+              g.beginPath();
+              g.arc(x + dir * 4 * s, y - 31 * s, 1.6 * s, 0, TAU);
+              g.fill();
+            };
+            const label = (s, x = 8, y = 14) => {
+              g.font = "600 9px sans-serif";
+              g.textAlign = "left";
+              const w = g.measureText(s).width + 8;
+              g.fillStyle = "rgba(15,37,99,.55)";
+              g.beginPath();
+              g.roundRect(x, y - 10, w, 13, 4);
+              g.fill();
+              g.fillStyle = "#fff";
+              g.fillText(s, x + 4, y);
+            };
+            const bubble = (s, x, y) => {
+              g.font = "600 10px sans-serif";
+              g.textAlign = "center";
+              const w = g.measureText(s).width + 12;
+              g.fillStyle = "#fff";
+              g.beginPath();
+              g.roundRect(x - w / 2, y - 12, w, 17, 7);
+              g.fill();
+              g.fillStyle = col("navy");
+              g.fillText(s, x, y + 1);
+            };
+            const tl = (clips, ph, total, audio = false) => {
+              g.fillStyle = "#fff";
+              g.fillRect(0, VH, W, H - VH);
+              g.font = "600 8px sans-serif";
+              g.textAlign = "left";
+              g.fillStyle = col("ink-muted");
+              g.fillText("映像", 4, VH + 15);
+              if (audio) g.fillText("音", 4, VH + 32);
+              const X = (s) => 28 + (s / total) * 184;
+              for (const [tr, a, b, c, lab] of clips) {
+                const y = VH + (tr ? 24 : 6);
+                g.fillStyle = c;
+                g.beginPath();
+                g.roundRect(X(a) + 0.5, y, X(b) - X(a) - 1, tr ? 11 : 13, 3);
+                g.fill();
+                if (lab) {
+                  g.fillStyle = "#fff";
+                  g.fillText(lab, X(a) + 4, y + (tr ? 8.5 : 9.5));
+                }
+              }
+              const x = X(ph);
+              g.fillStyle = "#e5484d";
+              g.fillRect(x - 0.75, VH + 2, 1.5, H - VH - 4);
+            };
+            const raf0 = raf,
+              xf = (() => {
+                if (!rm) return () => {};
+                const mk = () => {
+                    const c = document.createElement("canvas");
+                    c.width = cv.width;
+                    c.height = Math.ceil(VH * dpr);
+                    return [c, c.getContext("2d")];
+                  },
+                  [pc, pg] = mk(),
+                  [nc, ng] = mk();
+                let lt = null;
+                return () => {
+                  const now = performance.now(),
+                    dt = lt === null ? null : now - lt;
+                  lt = now;
+                  ng.clearRect(0, 0, nc.width, nc.height);
+                  ng.drawImage(cv, 0, 0);
+                  if (dt !== null) {
+                    g.save();
+                    g.setTransform(1, 0, 0, 1, 0, 0);
+                    g.globalAlpha = 1;
+                    g.drawImage(pc, 0, 0);
+                    g.globalAlpha = 1 - Math.exp(-dt / 70);
+                    g.drawImage(nc, 0, 0);
+                    g.restore();
+                  }
+                  pg.clearRect(0, 0, pc.width, pc.height);
+                  pg.drawImage(cv, 0, 0);
+                };
+              })();
+            {
+              const raf = (fn) =>
+                raf0((t) => {
+                  fn(t);
+                  xf();
+                });
+              return raf((t) => {
+                const M = v.beat / 1000,
+                  T = t % (6 * M),
+                  k = Math.floor(T / M),
+                  f = (T % M) / M,
+                  dir = k % 2 ? -1 : 1,
+                  x = rm ? 110 : 110 + dir * (f * 120 - 60);
+                view(k % 2 ? "#dbeafe" : "#eaf2ff", k % 2 ? "#bfdbfe" : "#cfe2ff");
+                g.fillStyle = k % 2 ? col("cobalt") : col("blue");
+                g.beginPath();
+                g.moveTo(x + dir * 24, 54);
+                g.lineTo(x - dir * 10, 34);
+                g.lineTo(x - dir * 10, 74);
+                g.closePath();
+                g.fill();
+                for (let i = 0; i < 6; i++) dot(80 + i * 12, 96, i === k ? 4 : 2.5, i === k ? col("navy") : col("sky"));
+                tl(
+                  [0, 1, 2, 3, 4, 5].map((i) => [
+                    0,
+                    i * M,
+                    (i + 1) * M,
+                    i % 2 ? col("cobalt") : col("blue"),
+                    i % 2 ? "←" : "→",
+                  ]),
+                  T,
+                  6 * M,
+                );
+              });
+            }
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

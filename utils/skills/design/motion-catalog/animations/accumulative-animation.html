@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>変化を積み上げる（Accumulative animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-accumulative-animation" style="position: relative; width: 210px; height: 160px">
+        <svg width="210" height="120" style="position: absolute; left: 0; top: 0">
+          <path
+            d="M0,104 h40 v-18 h30 v-18 h30 v-18 h30 v-18 h30 v-18 h50"
+            fill="none"
+            stroke="var(--bar)"
+            stroke-width="2"
+          /></svg
+        ><span
+          class="sb-thumb sb-grad-sky ac-accumulative-animation-a"
+          style="width: 22px; height: 22px; border-radius: 7px; position: absolute; left: 12px; top: 82px"
+        ></span>
+        <div style="position: relative; width: 210px; height: 34px; position: absolute; left: 0; top: 124px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 16px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-shape ac-accumulative-animation-b"
+            style="position: absolute; left: 0; top: 1px; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-accumulative-animation .ac-accumulative-animation-b {
+        background: var(--shape-idle) !important;
+        width: 22px !important;
+        height: 22px !important;
+        top: 6px !important;
+        border-radius: 7px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "accumulative-animation",
+        name: "変化を積み上げる",
+        en: "Accumulative animation",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "くり返すたびに、前回の終わりの値を引き継いで変化を積み上げていく考え方です。上は1段ずつ階段を登り続け、下はくり返すたびに最初の位置へ戻ります。同じ1回分の動きでも、積み上げるかどうかで意味が変わります。",
+        use: "階段・ステップの進行、回り続けるダイヤル、1回ずつ増えるメーター、ゲームの移動。",
+        params: [
+          { key: "dur", label: "1回の時間", value: 500, min: 200, max: 1200, step: 50, unit: "ms" },
+          { key: "n", label: "くり返し", value: 4, min: 2, max: 6, step: 1, unit: "回" },
+        ],
+        total: (p) => p["dur"] * p["n"],
+        spec: [
+          [
+            "書き方",
+            '仕様では Web Animations の <code>iterationComposite: "accumulate"</code>。対応していないブラウザがあるため、1回分の終わりの値をくり返しごとに足したキーフレームを並べる方法が確実',
+          ],
+          [
+            "このデモ",
+            "1回分は <code>translate(30px, -18px)</code>（跳ねるように out）。上は積み上げ、下は毎回置き換え（replace）",
+          ],
+          ["動きを減らす設定", "跳ねる動きをやめ、最後の段に置く"],
+          [
+            "出典",
+            '<a href="https://www.w3.org/TR/web-animations-1/" target="_blank" rel="noopener">W3C Web Animations</a>',
+          ],
+        ],
+        loop: 3400,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const a = stage.querySelector(".ac-accumulative-animation-a"),
+              b = stage.querySelector(".ac-accumulative-animation-b");
+            if (rm) {
+              a.style.transform = `translate(${30 * v.n}px, ${-18 * v.n}px)`;
+              return null;
+            }
+            // 1回分（30px 右・18px 上へ跳ねる）を、くり返すたびに前回の終わりへ足していく
+            const kf = [];
+            for (let i = 0; i < v.n; i++)
+              kf.push(
+                {
+                  transform: `translate(${30 * i}px, ${-18 * i}px)`,
+                  offset: i / v.n,
+                  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                },
+                {
+                  transform: `translate(${30 * i + 15}px, ${-18 * i - 26}px)`,
+                  offset: (i + 0.5) / v.n,
+                  easing: "cubic-bezier(0.55, 0, 1, 0.45)",
+                },
+              );
+            kf.push({ transform: `translate(${30 * v.n}px, ${-18 * v.n}px)`, offset: 1 });
+            const x = a.animate(kf, { duration: v.dur * v.n, fill: "forwards" });
+            const y = b.animate([{ transform: "translateX(0)" }, { transform: "translateX(30px)" }], {
+              duration: v.dur,
+              iterations: v.n,
+              fill: "forwards",
+              easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+            });
+            return () => {
+              x.cancel();
+              y.cancel();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

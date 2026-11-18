@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>口パク（Lip sync） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-lip-sync" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-lip-sync-hd">
+          <i class="ac-lip-sync-e ac-lip-sync-l"></i><i class="ac-lip-sync-e ac-lip-sync-r"></i
+          ><i class="ac-lip-sync-m"></i>
+        </div>
+        <span class="ac-lip-sync-sy"></span
+        ><span class="ac-lip-sync-wv"
+          ><i style="--i: 0"></i><i style="--i: 1"></i><i style="--i: 2"></i><i style="--i: 3"></i><i style="--i: 4"></i
+          ><i style="--i: 5"></i><i style="--i: 6"></i><i style="--i: 7"></i><i style="--i: 8"></i><i style="--i: 9"></i
+          ><i style="--i: 10"></i><i style="--i: 11"></i><i style="--i: 12"></i><i style="--i: 13"></i
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-lip-sync .ac-lip-sync-hd {
+        position: absolute;
+        left: 65px;
+        top: 30px;
+        width: 90px;
+        height: 90px;
+        border-radius: 46% 46% 44% 44%;
+        background: linear-gradient(160deg, var(--ice), var(--sky));
+        box-shadow: inset -8px -10px 0 rgba(37, 99, 235, 0.12);
+      }
+      .ac-lip-sync .ac-lip-sync-e {
+        position: absolute;
+        top: 32px;
+        width: 10px;
+        height: 14px;
+        border-radius: 5px;
+        background: var(--navy);
+      }
+      .ac-lip-sync .ac-lip-sync-l {
+        left: 26px;
+      }
+      .ac-lip-sync .ac-lip-sync-r {
+        right: 26px;
+      }
+      .ac-lip-sync .ac-lip-sync-m {
+        position: absolute;
+        left: 50%;
+        top: 60px;
+        width: 22px;
+        height: 4px;
+        margin-left: -11px;
+        border-radius: 3px;
+        background: var(--navy);
+      }
+      .ac-lip-sync .ac-lip-sync-hd {
+        top: 12px;
+      }
+      .ac-lip-sync .ac-lip-sync-m {
+        transition:
+          width 60ms ease-out,
+          height 60ms ease-out,
+          margin-left 60ms ease-out,
+          border-radius 60ms ease-out;
+      }
+      .ac-lip-sync .ac-lip-sync-m.is-A {
+        height: 20px;
+        width: 22px;
+        margin-left: -11px;
+        border-radius: 10px 10px 12px 12px;
+      }
+      .ac-lip-sync .ac-lip-sync-m.is-I {
+        height: 7px;
+        width: 30px;
+        margin-left: -15px;
+        border-radius: 4px;
+      }
+      .ac-lip-sync .ac-lip-sync-m.is-U {
+        height: 11px;
+        width: 11px;
+        margin-left: -5.5px;
+        border-radius: 50%;
+      }
+      .ac-lip-sync .ac-lip-sync-m.is-E {
+        height: 11px;
+        width: 24px;
+        margin-left: -12px;
+        border-radius: 6px;
+      }
+      .ac-lip-sync .ac-lip-sync-m.is-O {
+        height: 17px;
+        width: 15px;
+        margin-left: -7.5px;
+        border-radius: 50%;
+      }
+      .ac-lip-sync .ac-lip-sync-sy {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 108px;
+        text-align: center;
+        font: 700 13px var(--font-sans);
+        color: var(--ink-muted);
+      }
+      .ac-lip-sync .ac-lip-sync-wv {
+        position: absolute;
+        left: 54px;
+        top: 128px;
+        display: flex;
+        gap: 3px;
+        align-items: center;
+        height: 18px;
+      }
+      .ac-lip-sync .ac-lip-sync-wv i {
+        width: 5px;
+        height: 18px;
+        border-radius: 2px;
+        background: var(--sky);
+        transform: scaleY(calc(4 / 18));
+        transition: transform 80ms;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "lip-sync",
+        name: "口パク",
+        en: "Lip sync",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "声に合わせて、口の形を「ア・イ・ウ・エ・オ・閉じる」などの数種類の形から選んで切り替え、話しているように見せる方法です。音の形（母音）に合わせることと、少し早めに口を動かすことが、ずれなく見せるこつです。",
+        use: "話すキャラクター（アシスタント・マスコット）、読み上げ中の表示、動画のアバター、ゲームの会話シーン。",
+        params: [{ key: "lead", label: "口を先に動かす時間", value: 60, min: 0, max: 160, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "口の形",
+            "閉じる（ン・マ行）、ア（大きく開く）、イ（横に広い）、ウ（小さく丸）、エ（中くらい）、オ（縦に丸）の 6 種類が基本",
+          ],
+          ["合わせ方", "音より 1〜2 コマ（40〜80ms）早く形を変える。速い音は飛ばし、母音を優先する"],
+          ["本格的に", "音声を解析して形を自動で選ぶ（Live2D の LipSync、音量で開き具合を決める簡易版もある）"],
+          ["動きを減らす設定", "口の形の切り替えはそのまま、波形の動きを止める"],
+          [
+            "出典",
+            '<a href="https://docs.live2d.com/en/cubism-sdk-manual/top/" target="_blank" rel="noopener">Live2D Cubism SDK マニュアル</a>、<a href="https://aplusc.tv/blog/resource/glossary-of-animation-terms/" target="_blank" rel="noopener">A+C Studios: Glossary of Animation Terms</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const m = stage.querySelector(".ac-lip-sync-m"),
+              sy = stage.querySelector(".ac-lip-sync-sy"),
+              bars = [...stage.querySelectorAll(".ac-lip-sync-wv i")];
+            const words = [
+              ["こ", "O", 0],
+              ["ん", "M", 170],
+              ["に", "I", 300],
+              ["ち", "I", 450],
+              ["は", "A", 600],
+              ["", "M", 900],
+              ["あ", "A", 1300],
+              ["り", "I", 1460],
+              ["が", "A", 1600],
+              ["と", "O", 1760],
+              ["う", "U", 1920],
+              ["", "M", 2200],
+            ];
+            const steps = [];
+            for (const [s, f, at] of words) {
+              steps.push([
+                Math.max(0, at - v.lead),
+                () => {
+                  m.className = "ac-lip-sync-m" + (f === "M" ? "" : " is-" + f);
+                },
+              ]);
+              steps.push([
+                at,
+                () => {
+                  if (s) sy.textContent = (sy.textContent.length > 8 ? "" : sy.textContent) + s;
+                  bars.forEach((b) => {
+                    b.style.transform = `scaleY(${((s && !rm ? 4 + Math.random() * 14 : 4) / 18).toFixed(3)})`;
+                  });
+                },
+              ]);
+            }
+            steps.push([
+              2900,
+              () => {
+                sy.textContent = "";
+              },
+            ]);
+            return seq(3000, steps);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

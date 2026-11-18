@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ステップアニメーション（Stepped animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-stepped-animation"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div class="sb-progress" style="width: 200px"><i class="ac-stepped-animation-p" style="width: 100%"></i></div>
+        <div class="" style="position: relative; width: 200px; height: 40px; margin-top: 22px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 19px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-stepped-animation-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 12px; top: 4px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-stepped-animation .ac-stepped-animation-p {
+        transform-origin: left;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-stepped-animation .ac-stepped-animation-p {
+          animation: ac-stepped-animation-fill var(--dur, 1500ms) steps(var(--steps, 5), end) both;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-stepped-animation .ac-stepped-animation-t {
+          animation: ac-stepped-animation-move var(--dur, 1500ms) steps(var(--steps, 5), end) both;
+        }
+      }
+      @keyframes ac-stepped-animation-fill {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes ac-stepped-animation-move {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-stepped-animation .ac-stepped-animation-t {
+          transform: translateX(168px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "stepped-animation",
+        name: "ステップアニメーション",
+        en: "Stepped animation",
+        cat: "順序・タイミング",
+        kind: "motion",
+        description:
+          "なめらかに補間せず、決まった段数でカクカクと進む動きです。カウントダウン、時計の秒針、コマ送りのスプライトのように、区切りそのものに意味があるときに使います。",
+        use: "カウントダウン、進捗の段階表示、スプライトアニメーション、タイプライター。",
+        params: [
+          { key: "steps", label: "段数", value: 5, min: 2, max: 12, step: 1, unit: "" },
+          { key: "dur", label: "時間", value: 1500, min: 500, max: 3000, step: 100, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["進み方", "<code>animation-timing-function: steps(段数, end)</code>"],
+          ["デモ", "進捗バー（blue）と四角が同じ段数で進む"],
+          ["動きを減らす設定", "段ごとの移動をやめ、終わりの状態を表示する"],
+          ["出典", "Animation Vocabulary（Sequencing & Timing）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

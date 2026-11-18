@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>車の動き（Vehicle motion (suspension)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-vehicle-motion"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "vehicle-motion",
+        name: "車の動き",
+        en: "Vehicle motion (suspension)",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "車が凸凹の道を走るとき、車輪は地面の形に沿って上下し、車体はばね（サスペンション）を通して少し遅れて傾き・揺れる動きです。車体と車輪を別々に動かすことで、重さと乗り心地が感じられます。",
+        use: "配送・移動サービスのローディング、地図の進行の演出、ゲームの車、ブランドの乗り物のイラスト。",
+        params: [{ key: "bump", label: "道の凸凹", value: 10, min: 0, max: 22, step: 1, unit: "px" }],
+        spec: [
+          ["車輪", "前後の車輪の高さを、それぞれの位置の地面の高さに合わせる。回転量 = 進んだ距離 ÷ 半径"],
+          ["車体", "前後の車輪の高さの平均を目標の高さ、差を目標の傾きにし、ばね（剛さ・減衰）で遅れて追わせる"],
+          ["本格的に", "物理エンジンの車両（Rapier の vehicle controller）で、ばねとタイヤの摩擦を計算する"],
+          ["動きを減らす設定", "走る動きを止め、平らな道で止まった状態にする"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/files.json" target="_blank" rel="noopener">three.js examples（一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let off = 0,
+              last = 0,
+              by = 0,
+              bv = 0,
+              ba = 0,
+              bav = 0;
+            const gnd = (x) =>
+              120 - v.bump * (0.6 * sin(x * 0.045) + 0.4 * sin(x * 0.11 + 1) * (sin(x * 0.01) > 0 ? 1 : 0.3));
+            return raf((t) => {
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              if (!rm) off += 70 * dt;
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.beginPath();
+              g.moveTo(0, H);
+              for (let x = 0; x <= W; x += 4) g.lineTo(x, gnd(x + off));
+              g.lineTo(W, H);
+              g.fill();
+              const fx2 = 140,
+                rx = 80,
+                R = 11,
+                fy = gnd(fx2 + off) - R,
+                ry = gnd(rx + off) - R,
+                ty = (fy + ry) / 2 - 16,
+                ta = Math.atan2(fy - ry, fx2 - rx);
+              bv += ((ty - by) * 160 - bv * 14) * dt;
+              by += bv * dt;
+              bav += ((ta - ba) * 160 - bav * 12) * dt;
+              ba += bav * dt;
+              if (rm) {
+                by = ty;
+                ba = ta;
+              }
+              g.save();
+              g.translate(110, by);
+              g.rotate(ba);
+              g.fillStyle = col("blue");
+              g.beginPath();
+              g.roundRect(-46, -14, 92, 24, 8);
+              g.fill();
+              g.fillStyle = col("cobalt");
+              g.beginPath();
+              g.roundRect(-24, -30, 50, 20, 7);
+              g.fill();
+              g.fillStyle = col("ice");
+              g.fillRect(-16, -26, 16, 12);
+              g.fillRect(4, -26, 16, 12);
+              g.restore();
+              [
+                [rx, ry],
+                [fx2, fy],
+              ].forEach(([x, y]) => {
+                g.strokeStyle = col("ink-muted");
+                g.lineWidth = 2;
+                g.beginPath();
+                g.moveTo(x, y);
+                g.lineTo(x + (110 - x) * 0.1, by + (x - 110) * Math.tan(ba) + 6);
+                g.stroke();
+                dot(x, y, R, col("navy"));
+                dot(x, y, 4, "#fff");
+                const a = off / R;
+                g.strokeStyle = "#fff";
+                g.lineWidth = 2;
+                g.beginPath();
+                g.moveTo(x, y);
+                g.lineTo(x + cos(a) * 8, y + sin(a) * 8);
+                g.stroke();
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

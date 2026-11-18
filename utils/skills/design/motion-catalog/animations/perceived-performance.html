@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>体感速度（Perceived performance） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-perceived-performance" style="position: relative; width: 220px; height: 130px">
+        <div class="sb-card ac-perceived-performance-p" style="left: 0">
+          <span class="ac-perceived-performance-spin"></span>
+          <div class="ac-perceived-performance-a">
+            <span class="sb-thumb sb-grad-aqua" style="width: 76px; height: 40px; border-radius: 10px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 60px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 44px"></span>
+          </div>
+        </div>
+        <div class="sb-card ac-perceived-performance-p" style="right: 0">
+          <div class="ac-perceived-performance-b">
+            <span class="ac-perceived-performance-sk" style="height: 40px"
+              ><span
+                class="sb-thumb sb-grad-aqua ac-perceived-performance-r"
+                style="width: 76px; height: 40px; border-radius: 10px; --k: 2"
+              ></span></span
+            ><span class="ac-perceived-performance-sk" style="height: 10px; width: 60px"
+              ><span
+                class="sb-bar sb-bar--xs sb-bar--strong ac-perceived-performance-r"
+                style="width: 60px; --k: 1"
+              ></span></span
+            ><span class="ac-perceived-performance-sk" style="height: 6px; width: 44px"
+              ><span
+                class="sb-bar sb-bar--xxs sb-bar--soft ac-perceived-performance-r"
+                style="width: 44px; --k: 3"
+              ></span
+            ></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-perceived-performance .ac-perceived-performance-p {
+        position: absolute;
+        top: 10px;
+        width: 104px;
+        height: 110px;
+        padding: 12px 14px;
+        box-sizing: border-box;
+      }
+      .ac-perceived-performance .ac-perceived-performance-spin {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 22px;
+        height: 22px;
+        margin: -11px;
+        border-radius: 50%;
+        box-sizing: border-box;
+        border: 3px solid var(--bar);
+        border-top-color: var(--blue);
+        animation: ac-perceived-performance-hide 1ms 1600ms forwards;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-perceived-performance .ac-perceived-performance-spin {
+          animation:
+            ac-perceived-performance-rot 700ms linear infinite,
+            ac-perceived-performance-hide 1ms 1600ms forwards;
+        }
+      }
+      .ac-perceived-performance .ac-perceived-performance-a {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        opacity: 0;
+        animation: ac-perceived-performance-show 200ms cubic-bezier(0.22, 1, 0.36, 1) 1600ms forwards;
+      }
+      .ac-perceived-performance .ac-perceived-performance-b {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .ac-perceived-performance .ac-perceived-performance-sk {
+        display: block;
+        border-radius: 10px;
+        background: var(--bar-soft);
+      }
+      .ac-perceived-performance .ac-perceived-performance-r {
+        display: block;
+        opacity: 0;
+        animation: ac-perceived-performance-show 250ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--k) * 500ms) forwards;
+      }
+      @keyframes ac-perceived-performance-rot {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes ac-perceived-performance-hide {
+        to {
+          opacity: 0;
+        }
+      }
+      @keyframes ac-perceived-performance-show {
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "perceived-performance",
+        name: "体感速度",
+        en: "Perceived performance",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "実際の速さが同じでも、見せ方しだいで速く感じさせられるという考え方です。左はスピナーのあと一度に表示、右はすぐに型（スケルトン）を出して、届いた順に中身を見せます。同じ時間でも右のほうが速く感じます。",
+        use: "読み込み・送信・画面遷移など、待ち時間のあるすべての場面。",
+        params: [],
+        spec: [
+          [
+            "手法",
+            "スケルトンを先に出す、届いた順に表示する、押した瞬間に反応する（楽観的 UI）、遷移の動きで待ち時間を埋める",
+          ],
+          ["時間の目安", "100ms 以内は即時、1 秒以内は流れが途切れない、それ以上は進捗を見せる"],
+          ["デモ", "どちらも 1.6 秒で読み込み終わる"],
+          ["動きを減らす設定", "読み込み中は静止表示"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 3200,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ケン・バーンズ（Ken Burns effect） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ken-burns"
+        style="position: relative; width: 220px; height: 140px; border-radius: 20px; overflow: hidden"
+      >
+        <div class="ac-ken-burns-img sb-grad-hero">
+          <span
+            style="
+              position: absolute;
+              left: 150px;
+              top: 22px;
+              width: 34px;
+              height: 34px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.9);
+            "
+          ></span
+          ><span
+            style="
+              position: absolute;
+              left: -30px;
+              top: 84px;
+              width: 170px;
+              height: 110px;
+              border-radius: 50%;
+              background: var(--cobalt);
+              opacity: 0.55;
+            "
+          ></span
+          ><span
+            style="
+              position: absolute;
+              left: 90px;
+              top: 96px;
+              width: 190px;
+              height: 110px;
+              border-radius: 50%;
+              background: var(--navy);
+              opacity: 0.5;
+            "
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-ken-burns .ac-ken-burns-img {
+        position: absolute;
+        inset: 0;
+        transform-origin: 30% 40%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-ken-burns .ac-ken-burns-img {
+          animation: ac-ken-burns-kb var(--dur, 9000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-ken-burns-kb {
+        from {
+          transform: scale(1) translate(0, 0);
+        }
+        to {
+          transform: scale(var(--zoom, 1.18))
+            translate(calc((var(--zoom, 1.18) - 1) / 0.18 * -4%), calc((var(--zoom, 1.18) - 1) / 0.18 * -3%));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ken-burns",
+        name: "ケン・バーンズ",
+        en: "Ken Burns effect",
+        cat: "ループ・常時の動き",
+        kind: "motion",
+        description:
+          "止まった写真を、ゆっくり拡大しながら少しずつ横へずらして見せる動きです。静止画に映画のような時間の流れが生まれ、視線を写真の見どころへ導けます。",
+        use: "ヒーローの背景写真、スライドショー、記事のアイキャッチ、動画の代わりの演出。",
+        params: [
+          { key: "dur", label: "時間", value: 9000, min: 3000, max: 20000, step: 500, unit: "ms" },
+          { key: "zoom", label: "拡大", value: 1.18, min: 1.02, max: 1.5, step: 0.02, unit: "" },
+        ],
+        spec: [
+          [
+            "動き",
+            "<code>scale(1 → 拡大)</code> と <code>translate(0 → -4%, -3%)</code>（拡大 1.18 のとき。拡大に比例させる）を同時に｜in-out｜行き来（alternate）か、写真ごとに向きを変える",
+          ],
+          ["見た目", "枠は <code>overflow: hidden</code>。拡大しても枠の外が見えない量にとどめる"],
+          ["動きを減らす設定", "拡大と移動を止め、静止画にする"],
+          [
+            "出典",
+            '<a href="https://support.apple.com/guide/final-cut-pro/pan-and-zoom-clips-verb8e5de9c/12.4/mac/26.6" target="_blank" rel="noopener">Apple: Ken Burns effect（Final Cut Pro）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

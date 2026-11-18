@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>見えないカット（Invisible cut） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-invisible-cut"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-invisible-cut-s ac-invisible-cut-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-invisible-cut-s ac-invisible-cut-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+        <span class="ac-invisible-cut-w"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-invisible-cut .ac-invisible-cut-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-invisible-cut .ac-invisible-cut-a,
+      .ac-invisible-cut .ac-invisible-cut-b {
+        inset: 0 -40px 0 0;
+        animation: ac-invisible-cut-pan var(--dur, 2600ms) linear infinite;
+      }
+      .ac-invisible-cut .ac-invisible-cut-b {
+        animation-name: ac-invisible-cut-pan, ac-invisible-cut-sw;
+        animation-timing-function: linear, step-end;
+      }
+      .ac-invisible-cut .ac-invisible-cut-w {
+        position: absolute;
+        top: -10px;
+        bottom: -10px;
+        left: 0;
+        width: 400px;
+        background: linear-gradient(90deg, transparent, #0b1430 15% 85%, transparent);
+        animation: ac-invisible-cut-wall var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+      @keyframes ac-invisible-cut-pan {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-40px);
+        }
+      }
+      @keyframes ac-invisible-cut-sw {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-invisible-cut-wall {
+        0%,
+        20% {
+          transform: translateX(240px);
+        }
+        80%,
+        100% {
+          transform: translateX(-420px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-invisible-cut .ac-invisible-cut-w {
+          display: none;
+        }
+        .ac-invisible-cut .ac-invisible-cut-a {
+          animation: none;
+        }
+        .ac-invisible-cut .ac-invisible-cut-b {
+          animation-name: none, ac-invisible-cut-sw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "invisible-cut",
+        name: "見えないカット",
+        en: "Invisible cut",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "画面いっぱいに何かが横切る瞬間（柱、人の体、暗がり）にこっそり切り替え、1つの長いショットのように見せる方法です。切れ目が見えないので、途切れのない流れを作れます。",
+        use: "ワンカット風のブランド動画、スクロールでつながるストーリー、場面をまたぐヒーロー。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["書き方", "手前の物（ここでは暗い柱）を画面の外から外へ横切らせ、画面を完全におおった瞬間に A → B をカット"],
+          ["カメラ", "柱の前後で、背景も同じ向き・速さで流しておくとつながる"],
+          ["UI では", "全面をおおうパネルが通り過ぎる間に、裏で画面を入れ替える"],
+          ["動きを減らす設定", "横切る物と背景の流れをやめ、カットだけにする"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>、<a href="https://en.wikipedia.org/wiki/Wipe_(transition)" target="_blank" rel="noopener">Wikipedia: Wipe (transition)</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

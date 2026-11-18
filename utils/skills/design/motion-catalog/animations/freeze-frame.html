@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>途中で止める（Freeze frame） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-freeze-frame"
+        style="position: relative; width: 210px; height: 80px; display: grid; align-items: center"
+      >
+        <div style="position: relative; width: 210px; height: 34px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 16px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-freeze-frame-t"
+            style="position: absolute; left: 0; top: 1px; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+        <span class="ac-freeze-frame-ring"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-freeze-frame .ac-freeze-frame-t {
+          animation:
+            ac-freeze-frame-a var(--dur, 500ms) cubic-bezier(0.22, 1, 0.36, 1) forwards,
+            ac-freeze-frame-b var(--dur, 500ms) cubic-bezier(0.55, 0, 1, 0.45)
+              calc(var(--dur, 500ms) + var(--hold, 600ms)) forwards;
+        }
+      }
+      .ac-freeze-frame .ac-freeze-frame-ring {
+        position: absolute;
+        left: 96px;
+        top: 40px;
+        width: 32px;
+        height: 32px;
+        margin: -16px 0 0 0;
+        border-radius: 10px;
+        border: 2px solid var(--blue);
+        opacity: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-freeze-frame .ac-freeze-frame-ring {
+          animation: ac-freeze-frame-r var(--hold, 600ms) cubic-bezier(0.22, 1, 0.36, 1) var(--dur, 500ms);
+        }
+      }
+      @keyframes ac-freeze-frame-a {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(80px);
+        }
+      }
+      @keyframes ac-freeze-frame-b {
+        from {
+          transform: translateX(80px);
+        }
+        to {
+          transform: translateX(170px);
+        }
+      }
+      @keyframes ac-freeze-frame-r {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(1.8);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-freeze-frame .ac-freeze-frame-t {
+          transform: translateX(80px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "freeze-frame",
+        name: "途中で止める",
+        en: "Freeze frame",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "動きの途中の1コマを、わざと少しのあいだ止めて見せる考え方です。止まった瞬間に視線が集まるので、決定的な瞬間や大事な状態を強調できます。",
+        use: "ゲームの決めの瞬間、比較の途中経過、ストーリー仕立ての説明、スポーツのハイライト。",
+        params: [
+          { key: "hold", label: "止める時間", value: 600, min: 0, max: 1500, step: 50, unit: "ms" },
+          { key: "dur", label: "前後の動きの時間", value: 500, min: 200, max: 1200, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["dur"] * 2 + p["hold"],
+        spec: [
+          [
+            "動き",
+            "前半：<code>translateX(0 → 80px)</code>｜out、止める時間だけ保持、後半：<code>translateX(80px → 170px)</code>｜in",
+          ],
+          [
+            "書き方",
+            "前半を <code>forwards</code>（CSS は <code>animation-fill-mode</code>）、後半を「前半 + 止める時間」の遅延で開始（<code>fill: forwards</code> のみ。<code>both</code> にすると待っている間に後半の値が勝つ）",
+          ],
+          ["強調", "止めている間に輪を広げるなど、止まったことを示す合図を添えてもよい"],
+          ["動きを減らす設定", "動きをやめ、止める瞬間の姿だけを見せる"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/animate-in-after-effects/time-stretching-and-time-remapping/time-stretching-time-remapping.html" target="_blank" rel="noopener">Adobe After Effects: タイムリマップ</a>',
+          ],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>行ごとのカチッという振動（Row-based haptic detents） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-haptic-detents"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "haptic-detents",
+        name: "行ごとのカチッという振動",
+        en: "Row-based haptic detents",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "リストやピッカーをスクロールしているとき、新しい行が基準の位置を通るたびに、端末をごく短く「カチッ」と振動させる方法です。目で見なくても、何行動いたかが指先で数えられ、ダイヤルを回しているような手応えになります。",
+        use: "日付・時刻のピッカー、数値のホイール、スライダーの目盛り。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "スクロール位置から「今どの行が基準の位置にあるか」を求め、その番号が変わった瞬間に短い振動（selection の触感）を 1 回出す",
+          ],
+          ["間引く", "速くはじいたときは間隔（30〜50ms 以上）を空け、止まった行で最後の 1 回を出す"],
+          [
+            "iOS / Android では",
+            "<code>UISelectionFeedbackGenerator.selectionChanged()</code>、SwiftUI の <code>.sensoryFeedback(.selection, trigger:)</code>、Android の <code>HapticFeedbackConstants.CLOCK_TICK</code>",
+          ],
+          ["動きを減らす設定", "スクロールの慣性をやめ、行ごとに送る動きと振動の印だけにする"],
+          [
+            "出典",
+            '<a href="https://developer.apple.com/design/human-interface-guidelines/digital-crown.md" target="_blank" rel="noopener">developer.apple.com（digital-crown）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let pos = 0,
+              vel = 0,
+              last = 0,
+              lastRow = 0,
+              buzz = 0,
+              t0 = -9;
+            return raf((t) => {
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              if (t - t0 > 3.2) {
+                vel = rm ? 0 : (Math.floor(t / 3.2) % 2 ? -1 : 1) * 260;
+                t0 = t;
+                if (rm) pos = Math.round(pos / 24 + 3) * 24;
+              }
+              if (!rm) {
+                pos += vel * dt;
+                vel *= Math.pow(0.18, dt);
+                if (Math.abs(vel) < 8) {
+                  const tgt = Math.round(pos / 24) * 24;
+                  pos += (tgt - pos) * (1 - Math.pow(0.8, dt * 60));
+                  vel = 0;
+                }
+              }
+              const row = Math.round(pos / 24);
+              if (row !== lastRow) {
+                lastRow = row;
+                buzz = 1;
+              }
+              buzz = Math.max(0, buzz - dt * 9);
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.beginPath();
+              g.roundRect(30, 63, 110, 24, 8);
+              g.fill();
+              for (let k = -4; k <= 4; k++) {
+                const i = row + k,
+                  y = 75 + i * 24 - pos,
+                  d = Math.abs(y - 75) / 75;
+                if (y < -10 || y > H + 10) continue;
+                g.globalAlpha = Math.max(0.15, 1 - d);
+                g.fillStyle = Math.abs(y - 75) < 12 ? col("navy") : col("ink-muted");
+                g.font = "600 13px sans-serif";
+                g.textAlign = "center";
+                g.fillText(String(((i % 60) + 60) % 60).padStart(2, "0") + " 分", 85, y + 5);
+              }
+              g.globalAlpha = 1;
+              const dx = buzz && !rm ? sin(t * 120) * buzz * 1.5 : 0;
+              g.strokeStyle = col("navy");
+              g.lineWidth = 2;
+              g.beginPath();
+              g.roundRect(168 + dx, 53, 26, 44, 6);
+              g.stroke();
+              if (buzz > 0.05) {
+                g.strokeStyle = `rgba(37,99,235,${buzz})`;
+                g.lineWidth = 1.6;
+                g.beginPath();
+                g.arc(181, 75, 24, -0.5, 0.5);
+                g.stroke();
+                g.beginPath();
+                g.arc(181, 75, 24, Math.PI - 0.5, Math.PI + 0.5);
+                g.stroke();
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>蝶番で落ちる（Hinge drop） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hinge-drop"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center; overflow: visible"
+      >
+        <div
+          class="sb-card ac-hinge-drop-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hinge-drop .ac-hinge-drop-c {
+        transform-origin: top left;
+        animation:
+          ac-hinge-drop-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-hinge-drop-out var(--out, 2000ms) ease-in-out 900ms forwards;
+      }
+      @keyframes ac-hinge-drop-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-hinge-drop-out {
+        0% {
+          transform: rotate(0);
+        }
+        20%,
+        60% {
+          transform: rotate(80deg);
+        }
+        40%,
+        80% {
+          transform: rotate(60deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(var(--drop, 200px)) rotate(60deg);
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-hinge-drop-out {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hinge-drop",
+        name: "蝶番で落ちる",
+        en: "Hinge drop",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "左上の角だけで留まった板が、ぶらぶらと揺れたあと外れて下へ落ちる退出の動きです。「壊れた」「取れた」ことを、物理的なユーモアで伝えます。",
+        use: "404 などのエラー画面、遊びのある削除、ゲームの演出。",
+        params: [
+          { key: "out", label: "落ちるまでの時間", value: 2000, min: 1000, max: 3500, step: 100, unit: "ms" },
+          { key: "drop", label: "落ちる距離", value: 200, min: 80, max: 400, step: 10, unit: "px" },
+        ],
+        total: (p) => 300 + 600 + p["out"],
+        spec: [
+          [
+            "揺れ",
+            "<code>transform-origin: top left</code>｜<code>rotate 0 → 80deg → 60deg → 80deg → 60deg</code>｜in-out",
+          ],
+          ["落下", "最後の 20% で <code>translateY(落ちる距離)</code> と <code>opacity → 0</code>"],
+          ["動きを減らす設定", "揺れと落下をやめ、透明度で消すだけにする"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 3400,
+      });
+    </script>
+  </body>
+</html>

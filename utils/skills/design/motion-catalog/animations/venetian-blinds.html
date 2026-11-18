@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ブラインド（Venetian blinds） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-venetian-blinds"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-venetian-blinds-s ac-venetian-blinds-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-venetian-blinds-s ac-venetian-blinds-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-venetian-blinds .ac-venetian-blinds-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-venetian-blinds .ac-venetian-blinds-b {
+        animation: ac-venetian-blinds-t var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      @keyframes ac-venetian-blinds-t {
+        0%,
+        28% {
+          clip-path: polygon(
+            0 0px,
+            100% 0px,
+            100% 0px,
+            0 0px,
+            0 18.75px,
+            100% 18.75px,
+            100% 18.75px,
+            0 18.75px,
+            0 37.5px,
+            100% 37.5px,
+            100% 37.5px,
+            0 37.5px,
+            0 56.25px,
+            100% 56.25px,
+            100% 56.25px,
+            0 56.25px,
+            0 75px,
+            100% 75px,
+            100% 75px,
+            0 75px,
+            0 93.75px,
+            100% 93.75px,
+            100% 93.75px,
+            0 93.75px,
+            0 112.5px,
+            100% 112.5px,
+            100% 112.5px,
+            0 112.5px,
+            0 131.25px,
+            100% 131.25px,
+            100% 131.25px,
+            0 131.25px
+          );
+        }
+        72%,
+        100% {
+          clip-path: polygon(
+            0 0px,
+            100% 0px,
+            100% 18.75px,
+            0 18.75px,
+            0 18.75px,
+            100% 18.75px,
+            100% 37.5px,
+            0 37.5px,
+            0 37.5px,
+            100% 37.5px,
+            100% 56.25px,
+            0 56.25px,
+            0 56.25px,
+            100% 56.25px,
+            100% 75px,
+            0 75px,
+            0 75px,
+            100% 75px,
+            100% 93.75px,
+            0 93.75px,
+            0 93.75px,
+            100% 93.75px,
+            100% 112.5px,
+            0 112.5px,
+            0 112.5px,
+            100% 112.5px,
+            100% 131.25px,
+            0 131.25px,
+            0 131.25px,
+            100% 131.25px,
+            100% 150px,
+            0 150px
+          );
+        }
+      }
+      @keyframes ac-venetian-blinds-rf2 {
+        0%,
+        45% {
+          opacity: 0;
+        }
+        55%,
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-venetian-blinds .ac-venetian-blinds-b {
+          animation-name: ac-venetian-blinds-rf2;
+          clip-path: none;
+          -webkit-mask: none;
+          mask: none;
+          transform: none;
+          filter: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "venetian-blinds",
+        name: "ブラインド",
+        en: "Venetian blinds",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "画面を細い横縞に分け、ブラインドの羽根が開くように、すべての縞が同時に太くなって次のショットを見せる切り替えです。",
+        use: "写真のスライドショー、プレゼン資料の画面切り替え、すっきりとした場面転換。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "次のショットの <code>clip-path: polygon()</code> に縞の数だけ長方形を並べ、各縞の下の辺を 0 → 縞の幅 だけ下げる（頂点の数は変えない）",
+          ],
+          ["向き", "縦の縞なら x と y を入れ替える。縞の幅は 12〜24px"],
+          ["ずらし", "縞ごとに少し時間差をつけると、波のように開く"],
+          ["動きを減らす設定", "切り替えを短いクロスフェード（200ms 前後）にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/premiere/desktop/add-video-effects/effects-and-transitions-library/list-of-video-transitions.html" target="_blank" rel="noopener">Adobe Premiere: List of Video transitions</a>、<a href="https://docs.imaster.org/davinci-resolve-21-manual/part-7-editing-effects-and-transitions/ch.-55-using-transitions" target="_blank" rel="noopener">DaVinci Resolve 21 リファレンスマニュアル（写し）: Using Transitions</a>、<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Transition）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

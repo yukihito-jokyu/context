@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>映像が入った文字（Video-filled text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-video-filled-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="ac-video-filled-text-t"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 56px;
+            line-height: 72px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+          "
+        >
+          WAVE
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-video-filled-text .ac-video-filled-text-t {
+        background:
+          radial-gradient(circle at 20% 30%, var(--aqua), transparent 40%),
+          radial-gradient(circle at 80% 70%, var(--cobalt), transparent 45%),
+          radial-gradient(circle at 50% 50%, var(--sky), var(--navy));
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent !important;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-video-filled-text .ac-video-filled-text-t {
+          animation: ac-video-filled-text-v var(--dur, 6000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-video-filled-text-v {
+        0% {
+          background-position: 0% 0%;
+        }
+        50% {
+          background-position: 100% 30%;
+        }
+        100% {
+          background-position: 30% 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "video-filled-text",
+        name: "映像が入った文字",
+        en: "Video-filled text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "太い文字の形で映像を切り抜き、文字の内側で動画が流れ続ける表現です。文字が窓になって、その向こうの世界がのぞいているように見えます。プレビューは動く模様で映像の代わりにしています。",
+        use: "ヒーローの大見出し、ブランドのビジュアル、旅行・ファッション・音楽のサイト。",
+        params: [{ key: "dur", label: "模様の周期", value: 6000, min: 2000, max: 15000, step: 500, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "<code>&lt;video autoplay muted loop playsinline&gt;</code> の上に、白い背景に黒い文字の層を重ね <code>mix-blend-mode: screen</code>（文字の部分だけ映像が見える）。SVG の <code>mask</code> でもよい（<code>background-clip: text</code> は背景画像のときだけ）",
+          ],
+          ["文字", "太いウェイト・大きいサイズにして、中の映像が見える面積を確保する"],
+          ["負荷", "映像は軽く短いループにし、<code>prefers-reduced-motion</code> では止める"],
+          ["動きを減らす設定", "映像を止め、最初のコマ（静止画）にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/video-text" target="_blank" rel="noopener">Magic UI: Video Text</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ダイアログ（Dialog） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-dialog"
+        style="position: relative; width: 240px; height: 160px; border-radius: 18px; overflow: hidden"
+      >
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px">
+          <span class="sb-bar sb-bar--md sb-bar--strong" style="width: 140px"></span
+          ><span class="sb-bar sb-bar--sm" style="width: 200px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 160px"></span
+          ><span class="sb-bar sb-bar--sm" style="width: 180px"></span>
+        </div>
+        <div class="ac-dialog-dim"></div>
+        <div style="position: absolute; inset: 0; display: grid; place-items: center">
+          <div class="sb-dialog ac-dialog-d" style="width: 170px; padding: 16px; gap: 10px">
+            <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 100px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 130px"></span>
+            <div class="sb-dialog-actions" style="margin-top: 2px">
+              <span class="sb-btn sb-btn--s sb-btn--sunken" style="height: 28px; padding: 0 12px"
+                ><span class="sb-bar sb-bar--xxs sb-bar--strong" style="width: 26px"></span></span
+              ><span class="sb-btn sb-btn--s sb-btn--primary" style="height: 28px; padding: 0 12px"
+                ><span class="sb-bar sb-bar--xxs sb-bar--on-blue" style="width: 30px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-dialog .ac-dialog-dim {
+        position: absolute;
+        inset: 0;
+        background: rgba(18, 26, 43, var(--dim, 0.35));
+        animation:
+          ac-dialog-fade var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-dialog-hide 180ms cubic-bezier(0.55, 0, 1, 0.45) 1800ms forwards;
+      }
+      .ac-dialog .ac-dialog-d {
+        animation:
+          ac-dialog-in var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-dialog-out 180ms cubic-bezier(0.55, 0, 1, 0.45) 1800ms forwards;
+      }
+      @keyframes ac-dialog-in {
+        from {
+          opacity: 0;
+          transform: scale(var(--from, 0.96));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-dialog-out {
+        from {
+          opacity: 1;
+          transform: none;
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.98);
+        }
+      }
+      @keyframes ac-dialog-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-dialog-hide {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-dialog .ac-dialog-d {
+          animation:
+            ac-dialog-fade var(--dur, 260ms) both,
+            ac-dialog-hide 180ms 1800ms forwards;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dialog",
+        name: "ダイアログ",
+        en: "Dialog",
+        cat: "Soft Blue の部品",
+        kind: "motion",
+        description:
+          "画面の中央に確認の窓を出す動きです。ほんの少し小さい状態から、透明度と一緒に元の大きさに戻ります。大きく動かさないので、驚かせずに注意を集められます。",
+        use: "削除の確認、PC での確認・入力フォーム。",
+        params: [
+          { key: "dur", label: "現れる時間", value: 260, min: 100, max: 600, step: 10, unit: "ms" },
+          { key: "from", label: "出だしの大きさ", value: 0.96, min: 0.8, max: 1, step: 0.01, unit: "" },
+          { key: "dim", label: "背景の暗さ", value: 0.35, min: 0, max: 0.6, step: 0.05, unit: "" },
+        ],
+        spec: [
+          [
+            "現れる",
+            "<code>&lt;dialog&gt;</code> を <code>showModal()</code> で開き <code>scale(出だしの大きさ → 1)</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["背景", "暗い幕を <code>opacity 0 → 1</code> で同時に出す"],
+          [
+            "閉じる",
+            "<code>opacity 1 → 0</code>（<code>scale</code> は少しだけ戻す）｜180ms｜in <code>cubic-bezier(0.55, 0, 1, 0.45)</code>｜終わったら <code>close()</code>",
+          ],
+          ["動きを減らす設定", "拡大をやめ、透明度の切り替えだけにする"],
+          ["出典", "Soft Blue「モーション」のダイアログ"],
+        ],
+        loop: 2800,
+      });
+    </script>
+  </body>
+</html>

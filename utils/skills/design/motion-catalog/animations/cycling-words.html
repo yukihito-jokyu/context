@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>単語の入れ替え（Cycling words） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-cycling-words"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 24px;
+            line-height: 31px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          "
+        >
+          動きで<span class="ac-cycling-words-w"><span class="ac-cycling-words-x">伝える</span></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cycling-words .ac-cycling-words-w {
+        position: relative;
+        display: inline-block;
+        height: 32px;
+        overflow: hidden;
+        color: var(--blue);
+        vertical-align: bottom;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-cycling-words .ac-cycling-words-w {
+          transition: width var(--dur, 400ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      }
+      .ac-cycling-words .ac-cycling-words-x {
+        position: absolute;
+        left: 0;
+        top: 0;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cycling-words",
+        name: "単語の入れ替え",
+        en: "Cycling words",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文の一部の単語だけが、一定の間隔で下から上へ入れ替わっていく動きです。「〇〇のための」の〇〇を巡らせるように、1つの見出しで複数のメッセージを伝えられます。",
+        use: "ヒーローのキャッチコピー、対象ユーザーや用途の列挙、機能の紹介。",
+        params: [
+          { key: "hold", label: "表示する時間", value: 1600, min: 600, max: 4000, step: 100, unit: "ms" },
+          { key: "dur", label: "入れ替えの時間", value: 400, min: 150, max: 800, step: 10, unit: "ms" },
+        ],
+        spec: [
+          [
+            "動き",
+            "前の語は <code>translateY(0 → -100%)</code> と <code>opacity → 0</code>、次の語は <code>translateY(100% → 0)</code> と <code>opacity 0 → 1</code>｜out。<code>blur(4px)</code> を足すと柔らかい",
+          ],
+          ["幅", "語の幅が違うときは、外枠の幅もなめらかに変える（spring）"],
+          [
+            "読み上げ",
+            "<code>aria-live</code> は煩わしい。入れ替わる語は <code>aria-hidden</code> にし、全部の語を含む文を別に置く",
+          ],
+          ["動きを減らす設定", "移動とぼかしをやめ、透明度で入れ替える（または入れ替えを止める）"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/word-rotate" target="_blank" rel="noopener">Magic UI: Word Rotate</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const w = stage.querySelector(".ac-cycling-words-w"),
+              words = ["伝える", "導く", "魅せる", "つなぐ"];
+            let i = 0;
+            const sz = (el) => el.getBoundingClientRect().width;
+            w.style.width = `${sz(w.firstElementChild)}px`;
+            const go = () => {
+              i = (i + 1) % words.length;
+              const old = w.firstElementChild,
+                n = document.createElement("span");
+              n.className = "ac-cycling-words-x";
+              n.textContent = words[i];
+              w.appendChild(n);
+              w.style.width = `${sz(n)}px`;
+              const o = { duration: v.dur, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" };
+              if (rm) {
+                old.animate([{ opacity: 1 }, { opacity: 0 }], o);
+                n.animate([{ opacity: 0 }, { opacity: 1 }], o);
+              } else {
+                old.animate(
+                  [
+                    { transform: "none", opacity: 1, filter: "blur(0)" },
+                    { transform: "translateY(-100%)", opacity: 0, filter: "blur(4px)" },
+                  ],
+                  o,
+                );
+                n.animate(
+                  [
+                    { transform: "translateY(100%)", opacity: 0, filter: "blur(4px)" },
+                    { transform: "none", opacity: 1, filter: "blur(0)" },
+                  ],
+                  o,
+                );
+              }
+              setTimeout(() => old.remove(), v.dur);
+            };
+            return seq(v.hold + v.dur, [[v.hold, go]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

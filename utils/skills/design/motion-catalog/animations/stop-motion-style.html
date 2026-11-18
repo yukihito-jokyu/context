@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>コマ撮り風（Stop-motion style） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-stop-motion-style" style="position: relative; width: 220px; height: 150px">
+        <span class="ac-stop-motion-style-tb"></span><span class="ac-stop-motion-style-cup"><i></i></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-stop-motion-style .ac-stop-motion-style-tb {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 40px;
+        background: repeating-linear-gradient(90deg, #e9dcc8 0 18px, #e2d3bc 18px 36px);
+        border-radius: 0 0 20px 20px;
+      }
+      .ac-stop-motion-style .ac-stop-motion-style-cup {
+        position: absolute;
+        left: 0;
+        bottom: 30px;
+        width: 44px;
+        height: 40px;
+        border-radius: 4px 4px 14px 14px;
+        background: linear-gradient(90deg, var(--sky), var(--cobalt));
+        box-shadow: 0 6px 6px rgba(18, 26, 43, 0.2);
+      }
+      .ac-stop-motion-style .ac-stop-motion-style-cup i {
+        position: absolute;
+        right: -12px;
+        top: 8px;
+        width: 14px;
+        height: 18px;
+        border: 5px solid var(--cobalt);
+        border-left: 0;
+        border-radius: 0 10px 10px 0;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "stop-motion-style",
+        name: "コマ撮り風",
+        en: "Stop-motion style",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "実物を少しずつ動かして1コマずつ撮影したように、カクカクとしたコマ送りで動かし、コマごとに位置や角度がわずかにぶれる表現です。デジタルなのに手作業の温かさと、おもちゃのような楽しさが出ます。",
+        use: "クラフト・雑貨・食品のブランド、子ども向けの演出、遊び心のある商品紹介、SNS 向けの動き。",
+        params: [
+          { key: "fps", label: "1秒あたりのコマ数", value: 8, min: 4, max: 15, step: 1, unit: "" },
+          { key: "jitter", label: "コマごとのぶれ", value: 1.5, min: 0, max: 4, step: 0.5, unit: "" },
+        ],
+        spec: [
+          ["表現形式", "実物の写真・紙・布・粘土のような質感のある素材"],
+          ["演出", "動きはコマ送り。各コマで位置と角度をわずかにランダムにずらし、手で置き直した感じを出す"],
+          [
+            "個別の動き",
+            "移動・回転を <code>steps()</code> で。ぶれは JS でコマごとに足す（または数パターンのキーフレーム）",
+          ],
+          ["時間・質感", "6–12コマ/秒。なめらかなイージングは使わない"],
+          ["カタログの関連", "stepped-animation / claymation-style / sprite-sheet-playback"],
+          ["動きを減らす設定", "コマ送りの移動を止め、静止した配置にする"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/stop-motion-animation.html" target="_blank" rel="noopener">Adobe: stop motion animation</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const c = stage.querySelector(".ac-stop-motion-style-cup");
+            let f = 0;
+            const N = 24;
+            if (rm) {
+              c.style.transform = "translateX(88px)";
+              return null;
+            }
+            const step = () => {
+              const k = f % (N * 2),
+                p = k < N ? k / N : 2 - k / N,
+                j = v.jitter;
+              c.style.transform = `translate(${20 + p * 140 + (Math.random() - 0.5) * j * 2}px, ${(Math.random() - 0.5) * j}px) rotate(${(Math.random() - 0.5) * j * 2}deg)`;
+              f++;
+            };
+            step();
+            const iv = setInterval(step, 1000 / v.fps);
+            return () => clearInterval(iv);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

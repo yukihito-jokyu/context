@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>減衰（Damping） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-damping"
+        style="
+          position: relative;
+          width: 200px;
+          height: 150px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 18px;
+        "
+      >
+        <div class="ac-damping-g">
+          <svg viewBox="0 0 80 80" width="80" height="80" style="overflow: visible">
+            <path d="M0,80 L80,80 M0,80 L0,0" stroke="var(--bar)" stroke-width="2" fill="none" />
+            <path d="M0,0 L80,0" stroke="var(--bar)" stroke-width="1.5" stroke-dasharray="3 4" fill="none" />
+            <path
+              data-curve
+              d="M0,80 L80,0"
+              stroke="var(--cobalt)"
+              stroke-width="3"
+              fill="none"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            /></svg
+          ><span class="ac-damping-dx"><span class="ac-damping-dy"></span></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-damping-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-damping {
+        --ease: linear;
+        --sdur: 1000ms;
+      }
+      .ac-damping .ac-damping-g {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      .ac-damping .ac-damping-dx {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 10px;
+        height: 80px;
+        margin-left: -5px;
+        animation: ac-damping-x var(--sdur) linear both;
+      }
+      .ac-damping .ac-damping-dy {
+        position: absolute;
+        left: 0;
+        bottom: -5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 3px #fff;
+        animation: ac-damping-y var(--sdur) var(--ease) both;
+      }
+      .ac-damping .ac-damping-t {
+        animation: ac-damping-m var(--sdur) var(--ease) both;
+      }
+      .ac-damping .ac-damping-mk {
+        position: absolute;
+        top: -6px;
+        bottom: 0;
+        width: 2px;
+        margin-left: -1px;
+        background: var(--blue-soft);
+        box-shadow: 0 0 0 1px var(--bar-on-soft);
+      }
+      @keyframes ac-damping-x {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(80px);
+        }
+      }
+      @keyframes ac-damping-y {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-80px);
+        }
+      }
+      @keyframes ac-damping-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(150px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-damping .ac-damping-dx,
+        .ac-damping .ac-damping-dy,
+        .ac-damping .ac-damping-t {
+          animation-duration: 1ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "damping",
+        name: "減衰",
+        en: "Damping",
+        cat: "スプリング",
+        kind: "concept",
+        description:
+          "ばねの揺れが落ち着く速さです。減衰が小さいほど何度も弾んで揺れ、大きいほど行き過ぎずにすっと止まります。",
+        use: "弾み具合を決めたいとき。業務 UI は大きめ（揺れない）、楽しい演出は小さめ。",
+        params: [{ key: "c", label: "減衰（damping）", value: 10, min: 2, max: 60, step: 1, unit: "" }],
+        spec: [
+          ["固定している値", "硬さ 170、重さ 1"],
+          ["目安", "臨界減衰 <code>2√(硬さ × 重さ)</code>（ここでは約 26）以上なら行き過ぎない"],
+          ["グラフ", "横が時間、縦が進み具合（点線が目標）。線が点線を越えるのが行き過ぎ（オーバーシュート）"],
+          [
+            "実装",
+            'Framer Motion の <code>type: "spring"</code>、React Spring、SwiftUI、CSS なら <code>linear()</code> に書き出す（このデモも数値計算 → <code>linear()</code>）',
+          ],
+          ["動きを減らす設定", "弾みをやめ、短い ease-out か透明度の切り替えにする"],
+          ["出典", "Animation Vocabulary（Spring Animations）"],
+        ],
+        loop: 2800,
+        run: (stage, v) => {
+          const simulate = (k, c, m) => {
+            let x = 0,
+              v = 0,
+              t = 0,
+              calm = 0,
+              settled = false;
+            const dt = 1 / 120,
+              pts = [0];
+            while (t < 4) {
+              const a = (-k * (x - 1) - c * v) / m;
+              v += a * dt;
+              x += v * dt;
+              t += dt;
+              pts.push(x);
+              if (Math.abs(x - 1) < 0.002 && Math.abs(v) < 0.02) {
+                if (++calm > 10) {
+                  settled = true;
+                  break;
+                }
+              } else calm = 0;
+            }
+            if (!settled) {
+              const n = Math.min(
+                pts.length - 1,
+                72,
+              ); /* 4 秒で止まり切らないときは、最後の 0.6 秒で目標へなめらかに着地させる */
+              for (let j = 0; j <= n; j++) {
+                const i = pts.length - 1 - n + j,
+                  u = j / n;
+                pts[i] = 1 + (pts[i] - 1) * (1 - u * u * (3 - 2 * u));
+              }
+            }
+            pts[pts.length - 1] = 1;
+            return { pts, dur: Math.round((pts.length - 1) * dt * 1000) };
+          };
+          const apply = (pts, dur, marker) => {
+            const step = Math.max(1, Math.floor(pts.length / 64)),
+              keep = pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
+            stage.firstElementChild.style.setProperty("--ease", `linear(${keep.map((p) => +p.toFixed(4)).join(", ")})`);
+            stage.firstElementChild.style.setProperty("--sdur", `${dur}ms`);
+            const path = stage.querySelector("[data-curve]");
+            if (path)
+              path.setAttribute(
+                "d",
+                "M" +
+                  keep
+                    .map((p, i) => `${((i / (keep.length - 1)) * 80).toFixed(1)},${((1 - p) * 80).toFixed(1)}`)
+                    .join(" L"),
+              );
+            const mk = stage.querySelector("[data-marker]");
+            if (mk && marker != null) mk.style.left = `${Math.min(1, marker / dur) * 80}px`;
+            const out = stage.querySelector("[data-dur]");
+            if (out) out.textContent = "";
+          };
+          const r = simulate(170, v.c, 1);
+          apply(r.pts, r.dur);
+        },
+      });
+    </script>
+  </body>
+</html>

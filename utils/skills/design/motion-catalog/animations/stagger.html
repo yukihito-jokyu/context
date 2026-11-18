@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スタッガー（Stagger） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-stagger"
+        style="
+          position: relative;
+          width: 200px;
+          height: 170px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          justify-content: center;
+        "
+      >
+        <div
+          class="sb-item ac-stagger-r"
+          style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px; --i: 0"
+        >
+          <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+          ><span class="sb-lines" style="gap: 6px"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+          ></span>
+        </div>
+        <div
+          class="sb-item ac-stagger-r"
+          style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px; --i: 1"
+        >
+          <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+          ><span class="sb-lines" style="gap: 6px"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 98px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+          ></span>
+        </div>
+        <div
+          class="sb-item ac-stagger-r"
+          style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px; --i: 2"
+        >
+          <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+          ><span class="sb-lines" style="gap: 6px"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 86px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+          ></span>
+        </div>
+        <div
+          class="sb-item ac-stagger-r"
+          style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px; --i: 3"
+        >
+          <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+          ><span class="sb-lines" style="gap: 6px"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 74px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-stagger .ac-stagger-r {
+        animation: ac-stagger-in var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * var(--step, 40ms))
+          both;
+      }
+      @keyframes ac-stagger-in {
+        from {
+          opacity: 0;
+          transform: translateY(var(--dist, 8px));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-stagger .ac-stagger-r {
+          animation: ac-stagger-fade 200ms both;
+        }
+        @keyframes ac-stagger-fade {
+          from {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "stagger",
+        name: "スタッガー",
+        en: "Stagger",
+        cat: "順序・タイミング",
+        kind: "motion",
+        description:
+          "同じ動きをする複数の要素を、少しずつ時間をずらして順番に動かす動きです。波のように連なって現れるので、並びの順番が自然に伝わります。",
+        use: "リスト・カード一覧・メニュー項目の表示、検索結果の表示。",
+        params: [
+          { key: "step", label: "ずらす間隔", value: 40, min: 0, max: 200, step: 10, unit: "ms" },
+          { key: "dur", label: "1つの時間", value: 260, min: 100, max: 600, step: 10, unit: "ms" },
+          { key: "dist", label: "浮き上がる距離", value: 8, min: 0, max: 24, step: 2, unit: "px" },
+        ],
+        total: (p) => p["step"] * 3 + p["dur"],
+        spec: [
+          [
+            "1つの動き",
+            "<code>translateY(浮き上がる距離) → 0</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["ずらし方", "<code>animation-delay: calc(順番 × ずらす間隔)</code>。順番は 0 から"],
+          ["目安", "間隔は 30–60ms。数が多いときは全体が 500ms を超えないよう上限を決める"],
+          ["動きを減らす設定", "ずらしと移動をやめ、まとめて透明度で表示する"],
+          ["出典", "Animation Vocabulary（Sequencing & Timing）"],
+        ],
+        loop: 2000,
+      });
+    </script>
+  </body>
+</html>

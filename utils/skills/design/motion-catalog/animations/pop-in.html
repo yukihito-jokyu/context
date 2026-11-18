@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ポップイン（Pop in） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-pop-in"
+        style="position: relative; width: 120px; height: 120px; display: grid; place-items: center"
+      >
+        <span class="sb-fab ac-pop-in-f"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" /></svg
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-pop-in .ac-pop-in-f {
+        animation: ac-pop-in-in var(--dur, 300ms) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      @keyframes ac-pop-in-in {
+        from {
+          opacity: 0;
+          transform: scale(var(--from, 0.6));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-pop-in-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "pop-in",
+        name: "ポップイン",
+        en: "Pop in",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "小さい状態から、少し行き過ぎて（オーバーシュート）から元の大きさに落ち着く動きです。弾むような元気さが出ます。",
+        use: "バッジ、通知の数、いいね、完了マーク、追加ボタン。",
+        params: [
+          { key: "from", label: "出だしの大きさ", value: 0.6, min: 0.3, max: 1, step: 0.05, unit: "" },
+          { key: "dur", label: "時間", value: 300, min: 150, max: 700, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>scale(出だしの大きさ → 1)</code> と <code>opacity 0 → 1</code>｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>（1.04 前後まで行き過ぎて戻る）",
+          ],
+          ["目安", "行き過ぎは 1.04–1.1 まで。大きすぎるとふざけた印象になる"],
+          ["動きを減らす設定", "弾みをやめ、透明度の切り替えだけにする"],
+          ["出典", "Animation Vocabulary（Entrances & Exits）"],
+        ],
+        loop: 1800,
+      });
+    </script>
+  </body>
+</html>

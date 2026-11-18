@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スライドするカルーセル（Sliding carousel） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-sliding-carousel" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-sliding-carousel-vp">
+          <div class="ac-sliding-carousel-tr">
+            <span
+              class="sb-grad-aqua"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 140px;
+                height: 100px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span
+              class="sb-grad-sky"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 140px;
+                height: 100px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span
+              class="sb-grad-deep"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 140px;
+                height: 100px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span
+              class="sb-grad-hero"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 140px;
+                height: 100px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span
+              class="sb-grad-aqua"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 140px;
+                height: 100px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i
+            ></span>
+          </div>
+        </div>
+        <div class="ac-sliding-carousel-dots"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sliding-carousel .ac-sliding-carousel-vp {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 10px;
+        height: 100px;
+        overflow: hidden;
+      }
+      .ac-sliding-carousel .ac-sliding-carousel-tr {
+        display: flex;
+        gap: 10px;
+        padding-left: var(--peek, 24px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-sliding-carousel .ac-sliding-carousel-tr {
+          transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+        }
+      }
+      .ac-sliding-carousel .ac-sliding-carousel-dots {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 18px;
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+      }
+      .ac-sliding-carousel .ac-sliding-carousel-dots i {
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--bar);
+        transition:
+          width 300ms,
+          background-color 300ms;
+      }
+      .ac-sliding-carousel .ac-sliding-carousel-dots i.is-on {
+        width: 16px;
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sliding-carousel",
+        name: "スライドするカルーセル",
+        en: "Sliding carousel",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "横一列につながったスライドの帯が、1枚分ずつ横へ滑って次の内容を見せる、いちばん基本のカルーセルの動きです。隣のスライドの端が少し見えていると、まだ続きがあることが伝わります。",
+        use: "商品・記事のカルーセル、ヒーローのスライド、オンボーディング、画像のギャラリー。",
+        params: [
+          { key: "dur", label: "時間", value: 500, min: 200, max: 900, step: 10, unit: "ms" },
+          { key: "peek", label: "隣ののぞき", value: 24, min: 0, max: 40, step: 2, unit: "px" },
+        ],
+        spec: [
+          [
+            "動き",
+            "帯全体を <code>translateX(-番号 × (スライド幅 + 間隔))</code>｜in-out（ドラッグで離したあとは out）",
+          ],
+          [
+            "ドラッグ",
+            "指に付いて動かし、離した速さと距離で次へ進むか戻るかを決める。前・次のボタンと各スライドへのボタンも置く",
+          ],
+          ["CSS だけで", "<code>scroll-snap-type: x mandatory</code> のスクロール領域でも作れる"],
+          ["動きを減らす設定", "滑らせず、スライドをすぐ切り替える（またはフェード）"],
+          ["出典", '<a href="https://swiperjs.com/demos" target="_blank" rel="noopener">Swiper demos</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const tr = stage.querySelector(".ac-sliding-carousel-tr"),
+              ds = stage.querySelectorAll(".ac-sliding-carousel-dots i");
+            let i = 0,
+              dir = 1;
+            const go = () => {
+              tr.style.transform = `translateX(${-150 * i}px)`;
+              ds.forEach((d, j) => d.classList.toggle("is-on", j === i));
+            };
+            go();
+            return seq(1500, [
+              [
+                700,
+                () => {
+                  if (i + dir > 4 || i + dir < 0) dir = -dir;
+                  i += dir;
+                  go();
+                },
+              ],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

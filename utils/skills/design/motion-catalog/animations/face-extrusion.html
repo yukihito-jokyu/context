@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>面ごとの押し出し（Per-face extrusion animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-face-extrusion"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "face-extrusion",
+        name: "面ごとの押し出し",
+        en: "Per-face extrusion animation",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "平らな面を小さなタイル（面）に分け、各面をそれぞれ違う高さで立体に押し出して、その高さを波のように動かす表現です。床が波打つように盛り上がったり、音に合わせて柱が伸び縮みしたりします。",
+        use: "3D のモーショングラフィックス、テック系のヒーロー、データの高さを見せる演出、音に反応するビジュアル。",
+        params: [{ key: "hmax", label: "押し出しの高さ", value: 22, min: 4, max: 40, step: 1, unit: "px" }],
+        spec: [
+          [
+            "仕組み",
+            "面ごとに押し出しの長さを、中心からの距離や時間・ノイズ・音の値で決める（<code>h = 最小 + 幅 × sin(距離 × k − t)</code> など）",
+          ],
+          [
+            "ツールでは",
+            "Cinema 4D の押し出し（Extrude）とエフェクター、Blender のジオメトリノード（Extrude Mesh の Offset）",
+          ],
+          [
+            "Web では",
+            "three.js のインスタンス化した箱の高さを変える（InstancedMesh）。2D なら等角図で奥から順に箱を描く",
+          ],
+          ["動きを減らす設定", "高さの動きを止め、押し出された面の静止画にする"],
+          [
+            "出典",
+            '<a href="https://help.maxon.net/c4d/r23/en-us/Content/html/OMOGRAPH_EXTRUDE-ID_OBJECTPROPERTIES.html" target="_blank" rel="noopener">help.maxon.net（OMOGRAPH_EXTRUDE-ID_OBJECTPR）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const n = 7,
+              sx = 13,
+              sy = 7.5;
+            return raf((t) => {
+              const T = rm ? 0.4 : t;
+              g.clearRect(0, 0, W, H);
+              for (let s = 0; s <= 2 * (n - 1); s++)
+                for (let i = 0; i < n; i++) {
+                  const j = s - i;
+                  if (j < 0 || j >= n) continue;
+                  const cx = 110 + (i - j) * sx,
+                    cy = 60 + (i + j) * sy,
+                    d = Math.hypot(i - 3, j - 3),
+                    h = 4 + v.hmax * (0.5 + 0.5 * sin(d * 1.1 - T * 2.6));
+                  g.fillStyle = "#1e40af";
+                  g.beginPath();
+                  g.moveTo(cx - sx, cy);
+                  g.lineTo(cx, cy + sy);
+                  g.lineTo(cx, cy + sy - h);
+                  g.lineTo(cx - sx, cy - h);
+                  g.fill();
+                  g.fillStyle = "#2b57d6";
+                  g.beginPath();
+                  g.moveTo(cx + sx, cy);
+                  g.lineTo(cx, cy + sy);
+                  g.lineTo(cx, cy + sy - h);
+                  g.lineTo(cx + sx, cy - h);
+                  g.fill();
+                  g.fillStyle = h > v.hmax * 0.7 ? col("sky") : col("ice");
+                  g.beginPath();
+                  g.moveTo(cx, cy - sy - h);
+                  g.lineTo(cx + sx, cy - h);
+                  g.lineTo(cx, cy + sy - h);
+                  g.lineTo(cx - sx, cy - h);
+                  g.closePath();
+                  g.fill();
+                }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

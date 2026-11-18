@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>拡大・縮小（スケール）（Scale） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-scale" style="position: relative; width: 220px; height: 150px; display: grid; place-items: center">
+        <span class="sb-thumb sb-grad-sky ac-scale-t" style="width: 72px; height: 72px; border-radius: 20px"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-scale .ac-scale-t {
+          animation: ac-scale-m var(--dur, 600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-scale-m {
+        to {
+          transform: scale(var(--to, 1.2));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scale",
+        name: "拡大・縮小（スケール）",
+        en: "Scale",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "要素を大きくしたり小さくしたりする動きです。中身ごと拡大縮小されるので、注目させる・押した感触を出す・奥行きを出すなどに使えます。",
+        use: "ホバーでの拡大、押したときの縮み、注目を集める強調、ズーム。",
+        params: [
+          { key: "to", label: "大きさ", value: 1.2, min: 0.5, max: 1.6, step: 0.02, unit: "" },
+          { key: "dur", label: "片道の時間", value: 600, min: 150, max: 1500, step: 50, unit: "ms" },
+        ],
+        spec: [
+          [
+            "動き",
+            "<code>scale(1 ↔ 大きさ)</code>｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>｜<code>alternate</code> で往復",
+          ],
+          ["目安", "UI の強調は 1.02–1.08、押したときは 0.96 前後"],
+          ["動きを減らす設定", "往復をやめ、止めておく"],
+          ["出典", "Animation Vocabulary（Movement & Transforms）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

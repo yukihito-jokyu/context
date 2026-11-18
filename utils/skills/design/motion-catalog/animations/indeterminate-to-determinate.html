@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>不確定から確定の進捗へ（Indeterminate-to-determinate progress） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-indeterminate-to-determinate"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <progress
+          max="100"
+          aria-label="読み込み"
+          style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)"
+        ></progress
+        ><svg class="ac-indeterminate-to-determinate-s" viewBox="0 0 44 44" width="72" height="72" aria-hidden="true">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--blue-soft)" stroke-width="4" />
+          <circle
+            class="ac-indeterminate-to-determinate-a"
+            cx="22"
+            cy="22"
+            r="18"
+            fill="none"
+            stroke="var(--blue)"
+            stroke-width="4"
+            stroke-linecap="round"
+            pathLength="100"
+          />
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-indeterminate-to-determinate .ac-indeterminate-to-determinate-s {
+        transform: rotate(-90deg);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-indeterminate-to-determinate .ac-indeterminate-to-determinate-s.is-spin {
+          animation: ac-indeterminate-to-determinate-r var(--dur, 1400ms) linear infinite;
+        }
+      }
+      .ac-indeterminate-to-determinate .ac-indeterminate-to-determinate-a {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-indeterminate-to-determinate .ac-indeterminate-to-determinate-s.is-spin .ac-indeterminate-to-determinate-a {
+          animation: ac-indeterminate-to-determinate-arc var(--dur, 1400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      @keyframes ac-indeterminate-to-determinate-r {
+        from {
+          transform: rotate(-90deg);
+        }
+        to {
+          transform: rotate(270deg);
+        }
+      }
+      @keyframes ac-indeterminate-to-determinate-arc {
+        0% {
+          stroke-dasharray: 2 100;
+          stroke-dashoffset: 0;
+        }
+        50% {
+          stroke-dasharray: 60 100;
+          stroke-dashoffset: -15;
+        }
+        100% {
+          stroke-dasharray: 60 100;
+          stroke-dashoffset: -98;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-indeterminate-to-determinate .ac-indeterminate-to-determinate-s.is-spin .ac-indeterminate-to-determinate-a {
+          stroke-dasharray: 30 100;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "indeterminate-to-determinate",
+        name: "不確定から確定の進捗へ",
+        en: "Indeterminate-to-determinate progress",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "最初は終わりの分からない回る輪を見せ、進み具合が分かった時点で、途切れずに「何%まで進んだか」を示す輪に切り替える表示です。",
+        use: "アップロード（準備→送信）、インストール（確認→展開）、エクスポート、同期の開始。",
+        params: [{ key: "dur", label: "回る輪の周期", value: 1400, min: 600, max: 3000, step: 50, unit: "ms" }],
+        spec: [
+          ["不確定", "円弧の長さを伸び縮みさせながら（<code>stroke-dasharray</code>）全体を回す"],
+          ["切り替え", "回転を今の角度で止め、弧の長さを進み具合へ 300ms ほどで補間してつなぐ（消して出し直さない）"],
+          ["確定", "以後は進み具合に合わせて弧を伸ばす（円の進捗と同じ）"],
+          ["動きを減らす設定", "回転をやめ、不確定の間は静止した弧＋「処理中」の文字にする"],
+          [
+            "出典",
+            '<a href="https://m2.material.io/components/progress-indicators" target="_blank" rel="noopener">Material Design: Progress indicators</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const s = stage.querySelector(".ac-indeterminate-to-determinate-s"),
+              a = s.querySelector(".ac-indeterminate-to-determinate-a");
+            const pg = stage.querySelector("progress");
+            const det = (x, ms) => {
+              if (rm) ms = 0;
+              pg.value = x;
+              a.style.transition = `stroke-dashoffset ${ms}ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dasharray ${ms}ms`;
+              a.style.strokeDasharray = "100 100";
+              a.style.strokeDashoffset = 100 - x;
+            };
+            const spin = () => {
+              pg.removeAttribute("value");
+              a.style.transition = "none";
+              a.style.strokeDasharray = "";
+              a.style.strokeDashoffset = "";
+              s.style.transform = "";
+              s.classList.add("is-spin");
+            };
+            const lock = () => {
+              const m = new DOMMatrix(getComputedStyle(s).transform),
+                ca = getComputedStyle(a),
+                da = ca.strokeDasharray,
+                off = ca.strokeDashoffset; // 今の角度と弧を先に取っておく
+              s.classList.remove("is-spin");
+              s.style.transform = `rotate(${Math.atan2(m.b, m.a)}rad)`;
+              a.style.strokeDasharray = da;
+              a.style.strokeDashoffset = off;
+              void a.getBoundingClientRect();
+              s.style.transition = rm ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)";
+              s.style.transform = "rotate(-90deg)";
+              det(20, 300);
+            };
+            return seq(6000, [
+              [
+                0,
+                () => {
+                  s.style.transition = "none";
+                  spin();
+                },
+              ],
+              [2200, lock],
+              [2900, () => det(45, 260)],
+              [3500, () => det(70, 260)],
+              [4100, () => det(100, 260)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>2.5D パララックス（2.5D Parallax） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-parallax-2-5d"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-parallax-2-5d-scene">
+          <span class="ac-parallax-2-5d-l ac-parallax-2-5d-back sb-grad-hero" style="--d: 0.3"></span
+          ><span class="ac-parallax-2-5d-l ac-parallax-2-5d-mid sb-grad-sky" style="--d: 0.6"></span
+          ><span class="ac-parallax-2-5d-l ac-parallax-2-5d-front sb-card" style="--d: 1"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 60px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 40px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-parallax-2-5d .ac-parallax-2-5d-scene {
+        position: relative;
+        width: 200px;
+        height: 130px;
+        border-radius: 20px;
+        overflow: hidden;
+        background: var(--ice);
+      }
+      .ac-parallax-2-5d .ac-parallax-2-5d-l {
+        position: absolute;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-parallax-2-5d .ac-parallax-2-5d-l {
+          animation: ac-parallax-2-5d-sway var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-parallax-2-5d .ac-parallax-2-5d-back {
+        left: -20px;
+        right: -20px;
+        bottom: -40px;
+        height: 110px;
+        border-radius: 50% 50% 0 0;
+        opacity: 0.6;
+      }
+      .ac-parallax-2-5d .ac-parallax-2-5d-mid {
+        left: 30px;
+        bottom: 18px;
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+      }
+      .ac-parallax-2-5d .ac-parallax-2-5d-front {
+        right: 24px;
+        bottom: 14px;
+        width: 92px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        box-sizing: border-box;
+      }
+      @keyframes ac-parallax-2-5d-sway {
+        from {
+          transform: translateX(calc(var(--depth, 14px) * var(--d) * -1));
+        }
+        to {
+          transform: translateX(calc(var(--depth, 14px) * var(--d)));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "parallax-2-5d",
+        name: "2.5D パララックス",
+        en: "2.5D Parallax",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "平面のイラストを奥・中・手前の層に分け、視点（カーソルやスクロール）に合わせて層ごとに違う量だけ動かして、奥行きを感じさせる表現形式です。3D を作らずに立体的に見せられます。",
+        use: "ヒーローのイラスト、ゲームやブランドのサイト、カードのホバー演出。",
+        params: [
+          { key: "depth", label: "奥行きの強さ", value: 14, min: 4, max: 30, step: 1, unit: "px" },
+          { key: "dur", label: "片道の時間", value: 2400, min: 1000, max: 5000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          ["表現形式", "2.5D（平面の層を重ねた奥行き）"],
+          ["演出", "視点の移動に合わせて層がずれ、奥行きが生まれる"],
+          ["個別の動き", "Parallax：奥は小さく、手前ほど大きく <code>translate</code>（奥 × 0.3、中 × 0.6、手前 × 1）"],
+          ["時間・質感", "カーソル追従なら 150ms 程度でならす。デモは in-out で往復"],
+          ["カタログの関連", "parallax / perspective / 3D tilt"],
+          ["動きを減らす設定", "層のずれをやめ、止めた絵を表示する"],
+          ["出典", "ChatGPT との会話（表現スタイルの語彙）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

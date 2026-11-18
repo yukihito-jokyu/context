@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>輪郭から塗りへ（Stroke-to-fill text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-stroke-to-fill-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <svg viewBox="0 0 220 70" width="220" height="70">
+          <text class="ac-stroke-to-fill-text-t" x="110" y="50" text-anchor="middle">Draw</text>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-stroke-to-fill-text .ac-stroke-to-fill-text-t {
+        font: 800 52px var(--font-sans);
+        fill: var(--blue);
+        fill-opacity: 0;
+        stroke: var(--blue);
+        stroke-width: 1.4;
+        stroke-dasharray: 420;
+        stroke-dashoffset: 420;
+        animation:
+          ac-stroke-to-fill-text-d var(--draw, 1400ms) cubic-bezier(0.65, 0, 0.35, 1) forwards,
+          ac-stroke-to-fill-text-f var(--fill, 500ms) cubic-bezier(0.22, 1, 0.36, 1) var(--draw, 1400ms) forwards;
+      }
+      @keyframes ac-stroke-to-fill-text-d {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes ac-stroke-to-fill-text-f {
+        to {
+          fill-opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-stroke-to-fill-text .ac-stroke-to-fill-text-t {
+          animation: ac-stroke-to-fill-text-f 300ms both;
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "stroke-to-fill-text",
+        name: "輪郭から塗りへ",
+        en: "Stroke-to-fill text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字の輪郭線がペンでなぞるように描かれていき、描き終わると中が色で満たされる表現です。手書きのサインのような、丁寧に仕上がっていく印象になります。",
+        use: "ヒーローの見出し、ロゴの登場、イベントのタイトル、プレゼン風の演出。",
+        params: [
+          { key: "draw", label: "輪郭を描く時間", value: 1400, min: 500, max: 3000, step: 100, unit: "ms" },
+          { key: "fill", label: "塗る時間", value: 500, min: 200, max: 1200, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["draw"] + p["fill"],
+        spec: [
+          [
+            "輪郭",
+            "SVG の <code>&lt;text&gt;</code> に <code>stroke</code> を付け、<code>stroke-dasharray</code> を大きな値（文字の輪郭の長さ以上）にして <code>stroke-dashoffset: その値 → 0</code>｜in-out",
+          ],
+          ["塗り", "輪郭を描き終えてから <code>fill-opacity 0 → 1</code>｜out"],
+          ["正確に", "文字をパスに変換（アウトライン化）しておくと、<code>pathLength</code> で長さを揃えられる"],
+          ["動きを減らす設定", "描く動きをやめ、塗られた文字をフェードで出す"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/stroke-text" target="_blank" rel="noopener">React Bits: Stroke Text</a>',
+          ],
+        ],
+        loop: 3200,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>内側に入る枠（Border trim） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-border-trim"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="ac-border-trim-b"><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 60px"></span></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-border-trim .ac-border-trim-b {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 140px;
+        height: 48px;
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: inset 0 0 0 2px var(--blue);
+      }
+      .ac-border-trim .ac-border-trim-b::before {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border-radius: 10px;
+        border: 2px solid var(--blue);
+        opacity: 0;
+        transform: scale(1.15);
+        transition:
+          transform var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1),
+          opacity var(--dur, 300ms);
+      }
+      .ac-border-trim .ac-border-trim-b.is-on::before {
+        opacity: 1;
+        transform: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-border-trim .ac-border-trim-b::before {
+          transform: none;
+          transition: opacity 150ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "border-trim",
+        name: "内側に入る枠",
+        en: "Border trim",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "ボタンにポインターを乗せると、外側の大きな枠がすっと縮みながら内側の細い枠になって現れ、輪郭が二重になる動きです。控えめで上品な強調になります。",
+        use: "ゴースト（枠だけの）ボタン、カテゴリーのタグ、カードのホバー。",
+        params: [{ key: "dur", label: "時間", value: 300, min: 100, max: 700, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "疑似要素の枠（2px）を <code>inset: 4px</code> に置き、<code>scale(1.15 → 1)</code> と <code>opacity 0 → 1</code>｜out",
+          ],
+          ["戻り", "離したら同じ時間で外へ広がりながら消す"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const el = stage.querySelector(".ac-border-trim-b");
+            return seq(2600, [
+              [600, () => el.classList.add("is-on")],
+              [1900, () => el.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

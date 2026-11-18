@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>追いかけるスポットライト（Cursor spotlight） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-cursor-spotlight" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-cursor-spotlight-c">
+          <span class="ac-cursor-spotlight-dots"></span><span class="ac-cursor-spotlight-l"></span>
+          <div class="ac-cursor-spotlight-tx">
+            <span class="sb-bar sb-bar--sm sb-bar--on-dark" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--on-dark" style="width: 120px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--on-dark" style="width: 100px"></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cursor-spotlight .ac-cursor-spotlight-c {
+        --x: 50%;
+        --y: 50%;
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        width: 200px;
+        height: 130px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--navy);
+        box-shadow: var(--shadow-float);
+      }
+      .ac-cursor-spotlight .ac-cursor-spotlight-dots {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1.5px);
+        background-size: 10px 10px;
+        -webkit-mask: radial-gradient(circle var(--r, 60px) at var(--x) var(--y), #000, transparent);
+        mask: radial-gradient(circle var(--r, 60px) at var(--x) var(--y), #000, transparent);
+      }
+      .ac-cursor-spotlight .ac-cursor-spotlight-l {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle var(--r, 60px) at var(--x) var(--y), rgba(122, 184, 255, 0.35), transparent);
+      }
+      .ac-cursor-spotlight .ac-cursor-spotlight-tx {
+        position: absolute;
+        left: 18px;
+        bottom: 18px;
+        display: grid;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cursor-spotlight",
+        name: "追いかけるスポットライト",
+        en: "Cursor spotlight",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "暗めのカードの上で、ポインターの位置にだけ柔らかな光の円が当たり、その中だけ模様や縁取りが浮かび上がる動きです。触れている場所に光が集まり、カードを探るような楽しさがあります。",
+        use: "料金・機能のカード、ダークテーマのセクション、ギャラリーのサムネイル。",
+        params: [{ key: "r", label: "光の大きさ", value: 60, min: 30, max: 120, step: 5, unit: "px" }],
+        spec: [
+          [
+            "光",
+            "<code>radial-gradient(円の大きさ at var(--x) var(--y), 明るい色, 透明)</code> を重ね、<code>pointermove</code> で <code>--x / --y</code> を更新",
+          ],
+          ["模様", "点の模様を光と同じ位置の <code>mask</code> で切り抜くと、光の中だけ模様が見える"],
+          ["離れたとき", "光の不透明度を 300ms の out で 0 に"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/card-spotlight" target="_blank" rel="noopener">Aceternity UI: Card Spotlight</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const c = stage.querySelector(".ac-cursor-spotlight-c");
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const [x, y] = loop8(t * 0.8, 110, 75, 80, 45);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (rm) return;
+              c.style.setProperty("--x", `${x - 10}px`);
+              c.style.setProperty("--y", `${y - 10}px`);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

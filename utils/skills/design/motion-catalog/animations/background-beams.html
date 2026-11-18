@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れる光線（Background beams） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-background-beams"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <svg width="220" height="150" viewBox="0 0 220 150" style="position: absolute; inset: 0" fill="none">
+          <path d="M-20,160 C40,100 80,60 240,-10" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 0"
+            d="M-20,160 C40,100 80,60 240,-10"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M-6,160 C50,94 88,64 240,2" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 1"
+            d="M-6,160 C50,94 88,64 240,2"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M8,160 C60,88 96,68 240,14" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 2"
+            d="M8,160 C60,88 96,68 240,14"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M22,160 C70,82 104,72 240,26" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 3"
+            d="M22,160 C70,82 104,72 240,26"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M36,160 C80,76 112,76 240,38" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 4"
+            d="M36,160 C80,76 112,76 240,38"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M50,160 C90,70 120,80 240,50" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 5"
+            d="M50,160 C90,70 120,80 240,50"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M64,160 C100,64 128,84 240,62" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 6"
+            d="M64,160 C100,64 128,84 240,62"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M78,160 C110,58 136,88 240,74" stroke="rgba(255,255,255,.08)" stroke-width="1.2" />
+          <path
+            class="ac-background-beams-b"
+            pathLength="100"
+            style="--k: 7"
+            d="M78,160 C110,58 136,88 240,74"
+            stroke="var(--sky)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-background-beams .ac-background-beams-b {
+        stroke-dasharray: 12 88;
+        stroke-dashoffset: 100;
+        filter: drop-shadow(0 0 3px var(--sky));
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-background-beams .ac-background-beams-b {
+          animation: ac-background-beams-run calc(var(--dur, 3200ms) * (1 + var(--k) * 0.12)) linear
+            calc(var(--k) * -437ms) infinite;
+        }
+      }
+      @keyframes ac-background-beams-run {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "background-beams",
+        name: "流れる光線",
+        en: "Background beams",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "背景に引いた何本もの細い曲線の上を、短い光の筋がそれぞれの速さで流れていく背景です。データや信号が行き交っているような、静かな躍動感があります。",
+        use: "AI・データ・ネットワーク系のヒーロー、機能の紹介、技術系ブランドのセクション。",
+        params: [{ key: "dur", label: "1本の周期", value: 3200, min: 1000, max: 8000, step: 100, unit: "ms" }],
+        spec: [
+          ["線", "SVG の曲線を薄い色で何本も引く"],
+          [
+            "光",
+            "同じ線を明るい色で重ね、<code>stroke-dasharray: 短い線 長い隙間</code> にして <code>stroke-dashoffset</code> を動かす｜linear｜線ごとに周期と遅れを変える",
+          ],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/background-beams" target="_blank" rel="noopener">Aceternity UI: Background Beams</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

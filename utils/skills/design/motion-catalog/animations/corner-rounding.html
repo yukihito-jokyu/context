@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>角丸の変化（Corner rounding） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-corner-rounding"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="ac-corner-rounding-s sb-grad-sky"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-corner-rounding .ac-corner-rounding-s {
+        width: 80px;
+        height: 80px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-corner-rounding .ac-corner-rounding-s {
+          animation: ac-corner-rounding-r var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      @keyframes ac-corner-rounding-r {
+        0%,
+        15%,
+        100% {
+          border-radius: 6px;
+        }
+        40%,
+        55% {
+          border-radius: 26px;
+        }
+        75%,
+        85% {
+          border-radius: 50%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-corner-rounding .ac-corner-rounding-s {
+          border-radius: 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "corner-rounding",
+        name: "角丸の変化",
+        en: "Corner rounding",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "四角い形の角が、だんだん丸くなって円に近づき、また四角に戻る動きです。形の印象（硬い・柔らかい）や状態（ボタン → 読み込み中の丸）の変化を表せます。",
+        use: "ボタンが読み込み中の丸に変わる、選択で形が変わるアイコン、ホバーで柔らかくなるカード。",
+        params: [{ key: "dur", label: "一巡の時間", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["書き方", "<code>border-radius</code> を transition（例 6px → 40% → 50%）｜in-out"],
+          [
+            "注意",
+            "<code>border-radius</code> はレイアウトに影響しないが、大きな要素では描き直しの負荷がある。<code>clip-path: inset(0 round r)</code> でもよい",
+          ],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

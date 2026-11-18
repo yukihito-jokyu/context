@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>往復（ヨーヨー）（Alternate (yoyo)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-alternate"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div style="position: relative; width: 200px; height: 32px">
+          <span class="ac-alternate-rail"></span
+          ><span class="sb-thumb sb-grad-sky ac-alternate-t ac-alternate-a"></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px; margin-top: 20px">
+          <span class="ac-alternate-rail"></span><span class="sb-thumb sb-grad-aqua ac-alternate-t"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-alternate .ac-alternate-rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 15px;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--bar);
+      }
+      .ac-alternate .ac-alternate-t {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+      }
+      @keyframes ac-alternate-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-alternate .ac-alternate-t {
+          animation: ac-alternate-m var(--dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+        .ac-alternate .ac-alternate-a {
+          animation-direction: alternate;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "alternate",
+        name: "往復（ヨーヨー）",
+        en: "Alternate (yoyo)",
+        cat: "ループ・常時の動き",
+        kind: "concept",
+        description:
+          "くり返すたびに再生の向きを反対にして、行って戻ってを続けることです。上は alternate（なめらかに往復）、下は normal（毎回始まりに跳んで戻る）。",
+        use: "浮遊、脈打ち、行き来する装飾、ゆっくり呼吸するような動き。",
+        params: [{ key: "dur", label: "片道の時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          ["上", "<code>animation-direction: alternate</code>"],
+          ["下", "<code>normal</code>（比較）"],
+          ["動き", "<code>translateX(0 → 168px)</code>｜in-out｜<code>infinite</code>"],
+          ["動きを減らす設定", "往復をやめて止める"],
+          ["出典", "Animation Vocabulary（Looping & Ambient Motion）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

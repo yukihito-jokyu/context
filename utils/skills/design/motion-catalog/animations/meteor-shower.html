@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れ星（Meteor shower） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-meteor-shower"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <span class="ac-meteor-shower-m" style="left: 120px; top: -10px; --d: 0ms; --t: 2400ms"></span
+        ><span class="ac-meteor-shower-m" style="left: 200px; top: -20px; --d: 700ms; --t: 3000ms"></span
+        ><span class="ac-meteor-shower-m" style="left: 250px; top: 10px; --d: 1500ms; --t: 2600ms"></span
+        ><span class="ac-meteor-shower-m" style="left: 160px; top: 30px; --d: 2100ms; --t: 3400ms"></span
+        ><span class="ac-meteor-shower-m" style="left: 230px; top: -30px; --d: 2800ms; --t: 2800ms"></span
+        ><span class="ac-meteor-shower-m" style="left: 90px; top: 0px; --d: 3300ms; --t: 3100ms"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-meteor-shower .ac-meteor-shower-m {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.6);
+        transform: rotate(-35deg);
+        opacity: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-meteor-shower .ac-meteor-shower-m {
+          animation: ac-meteor-shower-fall calc(var(--t) / var(--speed, 1)) linear var(--d) infinite;
+        }
+      }
+      .ac-meteor-shower .ac-meteor-shower-m::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 1px;
+        width: 60px;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), transparent);
+        transform-origin: 0 50%;
+      }
+      @keyframes ac-meteor-shower-fall {
+        0% {
+          transform: rotate(-35deg) translateX(0);
+          opacity: 1;
+        }
+        60% {
+          opacity: 1;
+        }
+        70%,
+        100% {
+          transform: rotate(-35deg) translateX(-260px);
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-meteor-shower .ac-meteor-shower-m {
+          opacity: 0.6;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "meteor-shower",
+        name: "流れ星",
+        en: "Meteor shower",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "暗い空を、尾を引いた細い光が斜めにすっと流れていく背景です。いくつもの流れ星が、ばらばらのタイミングで現れては消えます。静かな夜のロマンと、ひらめきの瞬間を感じさせます。",
+        use: "ダークテーマのヒーロー、宇宙・夢・ひらめきをテーマにしたページ、カードの装飾。",
+        params: [{ key: "speed", label: "速さ", value: 1, min: 0.4, max: 2.5, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "流れ星",
+            "先頭の小さな点と、後ろへ伸びる尾（<code>linear-gradient</code> で透明へ）を、45° 前後に傾けて置く",
+          ],
+          [
+            "動き",
+            "<code>translate</code> で斜めに 300px ほど流し、<code>opacity</code> を最後に 0 へ｜linear。流れ星ごとに開始位置・遅れ・周期をランダムに",
+          ],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/meteors" target="_blank" rel="noopener">Aceternity UI: Meteors</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

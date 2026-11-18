@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>バネで曲がる線（Bouncy lines） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-bouncy-lines"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "bouncy-lines",
+        name: "バネで曲がる線",
+        en: "Bouncy lines",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "ボールなどが当たった壁や線が、当たった所でぐにゃっとへこみ、バネのようにぶるぶると揺れてから元のまっすぐに戻る表現です。固いはずの枠が柔らかく反応するので、ぶつかった手応えと楽しさが増します。",
+        use: "ゲームの壁や床、ドラッグでたわむ区切り線、引っぱって更新する（pull to refresh）の線、遊び心のある枠。",
+        params: [{ key: "stiff", label: "線の固さ", value: 260, min: 80, max: 600, step: 10, unit: "" }],
+        spec: [
+          ["形", "線を 2 次ベジェ曲線にし、当たった位置の制御点だけをへこませる"],
+          ["揺れ", "へこみの量をバネで 0 に戻す：<code>速さ += (−剛さ × 量 − 減衰 × 速さ) × dt</code>（揺れて収まる）"],
+          ["強さ", "当たったボールの速さに比例してへこませる"],
+          ["動きを減らす設定", "線の揺れをやめ、ボールだけを動かす"],
+          [
+            "出典",
+            '<a href="https://github.com/grapefrukt/juicy-breakout/blob/master/src/com/grapefrukt/games/juicy/Settings.as" target="_blank" rel="noopener">Juicy Breakout（Jonasson & Purho）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const L = [
+              { y: 26, d: 0, v: 0, x: 110 },
+              { y: 124, d: 0, v: 0, x: 110 },
+            ];
+            let bx = 60,
+              by = 75,
+              vx = 70,
+              vy = 160,
+              last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              bx += vx * dt;
+              by += vy * dt;
+              if (bx < 30 || bx > 190) vx *= -1;
+              if (by > L[1].y - 8 && vy > 0) {
+                vy *= -1;
+                if (!rm) {
+                  L[1].v += 260;
+                  L[1].x = bx;
+                }
+              }
+              if (by < L[0].y + 8 && vy < 0) {
+                vy *= -1;
+                if (!rm) {
+                  L[0].v -= 260;
+                  L[0].x = bx;
+                }
+              }
+              L.forEach((l) => {
+                l.v += (-v.stiff * l.d - 6 * l.v) * dt;
+                l.d += l.v * dt;
+              });
+              g.clearRect(0, 0, W, H);
+              g.strokeStyle = col("navy");
+              g.lineWidth = 4;
+              g.lineCap = "round";
+              L.forEach((l) => {
+                g.beginPath();
+                g.moveTo(14, l.y);
+                g.quadraticCurveTo(l.x, l.y + l.d * 2, 206, l.y);
+                g.stroke();
+              });
+              dot(bx, by, 8, col("blue"));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

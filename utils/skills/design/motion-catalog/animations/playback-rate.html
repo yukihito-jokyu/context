@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>再生速度を変える（Playback-rate control） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-playback-rate"
+        style="position: relative; width: 200px; height: 120px; display: grid; align-items: center"
+      >
+        <div style="display: grid; gap: 22px">
+          <div style="position: relative; width: 200px; height: 34px">
+            <span
+              style="
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 16px;
+                height: 2px;
+                border-radius: 2px;
+                background: var(--bar);
+              "
+            ></span
+            ><span
+              class="sb-thumb sb-grad-shape ac-playback-rate-a"
+              style="position: absolute; left: 0; top: 1px; width: 32px; height: 32px; border-radius: 10px"
+            ></span>
+          </div>
+          <div style="position: relative; width: 200px; height: 34px">
+            <span
+              style="
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 16px;
+                height: 2px;
+                border-radius: 2px;
+                background: var(--bar);
+              "
+            ></span
+            ><span
+              class="sb-thumb sb-grad-sky ac-playback-rate-b"
+              style="position: absolute; left: 0; top: 1px; width: 32px; height: 32px; border-radius: 10px"
+            ></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-playback-rate .ac-playback-rate-a {
+        background: var(--shape-idle) !important;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "playback-rate",
+        name: "再生速度を変える",
+        en: "Playback-rate control",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "同じアニメーションの時間の進み方だけを速くしたり遅くしたりする考え方です。キーフレームや時間を書き直さずに、全体をまとめてスローモーションにしたり早送りにしたりできます。上が通常の速さ、下が変えた速さです。",
+        use: "スローモーションの演出、ゲームの一時的な減速、デバッグ（動きを遅くして確かめる）、ホバー中だけ速くする回転。",
+        params: [{ key: "rate", label: "再生速度", value: 0.5, min: 0.1, max: 3, step: 0.1, unit: "×" }],
+        spec: [
+          [
+            "書き方",
+            "<code>animation.playbackRate = 速度</code>（Web Animations）、<code>updatePlaybackRate()</code> なら途中で変えても跳ばない。GSAP は <code>timeScale()</code>",
+          ],
+          ["変え方", "途中で速度を変えるときは、速度そのものも 200ms ほどかけて変えると自然"],
+          ["動きを減らす設定", "この例では動きを止める（速くする変更もしない）"],
+          [
+            "出典",
+            '<a href="https://www.w3.org/TR/web-animations-1/" target="_blank" rel="noopener">W3C Web Animations</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const kf = [{ transform: "translateX(0)" }, { transform: "translateX(168px)" }];
+            const o = {
+              duration: 1200,
+              iterations: Infinity,
+              direction: "alternate",
+              easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+            };
+            if (rm) return null;
+            const a = stage.querySelector(".ac-playback-rate-a").animate(kf, o),
+              b = stage.querySelector(".ac-playback-rate-b").animate(kf, o);
+            b.playbackRate = v.rate;
+            return () => {
+              a.cancel();
+              b.cancel();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

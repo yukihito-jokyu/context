@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>進み具合のバー（Determinate progress） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-determinate-progress"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div style="display: grid; gap: 10px; width: 170px">
+          <span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span>
+          <div class="ac-determinate-progress-t" aria-hidden="true"><i class="ac-determinate-progress-b"></i></div>
+          <progress
+            max="1"
+            value="0"
+            aria-label="読み込み"
+            style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)"
+          ></progress>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-determinate-progress .ac-determinate-progress-t {
+        height: 8px;
+        border-radius: 4px;
+        background: var(--blue-soft);
+        overflow: hidden;
+      }
+      .ac-determinate-progress .ac-determinate-progress-b {
+        display: block;
+        height: 100%;
+        border-radius: 4px;
+        background: var(--blue);
+        transform: scaleX(0);
+        transform-origin: left;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-determinate-progress .ac-determinate-progress-b {
+          transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "determinate-progress",
+        name: "進み具合のバー",
+        en: "Determinate progress",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "処理がどこまで進んだかを、横棒の長さで正確に示す進捗表示です。実際の進み具合（読み込んだバイト数など）に合わせて伸びるので、残り時間の見当がつきます。",
+        use: "ファイルのアップロード、インストール、複数ステップのフォーム、動画の書き出し。",
+        params: [{ key: "dur", label: "このデモの全体", value: 3000, min: 1000, max: 8000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "中の棒を <code>transform: scaleX(進み具合)</code>（<code>transform-origin: left</code>）。<code>width</code> を動かすより軽い",
+          ],
+          [
+            "動き",
+            "値が変わるたびに 200–300ms の out で補間する。止まっているように見えるときは、棒の上に光を流すと「動いている」ことが伝わる",
+          ],
+          ["完了", "100% になったら少し待って、完了の表示（チェックなど）へ切り替える"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          ["動きを減らす設定", "補間と光の流れをやめ、進み具合をそのまま表示する"],
+          [
+            "出典",
+            '<a href="https://m2.material.io/components/progress-indicators" target="_blank" rel="noopener">Material Design: Progress indicators</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-determinate-progress-b"),
+              pg = stage.querySelector("progress"),
+              steps = [0.1, 0.24, 0.3, 0.52, 0.6, 0.78, 0.9, 1],
+              dt = v.dur / steps.length;
+            return seq(v.dur + 1200, [
+              [
+                0,
+                () => {
+                  b.style.transition = "none";
+                  b.style.transform = "scaleX(0)";
+                  void b.offsetWidth;
+                  b.style.transition = "";
+                  pg.value = 0;
+                },
+              ],
+              ...steps.map((x, i) => [
+                200 + i * dt,
+                () => {
+                  b.style.transform = `scaleX(${x})`;
+                  pg.value = x;
+                },
+              ]),
+            ]); // 読み上げ用の progress にも同じ値
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

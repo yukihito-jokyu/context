@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ぼよんと開く（Boing in / out） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-boing-in-out"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center; perspective: 600px"
+      >
+        <div
+          class="sb-card ac-boing-in-out-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-boing-in-out .ac-boing-in-out-c {
+        transform-origin: 50% 0;
+        animation:
+          ac-boing-in-out-in var(--in, 800ms) ease-out both,
+          ac-boing-in-out-out var(--out, 500ms) cubic-bezier(0.55, 0, 1, 0.45) calc(var(--in, 800ms) + 1000ms) forwards;
+      }
+      @keyframes ac-boing-in-out-in {
+        0% {
+          opacity: 0;
+          transform: rotateX(90deg);
+        }
+        50% {
+          opacity: 1;
+          transform: rotateX(-20deg);
+        }
+        75% {
+          transform: rotateX(10deg);
+        }
+        100% {
+          opacity: 1;
+          transform: rotateX(0);
+        }
+      }
+      @keyframes ac-boing-in-out-out {
+        0% {
+          opacity: 1;
+          transform: rotateX(0);
+        }
+        100% {
+          opacity: 0;
+          transform: rotateX(90deg);
+        }
+      }
+      @keyframes ac-boing-in-out-rf-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-boing-in-out-rf-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-boing-in-out .ac-boing-in-out-c {
+          animation-name: ac-boing-in-out-rf-in, ac-boing-in-out-rf-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "boing-in-out",
+        name: "ぼよんと開く",
+        en: "Boing in / out",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "上の縁を蝶番にして、面が奥から手前へ起き上がり、行き過ぎて揺れてから止まる動きです。退出は面が奥へ倒れ込みます。立体的で、跳ねるような元気さがあります。",
+        use: "通知カード、吹き出し、ゲーム風のポップアップ。",
+        params: [
+          { key: "in", label: "登場の時間", value: 800, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "out", label: "退出の時間", value: 500, min: 200, max: 2000, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["in"] + 1000 + p["out"],
+        spec: [
+          [
+            "登場",
+            "<code>rotateX(90deg) → -20deg → 10deg → 0</code>（上の縁が支点）｜<code>perspective</code> を親に付ける",
+          ],
+          ["退出", "<code>rotateX(0 → 90deg)</code> と <code>opacity 1 → 0</code>｜in"],
+          ["動きを減らす設定", "回転をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://www.minimamente.com/project/magic/" target="_blank" rel="noopener">Magic Animations</a>',
+          ],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

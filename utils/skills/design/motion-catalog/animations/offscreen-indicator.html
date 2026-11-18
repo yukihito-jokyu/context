@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画面外を知らせる矢印（Off-screen threat indicator） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-offscreen-indicator"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "offscreen-indicator",
+        name: "画面外を知らせる矢印",
+        en: "Off-screen threat indicator",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "画面の外にいる敵や目標の向きを、画面の端に置いた矢印で知らせる表示です。矢印は相手の方向に合わせて画面の縁を回り、近づくほど大きく、迫ってくると点滅します。",
+        use: "ゲームの画面外の敵・味方・目的地、地図アプリの画面外の地点、長いページの画面外の通知。",
+        params: [],
+        spec: [
+          ["位置", "画面の中心から相手への向きの線が、画面の縁（少し内側）と交わる点に矢印を置き、相手の方へ回す"],
+          [
+            "強さ",
+            "距離が近いほど大きく・濃く。急いで近づくとき（攻撃が来るとき）は点滅（1秒に3回まで）させ、色を変える",
+          ],
+          ["画面に入ったら", "矢印を消し、相手そのものに印を付ける。数が多いときは近い順に数を絞る"],
+          ["動きを減らす設定", "点滅をやめ、色と大きさだけで近さを伝える"],
+          [
+            "出典",
+            '<a href="https://media.gdcvault.com/gdc2019/presentations/Sheth_Mihir_EvolvingCombat.pdf" target="_blank" rel="noopener">media.gdcvault.com（Sheth_Mihir_EvolvingCombat）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const E = [
+              [0.4, 1],
+              [2.2, 0.8],
+              [4.1, 1.2],
+            ];
+            return raf((t) => {
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(0, 0, W, H);
+              dot(110, 75, 7, col("blue"));
+              E.forEach(([a0, sp], i) => {
+                const a = a0 + (rm ? 0 : t * 0.25 * sp),
+                  dist = 170 + 60 * sin(t * sp + i),
+                  dx = cos(a),
+                  dy = sin(a);
+                const ex = 110 + dx * dist,
+                  ey = 75 + dy * dist;
+                if (Math.abs(ex - 110) < 110 && Math.abs(ey - 75) < 75) {
+                  g.strokeStyle = "#e5484d";
+                  g.lineWidth = 2;
+                  g.strokeRect(ex - 6, ey - 6, 12, 12);
+                  return;
+                }
+                const s = Math.min(100 / Math.abs(dx || 1e-6), 62 / Math.abs(dy || 1e-6)),
+                  x = 110 + dx * s,
+                  y = 75 + dy * s,
+                  near = Math.max(0, 1 - (dist - 120) / 120),
+                  blink = !rm && near > 0.6 && Math.floor(t * 6) % 2;
+                g.save();
+                g.translate(x, y);
+                g.rotate(a);
+                const sc = 0.8 + near * 0.6;
+                g.scale(sc, sc);
+                g.fillStyle = blink ? "#fff" : near > 0.6 ? "#e5484d" : col("cobalt");
+                g.beginPath();
+                g.moveTo(8, 0);
+                g.lineTo(-6, -7);
+                g.lineTo(-3, 0);
+                g.lineTo(-6, 7);
+                g.closePath();
+                g.fill();
+                g.restore();
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

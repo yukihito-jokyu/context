@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>押したときの反応（Press / Tap feedback） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-press-feedback" style="position: relative; width: 200px; height: 150px">
+        <span
+          class="sb-btn sb-btn--primary sb-btn--l ac-press-feedback-b"
+          style="position: absolute; left: 30px; top: 50px; width: 140px"
+          ><span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 60px"></span></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-press-feedback .ac-press-feedback-b {
+        transition:
+          transform var(--up, 260ms) cubic-bezier(0.34, 1.56, 0.64, 1),
+          background-color 100ms;
+      }
+      .ac-press-feedback .ac-press-feedback-b.is-down,
+      .ac-press-feedback .ac-press-feedback-b:active {
+        transform: scale(var(--scale, 0.96));
+        background: var(--blue-strong);
+        transition:
+          transform var(--down, 100ms) cubic-bezier(0.22, 1, 0.36, 1),
+          background-color 100ms;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-press-feedback .ac-press-feedback-b.is-down,
+        .ac-press-feedback .ac-press-feedback-b:active {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "press-feedback",
+        name: "押したときの反応",
+        en: "Press / Tap feedback",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "ボタンを押した瞬間に少しだけ縮み、離すと弾んで戻る動きです。画面の中のボタンに、本物のボタンのような手応えが出ます。",
+        use: "ボタン、FAB、カード、リストの行など、押せるものすべて。",
+        params: [
+          { key: "scale", label: "押したときの大きさ", value: 0.96, min: 0.85, max: 1, step: 0.01, unit: "" },
+          { key: "down", label: "縮む時間", value: 100, min: 50, max: 300, step: 10, unit: "ms" },
+          { key: "up", label: "戻る時間", value: 260, min: 100, max: 600, step: 10, unit: "ms" },
+        ],
+        spec: [
+          ["押す", "<code>scale(1 → 押したときの大きさ)</code>｜押している間｜縮む時間｜out"],
+          ["離す", "<code>scale(→ 1)</code>｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>｜戻る時間"],
+          [
+            "きっかけ",
+            "<code>:active</code> または <code>pointerdown</code> / <code>pointerup</code>。詳細ページのプレビューは実際に押しても動く",
+          ],
+          ["動きを減らす設定", "縮みをやめ、色の変化（blue-strong）だけにする"],
+          ["出典", "Animation Vocabulary（Feedback & Interaction）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const b = stage.querySelector(".ac-press-feedback-b");
+          move(170, 140, 0);
+          return seq(2200, [
+            [
+              100,
+              () => {
+                show(1);
+                move(110, 76, 500);
+              },
+            ],
+            [700, () => b.classList.add("is-down")],
+            [1000, () => b.classList.remove("is-down")],
+            [
+              1600,
+              () => {
+                move(170, 140, 400);
+              },
+            ],
+            [1900, () => show(0)],
+          ]);
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>近いほど大きくなるドック（Dock magnification） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-dock-magnification" style="position: relative; width: 230px; height: 150px">
+        <div class="ac-dock-magnification-d">
+          <span class="ac-dock-magnification-i sb-grad-sky"></span
+          ><span class="ac-dock-magnification-i sb-grad-aqua"></span
+          ><span class="ac-dock-magnification-i sb-grad-deep"></span
+          ><span class="ac-dock-magnification-i sb-grad-hero"></span
+          ><span class="ac-dock-magnification-i sb-grad-sky"></span
+          ><span class="ac-dock-magnification-i sb-grad-aqua"></span
+          ><span class="ac-dock-magnification-i sb-grad-deep"></span>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-dock-magnification .ac-dock-magnification-d {
+        position: absolute;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+        padding: 6px 8px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-dock-magnification .ac-dock-magnification-i {
+        width: 22px;
+        height: 22px;
+        border-radius: 7px;
+        flex: none;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dock-magnification",
+        name: "近いほど大きくなるドック",
+        en: "Dock magnification",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "アイコンが並んだドックの上をポインターが通ると、いちばん近いアイコンが大きくなり、隣のアイコンもなだらかに少し大きくなる動きです。波が通るように拡大が移り、指している項目がはっきりします。",
+        use: "アプリのランチャー、ツールバー、ソーシャルリンクの並び、ポートフォリオのナビゲーション。",
+        params: [
+          { key: "mag", label: "最大の倍率", value: 1.8, min: 1.2, max: 2.5, step: 0.1, unit: "" },
+          { key: "range", label: "影響する距離", value: 70, min: 30, max: 140, step: 5, unit: "px" },
+        ],
+        spec: [
+          [
+            "計算",
+            "各アイコンの中心とポインターの距離 d から倍率 = <code>1 + (最大 - 1) × max(0, cos(d / 影響する距離 × π/2))</code>",
+          ],
+          [
+            "並び",
+            "幅も倍率に合わせて広げ、隣を押し広げる（<code>transform</code> だけでなく幅を変えるか、FLIP で詰める）",
+          ],
+          [
+            "なめらかさ",
+            "倍率は spring で追いかける（Motion の <code>useSpring</code>）。ポインターが離れたら全部 1 に戻す",
+          ],
+          ["動きを減らす設定", "拡大をやめ、指しているアイコンに印を付けるだけにする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/dock" target="_blank" rel="noopener">Magic UI: Dock</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const is = [...stage.querySelectorAll(".ac-dock-magnification-i")],
+              root = stage.firstElementChild;
+            let cs = is.map(() => 1);
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const px = 115 + 95 * Math.sin(t * 0.8),
+                py = 112,
+                b = root.getBoundingClientRect();
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              const rs = is.map((el) => el.getBoundingClientRect()); // 読み取りを先にまとめる
+              is.forEach((el, i) => {
+                const r = rs[i],
+                  d = Math.abs(r.left - b.left + r.width / 2 - px),
+                  target = rm ? 1 : 1 + (v.mag - 1) * Math.max(0, Math.cos((Math.min(1, d / v.range) * Math.PI) / 2));
+                cs[i] += (target - cs[i]) * 0.25;
+                el.style.width = el.style.height = `${22 * cs[i]}px`;
+                el.style.outline = rm && d < 14 ? "2px solid var(--blue)" : "";
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

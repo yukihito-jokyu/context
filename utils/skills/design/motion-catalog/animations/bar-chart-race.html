@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>棒グラフの順位レース（Bar chart race） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-bar-chart-race" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-bar-chart-race-w"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-bar-chart-race .ac-bar-chart-race-w {
+        position: absolute;
+        left: 14px;
+        top: 10px;
+        right: 10px;
+        bottom: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .ac-bar-chart-race .ac-bar-chart-race-r {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 22px;
+      }
+      .ac-bar-chart-race .ac-bar-chart-race-r b {
+        display: block;
+        height: 18px;
+        border-radius: 4px;
+      }
+      .ac-bar-chart-race .ac-bar-chart-race-r span {
+        font: 700 11px var(--font-sans);
+        color: var(--ink-muted);
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "bar-chart-race",
+        name: "棒グラフの順位レース",
+        en: "Bar chart race",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "時間が進むにつれて、各項目の棒が伸び縮みし、順位が入れ替わるたびに棒が上下に滑って並び替わる動きです。数値の変化と順位の変化を同時に、物語のように見せられます。",
+        use: "年ごとの売上・人口・人気の推移、ランキングの変化、データストーリーテリング。",
+        params: [{ key: "step", label: "1ステップの時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "毎ステップ",
+            "新しい値で棒の長さ（<code>scaleX</code> か幅）を補間し、行を順位どおりに並べ替えて、前の位置との差を <code>translateY</code> から 0 へ補間（FLIP）｜linear（ステップの間隔と同じ時間）",
+          ],
+          ["数字", "棒の端の数字も補間しながら数える（等幅の数字）"],
+          [
+            "対応を保つ",
+            "同じデータ（同じ ID）は同じ要素のまま動かす。消える・増えるものはフェードで出し入れする（D3 の data join と key）",
+          ],
+          ["動きを減らす設定", "補間をやめ、新しい状態の図をすぐ表示する（またはフェードで切り替える）"],
+          [
+            "出典",
+            '<a href="https://observablehq.com/@d3/bar-chart-race" target="_blank" rel="noopener">D3 example</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const w = stage.querySelector(".ac-bar-chart-race-w"),
+              cs = ["sky", "aqua", "cobalt", "blue", "navy"];
+            const rows = cs.map((c) => {
+              const r = document.createElement("div");
+              r.className = "ac-bar-chart-race-r";
+              r.innerHTML = `<b style="background:var(--${c})"></b><span></span>`;
+              w.appendChild(r);
+              return { r, b: r.firstChild, n: r.lastChild, v: 10 + Math.random() * 30, shown: 0 };
+            });
+            let id = 0;
+            const lay = (ms) => {
+              const sorted = [...rows].sort((a, b) => b.v - a.v),
+                max = sorted[0].v,
+                anim = !rm && ms > 0;
+              const top0 = new Map(rows.map((o) => [o, o.r.getBoundingClientRect().top]));
+              sorted.forEach((o) => w.appendChild(o.r)); /* 読み上げの順も順位どおりにする */
+              sorted.forEach((o) => {
+                const dy = top0.get(o) - o.r.getBoundingClientRect().top;
+                if (anim && dy)
+                  o.r.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], {
+                    duration: ms,
+                    easing: "linear",
+                  });
+                o.b.style.transition = anim ? `width ${ms}ms linear` : "none";
+                o.b.style.width = `${(o.v / max) * 150}px`;
+              });
+              cancelAnimationFrame(id);
+              const from = rows.map((o) => o.shown),
+                t0 = performance.now();
+              const count = (now) => {
+                const k = anim ? Math.min(1, Math.max(0, (now - t0) / ms)) : 1;
+                rows.forEach((o, i) => {
+                  o.shown = from[i] + (o.v - from[i]) * k;
+                  o.n.textContent = Math.round(o.shown);
+                });
+                if (k < 1) id = requestAnimationFrame(count);
+              };
+              count(t0);
+            };
+            lay(0);
+            const step = () => {
+              rows.forEach((o) => {
+                o.v = Math.max(5, o.v + (Math.random() - 0.35) * 18);
+              });
+              lay(v.step);
+            };
+            const iv = setInterval(step, v.step);
+            return () => {
+              clearInterval(iv);
+              cancelAnimationFrame(id);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

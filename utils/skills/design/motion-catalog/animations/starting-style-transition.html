@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>追加された瞬間の遷移（Starting-style transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-starting-style-transition" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-starting-style-transition-l"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-starting-style-transition .ac-starting-style-transition-l {
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+        padding-top: 6px;
+      }
+      .ac-starting-style-transition .ac-starting-style-transition-l > * {
+        transition:
+          opacity var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1),
+          translate var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @starting-style {
+        .ac-starting-style-transition .ac-starting-style-transition-l > * {
+          opacity: 0;
+          translate: 0 var(--dy, -10px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @starting-style {
+          .ac-starting-style-transition .ac-starting-style-transition-l > * {
+            opacity: 0;
+            translate: none;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "starting-style-transition",
+        name: "追加された瞬間の遷移",
+        en: "Starting-style transition",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "DOM に新しく追加された要素にも、CSS の transition だけで登場の動きを付ける考え方です。@starting-style に「始まりの姿」を書いておくと、追加された瞬間にそこから本来の姿へ遷移します。キーフレームも JS も要りません。",
+        use: "リストへの追加、トースト・ダイアログの表示、条件で表示される要素、display: none からの表示。",
+        params: [
+          { key: "dur", label: "時間", value: 300, min: 100, max: 800, step: 10, unit: "ms" },
+          { key: "dy", label: "始まりのずれ", value: -10, min: -30, max: 30, step: 1, unit: "px" },
+        ],
+        spec: [
+          [
+            "書き方",
+            "<code>.item { transition: opacity 時間, translate 時間; }</code> と <code>@starting-style { .item { opacity: 0; translate: 0 始まりのずれ; } }</code>",
+          ],
+          ["イージング", "out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>"],
+          [
+            "消えるとき",
+            "消える動きは <code>allow-discrete</code> と組み合わせる。未対応の古いブラウザでは遷移せずにすぐ表示される",
+          ],
+          ["動きを減らす設定", "ずれをなくし、透明度の遷移だけにする"],
+          [
+            "出典",
+            '<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@starting-style" target="_blank" rel="noopener">MDN: @starting-style</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const l = stage.querySelector(".ac-starting-style-transition-l");
+            const tpl = ["aqua", "sky", "deep"].map(
+              (g) =>
+                `<div class="sb-item" style="width:200px;padding:8px 12px;gap:10px;box-sizing:border-box;border-radius:18px"><span class="sb-thumb sb-grad-${g}" style="width:24px;height:24px;border-radius:8px"></span><span class="sb-lines" style="gap:6px"><span class="sb-bar sb-bar--xs sb-bar--strong" style="width:90px"></span><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width:56px"></span></span></div>`,
+            );
+            const add = (i) => () => l.insertAdjacentHTML("beforeend", tpl[i]);
+            return seq(3400, [
+              [
+                0,
+                () => {
+                  l.innerHTML = "";
+                },
+              ],
+              [200, add(0)],
+              [800, add(1)],
+              [1400, add(2)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

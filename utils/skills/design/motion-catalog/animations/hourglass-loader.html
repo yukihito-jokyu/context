@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>砂時計ローダー（Hourglass loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hourglass-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <span class="ac-hourglass-loader-h"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hourglass-loader .ac-hourglass-loader-h {
+        width: 0;
+        height: 0;
+        box-sizing: border-box;
+        border: 22px solid var(--blue);
+        border-color: var(--blue) transparent var(--sky) transparent;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-hourglass-loader .ac-hourglass-loader-h {
+          animation: ac-hourglass-loader-r var(--dur, 1200ms) infinite;
+        }
+      }
+      @keyframes ac-hourglass-loader-r {
+        0% {
+          transform: rotate(0);
+          animation-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+        }
+        50% {
+          transform: rotate(900deg);
+          animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+        100% {
+          transform: rotate(1800deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hourglass-loader",
+        name: "砂時計ローダー",
+        en: "Hourglass loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "砂時計の形が、ゆっくり回り始めて速くなり、また減速して半回転し、ひっくり返ったところで少し止まる、をくり返すローダーです。「時間がかかっている」ことを、昔ながらの記号で伝えます。",
+        use: "ボタン・カード・画面の読み込み中、待ち時間の短い処理。",
+        params: [{ key: "dur", label: "周期", value: 1200, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          ["形", "幅0・高さ0の要素の上下の <code>border</code> だけに色を付けると、三角形2つの砂時計になる"],
+          ["動き", "前半は in（加速）、後半は out（減速）で、合計 5 回転（1800°）｜くり返し"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/loadingio/css-spinner/master/dist/hourglass.html" target="_blank" rel="noopener">loading.io css-spinner</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

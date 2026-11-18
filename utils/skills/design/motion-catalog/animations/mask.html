@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マスク（Mask） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-mask" style="position: relative; width: 220px; height: 150px; display: grid; place-items: center">
+        <span class="sb-hero sb-grad-hero ac-mask-h" style="display: block; width: 200px; height: 130px"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-mask .ac-mask-h {
+        -webkit-mask-image: linear-gradient(90deg, #000 40%, transparent 60%);
+        mask-image: linear-gradient(90deg, #000 40%, transparent 60%);
+        -webkit-mask-size: 250% 100%;
+        mask-size: 250% 100%;
+        animation: ac-mask-in var(--dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) both;
+      }
+      @keyframes ac-mask-in {
+        from {
+          -webkit-mask-position: 100% 0;
+          mask-position: 100% 0;
+        }
+        to {
+          -webkit-mask-position: 0 0;
+          mask-position: 0 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-mask .ac-mask-h {
+          -webkit-mask-image: none;
+          mask-image: none;
+          animation: ac-mask-fade 300ms both;
+        }
+        @keyframes ac-mask-fade {
+          from {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "mask",
+        name: "マスク",
+        en: "Mask",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "グラデーションや画像の形で要素の一部を隠したり見せたりする表現です。クリップパスと違って境目をぼかせるので、やわらかく溶けるように現れます（Mask reveal）。",
+        use: "画像や見出しのやわらかい登場、端をぼかしたスクロール領域、光が走る演出。",
+        params: [{ key: "dur", label: "時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>mask-image: linear-gradient(90deg, #000 40%, transparent 60%)</code> を幅の 250% にし、<code>mask-position: 100% → 0%</code>｜in-out",
+          ],
+          ["境目", "グラデーションの幅（40%〜60%）でぼかし具合が決まる"],
+          ["対応", "古い Safari は <code>-webkit-mask-*</code> も書く"],
+          ["動きを減らす設定", "マスクの移動をやめ、透明度の切り替えにする"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

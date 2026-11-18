@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>途中だけスロー（Slow-motion easing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-slow-motion-easing"
+        style="
+          position: relative;
+          width: 200px;
+          height: 150px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 18px;
+        "
+      >
+        <div class="ac-slow-motion-easing-g">
+          <svg viewBox="0 0 80 80" width="80" height="80" style="overflow: visible">
+            <path d="M0,80 L80,80 M0,80 L0,0" stroke="var(--bar)" stroke-width="2" fill="none" />
+            <path d="M0,80 L80,0" stroke="var(--bar)" stroke-width="1.5" stroke-dasharray="3 4" fill="none" />
+            <path
+              class="ac-slow-motion-easing-curve"
+              d="M0,80 L80,0"
+              stroke="var(--cobalt)"
+              stroke-width="3"
+              fill="none"
+              stroke-linecap="round"
+            /></svg
+          ><span class="ac-slow-motion-easing-dx"><span class="ac-slow-motion-easing-dy"></span></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-slow-motion-easing-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-slow-motion-easing .ac-slow-motion-easing-g {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      .ac-slow-motion-easing .ac-slow-motion-easing-dx {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 10px;
+        height: 80px;
+        margin-left: -5px;
+        animation: ac-slow-motion-easing-x var(--dur, 1000ms) linear both;
+      }
+      .ac-slow-motion-easing .ac-slow-motion-easing-dy {
+        position: absolute;
+        left: 0;
+        bottom: -5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 3px #fff;
+        animation: ac-slow-motion-easing-y var(--dur, 1000ms) var(--ease, linear) both;
+      }
+      .ac-slow-motion-easing .ac-slow-motion-easing-t {
+        animation: ac-slow-motion-easing-m var(--dur, 1000ms) var(--ease, linear) both;
+      }
+      @keyframes ac-slow-motion-easing-x {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(80px);
+        }
+      }
+      @keyframes ac-slow-motion-easing-y {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-80px);
+        }
+      }
+      @keyframes ac-slow-motion-easing-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-slow-motion-easing-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-slow-motion-easing .ac-slow-motion-easing-dx {
+          transform: translateX(80px);
+          animation-name: none;
+        }
+        .ac-slow-motion-easing .ac-slow-motion-easing-dy {
+          transform: translateY(-80px);
+          animation-name: ac-slow-motion-easing-fade;
+        }
+        .ac-slow-motion-easing .ac-slow-motion-easing-t {
+          transform: translateX(168px);
+          animation-name: ac-slow-motion-easing-fade;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "slow-motion-easing",
+        name: "途中だけスロー",
+        en: "Slow-motion easing",
+        cat: "イージング",
+        kind: "concept",
+        description:
+          "動きの最初と最後は速く、真ん中だけゆっくり進むイージングです。画面を横切る物が、中央を通るときだけスローモーションになり、その瞬間に視線を集められます。",
+        use: "画面を横切るテキストやロゴ、スライドの通過、決めの瞬間を見せる演出。",
+        params: [
+          { key: "dur", label: "時間", value: 1600, min: 600, max: 4000, step: 50, unit: "ms" },
+          { key: "ratio", label: "ゆっくりな区間", value: 0.7, min: 0.1, max: 0.9, step: 0.05, unit: "" },
+          { key: "power", label: "遅さ", value: 0.7, min: 0.1, max: 1, step: 0.05, unit: "" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["形", "真ん中の「ゆっくりな区間」（全体の割合）は傾きの小さい直線、その前後は急な曲線でつなぐ"],
+          [
+            "値",
+            "GSAP の <code>SlowMo.ease.config(区間, 遅さ)</code> の式で点を計算し、<code>linear()</code> に入れている",
+          ],
+          [
+            "時間の割り当て直し との違い",
+            "こちらはイージングの形として扱う。速さを途中で変える演出全般は「時間の割り当て直し」",
+          ],
+          ["グラフ", "横が時間、縦が進み具合"],
+          ["動きを減らす設定", "終点に固定し、透明度だけを変える"],
+          ["出典", '<a href="https://gsap.com/docs/v3/Eases/SlowMo/" target="_blank" rel="noopener">GSAP: SlowMo</a>'],
+        ],
+        loop: 2600,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const r = v.ratio,
+              pw = v.power,
+              p1 = (1 - r) / 2,
+              p3 = p1 + r;
+            const f = (t) => {
+              const lin = t + (0.5 - t) * pw;
+              if (t < p1) {
+                const q = 1 - t / p1;
+                return lin - q * q * q * q * lin;
+              }
+              if (t > p3) {
+                const q = (t - p3) / p1;
+                return lin + (t - lin) * q * q * q * q;
+              }
+              return lin;
+            };
+            const pts = Array.from({ length: 41 }, (_, i) => +f(i / 40).toFixed(4));
+            pts[40] = 1;
+            stage.firstElementChild.style.setProperty("--ease", `linear(${pts.join(", ")})`);
+            stage
+              .querySelector(".ac-slow-motion-easing-curve")
+              .setAttribute(
+                "d",
+                "M" + pts.map((p, i) => `${((i / 40) * 80).toFixed(1)},${((1 - p) * 80).toFixed(1)}`).join(" L"),
+              );
+            return null;
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

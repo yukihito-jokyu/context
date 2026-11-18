@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>回る地球儀（Rotating globe） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-globe"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "globe",
+        name: "回る地球儀",
+        en: "Rotating globe",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "点で描いた地球をゆっくり回し、都市と都市のあいだに弧を描いて、着いた所に波紋を出す動きです。世界中でのつながりや広がりが、一目で伝わります。プレビューは canvas で近い形にしています（元の作例は WebGL）。",
+        use: "サービスの利用地域・拠点の紹介、ヒーローの背景、リアルタイムの利用状況。",
+        params: [{ key: "speed", label: "回る速さ", value: 20, min: 0, max: 60, step: 1, unit: "°/秒" }],
+        spec: [
+          ["書き方", "緯度・経度 → 3D の点 → 回転・傾け → 画面へ投影。奥向きの点は描かない"],
+          ["弧と波紋", "2 都市の間を球面に沿って補間（slerp）し、真ん中ほど持ち上げる。着いたら輪を広げる"],
+          [
+            "本格的に",
+            "WebGL で描く（cobe・globe.gl・three.js）。陸地は地図データから点を作る。ドラッグと慣性で回す（都市の一覧からも選べるように）",
+          ],
+          ["動きを減らす設定", "回転と弧の動きを止め、弧を描き終えた地球の静止画にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components" target="_blank" rel="noopener">Magic UI: Components</a>、<a href="https://ui.aceternity.com/components" target="_blank" rel="noopener">Aceternity UI: Components</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const N = 900,
+              pts = [];
+            for (let i = 0; i < N; i++) {
+              const y = 1 - (2 * (i + 0.5)) / N,
+                r = Math.sqrt(1 - y * y),
+                a = i * 2.39996,
+                x = cos(a) * r,
+                z = sin(a) * r,
+                la = Math.asin(y),
+                lo = Math.atan2(z, x);
+              if (sin(lo * 2 + 1) * cos(la * 3) + 0.6 * sin(lo * 5 - la * 4) + 0.4 * cos(la * 7 + lo) > 0.35)
+                pts.push([x, y, z]);
+            }
+            const ll = (la, lo) => [cos(la) * cos(lo), sin(la), cos(la) * sin(lo)],
+              routes = [
+                [ll(0.6, 0.3), ll(0.2, 1.6)],
+                [ll(0.2, 1.6), ll(-0.4, 2.6)],
+                [ll(0.6, 0.3), ll(-0.2, -1)],
+              ];
+            const R = 60,
+              cx = 110,
+              cy = 75,
+              tilt = 0.35;
+            const proj = (p, yaw) => {
+              let [x, y, z] = p;
+              const c = cos(yaw),
+                s = sin(yaw);
+              [x, z] = [x * c - z * s, x * s + z * c];
+              const ct = cos(tilt),
+                st = sin(tilt);
+              [y, z] = [y * ct - z * st, y * st + z * ct];
+              return [cx + x * R, cy - y * R, z];
+            };
+            return raf((t) => {
+              const yaw = rm ? 0.8 : (t * v.speed * Math.PI) / 180;
+              g.clearRect(0, 0, W, H);
+              const gr = g.createRadialGradient(cx - 20, cy - 24, 8, cx, cy, R);
+              gr.addColorStop(0, "#ffffff");
+              gr.addColorStop(1, col("ice"));
+              g.fillStyle = gr;
+              g.beginPath();
+              g.arc(cx, cy, R, 0, TAU);
+              g.fill();
+              for (const p of pts) {
+                const [X, Y, z] = proj(p, yaw);
+                if (z < 0) continue;
+                g.globalAlpha = 0.25 + 0.75 * z;
+                dot(X, Y, 1.3, col("blue"));
+              }
+              g.globalAlpha = 1;
+              routes.forEach(([a, b], i) => {
+                const w = Math.acos(a[0] * b[0] + a[1] * b[1] + a[2] * b[2]),
+                  k = rm ? 1.2 : ((t * 0.4 + i / 3) % 1) * 1.6,
+                  u1 = Math.min(1, k),
+                  u0 = rm ? 0 : Math.max(0, k - 0.5);
+                if (u1 <= u0) return;
+                const at = (u) => {
+                  const s1 = sin((1 - u) * w) / sin(w),
+                    s2 = sin(u * w) / sin(w),
+                    h = 1 + 0.22 * sin(Math.PI * u);
+                  return [(a[0] * s1 + b[0] * s2) * h, (a[1] * s1 + b[1] * s2) * h, (a[2] * s1 + b[2] * s2) * h];
+                };
+                g.strokeStyle = col("cobalt");
+                g.lineWidth = 1.8;
+                g.lineCap = "round";
+                g.beginPath();
+                let on = false;
+                for (let j = 0; j <= 24; j++) {
+                  const [X, Y, z] = proj(at(u0 + ((u1 - u0) * j) / 24), yaw);
+                  if (z < -0.15) {
+                    on = false;
+                    continue;
+                  }
+                  on ? g.lineTo(X, Y) : g.moveTo(X, Y);
+                  on = true;
+                }
+                g.stroke();
+                for (const [p, ph] of [
+                  [a, k],
+                  [b, k - 1],
+                ]) {
+                  const [X, Y, z] = proj(p, yaw);
+                  if (z < 0) continue;
+                  dot(X, Y, 2.4, col("blue"));
+                  if (!rm && ph > 0 && ph < 0.5) {
+                    g.strokeStyle = `rgba(37,99,235,${1 - ph * 2})`;
+                    g.lineWidth = 1.2;
+                    g.beginPath();
+                    g.arc(X, Y, 3 + ph * 22, 0, TAU);
+                    g.stroke();
+                  }
+                }
+              });
+              g.strokeStyle = col("line");
+              g.lineWidth = 1;
+              g.beginPath();
+              g.arc(cx, cy, R, 0, TAU);
+              g.stroke();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

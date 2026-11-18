@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>中断できるアニメーション（Interruptible animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-interruptible ac-interruptible-root"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div style="position: relative; width: 200px; height: 32px">
+          <span class="ac-interruptible-rail"></span><span class="sb-thumb sb-grad-sky ac-interruptible-a"></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px; margin-top: 20px">
+          <span class="ac-interruptible-rail"></span><span class="sb-thumb sb-grad-aqua ac-interruptible-b"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-interruptible .ac-interruptible-rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 15px;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--bar);
+      }
+      .ac-interruptible .ac-interruptible-a,
+      .ac-interruptible .ac-interruptible-b {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+      }
+      .ac-interruptible.on .ac-interruptible-a,
+      .ac-interruptible .ac-interruptible-b.go {
+        transform: translateX(168px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-interruptible .ac-interruptible-a {
+          transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        .ac-interruptible .ac-interruptible-b.go {
+          animation: ac-interruptible-go var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+        .ac-interruptible .ac-interruptible-b.back {
+          animation: ac-interruptible-back var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+      }
+      @keyframes ac-interruptible-go {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-interruptible-back {
+        from {
+          transform: translateX(168px);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "interruptible",
+        name: "中断できるアニメーション",
+        en: "Interruptible animation",
+        cat: "スプリング",
+        kind: "concept",
+        description:
+          "動いている途中で操作されても、最後まで待たずに、今いる場所からなめらかに向きを変えられるアニメーションです。上は途中から折り返し、下は一度最初の位置に戻ってから動き直すので、跳んで見えます。",
+        use: "トグルやメニューの連打、ホバーの出入り、ドラッグ、すばやく切り替わるタブ。",
+        params: [{ key: "dur", label: "時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" }],
+        spec: [
+          ["上（中断できる）", "CSS の <code>transition</code>：途中で値が変わると、今の位置から新しい値へ向かう"],
+          ["下（中断できない）", "<code>@keyframes</code> を最初から再生し直す：始まりの位置へ跳んでから動く"],
+          [
+            "実装",
+            "状態の切り替えは <code>transition</code> か、Web Animations API で今の値から始める。ばねなら速度も引き継げる",
+          ],
+          ["動きを減らす設定", "動きをやめ、到達位置へ直接切り替える"],
+          ["出典", "Animation Vocabulary（Spring Animations）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const root = stage.firstElementChild,
+            b = stage.querySelector(".ac-interruptible-b");
+          const set = (on) => {
+            root.classList.toggle("on", on);
+            b.classList.remove("go", "back");
+            void b.offsetWidth;
+            b.classList.add(on ? "go" : "back");
+          };
+          const steps = [
+            [200, true],
+            [200 + v.dur * 0.5, false],
+            [1600, true],
+            [1600 + v.dur * 0.4, false],
+            [1600 + v.dur * 0.8, true],
+            [3000, false],
+          ];
+          let ts = [];
+          const once = () => {
+            ts = steps.map(([at, on]) => setTimeout(() => set(on), at));
+          };
+          once();
+          const iv = setInterval(once, 3800);
+          return () => {
+            clearInterval(iv);
+            ts.forEach(clearTimeout);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

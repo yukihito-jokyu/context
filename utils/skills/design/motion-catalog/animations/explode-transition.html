@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>飛び散る遷移（Explode transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-explode-transition"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+          display: grid;
+          place-items: center;
+        "
+      >
+        <div class="ac-explode-transition-g">
+          <i style="--dx: -1; --dy: -1; --d: 80ms" class=""></i><i style="--dx: 0; --dy: -1; --d: 40ms" class=""></i
+          ><i style="--dx: 1; --dy: -1; --d: 80ms" class=""></i><i style="--dx: -1; --dy: 0; --d: 40ms" class=""></i
+          ><i style="--dx: 0; --dy: 0; --d: 0ms" class="ac-explode-transition-c"></i
+          ><i style="--dx: 1; --dy: 0; --d: 40ms" class=""></i><i style="--dx: -1; --dy: 1; --d: 80ms" class=""></i
+          ><i style="--dx: 0; --dy: 1; --d: 40ms" class=""></i><i style="--dx: 1; --dy: 1; --d: 80ms" class=""></i>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-explode-transition .ac-explode-transition-g {
+        display: grid;
+        grid-template-columns: repeat(3, 50px);
+        gap: 8px;
+      }
+      .ac-explode-transition .ac-explode-transition-g i {
+        height: 36px;
+        border-radius: 9px;
+        background: linear-gradient(150deg, var(--ice), var(--sky));
+        transition:
+          transform 380ms cubic-bezier(0.55, 0, 1, 0.45),
+          opacity 380ms cubic-bezier(0.55, 0, 1, 0.45);
+        transition-delay: calc(140ms - var(--d));
+      }
+      .ac-explode-transition .ac-explode-transition-g i.ac-explode-transition-c {
+        background: linear-gradient(150deg, var(--sky), var(--blue));
+        transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-explode-transition .ac-explode-transition-g.is-out i:not(.ac-explode-transition-c) {
+        transform: translate(calc(var(--dx) * 150px), calc(var(--dy) * 110px)) scale(0.8);
+        opacity: 0;
+      }
+      .ac-explode-transition .ac-explode-transition-g.is-out i.ac-explode-transition-c {
+        transform: scale(1.25);
+      }
+      .ac-explode-transition .ac-explode-transition-g:not(.is-out) i {
+        transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-explode-transition .ac-explode-transition-g i {
+          transition: opacity 200ms !important;
+          transform: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "explode-transition",
+        name: "飛び散る遷移",
+        en: "Explode transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "画面の部品を、選んだ所（中心）から外側へ向かって画面の端まで一斉に押し出して消し、戻るときは外から中心へ集めて出す遷移です。選んだ項目以外が四方に退くので、次の画面への切り替わりが勢いよく伝わります。",
+        use: "グリッドの項目を選んで詳細へ進むとき、写真の一覧から1枚を開くとき、ゲームのメニューの切り替え。",
+        params: [],
+        spec: [
+          [
+            "書き方",
+            "各部品について、中心（押した項目）からの向き <code>(dx, dy)</code> を計算し、<code>translate(dx × 距離, dy × 距離)</code> と <code>opacity 1 → 0</code>｜in",
+          ],
+          ["時間", "300〜400ms。中心に近い部品ほど少しだけ遅らせると、波のように広がる"],
+          [
+            "Android では",
+            "<code>android.transition.Explode</code>（中心は <code>setEpicenterCallback</code> で決める）",
+          ],
+          ["動きを減らす設定", "飛び散る動きをやめ、ほかの部品をフェードで消す"],
+          [
+            "出典",
+            '<a href="https://developer.android.com/reference/android/transition/Transition" target="_blank" rel="noopener">Android Developers: Transition（Explode）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const gr = stage.querySelector(".ac-explode-transition-g");
+            return seq(3000, [
+              [
+                0,
+                () => {
+                  show(1);
+                  move(160, 120, 0);
+                },
+              ],
+              [100, () => move(110, 75, 600)],
+              [
+                800,
+                () => {
+                  cur.animate(
+                    [
+                      { transform: cur.style.transform + " scale(1)" },
+                      { transform: cur.style.transform + " scale(.85)" },
+                      { transform: cur.style.transform + " scale(1)" },
+                    ],
+                    { duration: 200 },
+                  );
+                  gr.classList.add("is-out");
+                },
+              ],
+              [1100, () => show(0)],
+              [2200, () => gr.classList.remove("is-out")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

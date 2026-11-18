@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ゆがみながら切り替わる（Displacement transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-displacement-transition"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-dt-f" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves="2" seed="3" />
+            <feDisplacementMap
+              class="ac-displacement-transition-dm"
+              in="SourceGraphic"
+              scale="0"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </svg>
+        <div class="ac-displacement-transition-w">
+          <span class="ac-displacement-transition-a"></span><span class="ac-displacement-transition-b"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-displacement-transition .ac-displacement-transition-w {
+        position: absolute;
+        inset: -10px;
+        filter: url(#ac-dt-f);
+      }
+      .ac-displacement-transition .ac-displacement-transition-a,
+      .ac-displacement-transition .ac-displacement-transition-b {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-displacement-transition .ac-displacement-transition-a {
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-displacement-transition .ac-displacement-transition-b {
+        background:
+          radial-gradient(circle at 28% 34%, #fff 0 10px, transparent 11px),
+          radial-gradient(ellipse at 70% 110%, var(--aqua) 0 50%, transparent 51%),
+          linear-gradient(200deg, #c9b8ff, var(--cobalt));
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "displacement-transition",
+        name: "ゆがみながら切り替わる",
+        en: "Displacement transition",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像が水面のようにぐにゃりとゆがみながら次の画像に溶け込み、ゆがみが収まると新しい画像になる切り替えです。普通のフェードより、物質感と勢いがあります。プレビューは SVG のフィルターで近い形を作っています（元の作例は WebGL）。",
+        use: "写真のスライドショー、ポートフォリオ、作品の切り替え、ヒーローの背景。",
+        params: [{ key: "amt", label: "ゆがみの強さ", value: 60, min: 10, max: 120, step: 5, unit: "" }],
+        spec: [
+          [
+            "ゆがみ",
+            "SVG の <code>feTurbulence</code>（模様）と <code>feDisplacementMap</code>（その模様で画素をずらす）。<code>scale</code> を 0 → 60 → 0 に",
+          ],
+          ["切り替え", "ゆがみがいちばん大きい中間で、前の画像と次の画像をクロスフェード"],
+          ["本格的に", "WebGL でゆがみ用の画像（displacement map）を使って2枚をまぜる"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://tympanus.net/codrops/2019/11/05/creative-webgl-image-transitions/" target="_blank" rel="noopener">Codrops: image transitions</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const dm = stage.querySelector(".ac-displacement-transition-dm"),
+              b = stage.querySelector(".ac-displacement-transition-b");
+            let on = 0;
+            return raf((t) => {
+              const k = t % 3,
+                p = k < 1.2 ? 0 : k < 2.2 ? k - 1.2 : 1,
+                s = Math.sin(Math.PI * Math.min(1, p));
+              on = Math.floor(t / 3) % 2 ? 0 : 1; /* 周期の回数で決める（フレームの来る時刻によらない） */
+              dm.setAttribute("scale", rm ? 0 : (s * v.amt).toFixed(1));
+              const o = p < 0.5 ? 0 : Math.min(1, (p - 0.5) * 2);
+              b.style.opacity = Math.round(on) ? 1 - o : o;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

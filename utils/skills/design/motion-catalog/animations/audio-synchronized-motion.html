@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>音に合わせて動かす（Audio-synchronized motion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-audio-synchronized-motion" style="position: relative; width: 220px; height: 150px">
+        <span class="ac-audio-synchronized-motion-o sb-grad-sky"></span>
+        <div class="ac-audio-synchronized-motion-w">
+          <i style="height: 8px"></i><i style="height: 14px"></i><i style="height: 22px"></i><i style="height: 12px"></i
+          ><i style="height: 26px"></i><i style="height: 18px"></i><i style="height: 10px"></i
+          ><i style="height: 20px"></i><i style="height: 28px"></i><i style="height: 16px"></i
+          ><i style="height: 9px"></i><i style="height: 22px"></i><i style="height: 14px"></i
+          ><i style="height: 24px"></i><i style="height: 11px"></i><i style="height: 18px"></i
+          ><i style="height: 26px"></i><i style="height: 12px"></i><i style="height: 8px"></i
+          ><i style="height: 20px"></i><span class="ac-audio-synchronized-motion-ph"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-audio-synchronized-motion .ac-audio-synchronized-motion-o {
+        position: absolute;
+        left: 82px;
+        top: 8px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        box-shadow: var(--shadow-glow);
+      }
+      .ac-audio-synchronized-motion .ac-audio-synchronized-motion-w {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 16px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .ac-audio-synchronized-motion .ac-audio-synchronized-motion-w i {
+        width: 5px;
+        border-radius: 3px;
+        background: var(--bar);
+      }
+      .ac-audio-synchronized-motion .ac-audio-synchronized-motion-ph {
+        position: absolute;
+        top: -6px;
+        bottom: -6px;
+        left: 0;
+        width: 2px;
+        background: var(--blue);
+        border-radius: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "audio-synchronized-motion",
+        name: "音に合わせて動かす",
+        en: "Audio-synchronized motion",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "音楽や効果音の再生位置を時計にして、動きをその時間軸に合わせる考え方です。タイマーで動かすとだんだん音とずれますが、音の再生時刻を基準にすれば、拍に合わせてぴったり跳ねます。プレビューは音を鳴らさず、拍の位置だけを見せています。",
+        use: "音楽プレイヤー、ビートに合わせた演出、動画・ナレーション付きの説明、ゲームのリズム。",
+        params: [
+          { key: "bpm", label: "テンポ", value: 110, min: 60, max: 180, step: 1, unit: "BPM" },
+          { key: "pop", label: "跳ねの大きさ", value: 1.2, min: 1, max: 1.5, step: 0.02, unit: "" },
+        ],
+        spec: [
+          [
+            "時計",
+            "<code>audio.currentTime</code>（Web Audio なら <code>AudioContext.currentTime</code>）を毎フレーム読み、そこから位置を計算する。<code>setTimeout</code> で拍を数えない",
+          ],
+          ["拍", "拍の位相 = <code>(時刻 × テンポ / 60) % 1</code>。0 の瞬間に跳ね、out で戻す"],
+          ["音量", "音の大きさに合わせるなら <code>AnalyserNode</code> の値で拡大率を決める"],
+          ["動きを減らす設定", "跳ねをやめ、拍の位置だけを色で示す"],
+          [
+            "出典",
+            '<a href="https://www.theatrejs.com/docs/latest/manual/audio" target="_blank" rel="noopener">Theatre.js: Audio</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const o = stage.querySelector(".ac-audio-synchronized-motion-o"),
+              ph = stage.querySelector(".ac-audio-synchronized-motion-ph"),
+              tw = ph.parentElement.clientWidth;
+            const len = 8;
+            return raf((t) => {
+              const time = t % len,
+                beat = ((time * v.bpm) / 60) % 1,
+                e = 1 - Math.pow(1 - Math.min(1, beat / 0.35), 3);
+              ph.style.transform = rm
+                ? ""
+                : `translateX(${(tw * time) / len}px)`; /* left ではなく transform。動きを減らす設定ではヘッドを止める */
+              o.style.transform = rm ? "" : `scale(${v.pop - (v.pop - 1) * e})`;
+              o.style.opacity = rm ? (beat < 0.15 ? 1 : 0.6) : 1;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

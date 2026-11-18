@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>読み位置をなぞる線（Scroll tracing beam） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-scroll-tracing-beam" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-scroll-tracing-beam-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div class="ac-scroll-tracing-beam-in">
+            <span class="ac-scroll-tracing-beam-line"></span><span class="ac-scroll-tracing-beam-beam"></span
+            ><span class="ac-scroll-tracing-beam-tip"></span>
+            <div class="ac-scroll-tracing-beam-s">
+              <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 130px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 120px"></span>
+            </div>
+            <div class="ac-scroll-tracing-beam-s">
+              <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 130px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 120px"></span>
+            </div>
+            <div class="ac-scroll-tracing-beam-s">
+              <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 130px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 120px"></span>
+            </div>
+            <div class="ac-scroll-tracing-beam-s">
+              <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 130px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 120px"></span>
+            </div>
+            <div class="ac-scroll-tracing-beam-s">
+              <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 130px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 120px"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-tracing-beam .ac-scroll-tracing-beam-in {
+        position: relative;
+        padding: 14px 14px 30px 34px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+      .ac-scroll-tracing-beam .ac-scroll-tracing-beam-s {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .ac-scroll-tracing-beam .ac-scroll-tracing-beam-line {
+        position: absolute;
+        left: 16px;
+        top: 14px;
+        bottom: 14px;
+        width: 2px;
+        border-radius: 1px;
+        background: var(--line);
+      }
+      .ac-scroll-tracing-beam .ac-scroll-tracing-beam-beam {
+        position: absolute;
+        left: 16px;
+        top: 14px;
+        bottom: 14px;
+        width: 2px;
+        border-radius: 1px;
+        background: linear-gradient(transparent, var(--blue));
+        transform-origin: top;
+        transform: scaleY(0);
+      }
+      .ac-scroll-tracing-beam .ac-scroll-tracing-beam-tip {
+        position: absolute;
+        left: 12px;
+        top: 9px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 4px var(--blue-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-tracing-beam",
+        name: "読み位置をなぞる線",
+        en: "Scroll tracing beam",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "本文の横に引いた縦線の上を、光る線が読み進めた位置まで伸びていく動きです。今どこを読んでいるか、どこまで進んだかが、線の先端で分かります。",
+        use: "長い記事、変更履歴（チェンジログ）、ステップの説明、タイムライン。",
+        params: [{ key: "lead", label: "先端の位置", value: 40, min: 10, max: 90, step: 5, unit: "%" }],
+        spec: [
+          ["動き", "光る線の高さ = スクロール量 + 表示領域の高さ × 先端の位置｜スクロール量に連動｜先端に丸い点"],
+          ["見た目", "線は上が透明・下が青のグラデーション。先端の点に淡い光（<code>box-shadow</code>）"],
+          ["なめらかさ", "高さは少し遅れて追いかける（spring か lerp）と、光が流れて見える"],
+          ["動きを減らす設定", "遅れて追う動きをやめ、スクロール量にそのまま合わせる"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/tracing-beam" target="_blank" rel="noopener">Aceternity UI: Tracing Beam</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const auto = (sc, ms) => {
+              let raf,
+                start = null;
+              const tick = (now) => {
+                if (start === null) start = now;
+                const t = (now - start) % (ms + 1000),
+                  p = Math.min(1, t / ms),
+                  max = sc.scrollHeight - sc.clientHeight;
+                sc.scrollTop = max * (0.5 - Math.cos(Math.PI * p) / 2);
+                raf = requestAnimationFrame(tick);
+              };
+              raf = requestAnimationFrame(tick);
+              return () => cancelAnimationFrame(raf);
+            };
+            const sc = stage.querySelector(".ac-scroll-tracing-beam-sc"),
+              beam = stage.querySelector(".ac-scroll-tracing-beam-beam"),
+              tip = stage.querySelector(".ac-scroll-tracing-beam-tip");
+            let h = 0,
+              last = null;
+            const stopR = raf((t) => {
+              const dt = last === null ? 1 / 60 : Math.min(0.05, t - last);
+              last = t;
+              const max = beam.offsetHeight,
+                target = Math.min(max, sc.scrollTop + (sc.clientHeight * v.lead) / 100);
+              h = rm ? target : h + (target - h) * (1 - Math.pow(1 - 0.12, dt * 60));
+              beam.style.transform = `scaleY(${max > 0 ? h / max : 0})`;
+              tip.style.transform = `translateY(${h}px)`;
+            });
+            const stop = auto(sc, 3600);
+            return () => {
+              stop();
+              stopR();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

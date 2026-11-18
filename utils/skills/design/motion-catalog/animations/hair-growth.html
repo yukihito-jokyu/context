@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>毛が伸びる（Hair / Strand growth） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hair-growth"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hair-growth",
+        name: "毛が伸びる",
+        en: "Hair / Strand growth",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "面から細い毛や草の線が伸びていき、伸びたあとは風に吹かれるようにそよぐ表現です。1本ずつ長さ・角度・揺れの周期を変えると、柔らかく自然に見えます。",
+        use: "芝生や草原の背景、ふわふわした素材の表現、キャラクターの毛並み、成長・育成を表す演出。",
+        params: [{ key: "wind", label: "風の強さ", value: 1, min: 0, max: 2.5, step: 0.1, unit: "" }],
+        spec: [
+          ["1本の形", "根元から先へ、2次ベジェ曲線で描く。先端を風の力で横へずらし、中間の制御点は少なめにずらす"],
+          ["伸びる", "長さを 0 → 目標へ、毛ごとに開始をずらして伸ばす｜out"],
+          ["ツールでは", "After Effects の CC Hair。3D ならヘアやファーのシミュレーション"],
+          ["動きを減らす設定", "そよぎを止め、伸びきった状態にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Simulation）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const hs = Array.from({ length: 70 }, (_, i) => ({
+              x: 6 + i * 3 + rnd() * 3,
+              L: 40 + rnd() * 55,
+              ph: rnd() * TAU,
+              f: 1.4 + rnd(),
+              d: rnd() * 0.6,
+              c: rnd(),
+            }));
+            return raf((t) => {
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(0, 136, W, 14);
+              const cyc = (t % 6) / 6;
+              hs.forEach((h) => {
+                const gr = rm ? 1 : Math.min(1, Math.max(0, (cyc * 6 - h.d) / 1.2)),
+                  e = 1 - Math.pow(1 - gr, 3);
+                if (cyc > 0.92 && !rm) return;
+                const L = h.L * e;
+                const sway = (rm ? 0.3 : sin(t * h.f + h.ph + h.x * 0.03)) * v.wind * 0.35 * (L / 60),
+                  tx = h.x + sway * L,
+                  ty = 136 - L * cos(sway * 0.8);
+                g.strokeStyle = h.c > 0.6 ? col("blue") : h.c > 0.3 ? col("cobalt") : col("sky");
+                g.lineWidth = 1.6;
+                g.lineCap = "round";
+                g.beginPath();
+                g.moveTo(h.x, 136);
+                g.quadraticCurveTo(h.x + sway * L * 0.3, 136 - L * 0.55, tx, ty);
+                g.stroke();
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

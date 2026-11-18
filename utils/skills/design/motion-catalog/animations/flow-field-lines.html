@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れ場に沿う線（Flow-field lines） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-flow-field-lines"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "flow-field-lines",
+        name: "流れ場に沿う線",
+        en: "Flow-field lines",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "画面の各点に「流れの向き」を決めておき（流れ場）、たくさんの粒をその向きに沿って動かして、軌跡を細い線として残す背景です。風や水流、磁力線のような、なめらかな模様が現れ続けます。",
+        use: "アート寄りのヒーロー、データ・科学系のビジュアル、ブランドの抽象的な背景。",
+        params: [
+          { key: "n", label: "粒の数", value: 120, min: 30, max: 300, step: 10, unit: "個" },
+          { key: "speed", label: "速さ", value: 40, min: 10, max: 100, step: 5, unit: "px/s" },
+        ],
+        spec: [
+          [
+            "流れ場",
+            "位置と時間から角度を決める関数（ここでは <code>sin</code> と <code>cos</code> の組み合わせ。Perlin ノイズがよく使われる）",
+          ],
+          [
+            "線",
+            "粒を毎フレームその角度へ少し進め、前の位置から線を引く。画面全体を少しずつ背景色で塗り重ねて、古い線を薄くする",
+          ],
+          ["寿命", "粒は一定時間か画面の外で、ランダムな位置に生まれ直す"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/backgrounds/flux-lines" target="_blank" rel="noopener">React Bits: Flux Lines</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const ps = Array.from({ length: v.n }, () => ({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                l: Math.random() * 4,
+              })),
+              c = col("cobalt") || "#2b59c3",
+              bgc = col("surface") || "#fff";
+            const ang = (x, y, t) => Math.sin(x * 0.02 + t * 0.3) * 2 + Math.cos(y * 0.025 - t * 0.2) * 2;
+            g.fillStyle = bgc;
+            g.fillRect(0, 0, W, H);
+            const step = (t, dt) => {
+              g.globalAlpha = 0.06;
+              g.fillStyle = bgc;
+              g.fillRect(0, 0, W, H);
+              g.globalAlpha = 0.6;
+              g.strokeStyle = c;
+              g.lineWidth = 1;
+              g.beginPath();
+              for (const p of ps) {
+                const a = ang(p.x, p.y, t),
+                  nx = p.x + Math.cos(a) * v.speed * dt,
+                  ny = p.y + Math.sin(a) * v.speed * dt;
+                g.moveTo(p.x, p.y);
+                g.lineTo(nx, ny);
+                p.x = nx;
+                p.y = ny;
+                p.l -= dt;
+                if (p.l < 0 || nx < 0 || nx > W || ny < 0 || ny > H) {
+                  p.x = Math.random() * W;
+                  p.y = Math.random() * H;
+                  p.l = 2 + Math.random() * 3;
+                }
+              }
+              g.stroke();
+              g.globalAlpha = 1;
+            };
+            if (rm) {
+              for (let i = 0; i < 120; i++) step(i / 30, 1 / 30);
+              return null;
+            }
+            let last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              step(t, dt);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

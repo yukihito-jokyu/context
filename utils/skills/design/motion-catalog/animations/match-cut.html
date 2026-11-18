@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マッチカット（Match cut） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-match-cut"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-match-cut-s ac-match-cut-a"
+          style="
+            background:
+              radial-gradient(circle at 50% 42%, #fff 0 22px, #fff6c9 23px 26px, transparent 27px),
+              radial-gradient(ellipse at 50% 125%, var(--cobalt) 0 50%, transparent 51%),
+              linear-gradient(170deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-match-cut-s ac-match-cut-b"
+          style="
+            background:
+              radial-gradient(circle at 50% 42%, #eaf2ff 0 22px, transparent 23px),
+              radial-gradient(circle at 40% 38%, #d4e1fb 0 5px, transparent 6px),
+              radial-gradient(circle at 20% 20%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 80% 28%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 50% 125%, #0f2563 0 50%, transparent 51%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-match-cut .ac-match-cut-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-match-cut .ac-match-cut-b {
+        animation: ac-match-cut-t var(--dur, 2600ms) step-end infinite;
+      }
+      @keyframes ac-match-cut-t {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-match-cut .ac-match-cut-s {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "match-cut",
+        name: "マッチカット",
+        en: "Match cut",
+        cat: "映像の切り替え",
+        kind: "concept",
+        description:
+          "前後のショットで主役の形・位置・動きをそろえて切り替える方法です。丸い太陽が同じ位置の月に変わるように、まったく別の場面でも目がそのままつながります。形をそろえる「グラフィックマッチ」と、動きの途中でつなぐ「アクションつなぎ」があります。",
+        use: "ブランド動画、ヒーローの場面転換、時間の経過（朝→夜）を見せる画面、ストーリー仕立てのオンボーディング。",
+        params: [{ key: "dur", label: "1ショットの長さ ×2", value: 2600, min: 1000, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["形を合わせる", "前後のショットで、主役の形・位置・大きさをそろえてカット（グラフィックマッチ）"],
+          ["動きを合わせる", "動きの途中で切り、次のショットで同じ動きの続きを見せる（アクションつなぎ）"],
+          ["UI では", "前後の画面の同じ位置に同じ形を置くと、共有要素の遷移がなくても目がつながる"],
+          ["動きを減らす設定", "もともとカットなので、そのままでよい"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

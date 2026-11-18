@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>チェックボックス（Checkbox check） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-checkbox-check" style="position: relative; width: 200px; height: 140px">
+        <div class="sb-card" style="width: 200px; padding: 14px 18px; display: flex; flex-direction: column; gap: 6px">
+          <div class="sb-option" style="min-height: 34px">
+            <span class="sb-checkbox ac-checkbox-check-cb"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span>
+          </div>
+          <div class="sb-option" style="min-height: 34px">
+            <span class="sb-checkbox ac-checkbox-check-cb"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span
+            ><span class="sb-bar sb-bar--sm" style="width: 110px"></span>
+          </div>
+          <div class="sb-option" style="min-height: 34px">
+            <span class="sb-checkbox ac-checkbox-check-cb"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span
+            ><span class="sb-bar sb-bar--sm" style="width: 70px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-checkbox-check .ac-checkbox-check-cb {
+        transition:
+          background-color var(--dur, 180ms) cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow var(--dur, 180ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-checkbox-check .ac-checkbox-check-cb path {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      .ac-checkbox-check .ac-checkbox-check-cb.sb-checkbox--on path {
+        stroke-dashoffset: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-checkbox-check .ac-checkbox-check-cb path {
+          transition: stroke-dashoffset var(--dur, 180ms) cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "checkbox-check",
+        name: "チェックボックス",
+        en: "Checkbox check",
+        cat: "Soft Blue の部品",
+        kind: "motion",
+        description:
+          "チェックボックスを選んだときに、地の色が青に変わり、チェックが線で描かれる動きです。線で描くことで「いま選んだ」という手応えが出ます。",
+        use: "複数選択、ToDo の完了、同意のチェック。",
+        params: [{ key: "dur", label: "チェックの時間", value: 180, min: 100, max: 400, step: 10, unit: "ms" }],
+        spec: [
+          ["地", "<code>surface → blue</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>"],
+          [
+            "チェック",
+            '<code>stroke-dashoffset 1 → 0</code>（path に <code>pathLength="1"</code>）｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>',
+          ],
+          ["きっかけ", "クリック・タップ（デモは上から順に自動で切り替え）"],
+          ["動きを減らす設定", "線描きをやめてチェックは瞬時に出し、色の切り替えは残す"],
+          ["出典", "Soft Blue「モーション」のチップ・チェック"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const boxes = [...stage.querySelectorAll(".ac-checkbox-check-cb")];
+          let n = 0;
+          const t = setInterval(() => {
+            if (n < boxes.length) boxes[n].classList.add("sb-checkbox--on");
+            else boxes.forEach((b) => b.classList.remove("sb-checkbox--on"));
+            n = (n + 1) % (boxes.length + 1);
+          }, 700);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

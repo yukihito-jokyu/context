@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ハンバーガーが × に変わる（Hamburger icon morph） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hamburger-morph"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <span class="sb-icon-btn ac-hamburger-morph-b" style="width: 64px; height: 64px; box-shadow: var(--shadow-card)"
+          ><span class="ac-hamburger-morph-h"><i></i><i></i><i></i></span
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hamburger-morph .ac-hamburger-morph-h {
+        position: relative;
+        width: 28px;
+        height: 20px;
+      }
+      .ac-hamburger-morph .ac-hamburger-morph-h i {
+        position: absolute;
+        left: 0;
+        width: 28px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--ink);
+        transition:
+          transform var(--dur, 300ms) cubic-bezier(0.65, 0, 0.35, 1),
+          opacity var(--dur, 300ms);
+      }
+      .ac-hamburger-morph .ac-hamburger-morph-h i:nth-child(1) {
+        top: 0;
+      }
+      .ac-hamburger-morph .ac-hamburger-morph-h i:nth-child(2) {
+        top: 8.5px;
+      }
+      .ac-hamburger-morph .ac-hamburger-morph-h i:nth-child(3) {
+        top: 17px;
+      }
+      .ac-hamburger-morph .ac-hamburger-morph-b.is-open i:nth-child(1) {
+        transform: translateY(8.5px) rotate(45deg);
+      }
+      .ac-hamburger-morph .ac-hamburger-morph-b.is-open i:nth-child(2) {
+        opacity: 0;
+        transform: scaleX(0);
+      }
+      .ac-hamburger-morph .ac-hamburger-morph-b.is-open i:nth-child(3) {
+        transform: translateY(-8.5px) rotate(-45deg);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-hamburger-morph .ac-hamburger-morph-h i {
+          transition: opacity 150ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hamburger-morph",
+        name: "ハンバーガーが × に変わる",
+        en: "Hamburger icon morph",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "3本線のメニューの記号が、押すと上下の線が回って交差し、真ん中の線が消えて「×」に変わる動きです。同じ場所のボタンが「開く」から「閉じる」に役目を変えたことが、形の変化で伝わります。",
+        use: "スマホのメニューボタン、サイドバーの開閉、モバイルのナビゲーション。",
+        params: [{ key: "dur", label: "時間", value: 300, min: 120, max: 600, step: 10, unit: "ms" }],
+        spec: [
+          ["上の線", "<code>translateY(真ん中まで) rotate(45deg)</code>"],
+          ["下の線", "<code>translateY(-真ん中まで) rotate(-45deg)</code>"],
+          [
+            "真ん中の線",
+            "<code>opacity → 0</code>（または <code>scaleX(0)</code>）｜全体 in-out｜移動のあとに回すと、より機械らしくなる。戻る矢印へ変える型もある",
+          ],
+          ["動きを減らす設定", "回転をやめ、記号の入れ替えを透明度で行う"],
+          ["出典", '<a href="https://jonsuh.com/hamburgers/" target="_blank" rel="noopener">Hamburgers</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-hamburger-morph-b");
+            return seq(2400, [
+              [500, () => b.classList.add("is-open")],
+              [1700, () => b.classList.remove("is-open")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ピクセルで切り替わる（Pixel dissolve） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-pixel-dissolve"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <span class="ac-pixel-dissolve-a"></span>
+        <div class="ac-pixel-dissolve-g"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-pixel-dissolve .ac-pixel-dissolve-a {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-pixel-dissolve .ac-pixel-dissolve-a.is-b {
+        background:
+          radial-gradient(circle at 28% 34%, #fff 0 10px, transparent 11px),
+          radial-gradient(ellipse at 70% 110%, var(--aqua) 0 50%, transparent 51%),
+          linear-gradient(200deg, #c9b8ff, var(--cobalt));
+      }
+      .ac-pixel-dissolve .ac-pixel-dissolve-g {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(11, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+      }
+      .ac-pixel-dissolve .ac-pixel-dissolve-g i {
+        background: var(--navy);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "pixel-dissolve",
+        name: "ピクセルで切り替わる",
+        en: "Pixel dissolve",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画面が小さな四角（ピクセル）にばらばらに覆われていき、全部覆われたら今度はばらばらに消えて、下から次の内容が現れる切り替えです。デジタルでレトロな、テレビゲームのような場面転換になります。",
+        use: "ゲーム・レトロ系のサイト、画像の切り替え、ページの遷移、ローディング後の表示。",
+        params: [{ key: "dur", label: "全体の時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "仕組み",
+            "画面を格子（10×7 など）に分け、マスをランダムな順番で <code>opacity 0 → 1</code>（覆う）→ 裏で内容を切り替え → ランダムな順番で <code>opacity → 0</code>",
+          ],
+          ["順番", "完全なランダムのほか、左上から斜め、中心から外など、順番の決め方で印象が変わる"],
+          ["時間", "1マスはほぼ一瞬（<code>steps</code> か 50ms）。全体で 0.5–1 秒"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/pixel-transition" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const a = stage.querySelector(".ac-pixel-dissolve-a"),
+              gr = stage.querySelector(".ac-pixel-dissolve-g");
+            gr.innerHTML = "<i></i>".repeat(88);
+            const cs = [...gr.children],
+              ord = () =>
+                cs
+                  .map((c) => [Math.random(), c])
+                  .sort((x, y) => x[0] - y[0])
+                  .map((x) => x[1]);
+            let ts = [];
+            const run_ = () => {
+              const o1 = ord(),
+                o2 = ord(),
+                d = v.dur / 2;
+              if (rm) {
+                ts.push(setTimeout(() => a.classList.toggle("is-b"), 0));
+                return;
+              }
+              o1.forEach((c, i) =>
+                ts.push(
+                  setTimeout(
+                    () => {
+                      c.style.opacity = 1;
+                    },
+                    (i / 88) * d,
+                  ),
+                ),
+              );
+              ts.push(setTimeout(() => a.classList.toggle("is-b"), d + 50));
+              o2.forEach((c, i) =>
+                ts.push(
+                  setTimeout(
+                    () => {
+                      c.style.opacity = 0;
+                    },
+                    d + 100 + (i / 88) * d,
+                  ),
+                ),
+              );
+            };
+            const stop = seq(2800, [[300, run_]]);
+            return () => {
+              stop();
+              ts.forEach(clearTimeout);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

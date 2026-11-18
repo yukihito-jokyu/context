@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動きの時間差（Overlapping action） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-overlapping-action"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          place-items: center;
+        "
+      >
+        <div class="ac-overlapping-action-l">
+          <div
+            class="sb-card ac-overlapping-action-c"
+            style="
+              width: 92px;
+              padding: 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              box-sizing: border-box;
+              filter: grayscale(1);
+              opacity: 0.55;
+            "
+          >
+            <span class="sb-hero sb-grad-hero" style="height: 34px; border-radius: 14px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 50px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 32px"></span>
+          </div>
+        </div>
+        <div class="ac-overlapping-action-r">
+          <div
+            class="sb-card ac-overlapping-action-c ac-overlapping-action-o"
+            style="width: 92px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+          >
+            <span class="sb-hero sb-grad-hero" style="height: 34px; border-radius: 14px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 50px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 32px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-overlapping-action .ac-overlapping-action-c {
+        animation: ac-overlapping-action-in var(--dur, 600ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .ac-overlapping-action .ac-overlapping-action-o > * {
+        animation: ac-overlapping-action-in var(--dur, 600ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .ac-overlapping-action .ac-overlapping-action-o > :nth-child(1) {
+        animation-delay: var(--lag, 60ms);
+      }
+      .ac-overlapping-action .ac-overlapping-action-o > :nth-child(2) {
+        animation-delay: calc(var(--lag, 60ms) * 2);
+      }
+      .ac-overlapping-action .ac-overlapping-action-o > :nth-child(3) {
+        animation-delay: calc(var(--lag, 60ms) * 3);
+      }
+      @keyframes ac-overlapping-action-in {
+        from {
+          transform: translateX(-70px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      @keyframes ac-overlapping-action-rf {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-overlapping-action .ac-overlapping-action-c,
+        .ac-overlapping-action .ac-overlapping-action-o > * {
+          animation: ac-overlapping-action-rf 200ms ease-out both !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "overlapping-action",
+        name: "動きの時間差",
+        en: "Overlapping action",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "1つの物でも、部分ごとに動き出しと止まるタイミングが少しずつずれる、という原則です。左のカードは全部が一枚板のように同時に止まり、右は画像・見出し・本文が少しずつ遅れて追いつき、止まります。柔らかく、生き物のような印象になります。",
+        use: "カード・モーダルの登場、ドロワーの中身、リストの並べ替え、キャラクターの体と髪や服。",
+        params: [
+          { key: "dur", label: "時間", value: 600, min: 200, max: 1200, step: 10, unit: "ms" },
+          { key: "lag", label: "部分ごとの遅れ", value: 60, min: 0, max: 200, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"] + p["lag"] * 2,
+        spec: [
+          ["書き方", "外枠と中身の部品に同じ動きを当て、部品ほど少し遅らせる（遅れ）、または少しゆるいばねにする"],
+          [
+            "follow-through との違い",
+            "follow-through は止まった後の揺り戻し、overlapping は部分ごとのタイミングのずれ。2つは一緒に使うことが多い",
+          ],
+          ["比べる", "左（灰色）がこの原則なし、右（青）がこの原則あり"],
+          ["動きを減らす設定", "時間差をやめ、全体を一度に透明度で表示する"],
+          [
+            "出典",
+            '<a href="https://helpcentre.toonboom.com/hc/en-ca/articles/57087608774931-About-the-12-Principles-of-Animation" target="_blank" rel="noopener">Toon Boom: 12 principles</a>',
+          ],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

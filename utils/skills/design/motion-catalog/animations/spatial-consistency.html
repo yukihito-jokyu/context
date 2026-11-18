@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>空間の一貫性（Spatial consistency） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-spatial-consistency"
+        style="
+          position: relative;
+          width: 200px;
+          height: 140px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div class="sb-seg" style="position: relative; width: 200px; margin-bottom: 12px">
+          <span class="ac-spatial-consistency-pill"></span
+          ><span class="sb-seg-item" style="position: relative; height: 30px"
+            ><span class="sb-bar sb-bar--xxs sb-bar--strong" style="width: 30px"></span></span
+          ><span class="sb-seg-item" style="position: relative; height: 30px"
+            ><span class="sb-bar sb-bar--xxs sb-bar--strong" style="width: 30px"></span></span
+          ><span class="sb-seg-item" style="position: relative; height: 30px"
+            ><span class="sb-bar sb-bar--xxs sb-bar--strong" style="width: 30px"></span
+          ></span>
+        </div>
+        <div style="width: 200px; height: 80px; overflow: hidden; border-radius: 18px">
+          <div class="ac-spatial-consistency-strip">
+            <div
+              class="sb-card"
+              style="
+                flex: none;
+                width: 200px;
+                height: 80px;
+                padding: 12px;
+                box-sizing: border-box;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                box-shadow: none;
+              "
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 52px; height: 52px; border-radius: 14px"></span
+              ><span class="sb-lines"
+                ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-card"
+              style="
+                flex: none;
+                width: 200px;
+                height: 80px;
+                padding: 12px;
+                box-sizing: border-box;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                box-shadow: none;
+              "
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 52px; height: 52px; border-radius: 14px"></span
+              ><span class="sb-lines"
+                ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-card"
+              style="
+                flex: none;
+                width: 200px;
+                height: 80px;
+                padding: 12px;
+                box-sizing: border-box;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                box-shadow: none;
+              "
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 52px; height: 52px; border-radius: 14px"></span
+              ><span class="sb-lines"
+                ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-spatial-consistency .ac-spatial-consistency-pill {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: calc((100% - 16px) / 3);
+        height: 30px;
+        border-radius: 999px;
+        background: var(--surface);
+        box-shadow: 0 4px 12px rgba(27, 58, 138, 0.1);
+        transform: translateX(calc(var(--i, 0) * (100% + 4px)));
+      }
+      .ac-spatial-consistency .ac-spatial-consistency-strip {
+        display: flex;
+        transform: translateX(calc(var(--i, 0) * -100%));
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-spatial-consistency .ac-spatial-consistency-pill,
+        .ac-spatial-consistency .ac-spatial-consistency-strip {
+          transition: transform 260ms cubic-bezier(0.65, 0, 0.35, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "spatial-consistency",
+        name: "空間の一貫性",
+        en: "Spatial consistency",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "要素が状態をまたいでも、同じものは同じ場所・同じ向きで動くようにして、見失わせないという原則です。右のタブを選ぶと中身は右から、左を選ぶと左から来ます。タブの並びと中身の並びが一致しています。",
+        use: "タブ、ステップ、カルーセル、ナビゲーション、一覧と詳細の行き来。",
+        params: [],
+        spec: [
+          ["考え方", "画面の外にも一続きの空間があるように扱う。右にあるものは右から来て、戻るときは右へ帰る"],
+          ["デモ", "タブの印と中身の帯が、同じ向き・同じ時間（260ms・in-out）で動く"],
+          ["関連", "方向を合わせた遷移（direction-aware）、共有要素の遷移（shared-element）"],
+          ["動きを減らす設定", "（考え方の項目）移動をやめても、並び順は保つ"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const root = stage.firstElementChild,
+            order = [0, 1, 2, 1];
+          let n = 0;
+          const t = setInterval(() => {
+            n = (n + 1) % order.length;
+            root.style.setProperty("--i", order[n]);
+          }, 1200);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

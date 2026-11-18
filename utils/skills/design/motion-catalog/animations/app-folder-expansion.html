@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フォルダが開く（App-folder expansion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-app-folder-expansion" style="position: relative; width: 220px; height: 160px">
+        <div class="ac-app-folder-expansion-bg">
+          <span
+            class="sb-thumb sb-grad-sky"
+            style="width: 30px; height: 30px; border-radius: 9px; visibility: hidden"
+          ></span
+          ><span class="sb-thumb sb-grad-aqua" style="width: 30px; height: 30px; border-radius: 9px"></span
+          ><span class="sb-thumb sb-grad-deep" style="width: 30px; height: 30px; border-radius: 9px"></span
+          ><span class="sb-thumb sb-grad-hero" style="width: 30px; height: 30px; border-radius: 9px"></span
+          ><span class="sb-thumb sb-grad-aqua" style="width: 30px; height: 30px; border-radius: 9px"></span
+          ><span class="sb-thumb sb-grad-sky" style="width: 30px; height: 30px; border-radius: 9px"></span
+          ><span class="sb-thumb sb-grad-deep" style="width: 30px; height: 30px; border-radius: 9px"></span
+          ><span class="sb-thumb sb-grad-hero" style="width: 30px; height: 30px; border-radius: 9px"></span>
+        </div>
+        <div class="ac-app-folder-expansion-f">
+          <div class="ac-app-folder-expansion-g">
+            <span class="sb-grad-sky"></span><span class="sb-grad-aqua"></span><span class="sb-grad-deep"></span
+            ><span class="sb-grad-hero"></span><span class="sb-grad-sky"></span><span class="sb-grad-aqua"></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-app-folder-expansion .ac-app-folder-expansion-bg {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(4, 30px);
+        gap: 18px 22px;
+        justify-content: center;
+        align-content: center;
+        transition:
+          filter var(--dur, 420ms),
+          opacity var(--dur, 420ms);
+      }
+      .ac-app-folder-expansion .ac-app-folder-expansion-f {
+        position: absolute;
+        left: 17px;
+        top: 41px;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: rgba(160, 175, 200, 0.45);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+        transition: all var(--dur, 420ms) cubic-bezier(0.34, 1.2, 0.64, 1);
+        z-index: 1;
+      }
+      .ac-app-folder-expansion .ac-app-folder-expansion-g {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        align-content: center;
+        gap: 2px;
+        padding: 4px;
+        transition: all var(--dur, 420ms) cubic-bezier(0.34, 1.2, 0.64, 1);
+      }
+      .ac-app-folder-expansion .ac-app-folder-expansion-g span {
+        border-radius: 2px;
+        aspect-ratio: 1;
+      }
+      .ac-app-folder-expansion.is-open .ac-app-folder-expansion-bg {
+        filter: blur(3px);
+        opacity: 0.5;
+      }
+      .ac-app-folder-expansion.is-open .ac-app-folder-expansion-f {
+        left: 32px;
+        top: 24px;
+        width: 156px;
+        height: 112px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: var(--shadow-float);
+      }
+      .ac-app-folder-expansion.is-open .ac-app-folder-expansion-g {
+        gap: 12px;
+        padding: 18px;
+      }
+      .ac-app-folder-expansion.is-open .ac-app-folder-expansion-g span {
+        border-radius: 10px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-app-folder-expansion .ac-app-folder-expansion-f,
+        .ac-app-folder-expansion .ac-app-folder-expansion-g {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "app-folder-expansion",
+        name: "フォルダが開く",
+        en: "App-folder expansion",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "小さなアイコンが詰まったフォルダを押すと、フォルダの枠がその場から大きく広がり、中のアイコンも一緒に大きくなって並ぶ動きです。背景はぼけて、開いたフォルダに集中できます。閉じるときは元の小さな枠へ戻ります。",
+        use: "ホーム画面のフォルダ、まとめたショートカット、グループ化された項目の展開。",
+        params: [{ key: "dur", label: "時間", value: 420, min: 200, max: 800, step: 10, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "枠",
+            "小さなフォルダの位置・大きさから、中央の大きなパネルへ（FLIP）｜spring <code>cubic-bezier(0.34, 1.2, 0.64, 1)</code> くらいの軽い弾み",
+          ],
+          ["中身", "アイコンは枠と一緒に大きくなり、間隔も広がる（枠の中で同じ並びのまま拡大）"],
+          ["背景", "背景を <code>blur</code> と暗さで沈める。閉じるときは逆の道をたどる"],
+          ["動きを減らす設定", "拡大をやめ、パネルをフェードで出し入れする"],
+          [
+            "出典",
+            '<a href="https://motion.dev/examples/react-ios-app-folder" target="_blank" rel="noopener">Motion: iOS app folder</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const r = stage.firstElementChild;
+            move(200, 150, 0);
+            return seq(4200, [
+              [
+                100,
+                () => {
+                  show(1);
+                  move(32, 56, 500);
+                },
+              ],
+              [
+                700,
+                () => {
+                  r.classList.add("is-open");
+                },
+              ],
+              [900, () => move(200, 150, 500)],
+              [1300, () => show(0)],
+              [2800, () => r.classList.remove("is-open")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

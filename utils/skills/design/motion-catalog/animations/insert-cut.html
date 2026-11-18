@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>インサート（Insert / Cut-in） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-insert-cut"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-insert-cut-s ac-insert-cut-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-insert-cut-s ac-insert-cut-b ac-insert-cut-z"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-insert-cut .ac-insert-cut-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-insert-cut .ac-insert-cut-z {
+        transform: scale(2.6);
+        transform-origin: 72% 30%;
+      }
+      .ac-insert-cut .ac-insert-cut-b {
+        animation: ac-insert-cut-t var(--dur, 2600ms) step-end infinite;
+      }
+      @keyframes ac-insert-cut-t {
+        0% {
+          opacity: 0;
+        }
+        40% {
+          opacity: 1;
+        }
+        75% {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-insert-cut .ac-insert-cut-s {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "insert-cut",
+        name: "インサート",
+        en: "Insert / Cut-in",
+        cat: "映像の切り替え",
+        kind: "concept",
+        description:
+          "全体の場面から、その中の一部分（手元・画面・細かい物）を大きく写したショットに切り替え、また戻る方法です。見てほしい細部を、はっきり伝えられます。",
+        use: "製品の細部を見せる動画、使い方の説明、ヘルプの動画、価格や数字を強調したいとき。",
+        params: [{ key: "dur", label: "ひと回りの長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "同じ場面の一部を拡大したショット（<code>scale(2〜3)</code>、<code>transform-origin</code> を見せたい所）に、カットで切り替える",
+          ],
+          ["カットイン", "同じ場面の寄り。インサートは、別に撮った細部のショット"],
+          ["戻し", "細部を見せたら、すぐ全体へ戻すと位置関係が分かる"],
+          ["動きを減らす設定", "もともとカットなので、そのままでよい"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

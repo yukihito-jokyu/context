@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>テキストモーフ（Text morph） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-text-morph"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="sb-btn sb-btn--primary sb-btn--l ac-text-morph-b" aria-live="polite"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-text-morph .ac-text-morph-b {
+        min-width: 150px;
+        font-size: 16px;
+        gap: 0;
+      }
+      .ac-text-morph .ac-text-morph-ch {
+        display: inline-block;
+        white-space: pre;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-text-morph .ac-text-morph-ch.in {
+          animation: ac-text-morph-in var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+      }
+      @keyframes ac-text-morph-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "text-morph",
+        name: "テキストモーフ",
+        en: "Text morph",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "文字が変わるとき、全部を一度に入れ替えず、変わった文字だけが1文字ずつ入れ替わる表現です。ボタンのラベルが「保存する → 保存中 → 保存しました」と変わる様子が、なめらかに伝わります。",
+        use: "ボタンの状態表示、ステータスの変化、数値や単位の切り替え、見出しの差し替え。",
+        params: [
+          { key: "step", label: "1文字ずつずらす間隔", value: 30, min: 0, max: 100, step: 5, unit: "ms" },
+          { key: "dur", label: "1文字の時間", value: 260, min: 100, max: 600, step: 10, unit: "ms" },
+        ],
+        spec: [
+          ["仕組み", "文字ごとに <code>span</code> に分け、変わった位置の文字だけを入れ替える"],
+          ["動き", "新しい文字は <code>translateY(8px) → 0</code> と <code>opacity 0 → 1</code>｜out｜1文字ずつずらす"],
+          ["実装", "Framer Motion の AnimatePresence + 文字ごとの key、または専用ライブラリ（torph など）"],
+          ["動きを減らす設定", "文字ごとの動きをやめ、ラベル全体を即時に切り替える"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const b = stage.querySelector(".ac-text-morph-b");
+          const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+          const words = ["保存する", "保存中…", "保存しました"].map((word) =>
+            Array.from(segmenter.segment(word), ({ segment }) => segment),
+          );
+          let n = 0,
+            prev = [];
+          const render = () => {
+            const graphemes = words[n];
+            n = (n + 1) % words.length;
+            let k = 0;
+            const spans = graphemes.map((grapheme, i) => {
+              const span = document.createElement("span");
+              span.className = "ac-text-morph-ch";
+              span.textContent = grapheme;
+              if (prev[i] !== grapheme) {
+                span.classList.add("in");
+                span.style.animationDelay = `${k++ * v.step}ms`;
+              }
+              return span;
+            });
+            b.replaceChildren(...spans);
+            prev = graphemes;
+          };
+          render();
+          const t = setInterval(render, 1400);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

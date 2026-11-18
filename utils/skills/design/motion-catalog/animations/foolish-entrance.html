@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>でたらめに登場（Foolish entrance） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-foolish-entrance"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-foolish-entrance-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-foolish-entrance .ac-foolish-entrance-c {
+        animation: ac-foolish-entrance-in var(--in, 1200ms) ease both;
+      }
+      @keyframes ac-foolish-entrance-in {
+        0% {
+          opacity: 0;
+          transform-origin: 50% 50%;
+          transform: scale(0) rotate(360deg);
+        }
+        20% {
+          opacity: 1;
+          transform-origin: 0% 100%;
+          transform: scale(0.5) rotate(0deg);
+        }
+        40% {
+          transform-origin: 100% 100%;
+          transform: scale(0.5) rotate(0deg);
+        }
+        60% {
+          transform-origin: 0% 0%;
+          transform: scale(0.5) rotate(0deg);
+        }
+        80% {
+          transform-origin: 0% 0%;
+          transform: scale(0.5) rotate(0deg);
+        }
+        100% {
+          opacity: 1;
+          transform-origin: 50% 50%;
+          transform: scale(1) rotate(0deg);
+        }
+      }
+      @keyframes ac-foolish-entrance-rf {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-foolish-entrance .ac-foolish-entrance-c {
+          animation: ac-foolish-entrance-rf 200ms ease-out both !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "foolish-entrance",
+        name: "でたらめに登場",
+        en: "Foolish entrance",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "回転の支点が角から角へ次々に移りながら、大きく回って現れる動きです。落ち着きのない、ふざけた印象をわざと出します。",
+        use: "遊び心のある演出、エラー画面のキャラクター、子ども向けの画面。業務用の UI には向かない。",
+        params: [{ key: "in", label: "登場の時間", value: 1200, min: 500, max: 2500, step: 50, unit: "ms" }],
+        total: (p) => p["in"],
+        spec: [
+          [
+            "登場",
+            "<code>scale(0) rotate(360deg)</code> から、<code>transform-origin</code> を 左下 → 右下 → 左上 → 中央 と切り替えながら <code>scale(1)</code> へ",
+          ],
+          ["イージング", "各区間 ease。支点の切り替えはキーフレームごとに行う"],
+          ["動きを減らす設定", "回転をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://www.minimamente.com/project/magic/" target="_blank" rel="noopener">Magic Animations</a>',
+          ],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

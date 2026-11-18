@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>粒が集まる文字（Particle text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-particle-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <canvas class="ac-particle-text-cv" width="220" height="110" style="width: 220px; height: 110px"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "particle-text",
+        name: "粒が集まる文字",
+        en: "Particle text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "たくさんの小さな粒が画面のあちこちから集まってきて文字の形になり、しばらくするとまた散っていく表現です。言葉が「生まれる」瞬間を見せる、印象的な見出しになります。",
+        use: "ヒーローのタイトル、ブランドの登場演出、イベントのオープニング、ローディングの後の表示。",
+        params: [
+          { key: "gap", label: "粒の間隔", value: 4, min: 2, max: 8, step: 1, unit: "px" },
+          { key: "k", label: "集まる速さ", value: 0.08, min: 0.02, max: 0.2, step: 0.01, unit: "" },
+        ],
+        spec: [
+          [
+            "目標",
+            "文字を一度 canvas（<code>aria-hidden</code>。文字は HTML にも置く）に描き、塗られた画素を「粒の間隔」おきに拾って、各粒の目標位置にする",
+          ],
+          [
+            "動き",
+            "毎フレーム、粒の位置を目標へ <code>(目標 - 位置) × 集まる速さ</code> だけ近づける（ばねなら速度も持たせる）。散るときは外向きの速度を与える",
+          ],
+          ["ポインター", "ポインターの近くの粒を押しのけると、触れて楽しい"],
+          ["動きを減らす設定", "粒を動かさず、文字の形に並んだ状態で見せる"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/particle-text" target="_blank" rel="noopener">React Bits: Particle Text</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector(".ac-particle-text-cv"),
+              W = 220,
+              H = 110,
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const cs = getComputedStyle(stage);
+            const o = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+            o.canvas.width = W;
+            o.canvas.height = H;
+            o.font = "800 52px " + (cs.getPropertyValue("--font-sans") || "sans-serif");
+            o.textAlign = "center";
+            o.textBaseline = "middle";
+            o.fillText("Hello", W / 2, H / 2 + 3);
+            const d = o.getImageData(0, 0, W, H).data,
+              pts = [];
+            for (let y = 0; y < H; y += v.gap)
+              for (let x = 0; x < W; x += v.gap)
+                if (d[(y * W + x) * 4 + 3] > 128)
+                  pts.push({ tx: x, ty: y, x: Math.random() * W, y: Math.random() * H, c: Math.random() });
+            const cols = ["--cobalt", "--blue", "--sky"].map((k) => cs.getPropertyValue(k).trim() || "#3b82f6");
+            const draw = () => {
+              g.clearRect(0, 0, W, H);
+              for (const p of pts) {
+                g.fillStyle = cols[p.c < 0.5 ? 0 : p.c < 0.8 ? 1 : 2];
+                g.fillRect(p.x - 1.2, p.y - 1.2, 2.4, 2.4);
+              }
+            };
+            if (rm) {
+              pts.forEach((p) => {
+                p.x = p.tx;
+                p.y = p.ty;
+              });
+              draw();
+              return null;
+            }
+            return raf((t) => {
+              const ph = t % 5,
+                scatter = ph > 3.6;
+              for (const p of pts) {
+                if (scatter) {
+                  const a = Math.atan2(p.y - H / 2, p.x - W / 2);
+                  p.x += Math.cos(a) * 2.2 + (p.c - 0.5);
+                  p.y += Math.sin(a) * 2.2;
+                } else {
+                  p.x += (p.tx - p.x) * v.k;
+                  p.y += (p.ty - p.y) * v.k;
+                }
+              }
+              if (ph < 0.02)
+                pts.forEach((p) => {
+                  p.x = Math.random() * W;
+                  p.y = Math.random() * H;
+                });
+              draw();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

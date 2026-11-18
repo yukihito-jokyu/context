@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スクロール速度で流れる帯（Velocity-reactive marquee） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-velocity-reactive-marquee" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-velocity-reactive-marquee-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px">
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+          <div class="ac-velocity-reactive-marquee-mq">
+            <div class="ac-velocity-reactive-marquee-tr">
+              <span class="sb-bar sb-bar--md sb-bar--strong" style="width: 60px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span
+              ><span class="sb-bar sb-bar--md sb-bar--strong" style="width: 90px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span
+              ><span class="sb-bar sb-bar--md sb-bar--strong" style="width: 50px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span
+              ><span class="sb-bar sb-bar--md sb-bar--strong" style="width: 74px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span
+              ><span class="sb-bar sb-bar--md sb-bar--strong" style="width: 60px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span
+              ><span class="sb-bar sb-bar--md sb-bar--strong" style="width: 90px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span
+              ><span class="sb-bar sb-bar--md sb-bar--strong" style="width: 50px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span
+              ><span class="sb-bar sb-bar--md sb-bar--strong" style="width: 74px"></span
+              ><span class="ac-velocity-reactive-marquee-dot"></span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px">
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-velocity-reactive-marquee .ac-velocity-reactive-marquee-mq {
+        position: sticky;
+        top: 50px;
+        bottom: 50px;
+        z-index: 1;
+        overflow: hidden;
+        padding: 12px 0;
+        background: var(--blue-soft);
+      }
+      .ac-velocity-reactive-marquee .ac-velocity-reactive-marquee-tr {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        width: max-content;
+      }
+      .ac-velocity-reactive-marquee .ac-velocity-reactive-marquee-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "velocity-reactive-marquee",
+        name: "スクロール速度で流れる帯",
+        en: "Velocity-reactive marquee",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "ずっと流れている文字やロゴの帯が、スクロールの速さに合わせて加速し、スクロールの向きに合わせて流れる向きも変わる動きです。ページを動かすたびに、帯が反応して勢いが伝わります。",
+        use: "ブランドサイトのキャッチコピー、ロゴの帯、ポートフォリオ、ファッション系のランディングページ。",
+        params: [
+          { key: "base", label: "ふだんの速さ", value: 30, min: 0, max: 100, step: 5, unit: "px/s" },
+          { key: "boost", label: "スクロールへの反応", value: 4, min: 0, max: 10, step: 0.5, unit: "倍" },
+        ],
+        spec: [
+          [
+            "速さ",
+            "流れる速さ = ふだんの速さ × 向き + スクロールの速さ × 反応｜スクロールの速さは毎フレーム差分から計算し、spring でならす",
+          ],
+          ["向き", "下へスクロールしたら左へ、上へなら右へ（向きはスクロールが止まっても保つ）"],
+          ["帯", "同じ中身を2つ並べて、<code>translateX</code> を中身の幅で折り返してつなぎ目をなくす"],
+          ["動きを減らす設定", "帯を止め、中身が見える状態で表示する"],
+          ["出典", '<a href="https://magicui.design/docs/components" target="_blank" rel="noopener">Magic UI</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const sc = stage.querySelector(".ac-velocity-reactive-marquee-sc"),
+              tr = stage.querySelector(".ac-velocity-reactive-marquee-tr");
+            const kids = tr.children,
+              W = kids[kids.length / 2].offsetLeft - kids[0].offsetLeft;
+            /* 複製の先頭までの距離（間隔も含む） */ let x = 0,
+              last = 0,
+              lastY = 0,
+              vel = 0,
+              dir = 1;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last) || 0.016;
+              last = t;
+              const max = sc.scrollHeight - sc.clientHeight;
+              sc.scrollTop = max * (0.5 - 0.5 * Math.cos(t * 1.4));
+              const sv = (sc.scrollTop - lastY) / dt;
+              lastY = sc.scrollTop;
+              vel += (sv - vel) * 0.15;
+              if (Math.abs(sv) > 5) dir = Math.sign(sv);
+              if (rm) return;
+              x -= (v.base * dir + vel * v.boost * 0.1) * dt;
+              x = ((x % W) - W) % W;
+              tr.style.transform = `translateX(${x}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

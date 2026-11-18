@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>筆で塗って切り替え（Paint-on transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-paint-on-transition"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <svg class="ac-paint-on-transition-v" viewBox="0 0 220 150" width="220" height="150">
+          <defs>
+            <linearGradient id="ac-paint-on-transition-ga" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#c9e6ff" />
+              <stop offset="1" stop-color="#7cc4ff" />
+            </linearGradient>
+            <linearGradient id="ac-paint-on-transition-gb" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2a3f8f" />
+              <stop offset="1" stop-color="#1b3a8a" />
+            </linearGradient>
+            <filter id="ac-paint-on-transition-rough">
+              <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" seed="3" />
+              <feDisplacementMap in="SourceGraphic" scale="10" />
+            </filter>
+            <mask id="ac-paint-on-transition-m">
+              <path
+                class="ac-paint-on-transition-br"
+                pathLength="1"
+                d="M-20 18 L240 10 L-20 52 L240 46 L-20 90 L240 84 L-20 128 L240 124 L-20 160"
+                fill="none"
+                stroke="#fff"
+                stroke-width="46"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                filter="url(#ac-paint-on-transition-rough)"
+              />
+            </mask>
+          </defs>
+          <rect width="220" height="150" fill="url(#ac-paint-on-transition-ga)" />
+          <circle cx="158" cy="45" r="12" fill="#fff" />
+          <ellipse cx="55" cy="172" rx="120" ry="70" fill="#4f7cff" />
+          <g mask="url(#ac-paint-on-transition-m)">
+            <rect width="220" height="150" fill="url(#ac-paint-on-transition-gb)" />
+            <circle cx="66" cy="48" r="11" fill="#eaf2ff" />
+            <ellipse cx="154" cy="177" rx="130" ry="80" fill="#0f2563" />
+          </g>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-paint-on-transition .ac-paint-on-transition-v {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-paint-on-transition .ac-paint-on-transition-br {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        animation: ac-paint-on-transition-t var(--dur, 2600ms) linear infinite alternate;
+      }
+      @keyframes ac-paint-on-transition-t {
+        0%,
+        20% {
+          stroke-dashoffset: 1;
+        }
+        80%,
+        100% {
+          stroke-dashoffset: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-paint-on-transition .ac-paint-on-transition-br {
+          animation: ac-paint-on-transition-rf4 var(--dur, 2600ms) step-end infinite alternate;
+        }
+      }
+      @keyframes ac-paint-on-transition-rf4 {
+        0% {
+          stroke-dashoffset: 1;
+        }
+        50% {
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "paint-on-transition",
+        name: "筆で塗って切り替え",
+        en: "Paint-on transition",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "太い筆で画面を何度か往復して塗るように、その筆の跡から次のショットが現れていく切り替えです。手作りの温かみや、アートらしさが出ます。",
+        use: "アート・クリエイティブ系のサイト、手書き風のブランド、子ども向けの動画、イベントの告知。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "SVG の <code>mask</code> の中に太い線（<code>stroke-width</code> 40px 前後、ジグザグのパス）を置き、<code>stroke-dashoffset</code> を全長 → 0 にして筆の跡を伸ばす",
+          ],
+          [
+            "筆らしさ",
+            "線の端を <code>stroke-linecap: round</code> にし、<code>feTurbulence</code> の変位で縁をかすれさせる",
+          ],
+          ["時間", "1往復 300〜400ms。全体で 1.2〜1.6 秒"],
+          ["動きを減らす設定", "筆の動きをやめ、カットにする"],
+          [
+            "出典",
+            '<a href="https://docs.imaster.org/davinci-resolve-21-manual/part-7-editing-effects-and-transitions/ch.-55-using-transitions" target="_blank" rel="noopener">DaVinci Resolve 21 リファレンスマニュアル（写し）: Using Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

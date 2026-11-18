@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スクロールで現れる文字（Scroll-linked text reveal） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-scroll-text-reveal"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-scroll-text-reveal-t">
+          <span>スクロールに</span> <span>合わせて</span> <span>ことばが</span> <span>ひとつずつ</span>
+          <span>濃くなり、</span> <span>読む</span> <span>速さで</span> <span>意味が</span> <span>立ち上がって</span>
+          <span>くる。</span>
+        </div>
+        <span class="ac-scroll-text-reveal-tr"><span class="ac-scroll-text-reveal-th"></span></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-text-reveal .ac-scroll-text-reveal-t {
+        position: absolute;
+        left: 20px;
+        top: 0;
+        width: 170px;
+        font: 700 15px/1.75 var(--font-sans);
+        color: var(--navy);
+      }
+      .ac-scroll-text-reveal .ac-scroll-text-reveal-t span {
+        display: inline-block;
+      }
+      .ac-scroll-text-reveal .ac-scroll-text-reveal-tr {
+        position: absolute;
+        right: 8px;
+        top: 14px;
+        bottom: 14px;
+        width: 4px;
+        border-radius: 2px;
+        background: var(--ice);
+      }
+      .ac-scroll-text-reveal .ac-scroll-text-reveal-th {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 4px;
+        height: 40px;
+        border-radius: 2px;
+        background: var(--sky);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-text-reveal",
+        name: "スクロールで現れる文字",
+        en: "Scroll-linked text reveal",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "長めの文章を単語に分け、スクロールした量に合わせて、前の単語から順に薄い色 → 濃い色へ変えていく動きです。ぼかしが取れる・少し浮き上がる、を足すこともできます。読む速さで言葉が立ち上がってきます。",
+        use: "ブランドのメッセージ、ミッションの一文、ランディングページの大きな文章。",
+        params: [{ key: "spread", label: "広がり（単語の数）", value: 3, min: 1, max: 8, step: 1, unit: "" }],
+        spec: [
+          [
+            "書き方",
+            "単語ごとに <code>&lt;span&gt;</code> に分け、i 番目の単語の進み具合を <code>clamp((p × (N + 広がり) − i) / 広がり, 0, 1)</code> とする（p はスクロールの進み具合 0〜1）",
+          ],
+          ["見せ方", "濃さ <code>opacity 0.15 → 1</code>（本文なら薄い側も読める濃さに）。ぼかしや浮きを足してもよい"],
+          [
+            "CSS だけで",
+            "<code>animation-timeline: view()</code> と単語ごとにずらした <code>animation-range</code>。使えないブラウザでは最初から濃く表示する",
+          ],
+          ["動きを減らす設定", "単語ごとの変化をやめ、文章を最初から濃く表示する"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components" target="_blank" rel="noopener">Magic UI: Components</a>、<a href="https://reactbits.dev/llms.txt" target="_blank" rel="noopener">React Bits（コンポーネント一覧）</a>、<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline" target="_blank" rel="noopener">MDN: animation-timeline</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const ws = [...stage.querySelectorAll(".ac-scroll-text-reveal-t span")],
+              tx = stage.querySelector(".ac-scroll-text-reveal-t"),
+              th = stage.querySelector(".ac-scroll-text-reveal-th"),
+              N = ws.length;
+            return raf((t) => {
+              const c = t % 6.5,
+                q = c < 4.5 ? c / 4.5 : c < 5.3 ? 1 : 1 - (c - 5.3) / 1.2,
+                p = rm ? 1 : q < 0.5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2;
+              tx.style.transform = `translateY(${36 - p * 40}px)`;
+              th.style.transform = `translateY(${p * 82}px)`;
+              ws.forEach((w, i) => {
+                const f = Math.min(1, Math.max(0, (p * (N + v.spread) - i) / v.spread));
+                w.style.opacity = 0.15 + 0.85 * f;
+                w.style.filter = `blur(${(1 - f) * 3}px)`;
+                w.style.transform = `translateY(${(1 - f) * 6}px)`;
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

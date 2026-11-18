@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>等幅数字（Tabular numbers） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-tabular-numbers"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <div class="sb-card" style="padding: 10px 16px; display: flex; align-items: center; gap: 10px; width: 170px">
+            <span
+              class="ac-tabular-numbers-n"
+              style="
+                font-size: 24px;
+                line-height: 32px;
+                font-weight: 800;
+                color: var(--ink);
+                letter-spacing: 0.02em;
+                font-size: 22px;
+                font-variant-numeric: proportional-nums;
+              "
+              >1,111</span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 40px"></span>
+          </div>
+          <div class="sb-card" style="padding: 10px 16px; display: flex; align-items: center; gap: 10px; width: 170px">
+            <span
+              class="ac-tabular-numbers-n"
+              style="
+                font-size: 24px;
+                line-height: 32px;
+                font-weight: 800;
+                color: var(--ink);
+                letter-spacing: 0.02em;
+                font-size: 22px;
+                font-variant-numeric: tabular-nums;
+              "
+              >1,111</span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 40px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "tabular-numbers",
+        name: "等幅数字",
+        en: "Tabular numbers",
+        cat: "仕上げ・効果",
+        kind: "concept",
+        description:
+          "数字の幅をすべて同じにする設定です。上はふつうの数字（1 は細く、8 は太い）なので、値が変わるたびに右側が揺れます。下は等幅数字なので、揺れません。",
+        use: "カウンター、タイマー、ティッカー、価格、表の数字の列。",
+        params: [],
+        spec: [
+          ["書き方", "<code>font-variant-numeric: tabular-nums</code>（上は <code>proportional-nums</code>）"],
+          ["効くもの", "変わり続ける数字、縦にそろえたい表の数字"],
+          ["注意", "フォントが等幅数字を持っていないと効かない（Noto Sans JP、Inter などは対応）"],
+          ["動きを減らす設定", "動きではないのでそのままでよい"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const els = stage.querySelectorAll(".ac-tabular-numbers-n"),
+            fmt = new Intl.NumberFormat("ja-JP");
+          let n = 1111;
+          const t = setInterval(() => {
+            n = ((n * 7 + 13) % 9000) + 1000;
+            els.forEach((e) => (e.textContent = fmt.format(n)));
+          }, 220);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

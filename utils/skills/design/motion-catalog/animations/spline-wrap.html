@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スプラインに沿って曲げる（Animated spline wrap） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-spline-wrap"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "spline-wrap",
+        name: "スプラインに沿って曲げる",
+        en: "Animated spline wrap",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "帯や文字・ひと続きの物を、曲線（スプライン）に沿って曲げながら、その曲線の上を滑らせる動きです。物の各部分が通る場所の曲がり方に合わせて曲がるので、レールの上を走る列車や、カーブを抜けるリボンのようになります。",
+        use: "リボン・帯のロゴアニメーション、道や流れを表す演出、曲線に沿って流れる文字、3D のモーショングラフィックス。",
+        params: [{ key: "speed", label: "滑る速さ", value: 50, min: 10, max: 150, step: 5, unit: "px/秒" }],
+        spec: [
+          [
+            "仕組み",
+            "曲線を長さで等間隔に区切っておき、物の各部分（長さ方向の位置 s）を、曲線上の <code>s + 進んだ距離</code> の点に置き、その点の接線の向きに回す",
+          ],
+          [
+            "ツールでは",
+            "Cinema 4D の Spline Wrap、Blender のカーブモディファイア、After Effects のパスに沿ったテキスト",
+          ],
+          [
+            "Web では",
+            "SVG の <code>textPath</code> の <code>startOffset</code> を動かす。帯や画像は canvas・WebGL で小さな四角に分けて曲線に沿って並べる",
+          ],
+          ["動きを減らす設定", "滑る動きをやめ、曲線に沿って曲がった静止画にする"],
+          [
+            "出典",
+            '<a href="https://help.maxon.net/c4d/en-us/Content/html/OMOGRAPH_SPLINEWRAP.html" target="_blank" rel="noopener">help.maxon.net（OMOGRAPH_SPLINEWRAP）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const bz = (u) => {
+              const p = [
+                  [10, 120],
+                  [60, -20],
+                  [150, 170],
+                  [210, 30],
+                ],
+                m = 1 - u;
+              return [
+                m * m * m * p[0][0] + 3 * m * m * u * p[1][0] + 3 * m * u * u * p[2][0] + u * u * u * p[3][0],
+                m * m * m * p[0][1] + 3 * m * m * u * p[1][1] + 3 * m * u * u * p[2][1] + u * u * u * p[3][1],
+              ];
+            };
+            const S0 = [[0, ...bz(0)]];
+            for (let i = 1; i <= 400; i++) {
+              const q = bz(i / 400),
+                p = S0[i - 1];
+              S0.push([p[0] + Math.hypot(q[0] - p[1], q[1] - p[2]), q[0], q[1]]);
+            }
+            const TOT = S0[400][0],
+              L = 110;
+            const at = (s) => {
+              s = Math.min(TOT, Math.max(0, s));
+              let i = 1;
+              while (i < 400 && S0[i][0] < s) i++;
+              const a = S0[i - 1],
+                b = S0[i],
+                f = (s - a[0]) / (b[0] - a[0] || 1),
+                tx = b[1] - a[1],
+                ty = b[2] - a[2],
+                l = Math.hypot(tx, ty) || 1;
+              return [a[1] + tx * f, a[2] + ty * f, -ty / l, tx / l];
+            };
+            return raf((t) => {
+              const s0 = rm ? TOT / 2 - L / 2 : ((t * v.speed) % (TOT + L)) - L;
+              g.clearRect(0, 0, W, H);
+              g.strokeStyle = col("line");
+              g.lineWidth = 1.5;
+              g.setLineDash([4, 4]);
+              g.beginPath();
+              S0.forEach((p, i) => (i ? g.lineTo(p[1], p[2]) : g.moveTo(p[1], p[2])));
+              g.stroke();
+              g.setLineDash([]);
+              for (let k = 0; k < L; k += 3) {
+                const s = s0 + k;
+                if (s < 0 || s + 3 > TOT) continue;
+                const [x1, y1, nx1, ny1] = at(s),
+                  [x2, y2, nx2, ny2] = at(s + 3.4),
+                  w = 8;
+                g.fillStyle = Math.floor(k / 9) % 2 ? col("blue") : col("sky");
+                g.beginPath();
+                g.moveTo(x1 + nx1 * w, y1 + ny1 * w);
+                g.lineTo(x2 + nx2 * w, y2 + ny2 * w);
+                g.lineTo(x2 - nx2 * w, y2 - ny2 * w);
+                g.lineTo(x1 - nx1 * w, y1 - ny1 * w);
+                g.closePath();
+                g.fill();
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

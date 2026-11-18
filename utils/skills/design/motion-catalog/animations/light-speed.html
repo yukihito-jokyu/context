@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>高速で滑り込む（Light-speed entrance / exit） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-light-speed"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-light-speed-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-light-speed .ac-light-speed-c {
+        animation:
+          ac-light-speed-in var(--in, 600ms) ease-out both,
+          ac-light-speed-out var(--out, 400ms) ease-in calc(var(--in, 600ms) + 1000ms) forwards;
+      }
+      @keyframes ac-light-speed-in {
+        0% {
+          opacity: 0;
+          transform: translateX(120%) skewX(calc(var(--skew, 30deg) * -1));
+        }
+        60% {
+          opacity: 1;
+          transform: skewX(20deg);
+        }
+        80% {
+          transform: skewX(-5deg);
+        }
+        100% {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-light-speed-out {
+        from {
+          opacity: 1;
+          transform: none;
+        }
+        to {
+          opacity: 0;
+          transform: translateX(120%) skewX(var(--skew, 30deg));
+        }
+      }
+      @keyframes ac-light-speed-rf-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-light-speed-rf-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-light-speed .ac-light-speed-c {
+          animation-name: ac-light-speed-rf-in, ac-light-speed-rf-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "light-speed",
+        name: "高速で滑り込む",
+        en: "Light-speed entrance / exit",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "横から猛スピードで飛び込んできて、ブレーキをかけたように斜めにゆがんでから止まる動きです。ゆがみ（skew）が速さを感じさせます。",
+        use: "スピード感を出したい通知、スポーツ・ゲームの演出、「すぐ届いた」ことの表現。",
+        params: [
+          { key: "in", label: "登場の時間", value: 600, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "out", label: "退出の時間", value: 400, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "skew", label: "ゆがみ", value: 30, min: 0, max: 45, step: 5, unit: "deg" },
+        ],
+        total: (p) => p["in"] + 1000 + p["out"],
+        spec: [
+          [
+            "登場",
+            "<code>translateX(120%) skewX(-ゆがみ)</code> → 60%：<code>skewX(20deg)</code> → 80%：<code>skewX(-5deg)</code> → 0｜ease-out",
+          ],
+          ["退出", "<code>translateX(120%) skewX(ゆがみ)</code> と <code>opacity → 0</code>｜ease-in"],
+          ["動きを減らす設定", "移動とゆがみをやめ、透明度の切り替えだけにする"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

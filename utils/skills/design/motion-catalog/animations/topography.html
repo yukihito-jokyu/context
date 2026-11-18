@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>等高線（Topographic contour lines） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-topography"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "topography",
+        name: "等高線",
+        en: "Topographic contour lines",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "地形図のような等高線を描き、ポインターの下の地面を盛り上げて線を寄せ、光らせる背景です。ときどきポインターの所から光の輪が広がり、線をなぞるように明るくします。プレビューは canvas で近い形にしています（元の作例は WebGL）。",
+        use: "アウトドア・地図・データ系のサービスのヒーロー、テック系の背景、ゆったりした空のエリア。",
+        params: [{ key: "lift", label: "盛り上がりの高さ", value: 1.2, min: 0, max: 2.5, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "作り方",
+            "格子の各点で高さ（ゆっくり動く波の和 ＋ ポインターの所のガウスの山）を計算し、マーチングスクエアで高さが一定の線を引く",
+          ],
+          [
+            "光らせ方",
+            "線を描いたあと、ポインターのまわりと広がる輪の所だけ明るい色を重ねる（canvas なら <code>source-atop</code>）",
+          ],
+          [
+            "本格的に",
+            "WebGL のシェーダーで、高さの <code>fract</code> と <code>fwidth</code> から線を描くと、細かく滑らかな等高線が軽く描ける",
+          ],
+          ["動きを減らす設定", "地形の動きと光の輪を止め、等高線の静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/llms.txt" target="_blank" rel="noopener">React Bits（コンポーネント一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const cs = 5,
+              nx = 45,
+              ny = 31,
+              F = new Float32Array(nx * ny),
+              TAU = Math.PI * 2;
+            show(1);
+            cur.style.transition = "none";
+            const base = (x, y, t) =>
+              0.5 * Math.sin(x * 0.035 + t * 0.2) * Math.cos(y * 0.045 - t * 0.15) +
+              0.3 * Math.sin((x + y) * 0.05 + 1.3) +
+              0.2 * Math.cos(x * 0.09 - y * 0.07 + t * 0.1);
+            let L = 0;
+            const pts = [],
+              e = (p, q, x0, y0, x1, y1) => {
+                if (p > L !== q > L) {
+                  const f = (L - p) / (q - p);
+                  pts.push(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f);
+                }
+              };
+            return raf((t) => {
+              const [px, py] = rm ? [110, 75] : loop8(t * 0.5);
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              const tt = rm ? 0 : t;
+              for (let j = 0; j < ny; j++)
+                for (let i = 0; i < nx; i++) {
+                  const x = i * cs,
+                    y = j * cs;
+                  F[j * nx + i] = base(x, y, tt) + v.lift * Math.exp(-((x - px) ** 2 + (y - py) ** 2) / 1200);
+                }
+              g.globalCompositeOperation = "source-over";
+              g.clearRect(0, 0, W, H);
+              g.lineWidth = 1;
+              for (L = -1; L <= 2.6; L += 0.15) {
+                g.beginPath();
+                for (let j = 0; j < ny - 1; j++)
+                  for (let i = 0; i < nx - 1; i++) {
+                    const a = F[j * nx + i],
+                      b = F[j * nx + i + 1],
+                      c = F[(j + 1) * nx + i + 1],
+                      d = F[(j + 1) * nx + i],
+                      X = i * cs,
+                      Y = j * cs;
+                    pts.length = 0;
+                    e(a, b, X, Y, X + cs, Y);
+                    e(b, c, X + cs, Y, X + cs, Y + cs);
+                    e(c, d, X + cs, Y + cs, X, Y + cs);
+                    e(d, a, X, Y + cs, X, Y);
+                    for (let k = 0; k + 3 < pts.length; k += 4) {
+                      g.moveTo(pts[k], pts[k + 1]);
+                      g.lineTo(pts[k + 2], pts[k + 3]);
+                    }
+                  }
+                g.strokeStyle = `rgba(124,170,255,${Math.min(0.75, 0.22 + 0.16 * (L + 1))})`;
+                g.stroke();
+              }
+              g.globalCompositeOperation = "source-atop";
+              let gr = g.createRadialGradient(px, py, 0, px, py, 46);
+              gr.addColorStop(0, "rgba(255,255,255,.9)");
+              gr.addColorStop(1, "rgba(255,255,255,0)");
+              g.fillStyle = gr;
+              g.fillRect(0, 0, W, H);
+              if (!rm) {
+                const pr = (t % 2.5) * 70;
+                gr = g.createRadialGradient(px, py, Math.max(0, pr - 8), px, py, pr + 8);
+                gr.addColorStop(0, "rgba(255,255,255,0)");
+                gr.addColorStop(0.5, `rgba(186,220,255,${1 - pr / 175})`);
+                gr.addColorStop(1, "rgba(255,255,255,0)");
+                g.fillStyle = gr;
+                g.fillRect(0, 0, W, H);
+              }
+              g.globalCompositeOperation = "destination-over";
+              g.fillStyle = col("navy");
+              g.fillRect(0, 0, W, H);
+              g.globalCompositeOperation = "source-over";
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

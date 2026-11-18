@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スピナー（Spinner） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-spinner"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="ac-spinner-s" role="status" aria-label="読み込み中"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-spinner .ac-spinner-s {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        box-sizing: border-box;
+        border: 5px solid var(--bar);
+        border-top-color: var(--blue);
+        animation: ac-spinner-spin var(--dur, 800ms) linear infinite;
+      }
+      @keyframes ac-spinner-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-spinner .ac-spinner-s {
+          animation-duration: calc(var(--dur, 800ms) * 3);
+        }
+      }
+      @media (forced-colors: active) {
+        .ac-spinner .ac-spinner-s {
+          border-color: Canvas;
+          border-top-color: CanvasText;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "spinner",
+        name: "スピナー",
+        en: "Spinner",
+        cat: "ループ・常時の動き",
+        kind: "motion",
+        description:
+          "輪の一部が回り続けて、処理中であることを伝える動きです。終わりの見えない待ち時間に使います。終わりが分かる処理なら、進捗バーのほうが親切です。",
+        use: "ボタンの送信中、短い読み込み、更新中。",
+        params: [{ key: "dur", label: "一周の時間", value: 800, min: 400, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          ["動き", "輪の一部（弧）を <code>rotate(0 → 360deg)</code>｜<code>linear</code>｜<code>infinite</code>"],
+          ["出すまで", "300ms 以内に終わる処理では出さない（チラつき防止）"],
+          ["読み上げ", '<code>role="status"</code> と「読み込み中」のラベル'],
+          ["動きを減らす設定", "回転をゆっくりにするか、点滅（透明度）に置き換える"],
+          ["出典", "ChatGPT との会話の分類表（継続・待機）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

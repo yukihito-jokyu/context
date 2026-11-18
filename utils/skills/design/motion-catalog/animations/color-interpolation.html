@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>色の補間（Color interpolation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-color-interpolation"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div style="display: grid; gap: 10px; justify-items: center">
+          <span
+            class="ac-color-interpolation-s"
+            style="background: linear-gradient(90deg in srgb, var(--blue), #ffcf5c)"
+          ></span
+          ><span
+            class="ac-color-interpolation-s"
+            style="background: linear-gradient(90deg in oklch, var(--blue), #ffcf5c)"
+          ></span
+          ><span class="ac-color-interpolation-t"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-color-interpolation .ac-color-interpolation-s {
+        width: 170px;
+        height: 18px;
+        border-radius: 9px;
+      }
+      .ac-color-interpolation .ac-color-interpolation-t {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        background: var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-color-interpolation .ac-color-interpolation-t {
+          animation: ac-color-interpolation-c var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-color-interpolation-c {
+        0% {
+          background: var(--blue);
+        }
+        25% {
+          background: color-mix(in oklch, #ffcf5c 25%, var(--blue));
+        }
+        50% {
+          background: color-mix(in oklch, #ffcf5c 50%, var(--blue));
+        }
+        75% {
+          background: color-mix(in oklch, #ffcf5c 75%, var(--blue));
+        }
+        100% {
+          background: #ffcf5c;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "color-interpolation",
+        name: "色の補間",
+        en: "Color interpolation",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "ある色から別の色へ、途中の色を通って滑らかに変える動きです。どの色空間で補間するかで途中の色が変わり、sRGB では中間がくすみ、OKLCH では鮮やかなまま変わります。上の2本の帯がその違い、下の四角が OKLCH で色を変え続けています。",
+        use: "状態による色の変化（未選択 → 選択）、テーマの切り替え、グラデーション、データの色分け。",
+        params: [{ key: "dur", label: "時間", value: 2400, min: 600, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "CSS",
+            "従来の色（#hex・<code>rgb()</code>）どうしの補間は sRGB。色空間を選ぶなら <code>color-mix(in oklch, A 割合, B)</code> の中間色をキーフレームに並べる",
+          ],
+          ["グラデーション", "<code>linear-gradient(in oklch, A, B)</code> のように色空間を指定できる"],
+          ["比べる", "上：sRGB（中間がくすむ）、中：OKLCH（鮮やか）"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://motion.dev/examples/js-color-interpolation" target="_blank" rel="noopener">Motion: color interpolation</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

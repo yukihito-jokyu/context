@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>まばたき（Eye blink） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-eye-blink" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-eye-blink-hd">
+          <i class="ac-eye-blink-e ac-eye-blink-l"></i><i class="ac-eye-blink-e ac-eye-blink-r"></i
+          ><i class="ac-eye-blink-m"></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-eye-blink .ac-eye-blink-hd {
+        position: absolute;
+        left: 65px;
+        top: 30px;
+        width: 90px;
+        height: 90px;
+        border-radius: 46% 46% 44% 44%;
+        background: linear-gradient(160deg, var(--ice), var(--sky));
+        box-shadow: inset -8px -10px 0 rgba(37, 99, 235, 0.12);
+      }
+      .ac-eye-blink .ac-eye-blink-e {
+        position: absolute;
+        top: 32px;
+        width: 10px;
+        height: 14px;
+        border-radius: 5px;
+        background: var(--navy);
+      }
+      .ac-eye-blink .ac-eye-blink-l {
+        left: 26px;
+      }
+      .ac-eye-blink .ac-eye-blink-r {
+        right: 26px;
+      }
+      .ac-eye-blink .ac-eye-blink-m {
+        position: absolute;
+        left: 50%;
+        top: 60px;
+        width: 22px;
+        height: 4px;
+        margin-left: -11px;
+        border-radius: 3px;
+        background: var(--navy);
+      }
+      .ac-eye-blink .ac-eye-blink-e {
+        transform-origin: 50% 60%;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "eye-blink",
+        name: "まばたき",
+        en: "Eye blink",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "キャラクターの目を、数秒おきに素早く閉じて開く動きです。間隔を毎回少しずつ変え、ときどき 2 回続けると、止まっていても生きているように見えます。",
+        use: "マスコット・アバター・アシスタントのキャラクター、待ち時間のイラスト、ゲームの立ち絵。",
+        params: [{ key: "gap", label: "平均の間隔", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["時間", "閉じる 50〜80ms、閉じたまま 0〜30ms、開く 100〜150ms（開く方をゆっくり）"],
+          ["間隔", "2〜6 秒でランダム。10〜20% の確率で 2 回続けてまばたき"],
+          ["合わせ技", "視線を動かす直前にまばたきすると自然（目の向きを変える瞬間を隠す）"],
+          ["動きを減らす設定", "まばたきを止める（目は開いたまま）"],
+          [
+            "出典",
+            '<a href="https://docs.live2d.com/en/cubism-sdk-manual/top/" target="_blank" rel="noopener">Live2D Cubism SDK マニュアル</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const es = [...stage.querySelectorAll(".ac-eye-blink-e")];
+            let tm, tm2;
+            const blink = (n) => {
+              es.forEach((e) =>
+                e.animate(
+                  [
+                    { transform: "scaleY(1)" },
+                    { transform: "scaleY(0.1)", offset: 0.3 },
+                    { transform: "scaleY(0.1)", offset: 0.4 },
+                    { transform: "scaleY(1)" },
+                  ],
+                  { duration: 200, easing: "ease-in-out" },
+                ),
+              );
+              if (n > 1) tm2 = setTimeout(() => blink(n - 1), 260);
+            };
+            const next = () => {
+              tm = setTimeout(
+                () => {
+                  if (!rm) blink(Math.random() < 0.2 ? 2 : 1);
+                  next();
+                },
+                v.gap * (0.6 + Math.random() * 0.8),
+              );
+            };
+            if (rm) return null; // 動きを減らす設定：目は開いたまま
+            tm = setTimeout(() => {
+              blink(1);
+              next();
+            }, 500);
+            return () => {
+              clearTimeout(tm);
+              clearTimeout(tm2);
+              es.forEach((e) => e.getAnimations().forEach((a) => a.cancel()));
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

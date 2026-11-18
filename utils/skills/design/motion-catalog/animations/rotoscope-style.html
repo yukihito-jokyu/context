@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ロトスコープ（Rotoscope） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rotoscope-style"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rotoscope-style",
+        name: "ロトスコープ",
+        en: "Rotoscope",
+        cat: "表現スタイル",
+        kind: "motion",
+        description:
+          "実写の映像を 1 コマずつなぞって線画に描き起こし、その絵だけで動かす表現です。人の自然な動きのまま、イラストの見た目になります。",
+        use: "ミュージックビデオ風の演出、人物イラストの動き、アート寄りのヒーロー。",
+        params: [{ key: "fps", label: "1秒あたりのコマ数", value: 12, min: 6, max: 24, step: 1, unit: "" }],
+        spec: [
+          ["表現形式", "実写の動き × 手描きの線画（輪郭線と少しのベタ塗り）"],
+          ["演出", "元の映像は最後に消し、なぞった線だけを残す。線はコマごとに 0.5〜1px 揺らす"],
+          ["時間", "12 コマ/秒前後（2 コマ打ち）で、線の揺れも同じ間隔で"],
+          ["本格的に", "動画の各コマを下絵にしてなぞる（トレースツールで下書きを作り手で整える）"],
+          ["動きを減らす設定", "線のふるえと動きを止め、1コマの線画にする"],
+          [
+            "出典",
+            '<a href="https://aplusc.tv/blog/resource/glossary-of-animation-terms/" target="_blank" rel="noopener">A+C Studios: Glossary of Animation Terms</a>、<a href="https://eclass.aegean.gr/modules/document/file.php/511154/NFBstopmotion_studio/08_AnimationResources.pdf" target="_blank" rel="noopener">NFB: Glossary of Animation Terms & Techniques</a>、<a href="https://animatorschecklist.com/en/glossary/" target="_blank" rel="noopener">The Animator\'s Checklist: Glossary</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let lastF = -1,
+              seed = 1;
+            const pose = (ph) => ({
+              t1: 0.5 * sin(ph),
+              t2: -0.5 * sin(ph),
+              s1: -0.9 * Math.max(0, cos(ph)),
+              s2: -0.9 * Math.max(0, cos(ph + Math.PI)),
+              u1: -0.5 * sin(ph),
+              u2: 0.5 * sin(ph),
+              y: 76 - 2.5 * cos(2 * ph),
+            });
+            const pts = (x, y, a1, l1, a2, l2) => {
+              const k = [x + sin(a1) * l1, y + cos(a1) * l1];
+              return [[x, y], k, [k[0] + sin(a1 + a2) * l2, k[1] + cos(a1 + a2) * l2]];
+            };
+            return raf((t) => {
+              const f = rm ? 0 : Math.floor(t * v.fps);
+              if (f === lastF) return;
+              lastF = f;
+              sd = 7 + (f % 4) * 13;
+              g.clearRect(0, 0, W, H);
+              const ph = (f / v.fps) * 5.5,
+                p = pose(ph),
+                x = 110,
+                y = p.y,
+                show = rm ? 0 : 0.5 + 0.5 * cos(t * 0.8);
+              const body = [
+                pts(x, y, p.t2, 20, p.s2, 20),
+                pts(x, y, p.t1, 20, p.s1, 20),
+                [
+                  [x, y],
+                  [x + 2, y - 34],
+                ],
+                pts(x + 2, y - 30, p.u2, 15, 0.4, 14),
+                pts(x + 2, y - 30, p.u1, 15, 0.4, 14),
+              ];
+              if (show > 0.02) {
+                g.globalAlpha = show * 0.55;
+                blur(3, "#a7b3c8");
+                g.lineCap = "round";
+                body.forEach((b, i) => {
+                  g.strokeStyle = i === 2 ? "#8c9bb5" : "#a7b3c8";
+                  g.lineWidth = i === 2 ? 16 : 10;
+                  g.beginPath();
+                  b.forEach((q, k) => (k ? g.lineTo(...q) : g.moveTo(...q)));
+                  g.stroke();
+                });
+                dot(x + 4, y - 46, 11, "#8c9bb5");
+                blur(0);
+                g.globalAlpha = 1;
+              }
+              const j = () => (rnd() - 0.5) * 1.6;
+              g.strokeStyle = col("navy");
+              g.lineWidth = 2;
+              g.lineCap = "round";
+              g.lineJoin = "round";
+              const outline = (b, w) => {
+                for (const s of [-1, 1]) {
+                  g.beginPath();
+                  b.forEach((q, k) => {
+                    const n = b[Math.min(k + 1, b.length - 1)],
+                      pr = b[Math.max(k - 1, 0)],
+                      a = Math.atan2(n[1] - pr[1], n[0] - pr[0]) + Math.PI / 2;
+                    const X = q[0] + cos(a) * w * s + j(),
+                      Y = q[1] + sin(a) * w * s + j();
+                    k ? g.lineTo(X, Y) : g.moveTo(X, Y);
+                  });
+                  g.stroke();
+                }
+              };
+              body.forEach((b, i) => outline(b, i === 2 ? 7 : 4.5));
+              g.beginPath();
+              g.ellipse(x + 4 + j(), y - 46 + j(), 10, 11, 0, 0, Math.PI * 2);
+              g.stroke();
+              g.fillStyle = col("ice");
+              g.fillRect(0, 122, W, 3);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

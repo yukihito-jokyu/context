@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>回るスラット（Turning slats (gradient blinds)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-slats"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "slats",
+        name: "回るスラット",
+        en: "Turning slats (gradient blinds)",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "細い板（スラット）を縦に並べ、波のように順に回転させて、ブラインドが揺れるように見せる背景です。板の向きとポインターに付いてくる光の位置で明るさが変わり、つやのある布のような光り方になります。プレビューは canvas で近い形にしています（元の作例は WebGL）。",
+        use: "プロダクトのヒーロー、音楽・ファッション系のブランド、上品な動きの背景。",
+        params: [{ key: "amt", label: "振れ幅", value: 1, min: 0, max: 1.5, step: 0.05, unit: "" }],
+        spec: [
+          [
+            "作り方",
+            "i 番目の板の角度を <code>θ = 振れ幅 × sin(t − i × 0.35)</code> とし、見かけの幅 <code>板の幅 × |cos θ|</code> で描く",
+          ],
+          [
+            "光",
+            "板の向きと光の位置（ポインターをゆっくり追う）の差で明るさを決め、明るい板の縁に細いハイライトを入れる",
+          ],
+          [
+            "本格的に",
+            "WebGL のシェーダーで、板ごとの法線と光から陰影を計算する。小さな板を奥まで並べ、波を遠近で流すと Micro Slats の形になる",
+          ],
+          ["動きを減らす設定", "板の回転を止め、少し傾いた状態で静止させる"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/llms.txt" target="_blank" rel="noopener">React Bits（コンポーネント一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const n = 22,
+              sw = W / n;
+            let lx = 110;
+            show(1);
+            cur.style.transition = "none";
+            const mix = (a, b, f) => a.map((x, i) => Math.round(x + (b[i] - x) * f)),
+              C0 = [27, 42, 110],
+              C1 = [120, 170, 255],
+              C2 = [235, 244, 255];
+            const frame = (t) => {
+              const [px, py] = rm ? [110, 75] : loop8(t * 0.6);
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              lx += (px - lx) * 0.06;
+              g.fillStyle = col("navy");
+              g.fillRect(0, 0, W, H);
+              for (let i = 0; i < n; i++) {
+                const cx = i * sw + sw / 2,
+                  th = (rm ? 0.5 : 0.9 * Math.sin(t * 1.2 - i * 0.35)) * v.amt,
+                  ww = Math.max(1, sw * 0.92 * Math.abs(Math.cos(th))),
+                  f = Math.max(0, Math.cos(th - (cx - lx) / 70));
+                const gr = g.createLinearGradient(0, 0, 0, H);
+                gr.addColorStop(0, `rgb(${mix(C0, C2, f * 0.9)})`);
+                gr.addColorStop(1, `rgb(${mix(C0, C1, f * 0.8)})`);
+                g.fillStyle = gr;
+                g.fillRect(cx - ww / 2, 0, ww, H);
+                if (f > 0.7) {
+                  g.fillStyle = `rgba(255,255,255,${(f - 0.7) * 2})`;
+                  g.fillRect(cx + (th > 0 ? ww / 2 - 1 : -ww / 2), 0, 1, H);
+                }
+              }
+              const gl = g.createRadialGradient(lx, py, 0, lx, py, 80);
+              gl.addColorStop(0, "rgba(160,200,255,.25)");
+              gl.addColorStop(1, "rgba(160,200,255,0)");
+              g.fillStyle = gl;
+              g.fillRect(0, 0, W, H);
+            };
+            if (rm) {
+              lx = 110;
+              frame(0);
+              return null;
+            } // 動きを減らす設定：静止画を一度だけ描く
+            return raf(frame);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

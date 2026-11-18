@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>誇張（Exaggeration） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-exaggeration"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          place-items: center;
+        "
+      >
+        <div class="ac-exaggeration-l">
+          <span class="ac-exaggeration-h ac-exaggeration-a" style="filter: grayscale(1); opacity: 0.55"
+            ><svg viewBox="0 0 24 24" width="44" height="44" fill="currentColor">
+              <path
+                d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"
+              /></svg
+          ></span>
+        </div>
+        <div class="ac-exaggeration-r">
+          <span class="ac-exaggeration-h ac-exaggeration-b"
+            ><svg viewBox="0 0 24 24" width="44" height="44" fill="currentColor">
+              <path
+                d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"
+              /></svg
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-exaggeration .ac-exaggeration-h {
+        display: grid;
+        color: var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-exaggeration .ac-exaggeration-a {
+          animation: ac-exaggeration-sm var(--dur, 600ms) cubic-bezier(0.22, 1, 0.36, 1) 400ms both;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-exaggeration .ac-exaggeration-b {
+          animation: ac-exaggeration-ex var(--dur, 600ms) 400ms both;
+        }
+      }
+      @keyframes ac-exaggeration-sm {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        40% {
+          transform: scale(1.06);
+        }
+      }
+      @keyframes ac-exaggeration-ex {
+        0% {
+          transform: scale(1);
+        }
+        20% {
+          transform: scale(0.7, 0.8);
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        50% {
+          transform: scale(var(--big, 1.45));
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        70% {
+          transform: scale(0.92, 1.06);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "exaggeration",
+        name: "誇張",
+        en: "Exaggeration",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "現実の動きをそのまま写すより、少し大げさにしたほうが、意図や気持ちがはっきり伝わるという原則です。左のいいねは控えめに膨らむだけ、右は大きく膨らんで潰れ、弾んで戻るので「押した！」がはっきり伝わります。",
+        use: "いいね・お気に入り、成功・エラーの強調、ゲームの演出、子ども向けの UI。",
+        params: [
+          { key: "big", label: "誇張の大きさ", value: 1.45, min: 1.1, max: 2, step: 0.05, unit: "" },
+          { key: "dur", label: "時間", value: 600, min: 200, max: 1200, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["UI での使い方", "大事な一瞬だけ誇張する。拡大・つぶれ・回転を、現実なら 1.05 のところを 1.3–1.5 に"],
+          ["ほどほどに", "業務用の画面や、何度もくり返す操作では控えめに（使う頻度 も参照）"],
+          ["比べる", "左（灰色）がこの原則なし、右（青）がこの原則あり"],
+          ["動きを減らす設定", "誇張をやめ、色の変化だけにする"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/principles-of-animation.html" target="_blank" rel="noopener">Adobe: 12 principles of animation</a>',
+          ],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

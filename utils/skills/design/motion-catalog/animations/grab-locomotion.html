@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>つかんで進む移動（Grab locomotion (VR)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-grab-locomotion"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "grab-locomotion",
+        name: "つかんで進む移動",
+        en: "Grab locomotion (VR)",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "VR で、空中や壁・取っ手をつかむ動作をしたまま手を手前へ引くと、その分だけ世界が引き寄せられて自分が前へ進む移動の方法です。ロープをたぐる、岩を登るような感覚で、自分の手の動きと移動がそろうので酔いにくくなります。",
+        use: "VR のクライミング・宇宙遊泳、世界を引っぱって動かす操作、3D のシーンの視点の移動。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "つかんだ瞬間の手の位置を覚え、つかんでいる間は「手が動いた量の逆」だけ視点（世界の原点）を動かす。両手なら 2 点から回転と拡大もできる",
+          ],
+          ["離したとき", "離した瞬間の手の速さを残して少し滑らせる（慣性）か、すぐ止める。登るときは重力を止める"],
+          ["各環境では", "Unity XR Interaction Toolkit の Grab Move、クライミングの Climb Provider"],
+          ["動きを減らす設定", "慣性の滑りをやめ、手を引いた分だけ進む"],
+          [
+            "出典",
+            '<a href="https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit@3.1/manual/grab-movement.html" target="_blank" rel="noopener">docs.unity.cn（grab-movement）</a>、<a href="https://docs.unity3d.com/Packages/com.unity.xr.interaction.toolkit@3.1/manual/climbing.html" target="_blank" rel="noopener">docs.unity3d.com（climbing）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const floor = (zoff, hz = 52) => {
+              g.fillStyle = "#eaf2ff";
+              g.fillRect(0, 0, W, hz);
+              g.fillStyle = col("ice");
+              g.fillRect(0, hz, W, H - hz);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 1;
+              for (let k = 0; k < 18; k++) {
+                const z = 0.5 + k * 1.2 - (zoff % 1.2);
+                if (z <= 0.3) continue;
+                const y = hz + 90 / z;
+                if (y > H) continue;
+                g.globalAlpha = Math.min(1, 3 / z);
+                g.beginPath();
+                g.moveTo(0, y);
+                g.lineTo(W, y);
+                g.stroke();
+              }
+              g.globalAlpha = 1;
+              for (let X = -10; X <= 10; X++) {
+                const x = X * 1.2;
+                g.beginPath();
+                g.moveTo(110 + (x * 90) / 20, hz + 90 / 20);
+                g.lineTo(110 + (x * 90) / 0.55, hz + 90 / 0.55);
+                g.stroke();
+              }
+            };
+            let zoff = 0,
+              base = 0;
+            return raf((t) => {
+              const T = t % 2.4,
+                grab = T > 0.3 && T < 1.5,
+                f = grab ? (T - 0.3) / 1.2 : T >= 1.5 ? 1 : 0,
+                e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+              if (T < 0.05) base = zoff;
+              zoff = base + (rm ? 0 : e * 1.2);
+              const hy = grab ? 70 + e * 60 : T >= 1.5 ? 130 - ((T - 1.5) / 0.9) * 60 : 70,
+                hx = 140 - (grab ? e * 10 : 0);
+              floor(zoff);
+              g.fillStyle = grab ? col("blue") : col("sky");
+              g.beginPath();
+              g.roundRect(hx - 12, hy - 12, 24, 22, 8);
+              g.fill();
+              g.fillStyle = "#fff";
+              for (let i = 0; i < 3; i++) g.fillRect(hx - 8 + i * 6, hy - 10, 3, 8);
+              if (grab) {
+                g.strokeStyle = col("blue");
+                g.setLineDash([3, 3]);
+                g.lineWidth = 1.5;
+                g.beginPath();
+                g.moveTo(hx, 70);
+                g.lineTo(hx, hy - 12);
+                g.stroke();
+                g.setLineDash([]);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>きっかけから広がる（Origin-aware animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-origin-aware" style="position: relative; width: 200px; height: 170px">
+        <div
+          class="sb-card ac-origin-aware-m"
+          style="
+            position: absolute;
+            right: 0;
+            bottom: 54px;
+            width: 150px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          "
+        >
+          <div class="sb-option" style="min-height: 22px">
+            <span class="sb-shape sb-shape--sm"></span><span class="sb-bar sb-bar--sm" style="width: 80px"></span>
+          </div>
+          <div class="sb-option" style="min-height: 22px">
+            <span class="sb-shape sb-shape--sm"></span><span class="sb-bar sb-bar--sm" style="width: 64px"></span>
+          </div>
+          <div class="sb-option" style="min-height: 22px">
+            <span class="sb-shape sb-shape--sm"></span><span class="sb-bar sb-bar--sm" style="width: 90px"></span>
+          </div>
+        </div>
+        <span class="sb-fab" style="position: absolute; right: 0; bottom: 0; width: 44px; height: 44px"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" /></svg
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-origin-aware .ac-origin-aware-m {
+        transform-origin: bottom right;
+        animation: ac-origin-aware-in var(--dur, 200ms) cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
+      }
+      @keyframes ac-origin-aware-in {
+        from {
+          opacity: 0;
+          transform: scale(var(--from, 0.9));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-origin-aware-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "origin-aware",
+        name: "きっかけから広がる",
+        en: "Origin-aware animation",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "ポップオーバーやメニューを、自分の中心からではなく、それを開いたボタンの位置から広げる動きです。どのボタンから出てきたのかが、動きでわかります。",
+        use: "ドロップダウン、ポップオーバー、右下のボタンから開くメニュー、ツールチップ。",
+        params: [
+          { key: "from", label: "出だしの大きさ", value: 0.9, min: 0.5, max: 1, step: 0.02, unit: "" },
+          { key: "dur", label: "時間", value: 200, min: 100, max: 500, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>scale(出だしの大きさ → 1)</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          [
+            "基準点",
+            "開いたボタンの側（ここでは右下）に <code>transform-origin</code> を合わせる。Radix UI などは <code>--radix-popover-content-transform-origin</code> で渡してくれる",
+          ],
+          ["閉じる", "同じ基準点へ縮めて消す"],
+          ["動きを減らす設定", "拡大をやめ、透明度の切り替えだけにする"],
+          ["出典", "Animation Vocabulary（Movement & Transforms）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

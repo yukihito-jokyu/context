@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>トグル（Toggle switch） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-toggle-switch" style="position: relative; width: 220px; height: 120px">
+        <div class="sb-card" style="width: 220px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+          <div class="sb-option" style="justify-content: space-between; min-height: 32px">
+            <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+            ><span class="sb-switch ac-toggle-switch-sw sb-switch--off" role="switch"></span>
+          </div>
+          <div class="sb-option" style="justify-content: space-between; min-height: 32px">
+            <span class="sb-bar sb-bar--sm" style="width: 70px"></span><span class="sb-switch"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-toggle-switch .ac-toggle-switch-sw {
+        transition: background-color var(--dur, 180ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-toggle-switch .ac-toggle-switch-sw::after {
+        left: 3px;
+        transform: translateX(24px);
+      }
+      .ac-toggle-switch .ac-toggle-switch-sw.sb-switch--off::after {
+        transform: translateX(0);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-toggle-switch .ac-toggle-switch-sw::after {
+          transition: transform var(--dur, 180ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "toggle-switch",
+        name: "トグル",
+        en: "Toggle switch",
+        cat: "Soft Blue の部品",
+        kind: "motion",
+        description:
+          "オンとオフを切り替えるスイッチの動きです。つまみが横に滑って「カチッ」と止まり、同時に地の色が青に変わります。位置と色の両方で、いまの状態がひと目でわかります。",
+        use: "設定のオン／オフ、通知の切り替え。",
+        params: [{ key: "dur", label: "切り替えの時間", value: 180, min: 100, max: 400, step: 10, unit: "ms" }],
+        spec: [
+          ["つまみ", "<code>translateX(0 ↔ 24px)</code>｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>"],
+          ["地の色", "<code>bar-strong ↔ blue</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>"],
+          ["きっかけ", "クリック・タップ（デモは 1.2 秒ごとに自動で切り替え）"],
+          ["動きを減らす設定", "つまみの移動をやめて位置は瞬時に切り替え、色の切り替えは残す"],
+          ["出典", "Soft Blue「モーション」のトグル"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const sw = stage.querySelector(".ac-toggle-switch-sw");
+          const t = setInterval(() => sw.classList.toggle("sb-switch--off"), 1200);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

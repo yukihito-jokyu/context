@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ドライバー（Drivers） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-drivers" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-drivers-k"><i></i></div>
+        <div class="ac-drivers-bar"><i></i></div>
+        <div class="ac-drivers-ci"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-drivers {
+        --v: 0;
+      }
+      .ac-drivers .ac-drivers-k {
+        position: absolute;
+        left: 22px;
+        top: 45px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--surface);
+        box-shadow:
+          var(--shadow-card),
+          inset 0 0 0 2px var(--line);
+        transform: rotate(calc(var(--v) * 270deg - 135deg));
+      }
+      .ac-drivers .ac-drivers-k i {
+        position: absolute;
+        left: 27px;
+        top: 6px;
+        width: 6px;
+        height: 16px;
+        border-radius: 3px;
+        background: var(--blue);
+      }
+      .ac-drivers .ac-drivers-bar {
+        position: absolute;
+        left: 104px;
+        bottom: 30px;
+        width: 22px;
+        height: 90px;
+        border-radius: 8px;
+        background: var(--ice);
+        overflow: hidden;
+      }
+      .ac-drivers .ac-drivers-bar i {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+        background: var(--blue);
+        transform: scaleY(var(--v));
+        transform-origin: 50% 100%;
+      }
+      .ac-drivers .ac-drivers-ci {
+        position: absolute;
+        left: 172px;
+        top: 75px;
+        width: 50px;
+        height: 50px;
+        margin: -25px 0 0 -25px;
+        border-radius: 50%;
+        background: color-mix(in oklch, var(--sky) calc(100% - var(--v) * 100%), var(--navy));
+        transform: scale(calc(0.3 + var(--v) * var(--v) * 0.9));
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "drivers",
+        name: "ドライバー",
+        en: "Drivers",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "1つの値（つまみの角度、スクロール量など）を「運転手（ドライバー）」にして、式でほかのいくつもの値を自動的に動かす方法です。つまみを回すと、棒が伸び、丸が大きくなり、色が変わる、といった連動をまとめて作れます。",
+        use: "設定のつまみやスライダーの見た目の連動、キャラクターの表情パーツの連動、データに合わせて変わる図、ゲームのメーター。",
+        params: [{ key: "period", label: "往復の時間", value: 3000, min: 1000, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "仕組み",
+            "<code>動かされる値 = f(ドライバーの値)</code>。ここでは 角度 → 棒の高さ（比例）、丸の大きさ（ゆるやかな曲線）、色（補間）",
+          ],
+          ["式の例", "比例、<code>min / max</code> で範囲を制限、イージング関数で曲線にする、2つ以上の値を混ぜる"],
+          [
+            "Web では",
+            "CSS 変数 1 つ（<code>--v</code>）をドライバーにして、<code>calc()</code> で複数のプロパティを決める。Blender の Drivers、Rive のデータバインディング",
+          ],
+          ["動きを減らす設定", "つまみの自動の動きを止める"],
+          [
+            "出典",
+            '<a href="https://docs.blender.org/manual/en/latest/animation/" target="_blank" rel="noopener">Blender マニュアル: Animation & Rigging</a>、<a href="https://rive.app/features" target="_blank" rel="noopener">Rive Features</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const root = stage.firstElementChild;
+            return raf((t) => {
+              const u = rm ? 0.6 : 0.5 - 0.5 * Math.cos((t * (Math.PI * 2)) / (v.period / 1000));
+              root.style.setProperty("--v", u.toFixed(3));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

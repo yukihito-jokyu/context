@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>星空を進む（Starfield flight） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-starfield-flight"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+          background: #0a1438;
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "starfield-flight",
+        name: "星空を進む",
+        en: "Starfield flight",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "無数の星が画面の中心から外側へ向かって流れ、近づくほど大きく明るくなることで、宇宙を前へ進んでいるように感じさせる背景です。",
+        use: "宇宙・SF・ゲームのタイトル、ローディング画面、「旅立ち」「始まり」を表す演出。",
+        params: [
+          { key: "n", label: "星の数", value: 160, min: 40, max: 400, step: 10, unit: "個" },
+          { key: "speed", label: "速さ", value: 0.3, min: 0.05, max: 1.2, step: 0.05, unit: "" },
+        ],
+        spec: [
+          ["星", "x・y（-1〜1）と奥行き z（0〜1）を持たせ、画面の位置 = 中心 + x / z × 拡大率"],
+          [
+            "動き",
+            "毎フレーム z を減らす（近づく）。z が小さくなりすぎたら奥（z = 1）の新しい位置に戻す。大きさと明るさは 1 / z に比例",
+          ],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/backgrounds/galaxy" target="_blank" rel="noopener">React Bits: Galaxy</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const st = Array.from({ length: v.n }, () => ({
+              x: Math.random() * 2 - 1,
+              y: Math.random() * 2 - 1,
+              z: Math.random(),
+            }));
+            const draw = () => {
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = "#fff";
+              for (const s of st) {
+                const k = 60 / s.z,
+                  x = W / 2 + s.x * k,
+                  y = H / 2 + s.y * k,
+                  r = Math.min(2.4, 0.4 / s.z);
+                if (x < 0 || x > W || y < 0 || y > H) continue;
+                g.globalAlpha = Math.min(1, (1 - s.z) * 1.5);
+                g.beginPath();
+                g.arc(x, y, r, 0, 7);
+                g.fill();
+              }
+              g.globalAlpha = 1;
+            };
+            if (rm) {
+              draw();
+              return null;
+            }
+            let last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              for (const s of st) {
+                s.z -= v.speed * dt;
+                if (s.z < 0.02) {
+                  s.z = 1;
+                  s.x = Math.random() * 2 - 1;
+                  s.y = Math.random() * 2 - 1;
+                }
+              }
+              draw();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

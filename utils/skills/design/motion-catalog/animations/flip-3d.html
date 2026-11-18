@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3D フリップ（3D tilt / Flip） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-flip-3d"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center; perspective: 600px"
+      >
+        <div class="ac-flip-3d-card">
+          <span class="ac-flip-3d-face sb-grad-hero"></span
+          ><span
+            class="ac-flip-3d-face ac-flip-3d-back sb-card"
+            style="padding: 16px; display: flex; flex-direction: column; gap: 10px"
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--sm" style="width: 60px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 70px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-flip-3d .ac-flip-3d-card {
+        position: relative;
+        width: 110px;
+        height: 140px;
+        transform-style: preserve-3d;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-flip-3d .ac-flip-3d-card {
+          animation:
+            ac-flip-3d-a var(--dur, 600ms) cubic-bezier(0.65, 0, 0.35, 1) 300ms both,
+            ac-flip-3d-b var(--dur, 600ms) cubic-bezier(0.65, 0, 0.35, 1) calc(var(--dur, 600ms) + 1300ms) forwards;
+        }
+      }
+      .ac-flip-3d .ac-flip-3d-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        backface-visibility: hidden;
+        box-shadow: var(--shadow-card);
+      }
+      .ac-flip-3d .ac-flip-3d-back {
+        transform: rotateY(180deg);
+        box-sizing: border-box;
+      }
+      @keyframes ac-flip-3d-a {
+        from {
+          transform: rotateY(0);
+        }
+        to {
+          transform: rotateY(180deg);
+        }
+      }
+      @keyframes ac-flip-3d-b {
+        from {
+          transform: rotateY(180deg);
+        }
+        to {
+          transform: rotateY(360deg);
+        }
+      }
+      /* 動きを減らす設定：回さずに、裏面を同じ時刻に透明度で出し入れする */
+      @keyframes ac-flip-3d-show {
+        from {
+          opacity: 0;
+        }
+      }
+      @keyframes ac-flip-3d-hide {
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-flip-3d .ac-flip-3d-back {
+          transform: none;
+          animation:
+            ac-flip-3d-show var(--dur, 600ms) 300ms both,
+            ac-flip-3d-hide var(--dur, 600ms) calc(var(--dur, 600ms) + 1300ms) forwards;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "flip-3d",
+        name: "3D フリップ",
+        en: "3D tilt / Flip",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "要素を 3D 空間で回し（rotateX / rotateY）、奥行きを持たせる動きです。カードを裏返して、表と裏で違う情報を見せられます。",
+        use: "カードの表裏（問題と答え、表紙と詳細）、傾けて立体感を出すホバー。",
+        params: [{ key: "dur", label: "裏返す時間", value: 600, min: 200, max: 1200, step: 50, unit: "ms" }],
+        total: (p) => p["dur"] * 2 + 1300,
+        spec: [
+          [
+            "動き",
+            "<code>rotateY(0 → 180deg)</code>、しばらく見せてから <code>rotateY(180deg → 360deg)</code>｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>",
+          ],
+          [
+            "必要な設定",
+            "親に <code>perspective: 600px</code>、カードに <code>transform-style: preserve-3d</code>、表裏の面に <code>backface-visibility: hidden</code>",
+          ],
+          ["動きを減らす設定", "回転をやめ、表と裏を透明度で切り替える"],
+          ["出典", "Animation Vocabulary（Movement & Transforms）"],
+        ],
+        loop: 3000,
+      });
+    </script>
+  </body>
+</html>

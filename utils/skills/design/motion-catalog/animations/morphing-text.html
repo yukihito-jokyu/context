@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>溶けて変わる文字（Morphing text (gooey blur)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-morphing-text"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+          <defs>
+            <filter id="ac-mt-th">
+              <feColorMatrix
+                in="SourceGraphic"
+                type="matrix"
+                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 255 -140"
+              />
+            </filter>
+          </defs>
+        </svg>
+        <div class="ac-morphing-text-t">
+          <span class="ac-morphing-text-a">Design</span><span class="ac-morphing-text-b"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-morphing-text .ac-morphing-text-t {
+        position: absolute;
+        inset: 0;
+        filter: url(#ac-mt-th);
+      }
+      .ac-morphing-text .ac-morphing-text-t span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 56px;
+        text-align: center;
+        font: 800 36px/1 var(--font-sans);
+        color: var(--blue);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-morphing-text .ac-morphing-text-t {
+          filter: none;
+        }
+        .ac-morphing-text .ac-morphing-text-t span {
+          filter: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "morphing-text",
+        name: "溶けて変わる文字",
+        en: "Morphing text (gooey blur)",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "前の単語をぼかしながら消し、次の単語をぼけた状態から現すのを同時に行い、しきい値のフィルターで輪郭をくっきりさせます。2つの単語が溶け合ってつながり、液体のように形を変えて切り替わります。",
+        use: "ヒーローの見出しで言葉を入れ替えるとき（「速い」→「美しい」）、ロゴの切り替え、ブランドの言葉の紹介。",
+        params: [{ key: "dur", label: "切り替えの時間", value: 1000, min: 400, max: 3000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "2 つの単語を重ね、進み具合 f で前の単語 <code>blur(8/(1−f) − 8 px)</code>・<code>opacity (1−f)^0.4</code>、次の単語 <code>blur(8/f − 8 px)</code>・<code>opacity f^0.4</code>",
+          ],
+          [
+            "輪郭",
+            "親に SVG フィルター <code>feColorMatrix</code>（アルファ行 <code>0 0 0 255 −140</code>）をかけ、ぼけた所を切り捨てて液体のようにつなげる",
+          ],
+          ["時間", "切り替え 1 秒前後、各単語は 1〜2 秒止める。背景は単色にする"],
+          ["動きを減らす設定", "ぼかしとフィルターをやめ、クロスフェードで切り替える"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components" target="_blank" rel="noopener">Magic UI: Components</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const a = stage.querySelector(".ac-morphing-text-a"),
+              b = stage.querySelector(".ac-morphing-text-b"),
+              words = ["Design", "Motion", "Craft", "Flow"];
+            const bl = (f) => (f <= 0.01 ? 100 : Math.min(8 / f - 8, 100));
+            return raf((t) => {
+              const M = v.dur / 1000,
+                T = M + 1.2,
+                n = Math.floor(t / T),
+                f = Math.min(1, Math.max(0, ((t % T) - 1.2) / M));
+              a.textContent = words[n % 4];
+              b.textContent = words[(n + 1) % 4];
+              if (rm) {
+                a.style.opacity = 1 - f;
+                b.style.opacity = f;
+                return;
+              }
+              a.style.filter = `blur(${bl(1 - f)}px)`;
+              a.style.opacity = Math.pow(1 - f, 0.4);
+              b.style.filter = `blur(${bl(f)}px)`;
+              b.style.opacity = Math.pow(f, 0.4);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

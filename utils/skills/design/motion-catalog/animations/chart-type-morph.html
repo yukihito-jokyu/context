@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>グラフの種類の変形（Chart-type morph） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-chart-type-morph" style="position: relative; width: 220px; height: 150px">
+        <svg
+          class="ac-chart-type-morph-s"
+          width="220"
+          height="150"
+          viewBox="0 0 220 150"
+          style="position: absolute; inset: 0; overflow: visible"
+        ></svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "chart-type-morph",
+        name: "グラフの種類の変形",
+        en: "Chart-type morph",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "同じデータを、棒グラフから円グラフへ、形をなめらかに変えながら切り替える動きです。1本1本の棒がそのまま扇形へ姿を変えるので、どの扇がどの棒だったかを見失いません。",
+        use: "グラフの種類の切り替え、内訳（構成比）と比較（大小）の見せ分け、データの説明。",
+        params: [{ key: "dur", label: "時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          ["仕組み", "各項目の形（長方形と扇形）を、同じ数の点（24–48個）の多角形として表し、点ごとに位置を補間する"],
+          ["時間", "in-out 700–1000ms。色は項目ごとに固定する（対応が分かる）"],
+          ["ライブラリ", "ECharts の universal transition、flubber（形の補間）"],
+          ["動きを減らす設定", "補間をやめ、新しい状態の図をすぐ表示する（またはフェードで切り替える）"],
+          [
+            "出典",
+            '<a href="https://echarts.apache.org/handbook/en/basics/release-note/5-2-0/" target="_blank" rel="noopener">ECharts universal transition</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const svg = stage.querySelector(".ac-chart-type-morph-s");
+            const NS = "http://www.w3.org/2000/svg",
+              el = (n, a = {}, p) => {
+                const e = document.createElementNS(NS, n);
+                for (const k in a) e.setAttribute(k, a[k]);
+                (p || svg).appendChild(e);
+                return e;
+              };
+            const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+            const tween = (ms, fn) => {
+              const t0 = performance.now();
+              let id;
+              const f = (now) => {
+                const k = Math.min(1, (now - t0) / ms);
+                fn(rm ? 1 : ease(k));
+                if (k < 1) id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => cancelAnimationFrame(id);
+            };
+            const data = [5, 3, 4, 2],
+              cols = ["blue", "sky", "aqua", "cobalt"],
+              N = 40,
+              sum = data.reduce((a, b) => a + b);
+            const rectPts = (x, y, w, h) => {
+              const per = 2 * (w + h),
+                pts = [];
+              for (let i = 0; i < N; i++) {
+                let d = (i / N) * per;
+                if (d < w) pts.push([x + d, y]);
+                else if ((d -= w) < h) pts.push([x + w, y + d]);
+                else if ((d -= h) < w) pts.push([x + w - d, y + h]);
+                else pts.push([x, y + h - (d - w)]);
+              }
+              return pts;
+            };
+            let acc = 0;
+            const shapes = data.map((d, i) => {
+              const h = d * 22,
+                bar = rectPts(30 + i * 44, 130 - h, 30, h);
+              const a0 = (acc / sum) * Math.PI * 2 - Math.PI / 2,
+                a1 = ((acc += d) / sum) * Math.PI * 2 - Math.PI / 2,
+                cx = 110,
+                cy = 75,
+                R = 60,
+                pie = [];
+              const E = (a) => [cx + Math.cos(a) * R, cy + Math.sin(a) * R],
+                mix = (p, q, f) => [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f],
+                C0 = [cx, cy];
+              for (let k = 0; k < 3; k++) pie.push(mix(E(a1), C0, k / 3));
+              for (let k = 0; k < 3; k++) pie.push(mix(C0, E(a0), k / 3));
+              for (let k = 0; k < N - 6; k++) pie.push(E(a0 + ((a1 - a0) * k) / (N - 7)));
+              return {
+                bar,
+                pie,
+                p: el("path", {
+                  fill: `var(--${cols[i]})`,
+                  stroke: "#fff",
+                  "stroke-width": 1.5,
+                  "stroke-linejoin": "round",
+                }),
+              };
+            });
+            const draw = (k) =>
+              shapes.forEach((s) =>
+                s.p.setAttribute(
+                  "d",
+                  "M" +
+                    s.bar
+                      .map(
+                        (b, i) =>
+                          `${(b[0] + (s.pie[i][0] - b[0]) * k).toFixed(1)},${(b[1] + (s.pie[i][1] - b[1]) * k).toFixed(1)}`,
+                      )
+                      .join(" L") +
+                    "Z",
+                ),
+              );
+            draw(0);
+            let stopT = null;
+            const stop = seq(4000, [
+              [
+                600,
+                () => {
+                  stopT = tween(v.dur, (k) => draw(k));
+                },
+              ],
+              [
+                2600,
+                () => {
+                  stopT = tween(v.dur, (k) => draw(1 - k));
+                },
+              ],
+            ]);
+            return () => {
+              stop();
+              stopT && stopT();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

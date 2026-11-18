@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>きらめく文字（Sparkle text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-sparkle-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="ac-sparkle-text-w"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 32px;
+            line-height: 41px;
+          "
+        >
+          Sparkle
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sparkle-text .ac-sparkle-text-w {
+        position: relative;
+        padding: 12px 18px;
+      }
+      .ac-sparkle-text .ac-sparkle-text-s {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        margin: -7px 0 0 -7px;
+        color: var(--sky);
+        animation: ac-sparkle-text-tw var(--dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) both;
+      }
+      .ac-sparkle-text .ac-sparkle-text-s:nth-child(odd) {
+        color: var(--blue);
+        width: 10px;
+        height: 10px;
+        margin: -5px 0 0 -5px;
+      }
+      @keyframes ac-sparkle-text-tw {
+        0% {
+          transform: scale(0) rotate(0);
+        }
+        50% {
+          transform: scale(1) rotate(45deg);
+        }
+        100% {
+          transform: scale(0) rotate(90deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sparkle-text",
+        name: "きらめく文字",
+        en: "Sparkle text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字のまわりに小さな星が、場所を変えながらポッと現れ、くるっと回って消えることをくり返す表現です。特別感やお祝いの気持ちを、控えめに添えられます。",
+        use: "プレミアム・限定のラベル、新機能の告知、お祝いのメッセージ、AI の生成結果。",
+        params: [
+          { key: "n", label: "星の数", value: 6, min: 2, max: 12, step: 1, unit: "個" },
+          { key: "dur", label: "1つの星の時間", value: 900, min: 400, max: 2000, step: 50, unit: "ms" },
+        ],
+        spec: [
+          ["星", "4つの尖りの星（SVG）を、文字の範囲の中のランダムな位置に置く"],
+          [
+            "動き",
+            "<code>scale(0 → 1 → 0)</code> と <code>rotate(0 → 90deg)</code>｜in-out。消えたら位置を変えて出し直す。出るタイミングをずらす",
+          ],
+          ["色", "文字に合わせた明るい色（ここでは sky と blue）"],
+          ["動きを減らす設定", "星を動かさず、数個を静止して置く（または出さない）"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/sparkles-text" target="_blank" rel="noopener">Magic UI: Sparkles Text</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const w = stage.querySelector(".ac-sparkle-text-w"),
+              svg =
+                '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor" aria-hidden="true"><path d="M12 0c1 7 5 11 12 12-7 1-11 5-12 12-1-7-5-11-12-12 7-1 11-5 12-12z"/></svg>';
+            const spawn = (i) => {
+              const s = document.createElement("span");
+              s.className = "ac-sparkle-text-s";
+              s.innerHTML = svg;
+              s.style.left = `${Math.random() * 100}%`;
+              s.style.top = `${Math.random() * 100}%`;
+              if (rm) {
+                s.style.animation = "none";
+                s.style.transform = "scale(.8)";
+                w.appendChild(s);
+                return;
+              }
+              s.style.animationDelay = `${(i * v.dur) / v.n}ms`;
+              w.appendChild(s);
+              s.addEventListener("animationend", () => {
+                s.remove();
+                spawn(0);
+              });
+            };
+            for (let i = 0; i < v.n; i++) spawn(i);
+            return null;
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

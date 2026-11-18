@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>セグメント（Segmented control） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-segmented-control" style="position: relative; width: 220px; height: 60px">
+        <div class="sb-seg" style="position: relative; width: 220px">
+          <span class="ac-segmented-control-pill"></span>
+          <span class="sb-seg-item" style="position: relative"
+            ><span class="sb-bar sb-bar--xs" style="width: 36px"></span
+          ></span>
+          <span class="sb-seg-item" style="position: relative"
+            ><span class="sb-bar sb-bar--xs" style="width: 30px"></span
+          ></span>
+          <span class="sb-seg-item" style="position: relative"
+            ><span class="sb-bar sb-bar--xs" style="width: 40px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-segmented-control .ac-segmented-control-pill {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: calc((100% - 16px) / 3);
+        height: 40px;
+        border-radius: 999px;
+        background: var(--surface);
+        box-shadow: 0 4px 12px rgba(27, 58, 138, 0.1);
+        transform: translateX(calc(var(--i, 0) * (100% + 4px)));
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-segmented-control .ac-segmented-control-pill {
+          transition: transform var(--dur, 180ms) cubic-bezier(0.65, 0, 0.35, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "segmented-control",
+        name: "セグメント",
+        en: "Segmented control",
+        cat: "Soft Blue の部品",
+        kind: "motion",
+        description:
+          "いくつかの選択肢から1つを選ぶ部品で、白いピルが選んだ位置へ滑っていく動きです。ピルが移動することで、どこからどこへ切り替わったのかがわかります。",
+        use: "表示の切り替え（リスト／グリッド）、期間の切り替え（日・週・月）。",
+        params: [{ key: "dur", label: "移動の時間", value: 180, min: 100, max: 400, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "ピル",
+            "<code>translateX(選んだ位置 × (100% + 間隔 4px))</code>（位置は 0 から）｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>",
+          ],
+          ["きっかけ", "クリック・タップ（デモは 1 秒ごとに自動で切り替え）"],
+          ["動きを減らす設定", "ピルの移動をやめ、選んだ位置に瞬時に表示する"],
+          ["出典", "Soft Blue「モーション」のセグメント"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const pill = stage.querySelector(".ac-segmented-control-pill");
+          const order = [0, 1, 2, 1];
+          let n = 0;
+          const t = setInterval(() => {
+            n = (n + 1) % order.length;
+            pill.style.setProperty("--i", order[n]);
+          }, 1000);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>オーケストレーション（Orchestration） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-orchestration" style="position: relative; width: 170px; height: 170px">
+        <div class="sb-card" style="width: 170px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+          <span class="sb-hero sb-grad-hero ac-orchestration-a" style="height: 56px; border-radius: 14px"></span>
+          <span class="sb-bar sb-bar--sm sb-bar--strong ac-orchestration-b" style="width: 100px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft ac-orchestration-c" style="width: 70px"></span>
+          <span class="sb-btn sb-btn--primary sb-btn--s ac-orchestration-d" style="height: 30px; align-self: flex-start"
+            ><span class="sb-bar sb-bar--xxs sb-bar--on-blue" style="width: 44px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-orchestration .ac-orchestration-a {
+        animation: ac-orchestration-scale var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .ac-orchestration .ac-orchestration-b {
+        animation: ac-orchestration-slide var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) var(--gap, 120ms) both;
+      }
+      .ac-orchestration .ac-orchestration-c {
+        animation: ac-orchestration-slide var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--gap, 120ms) * 2)
+          both;
+      }
+      .ac-orchestration .ac-orchestration-d {
+        animation: ac-orchestration-pop var(--dur, 260ms) cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--gap, 120ms) * 3)
+          both;
+      }
+      @keyframes ac-orchestration-scale {
+        from {
+          opacity: 0;
+          transform: scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-orchestration-slide {
+        from {
+          opacity: 0;
+          transform: translateX(-12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-orchestration-pop {
+        from {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-orchestration .ac-orchestration-a,
+        .ac-orchestration .ac-orchestration-b,
+        .ac-orchestration .ac-orchestration-c,
+        .ac-orchestration .ac-orchestration-d {
+          animation: ac-orchestration-fade 200ms both;
+        }
+        @keyframes ac-orchestration-fade {
+          from {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "orchestration",
+        name: "オーケストレーション",
+        en: "Orchestration",
+        cat: "順序・タイミング",
+        kind: "motion",
+        description:
+          "種類の違う複数の動きを、1つのまとまった動きとして読めるように時間を組み立てることです。画像 → 見出し → 補足 → ボタンの順に、それぞれ違う動き方で現れます。コレオグラフィー（Choreography）とも呼びます。",
+        use: "ページやカードの初回表示、オンボーディング、ヒーローセクション。",
+        params: [
+          { key: "gap", label: "段ごとの間隔", value: 120, min: 0, max: 300, step: 10, unit: "ms" },
+          { key: "dur", label: "1つの時間", value: 260, min: 100, max: 600, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["gap"] * 3 + p["dur"],
+        spec: [
+          ["1. 画像", "<code>scale(0.96 → 1)</code> と <code>opacity</code>｜out"],
+          ["2. 見出し・3. 補足", "<code>translateX(-12px → 0)</code> と <code>opacity</code>｜out｜間隔ずつ遅らせる"],
+          ["4. ボタン", "<code>scale(0.6 → 1)</code>｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>"],
+          ["考え方", "大きいもの・大事なものから。目線が上から下へ流れる順にする"],
+          ["動きを減らす設定", "段ごとの動きをやめ、まとめて透明度で表示する"],
+          ["出典", "Animation Vocabulary（Sequencing & Timing）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

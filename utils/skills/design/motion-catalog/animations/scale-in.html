@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スケールイン（Scale in） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-scale-in" style="position: relative; width: 150px; height: 150px">
+        <div
+          class="sb-card ac-scale-in-c"
+          style="width: 150px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 52px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 82px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 52px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scale-in .ac-scale-in-c {
+        animation: ac-scale-in-in var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes ac-scale-in-in {
+        from {
+          opacity: 0;
+          transform: scale(var(--from, 0.9));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-scale-in-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scale-in",
+        name: "スケールイン",
+        en: "Scale in",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "少し小さい状態から元の大きさへ広がりながら現れる動きです。多くはフェードと組み合わせます。その場で「生まれる」印象になります。",
+        use: "ポップオーバー、メニュー、モーダル、追加されたカード。",
+        params: [
+          { key: "from", label: "出だしの大きさ", value: 0.9, min: 0.5, max: 1, step: 0.01, unit: "" },
+          { key: "dur", label: "時間", value: 260, min: 100, max: 800, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>scale(出だしの大きさ → 1)</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["目安", "0.9–0.96 が控えめ。0 から広げると大げさになる"],
+          ["動きを減らす設定", "拡大をやめ、透明度の切り替えだけにする"],
+          ["出典", "Animation Vocabulary（Entrances & Exits）"],
+        ],
+        loop: 1800,
+      });
+    </script>
+  </body>
+</html>

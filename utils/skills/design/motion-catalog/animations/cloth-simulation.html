@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>布（Cloth simulation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-cloth-simulation"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cloth-simulation",
+        name: "布",
+        en: "Cloth simulation",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "布を、点と点を短いばねでつないだ網として計算し、重力や風で波打ち、たなびく様子を作る方法です。上の端を留めた旗やカーテンが、風に押されて自然に揺れます。",
+        use: "旗やカーテンの演出、ブランドの布・ファッション系の表現、ヒーローの背景、3D の衣服。",
+        params: [{ key: "wind", label: "風の強さ", value: 1, min: 0, max: 2.5, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "仕組み",
+            "格子の点を、前の位置と今の位置から次の位置を決める方法（ベルレ積分）で動かし、隣どうしの距離を元の長さに戻す計算を数回くり返す",
+          ],
+          ["風", "点ごとに、時間と位置で変わる横向きの力を足す。留める点（上の端）は動かさない"],
+          [
+            "本格的に",
+            "物理エンジン（Rapier・Ammo.js・Matter.js・Box2D）を使う。three.js の物理の例（<code>physics_*</code>）が参考になる",
+          ],
+          ["動きを減らす設定", "布の揺れを止め、垂れ下がった形にする"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/files.json" target="_blank" rel="noopener">three.js examples（一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const nx = 12,
+              ny = 9,
+              sp = 9,
+              ox = 60,
+              oy = 22,
+              P = [];
+            for (let j = 0; j < ny; j++)
+              for (let i = 0; i < nx; i++)
+                P.push({
+                  x: ox + i * sp,
+                  y: oy + j * sp,
+                  px: ox + i * sp,
+                  py: oy + j * sp,
+                  pin: j === 0 && (i === 0 || i === nx - 1 || i === 6),
+                });
+            const C = [];
+            for (let j = 0; j < ny; j++)
+              for (let i = 0; i < nx; i++) {
+                if (i < nx - 1) C.push([j * nx + i, j * nx + i + 1]);
+                if (j < ny - 1) C.push([j * nx + i, (j + 1) * nx + i]);
+              }
+            let last = 0;
+            const frame = (t) => {
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              g.clearRect(0, 0, W, H);
+              P.forEach((p, k) => {
+                if (p.pin) return;
+                const wx = rm ? 0 : v.wind * (60 + 50 * sin(t * 1.3 + (k % nx) * 0.3 + Math.floor(k / nx) * 0.2));
+                const vx = (p.x - p.px) * 0.99,
+                  vy = (p.y - p.py) * 0.99;
+                p.px = p.x;
+                p.py = p.y;
+                p.x += vx + wx * dt * dt;
+                p.y += vy + 400 * dt * dt;
+              });
+              for (let it = 0; it < 6; it++)
+                C.forEach(([a, b]) => {
+                  const A = P[a],
+                    B = P[b],
+                    dx = B.x - A.x,
+                    dy = B.y - A.y,
+                    d = Math.hypot(dx, dy) || 1,
+                    f = (d - sp) / d / 2;
+                  if (!A.pin) {
+                    A.x += dx * f;
+                    A.y += dy * f;
+                  }
+                  if (!B.pin) {
+                    B.x -= dx * f;
+                    B.y -= dy * f;
+                  }
+                });
+              g.strokeStyle = "rgba(255,255,255,.6)";
+              g.lineWidth = 0.5;
+              for (let j = 0; j < ny - 1; j++)
+                for (let i = 0; i < nx - 1; i++) {
+                  const a = P[j * nx + i],
+                    b = P[j * nx + i + 1],
+                    c = P[(j + 1) * nx + i + 1],
+                    d = P[(j + 1) * nx + i];
+                  const sh = Math.max(-1, Math.min(1, ((b.x - a.x - sp) / sp) * 3 + (c.y - b.y - sp) / sp));
+                  g.fillStyle = (i + j) % 2 ? col("sky") : col("ice");
+                  g.globalAlpha = 0.85 + sh * 0.15;
+                  g.beginPath();
+                  g.moveTo(a.x, a.y);
+                  g.lineTo(b.x, b.y);
+                  g.lineTo(c.x, c.y);
+                  g.lineTo(d.x, d.y);
+                  g.closePath();
+                  g.fill();
+                  g.stroke();
+                }
+              g.globalAlpha = 1;
+              g.strokeStyle = col("navy");
+              g.lineWidth = 3;
+              g.beginPath();
+              g.moveTo(ox - 10, oy);
+              g.lineTo(ox + sp * (nx - 1) + 10, oy);
+              g.stroke();
+            };
+            if (rm) {
+              for (let i = 1; i <= 240; i++) frame(i / 60);
+              return null;
+            } // 動きを減らす設定：止まった形を一度だけ描く
+            return raf(frame);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

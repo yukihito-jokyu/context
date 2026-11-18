@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>単語にピントを送る（Word focus tracking） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-word-focus-tracking" style="position: relative; width: 230px; height: 120px">
+        <div
+          class="ac-word-focus-tracking-w"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 24px;
+            line-height: 31px;
+          "
+        >
+          <span>見る</span><span>触る</span><span>伝わる</span>
+        </div>
+        <span class="ac-word-focus-tracking-fr"><i></i><i></i><i></i><i></i></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-word-focus-tracking .ac-word-focus-tracking-w {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 42px;
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-w span {
+        transition:
+          filter var(--dur, 400ms) cubic-bezier(0.22, 1, 0.36, 1),
+          color var(--dur, 400ms);
+        filter: blur(var(--blur, 3px));
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-w span.is-on {
+        filter: none;
+        color: var(--blue);
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-fr {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-fr i {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        border: 2.5px solid var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-word-focus-tracking .ac-word-focus-tracking-fr i {
+          transition: transform var(--dur, 400ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-fr i:nth-child(1) {
+        border-right: 0;
+        border-bottom: 0;
+        border-radius: 3px 0 0 0;
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-fr i:nth-child(2) {
+        border-left: 0;
+        border-bottom: 0;
+        border-radius: 0 3px 0 0;
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-fr i:nth-child(3) {
+        border-right: 0;
+        border-top: 0;
+        border-radius: 0 0 0 3px;
+      }
+      .ac-word-focus-tracking .ac-word-focus-tracking-fr i:nth-child(4) {
+        border-left: 0;
+        border-top: 0;
+        border-radius: 0 0 3px 0;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-word-focus-tracking .ac-word-focus-tracking-w span {
+          filter: none;
+        }
+        .ac-word-focus-tracking .ac-word-focus-tracking-fr {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "word-focus-tracking",
+        name: "単語にピントを送る",
+        en: "Word focus tracking",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文の中で1つの単語だけにピントが合い、ほかの単語はぼけている状態から、四隅の角の枠が次の単語へ移ってピントも一緒に移っていく表現です。読ませたい順番を、目の動きとして見せられます。",
+        use: "ヒーローのキャッチコピー、価値の3つの柱の紹介、プレゼン風の見出し。",
+        params: [
+          { key: "hold", label: "1語の時間", value: 1200, min: 500, max: 3000, step: 100, unit: "ms" },
+          { key: "blur", label: "ぼかし", value: 3, min: 1, max: 8, step: 0.5, unit: "px" },
+          { key: "dur", label: "移る時間", value: 400, min: 150, max: 800, step: 10, unit: "ms" },
+        ],
+        spec: [
+          [
+            "ピント",
+            "注目中の語以外に <code>filter: blur(ぼかし)</code>、注目の語は <code>blur(0)</code>｜移る時間で切り替える",
+          ],
+          ["枠", "四隅の角だけの枠を、注目の語の位置・大きさ（<code>getBoundingClientRect</code>）へ｜spring か out"],
+          ["順番", "一定の時間ごとに次の語へ。ホバーでその語へ移す型もある"],
+          ["動きを減らす設定", "ぼかしと枠の移動をやめ、注目の語の色を変えるだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/true-focus" target="_blank" rel="noopener">React Bits: True Focus</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const ws = [...stage.querySelectorAll(".ac-word-focus-tracking-w span")],
+              fr = stage.querySelector(".ac-word-focus-tracking-fr"),
+              root = stage.firstElementChild;
+            let i = -1;
+            const cs = [...fr.children]; // 四隅。位置は transform だけで動かす
+            const go = () => {
+              i = (i + 1) % ws.length;
+              ws.forEach((w, j) => w.classList.toggle("is-on", j === i));
+              if (rm) return;
+              const b = root.getBoundingClientRect(),
+                r = ws[i].getBoundingClientRect(),
+                l = r.left - b.left - 6,
+                t = r.top - b.top - 6,
+                R = r.right - b.left - 4,
+                B = r.bottom - b.top - 4;
+              [
+                [l, t],
+                [R, t],
+                [l, B],
+                [R, B],
+              ].forEach(([x, y], k) => {
+                cs[k].style.transform = `translate(${x}px, ${y}px)`;
+              });
+            };
+            cs.forEach((c) => (c.style.transition = "none"));
+            go();
+            void fr.offsetWidth;
+            cs.forEach((c) => (c.style.transition = ""));
+            return seq(v.hold, [[v.hold - 1, go]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

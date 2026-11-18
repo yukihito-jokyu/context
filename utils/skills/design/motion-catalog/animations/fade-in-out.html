@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フェードイン／アウト（Fade in / Fade out） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-fade-in-out" style="position: relative; width: 150px; height: 150px">
+        <div
+          class="sb-card ac-fade-in-out-c"
+          style="width: 150px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 52px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 82px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 52px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-fade-in-out .ac-fade-in-out-c {
+        animation:
+          ac-fade-in-out-in var(--in, 260ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-fade-in-out-out var(--out, 180ms) cubic-bezier(0.55, 0, 1, 0.45) calc(var(--in, 260ms) + 1200ms) forwards;
+      }
+      @keyframes ac-fade-in-out-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-fade-in-out-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "fade-in-out",
+        name: "フェードイン／アウト",
+        en: "Fade in / Fade out",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "透明度だけを変えて、要素を現したり消したりする動きです。位置も大きさも変わらないので、いちばん穏やかで、どんな場面にもなじみます。",
+        use: "画像やカードの表示、ツールチップ、補足情報の出し入れ。",
+        params: [
+          { key: "in", label: "現れる時間", value: 260, min: 100, max: 800, step: 10, unit: "ms" },
+          { key: "out", label: "消える時間", value: 180, min: 100, max: 800, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["in"] + 1200 + p["out"],
+        spec: [
+          ["現れる", "<code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>"],
+          [
+            "消える",
+            "<code>opacity 1 → 0</code>｜in <code>cubic-bezier(0.55, 0, 1, 0.45)</code>｜現れるより短めにする",
+          ],
+          ["動きを減らす設定", "もともと透明度だけなので、そのままでよい（時間を短くしてもよい）"],
+          ["出典", "Animation Vocabulary（Entrances & Exits）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

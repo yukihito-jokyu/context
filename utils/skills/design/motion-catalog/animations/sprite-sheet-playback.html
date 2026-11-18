@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スプライトのコマ送り（Sprite-sheet playback） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-sprite-sheet-playback" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-sprite-sheet-playback-win">
+          <div class="ac-sprite-sheet-playback-strip">
+            <span><i style="top: 6px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 12px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 20px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 28px; transform: scaleY(0.8) scaleX(1.2)"></i></span
+            ><span><i style="top: 30px; transform: scaleY(0.6) scaleX(1.4)"></i></span
+            ><span><i style="top: 26px; transform: scaleY(0.9) scaleX(1.1)"></i></span
+            ><span><i style="top: 16px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 8px; transform: scaleY(1) scaleX(1)"></i></span>
+          </div>
+        </div>
+        <div class="ac-sprite-sheet-playback-full">
+          <div class="ac-sprite-sheet-playback-strip2">
+            <span><i style="top: 3px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 6px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 10px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 14px; transform: scaleY(0.8) scaleX(1.2)"></i></span
+            ><span><i style="top: 15px; transform: scaleY(0.6) scaleX(1.4)"></i></span
+            ><span><i style="top: 13px; transform: scaleY(0.9) scaleX(1.1)"></i></span
+            ><span><i style="top: 8px; transform: scaleY(1) scaleX(1)"></i></span
+            ><span><i style="top: 4px; transform: scaleY(1) scaleX(1)"></i></span>
+          </div>
+          <span class="ac-sprite-sheet-playback-sel"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-win {
+        position: absolute;
+        left: 80px;
+        top: 6px;
+        width: 60px;
+        height: 60px;
+        overflow: hidden;
+        border-radius: 12px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip {
+        display: flex;
+        width: 480px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip {
+          animation: ac-sprite-sheet-playback-go calc(8000ms / var(--fps, 10)) steps(8) infinite;
+        }
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip span,
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip2 span {
+        position: relative;
+        flex: none;
+        width: 60px;
+        height: 60px;
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip i {
+        position: absolute;
+        left: 18px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--blue);
+        transform-origin: 50% 100%;
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-full {
+        position: absolute;
+        left: 10px;
+        bottom: 14px;
+        width: 200px;
+        height: 34px;
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip2 {
+        display: flex;
+        width: 200px;
+        border-radius: 6px;
+        background: var(--surface-sunken);
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip2 span {
+        width: 25px;
+        height: 34px;
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-strip2 i {
+        position: absolute;
+        left: 7px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--sky);
+        transform-origin: 50% 100%;
+      }
+      .ac-sprite-sheet-playback .ac-sprite-sheet-playback-sel {
+        position: absolute;
+        left: 0;
+        top: -2px;
+        width: 25px;
+        height: 38px;
+        box-sizing: border-box;
+        border: 2px solid var(--blue);
+        border-radius: 6px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-sprite-sheet-playback .ac-sprite-sheet-playback-sel {
+          animation: ac-sprite-sheet-playback-sel calc(8000ms / var(--fps, 10)) steps(8) infinite;
+        }
+      }
+      @keyframes ac-sprite-sheet-playback-go {
+        to {
+          transform: translateX(-480px);
+        }
+      }
+      @keyframes ac-sprite-sheet-playback-sel {
+        to {
+          transform: translateX(200px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sprite-sheet-playback",
+        name: "スプライトのコマ送り",
+        en: "Sprite-sheet playback",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "1枚の画像に横に並べた絵を、のぞき窓をずらして1コマずつ順に見せる考え方です。パラパラ漫画と同じ仕組みで、複雑な動きでも画像1枚と steps() だけで再生できます。下の帯が元の1枚の画像で、青い枠が今見えているコマです。",
+        use: "キャラクターや手描きの動き、アイコンのアニメーション、ゲーム、Lottie を使わない軽い演出。",
+        params: [{ key: "fps", label: "1秒あたりのコマ数", value: 10, min: 2, max: 24, step: 1, unit: "" }],
+        spec: [
+          [
+            "書き方",
+            "窓は <code>overflow: hidden</code>、中の帯を <code>translateX(0 → -コマ幅 × コマ数)</code>｜<code>steps(コマ数)</code>｜時間 = コマ数 ÷ 1秒あたりのコマ数",
+          ],
+          [
+            "画像",
+            "コマの幅をそろえて横一列に並べる（テクスチャアトラス）。背景画像でも、窓の中の画像を <code>transform</code> で送るほうが軽い",
+          ],
+          ["動きを減らす設定", "コマ送りを止め、代表の1コマを見せる"],
+          [
+            "出典",
+            '<a href="https://docs.phaser.io/phaser/concepts/animations" target="_blank" rel="noopener">Phaser: frame animations</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

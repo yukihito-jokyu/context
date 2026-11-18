@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>レイアウトアニメーション（Layout animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-layout-animation"
+        style="
+          position: relative;
+          width: 180px;
+          height: 110px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-content: center;
+        "
+      >
+        <span
+          class="sb-thumb sb-grad-deep ac-layout-animation-t"
+          style="width: 44px; height: 44px; border-radius: 14px"
+        ></span
+        ><span
+          class="sb-thumb sb-grad-sky ac-layout-animation-t"
+          style="width: 44px; height: 44px; border-radius: 14px"
+        ></span
+        ><span
+          class="sb-thumb sb-grad-aqua ac-layout-animation-t"
+          style="width: 44px; height: 44px; border-radius: 14px"
+        ></span
+        ><span
+          class="sb-thumb sb-grad-hero ac-layout-animation-t"
+          style="width: 44px; height: 44px; border-radius: 14px"
+        ></span
+        ><span
+          class="sb-thumb sb-grad-sky ac-layout-animation-t"
+          style="width: 44px; height: 44px; border-radius: 14px"
+        ></span
+        ><span
+          class="sb-thumb sb-grad-aqua ac-layout-animation-t"
+          style="width: 44px; height: 44px; border-radius: 14px"
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-layout-animation .ac-layout-animation-t {
+        display: block;
+      }
+      .ac-layout-animation .ac-layout-animation-t[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "layout-animation",
+        name: "レイアウトアニメーション",
+        en: "Layout animation",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "要素の大きさや位置が変わったとき、新しい場所へパッと跳ばずに、なめらかに移動していく動きです。先頭の要素が消えたり戻ったりするたびに、残りの要素が詰めたり空けたりします。",
+        use: "グリッドやリストの並び替え・追加・削除、フィルタの結果、サイズの変わるカード。",
+        params: [{ key: "dur", label: "時間", value: 320, min: 150, max: 800, step: 10, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "仕組み（FLIP）",
+            "変化の前の位置を測る（First）→ 変える（Last）→ 差の分だけ戻す（Invert）→ <code>transform</code> を 0 へ戻す（Play）",
+          ],
+          [
+            "動き",
+            "<code>translate(差 → 0)</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>。現れる要素は <code>scale(0.8 → 1)</code> と <code>opacity</code>",
+          ],
+          [
+            "実装",
+            "Framer Motion の <code>layout</code>、Vue の &lt;TransitionGroup&gt;、自前なら <code>element.animate()</code> で FLIP",
+          ],
+          ["動きを減らす設定", "移動をやめ、新しい配置に瞬時に切り替える"],
+          ["出典", "Animation Vocabulary（Transitions Between States）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const tiles = [...stage.querySelectorAll(".ac-layout-animation-t")],
+            first = tiles[0];
+          const flip = () => {
+            const before = new Map(tiles.map((t) => [t, t.getBoundingClientRect()]));
+            first.hidden = !first.hidden;
+            if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+            tiles.forEach((t) => {
+              if (t.hidden) return;
+              if (t === first) {
+                t.animate(
+                  [
+                    { opacity: 0, transform: "scale(0.8)" },
+                    { opacity: 1, transform: "none" },
+                  ],
+                  { duration: v.dur, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+                );
+                return;
+              }
+              const b = before.get(t),
+                a = t.getBoundingClientRect();
+              if (b.left !== a.left || b.top !== a.top)
+                t.animate(
+                  [{ transform: `translate(${b.left - a.left}px, ${b.top - a.top}px)` }, { transform: "none" }],
+                  { duration: v.dur, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+                );
+            });
+          };
+          const t = setInterval(flip, 1400);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スケルトン・シマー（Skeleton / Shimmer） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-skeleton-shimmer"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-skeleton-shimmer-c"
+          style="width: 190px; padding: 14px; display: flex; flex-direction: column; gap: 10px"
+        >
+          <div class="sb-loading-img" style="height: 56px"></div>
+          <span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 120px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 80px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-skeleton-shimmer .ac-skeleton-shimmer-c {
+        position: relative;
+        overflow: hidden;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-skeleton-shimmer .ac-skeleton-shimmer-c::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.85) 50%, transparent 80%);
+          transform: translateX(-100%);
+          animation: ac-skeleton-shimmer-shine var(--dur, 1500ms) linear infinite;
+        }
+      }
+      @keyframes ac-skeleton-shimmer-shine {
+        to {
+          transform: translateX(100%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "skeleton-shimmer",
+        name: "スケルトン・シマー",
+        en: "Skeleton / Shimmer",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "読み込み中に、中身の形だけを先に灰色の型（スケルトン）で見せ、その上を光の帯が流れていく表現です。何がどこに出るかが先に分かるので、待ち時間が短く感じられます。",
+        use: "一覧・カード・プロフィールの読み込み中。",
+        params: [{ key: "dur", label: "光が流れる時間", value: 1500, min: 800, max: 3000, step: 100, unit: "ms" }],
+        spec: [
+          ["型", "本物と同じ大きさ・位置に <code>bar-soft</code> の面を置く"],
+          [
+            "光",
+            "半透明の白いグラデーションを <code>translateX(-100% → 100%)</code>｜<code>linear</code>｜<code>infinite</code>",
+          ],
+          ["Soft Blue", "Soft Blue 標準の読み込み中は、光ではなく透明度の往復（loading-pulse）"],
+          ["動きを減らす設定", "光の流れをやめ、型だけを静止表示する"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

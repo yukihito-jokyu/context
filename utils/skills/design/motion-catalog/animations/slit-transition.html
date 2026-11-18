@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>すき間から開く（Slit transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-slit-transition"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center; perspective: 600px"
+      >
+        <div
+          class="sb-card ac-slit-transition-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-slit-transition .ac-slit-transition-c {
+        animation:
+          ac-slit-transition-in var(--in, 800ms) ease-out both,
+          ac-slit-transition-out var(--out, 500ms) ease-in calc(var(--in, 800ms) + 1000ms) forwards;
+      }
+      @keyframes ac-slit-transition-in {
+        0% {
+          opacity: 0;
+          transform: translateZ(-800px) rotateY(90deg);
+        }
+        54% {
+          opacity: 1;
+          transform: translateZ(-160px) rotateY(87deg);
+        }
+        100% {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-slit-transition-out {
+        0% {
+          opacity: 1;
+          transform: none;
+        }
+        46% {
+          transform: translateZ(-160px) rotateY(87deg);
+        }
+        100% {
+          opacity: 0;
+          transform: translateZ(-800px) rotateY(90deg);
+        }
+      }
+      @keyframes ac-slit-transition-rf-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-slit-transition-rf-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-slit-transition .ac-slit-transition-c {
+          animation-name: ac-slit-transition-rf-in, ac-slit-transition-rf-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "slit-transition",
+        name: "すき間から開く",
+        en: "Slit transition",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "真横を向いた細い線の姿で奥から近づき、回転して正面を向く動きです。暗い部屋のドアのすき間から現れるような、劇的な印象になります。",
+        use: "ヒーローの画像、発表・リリースの演出、プレゼンのような見せ方。",
+        params: [
+          { key: "in", label: "登場の時間", value: 800, min: 300, max: 2000, step: 50, unit: "ms" },
+          { key: "out", label: "退出の時間", value: 500, min: 200, max: 2000, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["in"] + 1000 + p["out"],
+        spec: [
+          [
+            "登場",
+            "0%：<code>translateZ(-800px) rotateY(90deg)</code>、54%：<code>translateZ(-160px) rotateY(87deg)</code>、100%：<code>none</code>｜ease-out",
+          ],
+          ["準備", "親に <code>perspective</code>（600px 前後）を付ける"],
+          ["動きを減らす設定", "回転と奥行きをやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://app.unpkg.com/animista-css-generator@1.0.2/files/animations" target="_blank" rel="noopener">Animista（プリセット一覧）</a>',
+          ],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

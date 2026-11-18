@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>切り絵アニメ（Cutout animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-cutout-animation"
+        style="position: relative; width: 200px; height: 150px; filter: drop-shadow(1px 2px 1px rgba(18, 26, 43, 0.25))"
+      >
+        <span class="ac-cutout-animation-p ac-cutout-animation-body"></span
+        ><span class="ac-cutout-animation-p ac-cutout-animation-head"></span
+        ><span class="ac-cutout-animation-p ac-cutout-animation-arm"></span
+        ><span class="ac-cutout-animation-p ac-cutout-animation-arm2"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cutout-animation .ac-cutout-animation-p {
+        position: absolute;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+        background-size: 4px 4px;
+      }
+      .ac-cutout-animation .ac-cutout-animation-body {
+        left: 74px;
+        top: 62px;
+        width: 52px;
+        height: 66px;
+        border-radius: 14px 14px 6px 6px;
+        background-color: var(--cobalt);
+      }
+      .ac-cutout-animation .ac-cutout-animation-head {
+        left: 80px;
+        top: 22px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #f4d9c4;
+        transform-origin: 50% 100%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-cutout-animation .ac-cutout-animation-head {
+          animation: ac-cutout-animation-nod var(--dur, 1400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-cutout-animation .ac-cutout-animation-arm {
+        left: 120px;
+        top: 66px;
+        width: 14px;
+        height: 48px;
+        border-radius: 7px;
+        background-color: var(--sky);
+        transform-origin: 7px 7px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-cutout-animation .ac-cutout-animation-arm {
+          animation: ac-cutout-animation-wave var(--dur, 1400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-cutout-animation .ac-cutout-animation-arm2 {
+        left: 66px;
+        top: 66px;
+        width: 14px;
+        height: 48px;
+        border-radius: 7px;
+        background-color: var(--sky);
+        transform-origin: 7px 7px;
+        transform: rotate(8deg);
+      }
+      @keyframes ac-cutout-animation-wave {
+        from {
+          transform: rotate(-20deg);
+        }
+        to {
+          transform: rotate(-150deg);
+        }
+      }
+      @keyframes ac-cutout-animation-nod {
+        from {
+          transform: rotate(-4deg);
+        }
+        to {
+          transform: rotate(6deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cutout-animation",
+        name: "切り絵アニメ",
+        en: "Cutout animation",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "紙を切り抜いたような平らな部品を重ね、関節の点を軸に回したり、ずらしたりして動かす表現です。部品の縁に落ちる小さな影が紙らしさを出し、軽やかでクラフト感のある動きになります。",
+        use: "説明動画風のイラスト、絵本・教育系のコンテンツ、季節のキャンペーン、手作り感のあるブランド。",
+        params: [{ key: "dur", label: "腕を振る周期", value: 1400, min: 600, max: 3000, step: 50, unit: "ms" }],
+        spec: [
+          ["表現形式", "平らな紙の部品（ベタ塗り＋紙の質感）を重ねる。各部品に小さなドロップシャドウ"],
+          ["演出", "体は止めたまま、腕・頭など一部の部品だけを動かす"],
+          [
+            "個別の動き",
+            "部品ごとに <code>transform-origin</code> を関節の位置にして <code>rotate</code>、パーツの差し替え（口の形など）",
+          ],
+          ["時間・質感", "ゆっくりの in-out、または 12コマ/秒の <code>steps()</code> でぎこちなさを足す"],
+          ["カタログの関連", "transform-origin / rotate / stepped-animation / flat-2d-motion"],
+          ["動きを減らす設定", "腕の動きを止め、静止したイラストにする"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/uk/creativecloud/animation/discover/cut-out-animation.html" target="_blank" rel="noopener">Adobe: cut-out animation</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

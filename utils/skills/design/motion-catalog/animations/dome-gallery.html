@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ドーム型ギャラリー（Dome gallery） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-dome-gallery"
+        style="position: relative; width: 240px; height: 160px; overflow: hidden; border-radius: 20px"
+      >
+        <div class="ac-dome-gallery-w">
+          <div class="ac-dome-gallery-s">
+            <span class="sb-thumb sb-grad-hero ac-dome-gallery-i" style="--a: 0deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 36deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 72deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-deep ac-dome-gallery-i" style="--a: 108deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-hero ac-dome-gallery-i" style="--a: 144deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 180deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 216deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-deep ac-dome-gallery-i" style="--a: 252deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-hero ac-dome-gallery-i" style="--a: 288deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 324deg; --b: -18deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 0deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 36deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-deep ac-dome-gallery-i" style="--a: 72deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-hero ac-dome-gallery-i" style="--a: 108deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 144deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 180deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-deep ac-dome-gallery-i" style="--a: 216deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-hero ac-dome-gallery-i" style="--a: 252deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 288deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 324deg; --b: 0deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 0deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-deep ac-dome-gallery-i" style="--a: 36deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-hero ac-dome-gallery-i" style="--a: 72deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 108deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 144deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-deep ac-dome-gallery-i" style="--a: 180deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-hero ac-dome-gallery-i" style="--a: 216deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-sky ac-dome-gallery-i" style="--a: 252deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-aqua ac-dome-gallery-i" style="--a: 288deg; --b: 18deg"></span
+            ><span class="sb-thumb sb-grad-deep ac-dome-gallery-i" style="--a: 324deg; --b: 18deg"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-dome-gallery .ac-dome-gallery-w {
+        position: absolute;
+        inset: 0;
+        perspective: 260px;
+      }
+      .ac-dome-gallery .ac-dome-gallery-s {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform-style: preserve-3d;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-dome-gallery .ac-dome-gallery-s {
+          animation: ac-dome-gallery-spin var(--dur, 24000ms) linear infinite;
+        }
+      }
+      .ac-dome-gallery .ac-dome-gallery-i {
+        position: absolute;
+        width: 52px;
+        height: 44px;
+        margin: -22px 0 0 -26px;
+        border-radius: 10px;
+        backface-visibility: hidden;
+        transform: rotateY(var(--a)) rotateX(var(--b)) translateZ(calc(var(--r, 170px) * -1));
+      }
+      @keyframes ac-dome-gallery-spin {
+        from {
+          transform: rotateY(0);
+        }
+        to {
+          transform: rotateY(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dome-gallery",
+        name: "ドーム型ギャラリー",
+        en: "Dome gallery",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "画像を球の内側に貼り並べ、その球をゆっくり回して、ドームの中から見渡しているように見せる動きです。プレビューは CSS の 3D 変形で近い形を作っています（元の作例は WebGL）。",
+        use: "作品集・写真のギャラリー、没入感のあるトップページ、展示会風の見せ方。",
+        params: [
+          { key: "dur", label: "一周の時間", value: 24000, min: 8000, max: 60000, step: 1000, unit: "ms" },
+          { key: "r", label: "球の半径", value: 170, min: 120, max: 260, step: 10, unit: "px" },
+        ],
+        spec: [
+          [
+            "配置",
+            "各画像に <code>rotateY(列 × 36deg) rotateX(段 × 18deg) translateZ(-半径)</code>｜親に <code>transform-style: preserve-3d</code>",
+          ],
+          [
+            "見え方",
+            "<code>perspective</code> を半径より大きくして内側から見る。<code>backface-visibility: hidden</code> で裏向きを隠す",
+          ],
+          [
+            "動き",
+            "全体を <code>rotateY 0 → 360deg</code>｜linear・くり返し。ドラッグで回す場合は慣性（momentum）を付け、前へ・次へのボタンでも回せるようにする",
+          ],
+          ["動きを減らす設定", "回転を止め、正面の静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/components/dome-gallery" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

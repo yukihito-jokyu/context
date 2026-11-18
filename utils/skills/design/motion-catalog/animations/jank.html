@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ジャンク（カクつき）（Jank） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-jank"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-jank-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px; margin-top: 20px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-aqua ac-jank-t ac-jank-j"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-jank .ac-jank-j {
+        transform: translateX(30px);
+      }
+      .ac-jank .ac-jank-j::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 3px);
+        width: 26px;
+        border-top: 2px dashed var(--bar-strong);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-jank .ac-jank-t {
+          animation: ac-jank-m 1600ms linear infinite;
+        }
+        .ac-jank .ac-jank-j {
+          animation-name: ac-jank-jank;
+        }
+        .ac-jank .ac-jank-j::after {
+          content: none;
+        }
+      }
+      @keyframes ac-jank-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-jank-jank {
+        0% {
+          transform: translateX(0);
+        }
+        18% {
+          transform: translateX(30px);
+        }
+        30% {
+          transform: translateX(30px);
+        }
+        31% {
+          transform: translateX(56px);
+        }
+        55% {
+          transform: translateX(92px);
+        }
+        70% {
+          transform: translateX(92px);
+        }
+        71% {
+          transform: translateX(120px);
+        }
+        100% {
+          transform: translateX(168px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "jank",
+        name: "ジャンク（カクつき）",
+        en: "Jank",
+        cat: "パフォーマンス",
+        kind: "concept",
+        description:
+          "ブラウザが描くのに間に合わずフレームを落とし、動きが目に見えて引っかかることです。上はなめらか、下は途中で何度か止まってから跳んでいます。重い処理と動きが重なると起きます。",
+        use: "動きの品質チェック。カクつく原因を探すときの言葉。",
+        params: [],
+        spec: [
+          [
+            "主な原因",
+            "メインスレッドの重い JavaScript、レイアウトの再計算（<code>width</code>・<code>top</code> などを動かす）、大きな面の描き直し",
+          ],
+          [
+            "対策",
+            "<code>transform</code>・<code>opacity</code> を使う。処理を小分けにし、<code>setTimeout</code> で次の分を実行する",
+          ],
+          ["デモ", "下の行は止まり・跳びをキーフレームで再現している"],
+          ["動きを減らす設定", "下段は停止位置と跳ぶ幅を表示"],
+          ["出典", "Animation Vocabulary（Performance）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

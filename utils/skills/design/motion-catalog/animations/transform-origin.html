@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>変形の基準点（Transform origin） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-transform-origin"
+        style="
+          position: relative;
+          width: 230px;
+          height: 120px;
+          display: flex;
+          align-items: center;
+          justify-content: space-around;
+        "
+      >
+        <div style="position: relative; width: 56px; height: 56px">
+          <span
+            class="sb-thumb sb-grad-sky ac-transform-origin-t"
+            style="width: 56px; height: 56px; border-radius: 16px; transform-origin: top left"
+          ></span
+          ><span class="ac-transform-origin-o" style="left: 0; top: 0"></span>
+        </div>
+        <div style="position: relative; width: 56px; height: 56px">
+          <span
+            class="sb-thumb sb-grad-sky ac-transform-origin-t"
+            style="width: 56px; height: 56px; border-radius: 16px; transform-origin: center"
+          ></span
+          ><span class="ac-transform-origin-o" style="left: 50%; top: 50%"></span>
+        </div>
+        <div style="position: relative; width: 56px; height: 56px">
+          <span
+            class="sb-thumb sb-grad-sky ac-transform-origin-t"
+            style="width: 56px; height: 56px; border-radius: 16px; transform-origin: bottom right"
+          ></span
+          ><span class="ac-transform-origin-o" style="left: 100%; top: 100%"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-transform-origin .ac-transform-origin-t {
+        display: block;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-transform-origin .ac-transform-origin-t {
+          animation: ac-transform-origin-m var(--dur, 800ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-transform-origin .ac-transform-origin-o {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        margin: -5px 0 0 -5px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 3px #fff;
+      }
+      @keyframes ac-transform-origin-m {
+        from {
+          transform: scale(0.5);
+        }
+        to {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "transform-origin",
+        name: "変形の基準点",
+        en: "Transform origin",
+        cat: "移動・変形",
+        kind: "concept",
+        description:
+          "拡大や回転がどこを中心に起こるかを決める基準点です。左から「左上」「中央」「右下」を基準にして、同じ拡大をしています。青い点が基準点です。",
+        use: "メニューを角から広げる、矢印をその場で回す、ゲージを端から伸ばす。",
+        params: [{ key: "dur", label: "片道の時間", value: 800, min: 200, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          ["動き", "<code>scale(0.5 ↔ 1)</code>｜in-out｜<code>alternate</code>"],
+          ["基準点", "<code>transform-origin: top left</code> / <code>center</code> / <code>bottom right</code>"],
+          ["動きを減らす設定", "拡大縮小をやめる"],
+          ["出典", "Animation Vocabulary（Movement & Transforms）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れる波線（Flowing waves） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-flowing-waves"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "flowing-waves",
+        name: "流れる波線",
+        en: "Flowing waves",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "何本もの波線が、少しずつ違う速さと形でうねり続ける背景です。ゆったりした水面や音の波のようで、穏やかながら絶えず動いている印象を与えます。",
+        use: "音楽・音声系のサービス、ウェルネス、ヒーローの下部の装飾、フッターの背景。",
+        params: [
+          { key: "n", label: "線の数", value: 5, min: 2, max: 10, step: 1, unit: "本" },
+          { key: "amp", label: "振幅", value: 18, min: 4, max: 40, step: 1, unit: "px" },
+          { key: "speed", label: "速さ", value: 1, min: 0.2, max: 3, step: 0.1, unit: "" },
+        ],
+        spec: [
+          [
+            "線",
+            "x ごとに <code>y = 中心 + Σ sin(x × 周波数 + 時間 × 速さ + 位相) × 振幅</code> を計算して折れ線で描く。線ごとに位相と色を変える",
+          ],
+          ["動き", "時間を進めるだけ（linear）。振幅をゆっくり変えると呼吸するように見える"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/wavy-background" target="_blank" rel="noopener">Aceternity UI: Wavy Background</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const cs = ["sky", "aqua", "cobalt", "blue", "ice"].map((k) => col(k) || "#6aa7ff");
+            const draw = (t) => {
+              g.clearRect(0, 0, W, H);
+              g.lineWidth = 2.5;
+              g.lineCap = "round";
+              for (let i = 0; i < v.n; i++) {
+                g.strokeStyle = cs[i % cs.length];
+                g.globalAlpha = 0.75;
+                g.beginPath();
+                for (let x = 0; x <= W; x += 4) {
+                  const y =
+                    H / 2 +
+                    Math.sin(x * 0.025 + t * v.speed + i * 0.9) * v.amp +
+                    Math.sin(x * 0.011 - t * v.speed * 0.6 + i * 2) * v.amp * 0.6;
+                  x ? g.lineTo(x, y) : g.moveTo(x, y);
+                }
+                g.stroke();
+              }
+              g.globalAlpha = 1;
+            };
+            if (rm) {
+              draw(0);
+              return null;
+            }
+            return raf(draw);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

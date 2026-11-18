@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>遅れて減る体力バー（Ghost health bar (delayed drain)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-ghost-health-bar" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-ghost-health-bar-w">
+          <div class="ac-ghost-health-bar-bar">
+            <i class="ac-ghost-health-bar-gh"></i><i class="ac-ghost-health-bar-hp"></i>
+          </div>
+          <span class="ac-ghost-health-bar-n"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-ghost-health-bar .ac-ghost-health-bar-w {
+        position: absolute;
+        left: 25px;
+        top: 62px;
+        width: 170px;
+      }
+      .ac-ghost-health-bar .ac-ghost-health-bar-bar {
+        position: relative;
+        height: 18px;
+        border-radius: 9px;
+        background: var(--ice);
+        overflow: hidden;
+        box-shadow: inset 0 0 0 2px var(--surface);
+      }
+      .ac-ghost-health-bar .ac-ghost-health-bar-bar i {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 9px;
+      }
+      .ac-ghost-health-bar .ac-ghost-health-bar-gh {
+        background: #ffcf8a;
+      }
+      .ac-ghost-health-bar .ac-ghost-health-bar-hp {
+        background: linear-gradient(180deg, var(--cobalt), var(--blue));
+      }
+      .ac-ghost-health-bar .ac-ghost-health-bar-n {
+        position: absolute;
+        right: 0;
+        top: -26px;
+        font: 800 15px var(--font-sans);
+        color: #e2554f;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ghost-health-bar",
+        name: "遅れて減る体力バー",
+        en: "Ghost health bar (delayed drain)",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "ダメージを受けると、体力バーの本体は一瞬で減り、その後ろの明るい「残像」の部分だけが少し止まってから、遅れてするすると減っていく表現です。どれだけ削られたかが一目で分かり、被弾の重さも伝わります。",
+        use: "ゲームの体力・ボスのゲージ、残り容量や残り時間の減少、予算やポイントの消費の見せ方。",
+        params: [{ key: "hold", label: "残像が止まる時間", value: 400, min: 0, max: 1000, step: 20, unit: "ms" }],
+        spec: [
+          [
+            "層",
+            "下から 枠 → 残像（明るい色）→ 本体（濃い色）。減るときは本体の幅を 0ms で、残像の幅を 300〜500ms 待ってから 400〜600ms で（in-out）",
+          ],
+          ["回復", "逆に、残像（回復の色）を先に伸ばし、本体があとから追いつく"],
+          ["連続", "続けて受けたら、残像の待ちをやり直して、まとめて減らす"],
+          ["動きを減らす設定", "残像の遅れをやめ、本体と一緒に減らす"],
+          [
+            "出典",
+            '<a href="https://strategicsloth.com/services/game-ui/" target="_blank" rel="noopener">Strategic Sloth: Game UI（Health bar / Ghost drain / Loot reveal）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const hp = stage.querySelector(".ac-ghost-health-bar-hp"),
+              gh = stage.querySelector(".ac-ghost-health-bar-gh"),
+              n = stage.querySelector(".ac-ghost-health-bar-n");
+            let cur = 100,
+              tm;
+            const set = (el, w, ms, delay = 0) => {
+              const w0 = getComputedStyle(el).width;
+              el.getAnimations().forEach((a) => a.cancel());
+              el.style.width = w0; /* 今の幅で止めてから、やり直す */
+              el.animate([{ width: w0 }, { width: w + "%" }], {
+                duration: ms,
+                delay,
+                easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+                fill: "forwards",
+              });
+            };
+            const dmg = (d) => {
+              cur = Math.max(0, cur - d);
+              set(hp, cur, 0);
+              set(gh, cur, rm ? 0 : 500, rm ? 0 : v.hold);
+              n.textContent = "−" + d;
+              n.style.right = (100 - cur) * 1.7 - 10 + "px";
+              n.animate(
+                rm
+                  ? [{ opacity: 1 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }]
+                  : [
+                      { opacity: 1, transform: "translateY(6px)" },
+                      { opacity: 1, transform: "translateY(-6px)", offset: 0.5 },
+                      { opacity: 0, transform: "translateY(-12px)" },
+                    ],
+                { duration: 700 },
+              );
+              if (!rm)
+                hp.parentElement.animate(
+                  [{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }],
+                  { duration: 120 },
+                );
+            };
+            const heal = () => {
+              cur = 100;
+              set(gh, 100, rm ? 0 : 300);
+              set(hp, 100, rm ? 0 : 600, rm ? 0 : 300);
+            };
+            return seq(3600, [
+              [400, () => dmg(28)],
+              [1300, () => dmg(18)],
+              [1500, () => dmg(10)],
+              [2900, heal],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

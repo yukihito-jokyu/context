@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動きを混ぜる（Animation blending） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-animation-blending" style="position: relative; width: 220px; height: 150px">
+        <span
+          class="sb-thumb sb-grad-sky ac-animation-blending-t"
+          style="width: 40px; height: 40px; border-radius: 12px; position: absolute; left: 90px; top: 56px"
+        ></span>
+        <div class="ac-animation-blending-k"><span class="ac-animation-blending-n"></span></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-animation-blending .ac-animation-blending-k {
+        position: absolute;
+        left: 30px;
+        right: 30px;
+        bottom: 16px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--bar);
+      }
+      .ac-animation-blending .ac-animation-blending-n {
+        position: absolute;
+        top: -6px;
+        left: 0;
+        width: 16px;
+        height: 16px;
+        margin-left: -8px;
+        border-radius: 50%;
+        background: var(--surface);
+        box-shadow:
+          0 0 0 2px var(--blue),
+          var(--shadow-card);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "animation-blending",
+        name: "動きを混ぜる",
+        en: "Animation blending",
+        cat: "状態の遷移",
+        kind: "concept",
+        description:
+          "2つの動きを、ある数値（速さ・強さなど）に応じた割合で混ぜる考え方です。下のつまみが左なら「ゆっくり呼吸する」動き、右なら「大きく弾む」動きになり、その間は両方が混ざって滑らかに変わります。",
+        use: "キャラクターの歩き↔走り、スクロール速度で変わる演出、音量に応じたビジュアル、入力の強さで変わるアイコン。",
+        params: [{ key: "dur", label: "つまみの往復", value: 4000, min: 1500, max: 8000, step: 100, unit: "ms" }],
+        spec: [
+          ["計算", "結果 = 動きA × (1 - 割合) + 動きB × 割合。割合は 0–1 の入力（速度・音量・スクロール量など）"],
+          [
+            "このデモ",
+            "動きA：<code>scale 1 ↔ 1.06</code>（2秒周期）、動きB：<code>translateY 0 ↔ -36px</code>（0.6秒周期）",
+          ],
+          ["ツール", "Rive の Blend State（1D）、Unity の Blend Tree と同じ考え方"],
+          ["動きを減らす設定", "混ぜた結果の動きを止め、割合だけを色の濃さで示す"],
+          [
+            "出典",
+            '<a href="https://rive.app/docs/editor/state-machine/states" target="_blank" rel="noopener">Rive: states</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const t0 = stage.querySelector(".ac-animation-blending-t"),
+              n = stage.querySelector(".ac-animation-blending-n"),
+              tw = n.parentElement.clientWidth;
+            return raf((t) => {
+              const w = 0.5 - 0.5 * Math.cos((t * 2 * Math.PI) / (v.dur / 1000));
+              if (rm) {
+                n.style.transform = `translateX(${tw / 2}px)`;
+                t0.style.opacity = 0.4 + 0.6 * w;
+                return;
+              } // 動きを減らす設定：印は動かさず、割合は濃さで
+              n.style.transform = `translateX(${tw * w}px)`; // left ではなく transform
+              const a = 1 + 0.06 * (0.5 - 0.5 * Math.cos(t * Math.PI)),
+                by = -36 * Math.abs(Math.sin((t * Math.PI) / 0.6));
+              t0.style.transform = `translateY(${w * by}px) scale(${a * (1 - w) + w})`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>字間が広がって登場（Tracking transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-tracking-transition"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center; overflow: hidden"
+      >
+        <div
+          class="ac-tracking-transition-t"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 30px;
+            line-height: 39px;
+            white-space: nowrap;
+          "
+        >
+          CATALOG
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-tracking-transition .ac-tracking-transition-t {
+        animation:
+          ac-tracking-transition-in var(--in, 800ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-tracking-transition-out var(--out, 500ms) cubic-bezier(0.55, 0, 1, 0.45) calc(var(--in, 800ms) + 1000ms)
+            forwards;
+      }
+      @keyframes ac-tracking-transition-in {
+        from {
+          letter-spacing: var(--from, -0.5em);
+          opacity: 0;
+          filter: blur(4px);
+        }
+        40% {
+          opacity: 0.6;
+        }
+        to {
+          letter-spacing: 0.02em;
+          opacity: 1;
+          filter: none;
+        }
+      }
+      @keyframes ac-tracking-transition-out {
+        from {
+          letter-spacing: 0.02em;
+          opacity: 1;
+        }
+        to {
+          letter-spacing: var(--from, -0.5em);
+          opacity: 0;
+        }
+      }
+      @keyframes ac-tracking-transition-rf-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-tracking-transition-rf-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-tracking-transition .ac-tracking-transition-t {
+          animation-name: ac-tracking-transition-rf-in, ac-tracking-transition-rf-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "tracking-transition",
+        name: "字間が広がって登場",
+        en: "Tracking transition",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字の間隔（トラッキング）がぎゅっと詰まった状態から広がりながら、ぼんやりと現れる動きです。退出は逆に、字間を詰めながら消えます。映画のタイトルのような、落ち着いた高級感が出ます。",
+        use: "ヒーローの見出し、ブランドロゴ、イントロ画面、章の扉。",
+        params: [
+          { key: "in", label: "登場の時間", value: 800, min: 300, max: 2000, step: 50, unit: "ms" },
+          { key: "out", label: "退出の時間", value: 500, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "from", label: "詰めた字間", value: -0.5, min: -1, max: 0, step: 0.05, unit: "em" },
+        ],
+        total: (p) => p["in"] + 1000 + p["out"],
+        spec: [
+          [
+            "登場",
+            "<code>letter-spacing: 詰めた字間 → 通常</code> と <code>opacity 0 → 1</code>（と <code>blur(4px) → 0</code>）｜out",
+          ],
+          ["退出", "逆に <code>letter-spacing → 詰めた字間</code>、<code>opacity → 0</code>｜in"],
+          ["注意", "<code>letter-spacing</code> はレイアウトが変わる。周囲が動かないよう幅を固定した枠に入れる"],
+          ["動きを減らす設定", "字間の変化をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://app.unpkg.com/animista-css-generator@1.0.2/files/animations" target="_blank" rel="noopener">Animista（プリセット一覧）</a>',
+          ],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

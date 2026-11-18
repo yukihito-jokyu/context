@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>共有要素の遷移（Shared element transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-shared-element ac-shared-element-root" style="position: relative; width: 200px; height: 170px">
+        <div class="ac-shared-element-list">
+          <div
+            class="sb-item"
+            style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 120px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <div class="ac-shared-element-detail">
+          <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 120px"></span
+          ><span class="sb-bar sb-bar--sm" style="width: 160px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 100px"></span>
+        </div>
+        <span class="sb-thumb sb-grad-aqua ac-shared-element-s"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-shared-element .ac-shared-element-list {
+        position: absolute;
+        inset: 20px 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: opacity 200ms;
+      }
+      .ac-shared-element .ac-shared-element-s {
+        position: absolute;
+        left: 12px;
+        top: 28px;
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        transition: all var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-shared-element .ac-shared-element-detail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 108px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        opacity: 0;
+        transition: opacity 150ms;
+      }
+      .ac-shared-element.open .ac-shared-element-list {
+        opacity: 0;
+      }
+      .ac-shared-element.open .ac-shared-element-s {
+        left: 0;
+        top: 0;
+        width: 200px;
+        height: 96px;
+        border-radius: 20px;
+      }
+      .ac-shared-element.open .ac-shared-element-detail {
+        opacity: 1;
+        transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1) var(--dur, 400ms);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-shared-element .ac-shared-element-s {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "shared-element",
+        name: "共有要素の遷移",
+        en: "Shared element transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "2つの画面に共通する要素（ここではサムネイル）が、一方の位置からもう一方の位置へ移動しながら形を変える切り替えです。一覧のサムネイルが、そのまま詳細の大きな画像になります。",
+        use: "一覧 → 詳細、写真のサムネイル → 拡大表示、商品カード → 商品ページ。",
+        params: [{ key: "dur", label: "時間", value: 400, min: 200, max: 1000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "共有要素",
+            "位置・幅・高さ・角丸を、一覧の位置 → 詳細の位置へ｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>",
+          ],
+          ["ほかの要素", "一覧は <code>opacity</code> で消し、詳細の中身は共有要素が着いてから出す"],
+          [
+            "実装",
+            "View Transitions API の <code>view-transition-name</code>、Framer Motion の <code>layoutId</code>、または FLIP",
+          ],
+          ["動きを減らす設定", "移動をやめ、2つの画面をクロスフェードで切り替える"],
+          ["出典", "Animation Vocabulary（Transitions Between States）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const root = stage.firstElementChild;
+          const t = setInterval(() => root.classList.toggle("open"), 1800);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

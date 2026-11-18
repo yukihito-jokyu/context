@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>トラック（Truck） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-camera-truck"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-camera-truck-cam">
+          <div class="ac-camera-truck-L ac-camera-truck-sky"><i></i></div>
+          <div class="ac-camera-truck-L ac-camera-truck-far"><i></i></div>
+          <div class="ac-camera-truck-L ac-camera-truck-gr"><i></i></div>
+          <div class="ac-camera-truck-L ac-camera-truck-mid"><i></i></div>
+          <div class="ac-camera-truck-L ac-camera-truck-sub"><i></i></div>
+          <div class="ac-camera-truck-L ac-camera-truck-near"><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-camera-truck .ac-camera-truck-cam,
+      .ac-camera-truck .ac-camera-truck-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-camera-truck .ac-camera-truck-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-camera-truck .ac-camera-truck-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-camera-truck .ac-camera-truck-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-camera-truck .ac-camera-truck-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-camera-truck .ac-camera-truck-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-camera-truck .ac-camera-truck-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-camera-truck .ac-camera-truck-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-camera-truck .ac-camera-truck-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      .ac-camera-truck .ac-camera-truck-far {
+        transform: translateX(10px);
+      }
+      .ac-camera-truck .ac-camera-truck-gr {
+        transform: translateX(20px);
+      }
+      .ac-camera-truck .ac-camera-truck-mid {
+        transform: translateX(40px);
+      }
+      .ac-camera-truck .ac-camera-truck-sub {
+        transform: translateX(46px);
+      }
+      .ac-camera-truck .ac-camera-truck-near {
+        transform: translateX(110px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-camera-truck .ac-camera-truck-far {
+          animation: ac-camera-truck-k0 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-camera-truck .ac-camera-truck-gr {
+          animation: ac-camera-truck-k1 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-camera-truck .ac-camera-truck-mid {
+          animation: ac-camera-truck-k2 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-camera-truck .ac-camera-truck-sub {
+          animation: ac-camera-truck-k3 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-camera-truck .ac-camera-truck-near {
+          animation: ac-camera-truck-k4 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-camera-truck-k0 {
+        0%,
+        20% {
+          transform: translateX(10px);
+        }
+        80%,
+        100% {
+          transform: translateX(-10px);
+        }
+      }
+      @keyframes ac-camera-truck-k1 {
+        0%,
+        20% {
+          transform: translateX(20px);
+        }
+        80%,
+        100% {
+          transform: translateX(-20px);
+        }
+      }
+      @keyframes ac-camera-truck-k2 {
+        0%,
+        20% {
+          transform: translateX(40px);
+        }
+        80%,
+        100% {
+          transform: translateX(-40px);
+        }
+      }
+      @keyframes ac-camera-truck-k3 {
+        0%,
+        20% {
+          transform: translateX(46px);
+        }
+        80%,
+        100% {
+          transform: translateX(-46px);
+        }
+      }
+      @keyframes ac-camera-truck-k4 {
+        0%,
+        20% {
+          transform: translateX(110px);
+        }
+        80%,
+        100% {
+          transform: translateX(-110px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "camera-truck",
+        name: "トラック",
+        en: "Truck",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "カメラそのものを横にすべらせる動きです。手前の物は速く、奥の景色はゆっくり流れる（視差）ので、パンよりも立体的で、横に歩きながら見ているような感じになります。",
+        use: "横スクロールのストーリー、商品の並びを見せる紹介、奥行きのあるイラストのヒーロー、ゲームの横スクロール。",
+        params: [{ key: "dur", label: "片道の時間", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "奥行きごとのレイヤーを <code>translateX</code>。手前ほど大きく動かす（例：奥 −15px、中 −50px、手前 −120px）｜in-out",
+          ],
+          ["パンとの違い", "パンは向きを振るだけで全体が同じ量動く。トラックは位置が動くので視差が出る"],
+          ["スクロールで", "<code>animation-timeline: scroll()</code> にすると、スクロールに合わせた視差になる"],
+          ["動きを減らす設定", "カメラの動きをやめ、最初（または最後）の構図で止める"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/camera-shots/camera-movements/" target="_blank" rel="noopener">StudioBinder: Camera Movements</a>、<a href="https://www.masterclass.com/articles/guide-to-camera-moves" target="_blank" rel="noopener">MasterClass: Guide to Camera Moves</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

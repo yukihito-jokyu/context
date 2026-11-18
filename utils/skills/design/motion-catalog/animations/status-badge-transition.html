@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>状態バッジの切り替え（Status-badge transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-status-badge-transition"
+        style="position: relative; width: 220px; height: 100px; display: grid; place-items: center"
+      >
+        <span class="ac-status-badge-transition-b"
+          ><span class="ac-status-badge-transition-ic"></span><span class="ac-status-badge-transition-tx"></span
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-status-badge-transition .ac-status-badge-transition-b {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: var(--blue-soft);
+        overflow: hidden;
+        transition:
+          width var(--dur, 260ms) cubic-bezier(0.34, 1.56, 0.64, 1),
+          background-color var(--dur, 260ms);
+        box-sizing: border-box;
+      }
+      .ac-status-badge-transition .ac-status-badge-transition-b[data-s="done"] {
+        background: var(--blue);
+      }
+      .ac-status-badge-transition .ac-status-badge-transition-ic,
+      .ac-status-badge-transition .ac-status-badge-transition-tx {
+        display: inline-flex;
+        align-items: center;
+      }
+      .ac-status-badge-transition .ac-status-badge-transition-old {
+        position: absolute;
+        left: 16px;
+        top: 0;
+        bottom: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        pointer-events: none;
+      }
+      .ac-status-badge-transition .ac-status-badge-transition-spin {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2.5px solid var(--bar-on-soft);
+        border-top-color: var(--blue);
+        box-sizing: border-box;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-status-badge-transition .ac-status-badge-transition-spin {
+          animation: ac-status-badge-transition-r 700ms linear infinite;
+        }
+      }
+      .ac-status-badge-transition .ac-status-badge-transition-ic svg {
+        width: 16px;
+        height: 16px;
+        color: var(--on-blue);
+      }
+      @keyframes ac-status-badge-transition-r {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-status-badge-transition .ac-status-badge-transition-b {
+          transition: background-color 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "status-badge-transition",
+        name: "状態バッジの切り替え",
+        en: "Status-badge transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "「送信」→「送信中」→「完了」のように状態が変わるとき、バッジの幅が中身に合わせて伸び縮みし、記号と文字が入れ替わる動きです。同じバッジが変化していくので、何が起きたかを追いやすくなります。",
+        use: "送信・保存のボタン、ステータス表示、注文の状態、同期の表示。",
+        params: [{ key: "dur", label: "時間", value: 260, min: 120, max: 600, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "幅",
+            "中身に合わせて幅を変える（FLIP、Motion の <code>layout</code>、または <code>width</code> の transition）｜spring",
+          ],
+          [
+            "中身",
+            "前の記号と文字は <code>opacity → 0</code> と <code>translateY(-6px)</code>、新しいものは下から <code>translateY(6px) → 0</code>",
+          ],
+          ["記号", "送信中は回る輪、完了はチェックを描く"],
+          ["動きを減らす設定", "幅の変化と移動をやめ、中身の透明度だけで切り替える"],
+          [
+            "出典",
+            '<a href="https://motion.dev/examples/vue-multi-state-badge" target="_blank" rel="noopener">Motion: multi-state badge</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-status-badge-transition-b"),
+              ic = b.children[0],
+              tx = b.children[1];
+            const states = [
+              ["idle", "", 40, "on-soft"],
+              ["busy", '<span class="ac-status-badge-transition-spin"></span>', 64, "on-soft"],
+              [
+                "done",
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+                30,
+                "on-blue",
+              ],
+            ];
+            const set = (i) => () => {
+              const [s, icon, w, kind] = states[i],
+                o = { duration: v.dur, easing: "cubic-bezier(0.22, 1, 0.36, 1)" };
+              const before = b.offsetWidth,
+                old = document.createElement("span");
+              old.className = "ac-status-badge-transition-old";
+              old.setAttribute("aria-hidden", "true");
+              old.append(...[ic, tx].filter((e) => e.style.display !== "none").map((e) => e.cloneNode(true))); // 前の中身の写し（退出用）
+              b.style.width = "auto";
+              b.dataset.s = s;
+              ic.innerHTML = icon;
+              ic.style.display = icon ? "" : "none";
+              tx.innerHTML = `<span class="sb-bar sb-bar--xs sb-bar--${kind}" style="width:${w}px"></span>`;
+              const after = b.offsetWidth;
+              b.style.width = `${before}px`;
+              b.append(old);
+              requestAnimationFrame(() => {
+                b.style.width = `${after}px`;
+              }); // 測るのは前後の2回だけ
+              old.animate(
+                rm
+                  ? [{ opacity: 1 }, { opacity: 0 }]
+                  : [
+                      { opacity: 1, transform: "none" },
+                      { opacity: 0, transform: "translateY(-6px)" },
+                    ],
+                o,
+              ).onfinish = () => old.remove();
+              [ic, tx].forEach((e) =>
+                e.animate(
+                  rm
+                    ? [{ opacity: 0 }, { opacity: 1 }]
+                    : [
+                        { opacity: 0, transform: "translateY(6px)" },
+                        { opacity: 1, transform: "none" },
+                      ],
+                  o,
+                ),
+              );
+            };
+            set(0)();
+            return seq(4200, [
+              [0, set(0)],
+              [1200, set(1)],
+              [2700, set(2)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

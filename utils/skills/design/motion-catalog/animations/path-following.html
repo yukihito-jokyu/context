@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>道に沿って進む（Path following (corridor)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-path-following"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "path-following",
+        name: "道に沿って進む",
+        en: "Path following (corridor)",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "決められた道（幅のある通路）に沿ってエージェントを進ませる動きです。少し先の予測位置が通路からはみ出しそうなときだけ道の方へ舵を切るので、通路の中ではある程度自由に、ゆらぎながら進みます。",
+        use: "ゲームの巡回ルート、レースの車、道に沿って流れる点、ガイドに沿って進む UI のキャラクター。",
+        params: [{ key: "r", label: "通路の半径", value: 12, min: 0, max: 30, step: 1, unit: "px" }],
+        spec: [
+          [
+            "仕組み",
+            "予測位置から道のいちばん近い点を探し、その距離が通路の半径より大きければ、その点より少し先の道の上の点に向かう（seek）",
+          ],
+          ["ゆらぎ", "通路の中では力をかけないので、エージェントごとに違う線を通る。半径を 0 にすると道の中央をなぞる"],
+          ["組み合わせ", "大勢で通る（crowd path following）、ぶつからない（separation）"],
+          ["動きを減らす設定", "エージェントの動きを止め、向きと目標の静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.red3d.com/cwr/steer/" target="_blank" rel="noopener">red3d.com（steer）</a>、<a href="https://www.red3d.com/cwr/steer/PathFollow.html" target="_blank" rel="noopener">red3d.com（PathFollow）</a>、<a href="https://www.red3d.com/cwr/steer/gdc99/" target="_blank" rel="noopener">Craig Reynolds: Steering Behaviors For Autonomous Characters</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lim = (x, y, m) => {
+              const l = Math.hypot(x, y);
+              return l > m && l > 0 ? [(x / l) * m, (y / l) * m] : [x, y];
+            };
+            const ag = (x, y, a = 0, s = 1) => ({ x, y, vx: cos(a) * s, vy: sin(a) * s, w: rnd() * TAU });
+            const seek = (a, tx, ty, ms) => {
+              const dx = tx - a.x,
+                dy = ty - a.y,
+                l = Math.hypot(dx, dy) || 1;
+              return [(dx / l) * ms - a.vx, (dy / l) * ms - a.vy];
+            };
+            const go = (a, f, mf, ms) => {
+              const [fx, fy] = lim(f[0], f[1], mf);
+              a.vx += fx;
+              a.vy += fy;
+              [a.vx, a.vy] = lim(a.vx, a.vy, ms);
+              a.x += a.vx;
+              a.y += a.vy;
+            };
+            const wrap = (a) => {
+              if (a.x < -8) a.x += W + 16;
+              if (a.x > W + 8) a.x -= W + 16;
+              if (a.y < -8) a.y += H + 16;
+              if (a.y > H + 8) a.y -= H + 16;
+            };
+            const sep = (a, all, r) => {
+              let fx = 0,
+                fy = 0;
+              for (const b of all) {
+                if (b === a) continue;
+                const dx = a.x - b.x,
+                  dy = a.y - b.y,
+                  d = Math.hypot(dx, dy);
+                if (d > 0 && d < r) {
+                  fx += ((dx / d) * (r - d)) / r;
+                  fy += ((dy / d) * (r - d)) / r;
+                }
+              }
+              return [fx, fy];
+            };
+            const tri = (a, c, s = 1) => {
+              g.save();
+              g.translate(a.x, a.y);
+              g.rotate(Math.atan2(a.vy, a.vx));
+              g.fillStyle = c;
+              g.beginPath();
+              g.moveTo(7 * s, 0);
+              g.lineTo(-5 * s, 4 * s);
+              g.lineTo(-5 * s, -4 * s);
+              g.closePath();
+              g.fill();
+              g.restore();
+            };
+            const bg = () => {
+              g.fillStyle = col("surface");
+              g.fillRect(0, 0, W, H);
+            };
+            const steps = (() => {
+              let acc = 0,
+                last = null,
+                warmed = false;
+              return (t, fn, warm = 90) => {
+                if (rm) {
+                  if (!warmed) {
+                    warmed = true;
+                    for (let i = 0; i < warm; i++) fn();
+                  }
+                  return;
+                }
+                if (last !== null) acc += Math.min(0.1, t - last);
+                last = t;
+                for (let n = 0; acc >= 1 / 60 && n < 6; n++) {
+                  fn();
+                  acc -= 1 / 60;
+                }
+              };
+            })();
+            const PT = [];
+            for (let i = 0; i <= 60; i++) {
+              const u = i / 60;
+              PT.push([-10 + u * 240, 75 + 40 * sin(u * TAU)]);
+            }
+            const r = v.r,
+              a = ag(0, 60, 0, 1.6);
+            const near = (x, y) => {
+              let bi = 0,
+                bd = 1e9;
+              PT.forEach((p, i) => {
+                const d = Math.hypot(p[0] - x, p[1] - y);
+                if (d < bd) {
+                  bd = d;
+                  bi = i;
+                }
+              });
+              return [bi, bd];
+            };
+            return raf((t) => {
+              steps(t, () => {
+                const fx = a.x + a.vx * 12,
+                  fy = a.y + a.vy * 12,
+                  [i, d] = near(fx, fy);
+                const tp = PT[Math.min(60, i + 3)];
+                go(a, d > v.r ? seek(a, tp[0], tp[1], 1.6) : [a.vx * 0.02, a.vy * 0.02], 0.12, 1.6);
+                if (a.x > W + 6) {
+                  a.x = -6;
+                  a.y = 75 + (rnd() - 0.5) * 20;
+                }
+              });
+              bg();
+              g.strokeStyle = col("ice");
+              g.lineWidth = v.r * 2;
+              g.lineCap = "round";
+              g.beginPath();
+              PT.forEach((p, i) => (i ? g.lineTo(...p) : g.moveTo(...p)));
+              g.stroke();
+              g.strokeStyle = col("sky");
+              g.lineWidth = 1;
+              g.setLineDash([3, 3]);
+              g.stroke();
+              g.setLineDash([]);
+              tri(a, col("blue"));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

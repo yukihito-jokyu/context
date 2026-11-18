@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ポインターを向く線（Magnetic line field） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-magnetic-line-field" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-magnetic-line-field-g">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-magnetic-line-field .ac-magnetic-line-field-g {
+        position: absolute;
+        inset: 8px;
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        grid-template-rows: repeat(6, 1fr);
+        place-items: center;
+      }
+      .ac-magnetic-line-field .ac-magnetic-line-field-g i {
+        width: 14px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "magnetic-line-field",
+        name: "ポインターを向く線",
+        en: "Magnetic line field",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "格子状に並んだ短い線が、方位磁針のように一斉にポインターの方向を向く動きです。ポインターを動かすと、線の向きが波のようにそろって変わり、磁力が働いているように見えます。",
+        use: "ヒーローの背景、テック・サイエンス系のページ、インタラクティブな装飾。",
+        params: [],
+        spec: [
+          ["向き", "各線の中心からポインターへの角度 <code>atan2(dy, dx)</code> を <code>rotate</code> に入れる"],
+          ["強さ", "近い線ほど濃く・長くしてもよい。向きの変化は少し遅らせると（lerp）なめらか"],
+          ["描画", "数が多いときは canvas。CSS なら各線の <code>--angle</code> を更新する"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/backgrounds/magnet-lines" target="_blank" rel="noopener">React Bits: Magnet Lines</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const ls = [...stage.querySelectorAll(".ac-magnetic-line-field-g i")],
+              root = stage.firstElementChild,
+              b0 = root.getBoundingClientRect();
+            const cs = ls.map((l) => {
+              const r = l.getBoundingClientRect();
+              return [r.left - b0.left + r.width / 2, r.top - b0.top + r.height / 2];
+            });
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const [x, y] = loop8(t * 0.7);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              ls.forEach((l, i) => {
+                const dx = x - cs[i][0],
+                  dy = y - cs[i][1],
+                  d = Math.hypot(dx, dy);
+                l.style.transform = rm ? "" : `rotate(${Math.atan2(dy, dx)}rad)`;
+                l.style.opacity = rm ? "" : Math.max(0.25, 1 - d / 160);
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

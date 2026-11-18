@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>目的のある動き（Purposeful animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-purposeful-animation" style="position: relative; width: 200px; height: 150px">
+        <div
+          class="sb-card"
+          style="
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 120px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          "
+        >
+          <span class="sb-thumb sb-grad-aqua" style="width: 96px; height: 52px; border-radius: 12px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span>
+        </div>
+        <span class="sb-icon-btn" style="position: absolute; right: 0; top: 0"
+          ><span class="sb-shape" style="width: 20px; height: 20px"></span
+        ></span>
+        <span
+          class="sb-badge sb-badge--solid ac-purposeful-animation-n"
+          style="
+            position: absolute;
+            right: -6px;
+            top: -6px;
+            height: 20px;
+            min-width: 20px;
+            padding: 0 6px;
+            font-size: 12px;
+            justify-content: center;
+          "
+          >1</span
+        >
+        <span class="ac-purposeful-animation-fx"
+          ><span
+            class="sb-thumb sb-grad-aqua ac-purposeful-animation-fy"
+            style="display: block; width: 28px; height: 20px; border-radius: 6px"
+          ></span
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-purposeful-animation .ac-purposeful-animation-fx {
+        position: absolute;
+        left: 40px;
+        top: 80px;
+        visibility: hidden;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-purposeful-animation .ac-purposeful-animation-fx {
+          visibility: visible;
+          animation: ac-purposeful-animation-x 700ms cubic-bezier(0.45, 0, 0.55, 1) 300ms both;
+        }
+        .ac-purposeful-animation .ac-purposeful-animation-fy {
+          animation: ac-purposeful-animation-y 700ms cubic-bezier(0.2, 0, 0.6, 1) 300ms both;
+        }
+        .ac-purposeful-animation .ac-purposeful-animation-n {
+          animation: ac-purposeful-animation-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 1000ms both;
+        }
+      }
+      @keyframes ac-purposeful-animation-x {
+        from {
+          transform: translateX(0);
+        }
+        95% {
+          opacity: 1;
+        }
+        to {
+          transform: translateX(126px);
+          opacity: 0;
+        }
+      }
+      @keyframes ac-purposeful-animation-y {
+        0% {
+          transform: translateY(0) scale(1);
+        }
+        40% {
+          transform: translateY(-90px) scale(0.8);
+        }
+        100% {
+          transform: translateY(-62px) scale(0.5);
+        }
+      }
+      @keyframes ac-purposeful-animation-pop {
+        from {
+          transform: scale(0);
+        }
+        to {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "purposeful-animation",
+        name: "目的のある動き",
+        en: "Purposeful animation",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "動きは飾りではなく、役目（位置を示す・反応を返す・関係を見せる）を持たせるべきだという原則です。商品がカートへ飛んでいき、数が増えることで「どこに入ったか」が分かります。",
+        use: "動きを足すか迷ったとき。「この動きは何を伝えるのか」を言えないなら足さない。",
+        params: [],
+        spec: [
+          [
+            "3つの役目",
+            "向きや位置を示す（orient）、操作に反応する（feedback）、要素どうしの関係を見せる（relationship）",
+          ],
+          ["デモ", "追加した商品がカートへ弧を描いて飛び、カートの数がポップする"],
+          ["確かめ方", "動きを消して困るかを考える。困らないなら飾り"],
+          ["動きを減らす設定", "（考え方の項目）飛ぶ動きは省き、カートの数の変化だけで伝える"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

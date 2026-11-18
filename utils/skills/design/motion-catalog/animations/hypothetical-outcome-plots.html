@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ありうる結果を順に見せる図（Hypothetical outcome plots (HOPs)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hypothetical-outcome-plots"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hypothetical-outcome-plots",
+        name: "ありうる結果を順に見せる図",
+        en: "Hypothetical outcome plots (HOPs)",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "幅のある予測を、平均と誤差の範囲で描く代わりに、「ありうる結果」を 1 つずつ抜き出してパラパラ漫画のように見せる表し方です。A が B より大きくなる頻度を感覚でつかめます。",
+        use: "選挙・売上・天気の予測、A/B テストの結果。",
+        params: [{ key: "gap", label: "切り替えの間隔", value: 450, min: 150, max: 1200, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "仕組み",
+            "分布からランダムに 1 組（A と B の値）を取り出して描き、一定の間隔（300〜500ms）で次の組に切り替える。前の結果は薄く残してもよい",
+          ],
+          [
+            "見せ方",
+            "1 コマの中で値を比べやすい形（同じ軸の棒・横線）にする。切り替えは補間せず、パッと替える（補間すると途中の値がありそうに見える）",
+          ],
+          ["気をつけること", "速すぎると数えられず、遅すぎると全体がつかめない。止めて 1 コマずつ見られるようにする"],
+          ["動きを減らす設定", "切り替えをやめ、たくさんの結果を薄く重ねた静止画にする"],
+          [
+            "出典",
+            '<a href="https://idl.cs.washington.edu/files/2015-HOPs-PLOS.pdf" target="_blank" rel="noopener">idl.cs.washington.edu（2015-HOPs-PLOS）</a>、<a href="https://arxiv.org/abs/2108.09870" target="_blank" rel="noopener">arxiv.org（2108.09870）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const nrm = () => {
+              let s = 0;
+              for (let i = 0; i < 6; i++) s += rnd();
+              return s - 3;
+            };
+            const hist = [];
+            let lastK = -1,
+              win = 0,
+              tot = 0;
+            const draw = (a, b, al) => {
+              g.globalAlpha = al;
+              g.fillStyle = col("blue");
+              g.fillRect(50, 140 - a, 50, 3);
+              g.fillStyle = col("cobalt");
+              g.fillRect(124, 140 - b, 50, 3);
+              g.globalAlpha = 1;
+            };
+            g.canvas.setAttribute("role", "img");
+            g.canvas.setAttribute("aria-label", "A と B のありうる結果"); /* 集計は読み上げにも出す */
+            if (rm) for (let i = 0; i < 40; i++) hist.push([60 + nrm() * 22, 52 + nrm() * 26]);
+            return raf((t) => {
+              const k = Math.floor((t * 1000) / v.gap);
+              if (!rm && k !== lastK) {
+                lastK = k;
+                const s = [60 + nrm() * 22, 52 + nrm() * 26];
+                hist.push(s);
+                if (hist.length > 12) hist.shift();
+                tot++;
+                if (s[0] > s[1]) win++;
+                g.canvas.setAttribute("aria-label", `A と B のありうる結果。A > B：${win}/${tot}`);
+              }
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(50, 20, 50, 120);
+              g.fillRect(124, 20, 50, 120);
+              hist.forEach((s, i) => draw(s[0], s[1], rm ? 0.25 : i === hist.length - 1 ? 1 : 0.12));
+              const c = hist[hist.length - 1];
+              g.fillStyle = col("ink-muted");
+              g.font = "600 11px sans-serif";
+              g.textAlign = "center";
+              g.fillText("A", 75, 14);
+              g.fillText("B", 149, 14);
+              if (!rm && tot) {
+                g.fillText(`A > B：${win}/${tot}`, 112, 150 - 2);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

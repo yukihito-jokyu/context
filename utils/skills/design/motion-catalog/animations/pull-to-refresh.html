@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>引っぱって更新（Pull to refresh） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-pull-to-refresh" style="position: relative; width: 200px; height: 160px; overflow: hidden">
+        <span class="ac-pull-to-refresh-sp"></span>
+        <div class="ac-pull-to-refresh-l">
+          <div
+            class="sb-item"
+            style="width: 180px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 180px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 180px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-pull-to-refresh .ac-pull-to-refresh-l {
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        display: grid;
+        gap: 8px;
+      }
+      .ac-pull-to-refresh .ac-pull-to-refresh-sp {
+        position: absolute;
+        left: 88px;
+        top: 10px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 3px solid var(--blue-soft);
+        border-top-color: var(--blue);
+        box-sizing: border-box;
+        opacity: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-pull-to-refresh .ac-pull-to-refresh-sp.is-spin {
+          animation: ac-pull-to-refresh-r 700ms linear infinite;
+        }
+      }
+      @keyframes ac-pull-to-refresh-r {
+        to {
+          rotate: 360deg;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "pull-to-refresh",
+        name: "引っぱって更新",
+        en: "Pull to refresh",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "一覧のいちばん上でさらに下へ引っぱると、引いた量に合わせて更新の印が現れて回り、指を離すと読み込みが始まる動きです。読み込みが終わると、一覧が元の位置へ戻ります。",
+        use: "タイムライン・メール・ニュースなど、新しい内容を取りにいく一覧（主にスマホ）。",
+        params: [
+          { key: "th", label: "更新するまでの引き", value: 60, min: 30, max: 100, step: 5, unit: "px" },
+          { key: "load", label: "読み込みの時間", value: 1000, min: 300, max: 3000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "引いている間",
+            "一覧を引いた量の半分ほど下げる（抵抗）。印は引いた量に合わせて <code>opacity</code> と <code>rotate</code> を変える",
+          ],
+          [
+            "離したとき",
+            "引きが「更新するまでの引き」を超えていたら、印の位置で止めて回し続ける。超えていなければ戻す（spring）",
+          ],
+          ["終わったら", "印を縮めて消し、一覧を元の位置へ（out）。更新ボタンからも同じ処理を呼べるようにする"],
+          ["動きを減らす設定", "回転をやめ、印と「更新中」の文字の表示だけで知らせる"],
+          [
+            "出典",
+            '<a href="https://developer.android.com/develop/ui/compose/components/pull-to-refresh" target="_blank" rel="noopener">Android Developers: Pull to refresh</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const l = stage.querySelector(".ac-pull-to-refresh-l"),
+              sp = stage.querySelector(".ac-pull-to-refresh-sp");
+            const pull = (d, ms) => {
+              if (rm) ms = 0;
+              l.style.transition = sp.style.transition = ms
+                ? `transform ${ms}ms cubic-bezier(0.22, 1, 0.36, 1), translate ${ms}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${ms}ms`
+                : "none";
+              l.style.transform = `translateY(${d}px)`;
+              const k = Math.min(1, d / (v.th * 0.6));
+              sp.style.opacity = k;
+              sp.style.translate = `0 ${Math.min(d, v.th * 0.6) * 0.5}px`;
+              sp.style.transform = rm ? "none" : `rotate(${d * 4}deg) scale(${0.6 + 0.4 * k})`;
+            }; // 位置は translate に分け、回転が位置にかからないようにする
+            let anim = null;
+            const drag = (from, to, ms) => () => {
+              const t0 = performance.now();
+              cancelAnimationFrame(anim);
+              const f = (now) => {
+                const p = Math.min(1, (now - t0) / ms),
+                  e = p * (2 - p);
+                const y = from + (to - from) * e;
+                move(100, 40 + y, 0);
+                pull(y * 0.6, 0);
+                if (p < 1) anim = requestAnimationFrame(f);
+              };
+              anim = requestAnimationFrame(f);
+            };
+            pull(0, 0);
+            move(100, 40, 0);
+            const stop = seq(2600 + v.load, [
+              [
+                0,
+                () => {
+                  sp.classList.remove("is-spin");
+                  pull(0, 0);
+                },
+              ],
+              [100, () => show(1)],
+              [400, drag(0, v.th * 1.4, 700)],
+              [
+                1150,
+                () => {
+                  show(0);
+                  sp.classList.add("is-spin");
+                  pull(v.th * 0.6, 300);
+                },
+              ],
+              [
+                1150 + v.load,
+                () => {
+                  sp.classList.remove("is-spin");
+                  pull(0, 400);
+                },
+              ],
+            ]);
+            return () => {
+              stop();
+              cancelAnimationFrame(anim);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

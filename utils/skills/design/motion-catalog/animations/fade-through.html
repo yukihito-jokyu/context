@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フェードスルー（Fade-through transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-fade-through"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div style="position: relative; width: 150px; height: 120px">
+          <div
+            class="sb-card ac-fade-through-s ac-fade-through-a"
+            style="
+              position: absolute;
+              inset: 0;
+              padding: 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 9px;
+              box-sizing: border-box;
+            "
+          >
+            <span class="sb-hero sb-grad-hero" style="height: 44px; border-radius: 12px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 96px"></span>
+          </div>
+          <div
+            class="sb-card ac-fade-through-s ac-fade-through-b"
+            style="
+              position: absolute;
+              inset: 0;
+              padding: 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 9px;
+              box-sizing: border-box;
+            "
+          >
+            <span class="sb-hero sb-grad-deep" style="height: 44px; border-radius: 12px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 96px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-fade-through .ac-fade-through-s {
+        transition:
+          opacity calc(var(--dur, 300ms) * 0.35) linear,
+          transform 0ms calc(var(--dur, 300ms) * 0.35);
+        opacity: 0;
+        transform: scale(var(--from, 0.92));
+      }
+      .ac-fade-through .ac-fade-through-s.is-on {
+        opacity: 1;
+        transform: none;
+        transition:
+          opacity calc(var(--dur, 300ms) * 0.65) linear calc(var(--dur, 300ms) * 0.35),
+          transform calc(var(--dur, 300ms) * 0.65) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--dur, 300ms) * 0.35);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-fade-through .ac-fade-through-s {
+          transform: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "fade-through",
+        name: "フェードスルー",
+        en: "Fade-through transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "今の画面が完全に消えてから、次の画面が少し小さい状態から広がりながら現れる遷移です。2つの画面が重ならないので、互いに強い関係のない画面どうしの切り替えに向きます。",
+        use: "下部のタブ（ボトムナビゲーション）の切り替え、関係の薄い画面への移動、更新後の画面の入れ替え。",
+        params: [
+          { key: "dur", label: "時間", value: 300, min: 150, max: 700, step: 10, unit: "ms" },
+          { key: "from", label: "出だしの大きさ", value: 0.92, min: 0.8, max: 1, step: 0.01, unit: "" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["消える", "今の画面：最初の 35% で <code>opacity 1 → 0</code>"],
+          [
+            "現れる",
+            "次の画面：残りの 65% で <code>opacity 0 → 1</code> と <code>scale(出だしの大きさ → 1)</code>｜out",
+          ],
+          ["使い分け", "関係のある画面どうし（前後・親子）には共通軸の遷移やコンテナ変形を使う"],
+          ["動きを減らす設定", "拡大をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://m2.material.io/design/motion/the-motion-system.html" target="_blank" rel="noopener">Material Design: motion system</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const [a, b] = stage.querySelectorAll(".ac-fade-through-s");
+            a.classList.add("is-on");
+            a.style.transition = "none";
+            void a.offsetWidth;
+            a.style.transition = "";
+            return seq(3000, [
+              [
+                900,
+                () => {
+                  a.classList.remove("is-on");
+                  b.classList.add("is-on");
+                },
+              ],
+              [
+                2400,
+                () => {
+                  b.classList.remove("is-on");
+                  a.classList.add("is-on");
+                },
+              ],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

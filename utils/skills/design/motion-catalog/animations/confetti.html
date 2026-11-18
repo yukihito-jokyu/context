@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>紙吹雪（Confetti） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-confetti" style="position: relative; width: 220px; height: 160px">
+        <canvas class="ac-confetti-cv" style="position: absolute; inset: 0; width: 220px; height: 160px"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "confetti",
+        name: "紙吹雪",
+        en: "Confetti",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "下から紙吹雪が勢いよく打ち上がり、くるくる回りながら舞い落ちる動きです。達成や成功をみんなでお祝いするような、はなやかな瞬間を作ります。",
+        use: "購入・登録の完了、目標の達成、誕生日・記念日、ゲームのクリア。",
+        params: [
+          { key: "count", label: "紙の数", value: 60, min: 20, max: 150, step: 10, unit: "枚" },
+          { key: "power", label: "打ち上げる強さ", value: 520, min: 300, max: 800, step: 20, unit: "" },
+          { key: "g", label: "重力", value: 700, min: 300, max: 1500, step: 50, unit: "" },
+        ],
+        spec: [
+          ["打ち上げ", "下の中央から、上向き ±35° の範囲にばらばらの速さで打ち出す"],
+          [
+            "舞う",
+            "毎フレーム：重力を足し、空気抵抗で速度を減らし（×0.99）、紙は回転させる。表裏が見えるように縦の大きさを <code>cos(回転)</code> で変える",
+          ],
+          ["描画", "<code>canvas</code> に描く。1–2秒で消す。ライブラリなら canvas-confetti"],
+          ["動きを減らす設定", "紙吹雪を出さず、完了の表示だけにする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/confetti" target="_blank" rel="noopener">Magic UI: Confetti</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector(".ac-confetti-cv"),
+              W = 220,
+              H = 160,
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              cols = ["--blue", "--sky", "--aqua", "--cobalt", "--ice", "--navy"].map(
+                (k) => css.getPropertyValue(k).trim() || "#3b82f6",
+              );
+            let ps = [],
+              last = 0;
+            const fire = () => {
+              if (rm) return;
+              for (let i = 0; i < v.count; i++) {
+                const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.2,
+                  s = v.power * (0.5 + Math.random() * 0.5);
+                ps.push({
+                  x: W / 2,
+                  y: H + 4,
+                  vx: Math.cos(a) * s,
+                  vy: Math.sin(a) * s,
+                  r: Math.random() * 6,
+                  vr: (Math.random() - 0.5) * 14,
+                  w: 5 + Math.random() * 4,
+                  h: 3 + Math.random() * 3,
+                  c: cols[i % cols.length],
+                  life: 0,
+                });
+              }
+            };
+            const stopS = seq(2800, [[100, fire]]);
+            const stopR = raf((t) => {
+              const dt = Math.min(0.033, t - last);
+              last = t;
+              g.clearRect(0, 0, W, H);
+              ps = ps.filter((p) => p.y < H + 20 && p.life < 3.2);
+              for (const p of ps) {
+                p.vy += v.g * dt;
+                const air = Math.pow(0.97, dt * 60);
+                p.vx *= air;
+                p.vy = Math.min(p.vy * air, 90 + 40 * Math.sin(p.r));
+                /* 空気抵抗も経過時間で */ p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.r += p.vr * dt;
+                p.life += dt;
+                g.save();
+                g.translate(p.x, p.y);
+                g.rotate(p.r);
+                g.scale(1, Math.cos(p.r * 1.7));
+                g.fillStyle = p.c;
+                g.globalAlpha = Math.max(0, Math.min(1, 3 - p.life));
+                g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                g.restore();
+              }
+            });
+            return () => {
+              stopS();
+              stopR();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

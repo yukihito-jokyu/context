@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>逆再生（Reverse playback） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-reverse-playback"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div style="display: grid; gap: 8px">
+          <div
+            class="sb-item ac-reverse-playback-r"
+            style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item ac-reverse-playback-r"
+            style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item ac-reverse-playback-r"
+            style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-reverse-playback .ac-reverse-playback-r {
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "reverse-playback",
+        name: "逆再生",
+        en: "Reverse playback",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "同じアニメーションを、時間を逆向きにして再生する考え方です。開く動きをそのまま巻き戻せば閉じる動きになるので、行きと帰りの道すじがぴったり一致します。順番に現れた行は、逆の順番で消えていきます。",
+        use: "メニュー・アコーディオンの開閉、ホバーの解除、途中で取り消された動きを戻すとき。",
+        params: [
+          { key: "dur", label: "1行の時間", value: 300, min: 100, max: 800, step: 10, unit: "ms" },
+          { key: "gap", label: "行の間隔", value: 80, min: 0, max: 200, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"] + p["gap"] * 2,
+        spec: [
+          [
+            "書き方",
+            "<code>animation.reverse()</code>（Web Animations）、GSAP は <code>reverse()</code>。CSS の <code>animation-direction: reverse</code> は最初から逆に再生するときだけ",
+          ],
+          [
+            "注意",
+            "イージングも逆になる（out で開いたら、閉じるときは in のように見える）。閉じる動きを速く・違う形にしたいなら、逆再生ではなく別の動きを作る",
+          ],
+          ["途中で", "開いている途中で逆再生すると、その位置から戻る（跳ばない）"],
+          ["動きを減らす設定", "移動をやめ、透明度だけで出し入れする"],
+          [
+            "出典",
+            '<a href="https://www.w3.org/TR/web-animations-1/" target="_blank" rel="noopener">W3C Web Animations</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const rows = [...stage.querySelectorAll(".ac-reverse-playback-r")];
+            const kf = rm
+              ? [{ opacity: 0 }, { opacity: 1 }]
+              : [
+                  { opacity: 0, transform: "translateY(-10px)" },
+                  { opacity: 1, transform: "none" },
+                ];
+            let as = [];
+            const play = () => {
+              as.forEach((a) => a.cancel());
+              as = rows.map((r, i) =>
+                r.animate(kf, {
+                  duration: v.dur,
+                  delay: i * v.gap,
+                  endDelay: (rows.length - 1 - i) * v.gap,
+                  fill: "both",
+                  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                }),
+              );
+            };
+            const stop = seq(3200, [
+              [0, play],
+              [1600, () => as.forEach((a) => a.reverse())],
+            ]);
+            return () => {
+              stop();
+              as.forEach((a) => a.cancel());
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

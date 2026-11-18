@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>イーズアウト（Ease-out） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ease-out"
+        style="
+          position: relative;
+          width: 200px;
+          height: 150px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 18px;
+        "
+      >
+        <div class="ac-ease-out-g">
+          <svg viewBox="0 0 80 80" width="80" height="80" style="overflow: visible">
+            <path d="M0,80 L80,80 M0,80 L0,0" stroke="var(--bar)" stroke-width="2" fill="none" />
+            <path d="M0,80 L80,0" stroke="var(--bar)" stroke-width="1.5" stroke-dasharray="3 4" fill="none" />
+            <path
+              class="ac-ease-out-curve"
+              d="M0,80 C17.6,0.0 28.8,0.0 80,0"
+              stroke="var(--cobalt)"
+              stroke-width="3"
+              fill="none"
+              stroke-linecap="round"
+            /></svg
+          ><span class="ac-ease-out-dx"><span class="ac-ease-out-dy"></span></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-ease-out-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-ease-out .ac-ease-out-g {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      .ac-ease-out .ac-ease-out-dx {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 10px;
+        height: 80px;
+        margin-left: -5px;
+        animation: ac-ease-out-x var(--dur, 1000ms) linear both;
+      }
+      .ac-ease-out .ac-ease-out-dy {
+        position: absolute;
+        left: 0;
+        bottom: -5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 3px #fff;
+        animation: ac-ease-out-y var(--dur, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .ac-ease-out .ac-ease-out-t {
+        animation: ac-ease-out-m var(--dur, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes ac-ease-out-x {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(80px);
+        }
+      }
+      @keyframes ac-ease-out-y {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-80px);
+        }
+      }
+      @keyframes ac-ease-out-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-ease-out-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-ease-out .ac-ease-out-dx {
+          transform: translateX(80px);
+          animation-name: none;
+        }
+        .ac-ease-out .ac-ease-out-dy {
+          transform: translateY(-80px);
+          animation-name: ac-ease-out-fade;
+        }
+        .ac-ease-out .ac-ease-out-t {
+          transform: translateX(168px);
+          animation-name: ac-ease-out-fade;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ease-out",
+        name: "イーズアウト",
+        en: "Ease-out",
+        cat: "イージング",
+        kind: "motion",
+        description:
+          "速く始まって、ゆっくり止まる速度変化です。すぐに反応して、着地はていねいなので、UI の動きの基本（デフォルト）になります。",
+        use: "現れる動き、ホバー、ボタンの反応、メニューやシートが開くとき。",
+        params: [{ key: "dur", label: "時間", value: 1000, min: 200, max: 2000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["値", "<code>cubic-bezier(0.22, 1, 0.36, 1)</code>"],
+          ["向いているもの", "画面に入ってくる・止まる動き全般"],
+          ["グラフ", "横が時間、縦が進み具合。点線は等速（linear）"],
+          ["動きを減らす設定", "終点に固定し、透明度だけを変える"],
+          ["出典", "Animation Vocabulary（Easing）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

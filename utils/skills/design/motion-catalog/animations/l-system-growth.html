@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>枝分かれの成長（L-system growth） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-l-system-growth"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "l-system-growth",
+        name: "枝分かれの成長",
+        en: "L-system growth",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "「1 本の枝を、より短い枝の組に置き換える」という書き換えの規則を何世代もくり返して、木や草のように枝分かれした形を作り、根元から順に描き伸ばしていく動きです。",
+        use: "自然・サステナビリティ系のブランド、成長の比喩、ジェネラティブな装飾、ローディング。",
+        params: [
+          { key: "dur", label: "育ちきるまでの時間", value: 4000, min: 1000, max: 10000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "規則",
+            "文字列を書き換える（例：<code>F → FF+[+F−F−F]−[−F+F+F]</code>）。F は前へ線を引く、+ と − は向きを変える、[ ] は位置を覚えて戻る",
+          ],
+          [
+            "動かすとき",
+            "できた線を描く順に並べ、時間に合わせて先頭から何本目まで描くかを増やす。世代が進むほど枝を細く、色を明るくする",
+          ],
+          ["変化", "角度・世代の数・規則を変えると、草・木・シダなど形が変わる。風で角度を少し揺らしてもよい"],
+          ["動きを減らす設定", "育つ動きをやめ、育ちきった形の静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.sidefx.com/docs/houdini/nodes/sop/lsystem" target="_blank" rel="noopener">sidefx.com（lsystem）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let s = "F";
+            for (let i = 0; i < 3; i++) s = s.replace(/F/g, "FF+[+F-F-F]-[-F+F+F]");
+            const segs = [];
+            {
+              let x = 110,
+                y = 146,
+                a = -Math.PI / 2,
+                d = 0;
+              const st = [],
+                len = 4.1;
+              for (const ch of s) {
+                if (ch === "F") {
+                  const x2 = x + cos(a) * len,
+                    y2 = y + sin(a) * len;
+                  segs.push([x, y, x2, y2, d]);
+                  x = x2;
+                  y = y2;
+                } else if (ch === "+") a += 0.39;
+                else if (ch === "-") a -= 0.39;
+                else if (ch === "[") {
+                  st.push([x, y, a, d]);
+                  d++;
+                } else if (ch === "]") [x, y, a, d] = st.pop();
+              }
+            }
+            return raf((t) => {
+              const T = v.dur / 1000,
+                k = rm ? 1 : Math.min(1, (t % (T + 1.5)) / T),
+                n = Math.floor(segs.length * k);
+              g.clearRect(0, 0, W, H);
+              g.lineCap = "round";
+              for (let i = 0; i < n; i++) {
+                const [x, y, x2, y2, d] = segs[i];
+                g.strokeStyle = ["#1b3a8a", "#2563eb", "#3b82f6", "#93c5fd"][Math.min(3, d)];
+                g.lineWidth = Math.max(0.8, 2.6 - d * 0.6);
+                g.beginPath();
+                g.moveTo(x, y);
+                g.lineTo(x2, y2);
+                g.stroke();
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

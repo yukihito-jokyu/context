@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スワイプで閉じる（Swipe to dismiss） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-swipe-to-dismiss" style="position: relative; width: 190px; height: 150px; overflow: hidden">
+        <div class="ac-swipe-to-dismiss-list">
+          <div class="ac-swipe-to-dismiss-w">
+            <div
+              class="sb-item ac-swipe-to-dismiss-r"
+              style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 96px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-swipe-to-dismiss .ac-swipe-to-dismiss-list {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 14px;
+        display: flex;
+        flex-direction: column;
+      }
+      .ac-swipe-to-dismiss .ac-swipe-to-dismiss-list > * {
+        margin-bottom: 8px;
+      }
+      .ac-swipe-to-dismiss .ac-swipe-to-dismiss-w {
+        display: grid;
+        grid-template-rows: 1fr;
+      }
+      .ac-swipe-to-dismiss .ac-swipe-to-dismiss-w > * {
+        min-height: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "swipe-to-dismiss",
+        name: "スワイプで閉じる",
+        en: "Swipe to dismiss",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "要素を横に払うように引っ張ると、そのまま画面の外へ飛んでいって消える動きです。残った項目が詰めて、閉じたことがわかります。",
+        use: "通知・トーストを消す、メールのアーカイブ、リストの削除、ドロワーを閉じる。",
+        params: [
+          { key: "dur", label: "飛んでいく時間", value: 240, min: 100, max: 500, step: 10, unit: "ms" },
+          { key: "close", label: "詰める時間", value: 220, min: 100, max: 500, step: 10, unit: "ms" },
+        ],
+        spec: [
+          ["引っ張る", "指に追従（<code>translateX</code>）。距離に応じて少し薄くする"],
+          [
+            "飛ばす",
+            "幅の 40% 超か速い払いで <code>translateX(→ 120%)</code> と <code>opacity → 0</code>｜out｜飛んでいく時間",
+          ],
+          ["戻す", "しきい値に届かなければ spring で戻す"],
+          ["詰める", '行の高さを 0 に。表示したボタンも同じ削除処理を呼び、<code>role="status"</code> で削除を通知'],
+          ["動きを減らす設定", "横移動なしでフェードし、下の項目はすぐに詰める"],
+          ["出典", "Animation Vocabulary（Feedback & Interaction）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const motion = matchMedia("(prefers-reduced-motion: no-preference)");
+          const r = stage.querySelector(".ac-swipe-to-dismiss-r"),
+            w = stage.querySelector(".ac-swipe-to-dismiss-w");
+          const set = (x, o, ms, ease) => {
+            r.style.transition = `transform ${ms}ms ${ease}, opacity ${ms}ms`;
+            r.style.transform = `translateX(${x}px)`;
+            r.style.opacity = o;
+          };
+          let phase = "rest",
+            dismissedAt,
+            collapseTimer;
+          const collapse = () => {
+            phase = "collapsed";
+            w.style.transition = motion.matches
+              ? `grid-template-rows ${v.close}ms cubic-bezier(0.22, 1, 0.36, 1), margin ${v.close}ms cubic-bezier(0.22, 1, 0.36, 1)`
+              : "none";
+            w.style.gridTemplateRows = "0fr";
+            w.style.marginBottom = "0px";
+            if (!motion.matches) w.style.display = "none";
+          };
+          const fade = (ms) => {
+            const current = getComputedStyle(r);
+            const position = current.transform,
+              opacity = current.opacity;
+            r.style.transition = "none";
+            r.style.transform = position;
+            r.style.opacity = opacity;
+            // Commit the current frame before starting an opacity-only transition.
+            void getComputedStyle(r).opacity;
+            r.style.transition = `opacity ${ms}ms`;
+            r.style.opacity = 0;
+            clearTimeout(collapseTimer);
+            if (ms > 0) collapseTimer = setTimeout(collapse, ms);
+            else collapse();
+          };
+          const reset = () => {
+            phase = "rest";
+            w.style.display = "";
+            w.style.transition = motion.matches ? "grid-template-rows 300ms ease, margin 300ms ease" : "none";
+            w.style.gridTemplateRows = "1fr";
+            w.style.marginBottom = "";
+            set(0, 1, motion.matches ? 300 : 0, "ease");
+          };
+          const onMotionChange = () => {
+            if (motion.matches) return;
+            if (phase === "dismissing") fade(Math.max(0, 150 - (performance.now() - dismissedAt)));
+            if (phase === "collapsed") collapse();
+            if (phase === "rest") reset();
+          };
+          move(200, 150, 0);
+          motion.addEventListener("change", onMotionChange);
+          const stop = seq(3400, [
+            [
+              100,
+              () => {
+                show(1);
+                move(60, 34, 500);
+              },
+            ],
+            [
+              700,
+              () => {
+                phase = "drag";
+                move(140, 34, 400);
+                set(80, 0.8, 400, "linear");
+              },
+            ],
+            [
+              1100,
+              () => {
+                phase = "dismissing";
+                dismissedAt = performance.now();
+                if (motion.matches) {
+                  set(240, 0, v.dur, "cubic-bezier(0.22, 1, 0.36, 1)");
+                  collapseTimer = setTimeout(collapse, v.dur);
+                } else fade(150);
+                move(200, 60, 400);
+              },
+            ],
+            [1700, () => show(0)],
+            [2600, reset],
+          ]);
+          return () => {
+            stop();
+            clearTimeout(collapseTimer);
+            motion.removeEventListener("change", onMotionChange);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

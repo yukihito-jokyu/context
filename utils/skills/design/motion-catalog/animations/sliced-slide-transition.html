@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>帯に分かれて切り替わる（Sliced slide transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-sliced-slide-transition" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-sliced-slide-transition-vp"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sliced-slide-transition .ac-sliced-slide-transition-vp {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        width: 200px;
+        height: 130px;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .ac-sliced-slide-transition .ac-sliced-slide-transition-sl {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sliced-slide-transition",
+        name: "帯に分かれて切り替わる",
+        en: "Sliced slide transition",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "次の画像が横長の帯に分かれて、帯ごとに少しずつ遅れて横から滑り込み、前の画像を覆っていく切り替えです。ブラインドが順に閉じるようなリズムが生まれ、普通のスライドより印象に残ります。",
+        use: "ヒーローのスライドショー、ポートフォリオ、ブランドサイト、ギャラリーの切り替え。",
+        params: [
+          { key: "dur", label: "1本の時間", value: 600, min: 300, max: 1200, step: 50, unit: "ms" },
+          { key: "gap", label: "1本ごとの遅れ", value: 60, min: 0, max: 150, step: 10, unit: "ms" },
+          { key: "n", label: "帯の数", value: 5, min: 3, max: 8, step: 1, unit: "本" },
+        ],
+        total: (p) => p["dur"] + p["gap"] * (p["n"] - 1),
+        spec: [
+          ["分け方", "次の画像の複製を n 本重ね、それぞれ <code>clip-path: inset()</code> で横の帯にする"],
+          [
+            "動き",
+            "各帯を <code>translateX(100% → 0)</code>｜in-out｜i 本目を i × 遅れ だけ遅らせる（交互に左右から来る型もある）",
+          ],
+          ["終わったら", "帯を消して、次の画像1枚に置き換える"],
+          ["動きを減らす設定", "帯の動きをやめ、クロスフェードで切り替える"],
+          [
+            "出典",
+            '<a href="https://studio.swiperjs.com/templates" target="_blank" rel="noopener">Swiper Studio: templates</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const vp = stage.querySelector(".ac-sliced-slide-transition-vp"),
+              G = ["hero", "deep", "aqua", "sky"];
+            let i = 0;
+            const pic = (g) =>
+              `<i class="sb-grad-${g}" style="position:absolute;inset:0"></i><i style="position:absolute;left:20px;top:20px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.85)"></i><i style="position:absolute;left:20px;bottom:20px;width:90px;height:10px;border-radius:5px;background:rgba(255,255,255,.7)"></i>`;
+            vp.innerHTML = `<div class="ac-sliced-slide-transition-sl">${pic(G[0])}</div>`;
+            const go = () => {
+              i = (i + 1) % G.length;
+              const n = v.n,
+                h = 100 / n;
+              for (let k = 0; k < n; k++) {
+                const s = document.createElement("div");
+                s.className = "ac-sliced-slide-transition-sl";
+                s.innerHTML = pic(G[i]);
+                s.style.clipPath = `inset(${k * h}% 0 ${100 - (k + 1) * h}% 0)`;
+                vp.appendChild(s);
+                s.animate(
+                  rm
+                    ? [{ opacity: 0 }, { opacity: 1 }]
+                    : [{ transform: `translateX(${k % 2 ? -100 : 100}%)` }, { transform: "none" }],
+                  {
+                    duration: v.dur,
+                    delay: rm ? 0 : k * v.gap,
+                    easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+                    fill: "both",
+                  },
+                );
+              }
+              setTimeout(
+                () => {
+                  vp.innerHTML = `<div class="ac-sliced-slide-transition-sl">${pic(G[i])}</div>`;
+                },
+                v.dur + v.gap * n + 50,
+              );
+            };
+            return seq(2000 + v.gap * v.n, [[700, go]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

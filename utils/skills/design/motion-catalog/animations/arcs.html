@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>円弧の動き（Arcs） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-arcs"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          place-items: center;
+        "
+      >
+        <div class="ac-arcs-l">
+          <div style="position: relative; width: 96px; height: 120px">
+            <span class="ac-arcs-p" style="filter: grayscale(1); opacity: 0.55"></span>
+          </div>
+        </div>
+        <div class="ac-arcs-r">
+          <div style="position: relative; width: 96px; height: 120px">
+            <span class="ac-arcs-x"><span class="ac-arcs-y"></span></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-arcs .ac-arcs-p,
+      .ac-arcs .ac-arcs-y {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-arcs .ac-arcs-p {
+        left: 0;
+        top: 96px;
+        animation: ac-arcs-s var(--dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) both;
+      }
+      .ac-arcs .ac-arcs-x {
+        position: absolute;
+        left: 0;
+        top: 96px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-arcs .ac-arcs-x {
+          animation: ac-arcs-hx var(--dur, 900ms) linear both;
+        }
+      }
+      .ac-arcs .ac-arcs-y {
+        animation: ac-arcs-hy var(--dur, 900ms) both;
+      }
+      @keyframes ac-arcs-s {
+        to {
+          transform: translate(76px, -40px);
+        }
+      }
+      @keyframes ac-arcs-hx {
+        to {
+          transform: translateX(76px);
+        }
+      }
+      @keyframes ac-arcs-hy {
+        0% {
+          transform: translateY(0);
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+        }
+        55% {
+          transform: translateY(calc(-40px - var(--h, 50px)));
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+        }
+        100% {
+          transform: translateY(-40px);
+        }
+      }
+      @keyframes ac-arcs-rf {
+        from {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-arcs .ac-arcs-p {
+          transform: translate(76px, -40px);
+          animation: ac-arcs-rf 200ms both;
+        }
+        .ac-arcs .ac-arcs-x {
+          transform: translateX(76px);
+        }
+        .ac-arcs .ac-arcs-y {
+          transform: translateY(-40px);
+          animation: ac-arcs-rf 200ms both;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "arcs",
+        name: "円弧の動き",
+        en: "Arcs",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "自然の中の動きは、たいてい直線ではなく弧を描くという原則です。投げた物、振った腕、跳ねる物はみな曲線の軌道を通ります。左は2点をまっすぐ結んで動き、右は弧を描いて動くので、より自然で生き生きして見えます。",
+        use: "カートに入れる動き、画面の端から端への移動、通知が飛んでくる動き、ドラッグして放した後の移動。",
+        params: [
+          { key: "dur", label: "時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" },
+          { key: "h", label: "弧の高さ", value: 50, min: 10, max: 80, step: 2, unit: "px" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "書き方",
+            "<code>offset-path</code> の曲線、または横は linear・縦は ease-out → ease-in と別々のイージングで動かす（横と縦を別の要素に分ける）",
+          ],
+          ["高さ", "弧の高さは移動距離の 20–40% が自然"],
+          ["比べる", "左（灰色）がこの原則なし、右（青）がこの原則あり"],
+          ["動きを減らす設定", "弧をやめ、透明度で移動先に表示する"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/principles-of-animation.html" target="_blank" rel="noopener">Adobe: 12 principles of animation</a>',
+          ],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

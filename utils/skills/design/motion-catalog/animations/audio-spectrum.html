@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>音の周波数で動く（Audio spectrum visualization） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-audio-spectrum"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "audio-spectrum",
+        name: "音の周波数で動く",
+        en: "Audio spectrum visualization",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "流れている音を低い音から高い音までの帯に分け、帯ごとの強さで棒の高さや線の形を動かす表現です。低音の強い拍で左側が跳ね、高音で右側が細かく震えるので、音の中身が目で見えます。",
+        use: "音楽プレーヤー、ポッドキャスト、録音・通話の画面、音楽系のブランドのビジュアル。",
+        params: [{ key: "bands", label: "帯の数", value: 24, min: 8, max: 48, step: 1, unit: "本" }],
+        spec: [
+          [
+            "仕組み",
+            "Web Audio の <code>AnalyserNode.getByteFrequencyData()</code> で帯ごとの強さ（0〜255）を毎フレーム読み、棒の高さに当てる（値が必要な用途では文字でも出す）",
+          ],
+          [
+            "見やすくする",
+            "帯は対数の間隔でまとめる。上がるときは速く、下がるときはゆっくり追わせ、ピークの点を少し残す",
+          ],
+          ["音がないとき", "棒を最低の高さで止める。動きを減らす設定では、全体の音量だけを 1 本の棒で見せる"],
+          ["動きを減らす設定", "帯ごとの動きをやめ、全体の音量だけを1本の棒の高さで見せる"],
+          [
+            "出典",
+            '<a href="https://p5js.org/examples/Sound-Visualizing-Sound/" target="_blank" rel="noopener">p5js.org（Sound-Visualizing-Sound）</a>、<a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API" target="_blank" rel="noopener">developer.mozilla.org（Visualizations_with_Web_Audi）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lv = new Float32Array(48),
+              pk = new Float32Array(48);
+            if (rm) {
+              const h = 8 + 0.5 * 110;
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("blue");
+              g.beginPath();
+              g.roundRect(W / 2 - 12, 130 - h, 24, h, 4);
+              g.fill();
+              return null;
+            } // 動きを減らす設定：全体の音量だけを1本で
+            return raf((t) => {
+              const n = v.bands,
+                bw = (W - 30) / n,
+                beat = Math.pow(Math.max(0, sin(t * 2 * Math.PI * 2)), 8);
+              g.clearRect(0, 0, W, H);
+              for (let i = 0; i < n; i++) {
+                const f = i / n,
+                  tgt = rm
+                    ? 0.5
+                    : Math.min(
+                        1,
+                        (0.85 - f * 0.55) * (0.35 + 0.65 * beat * (1 - f)) +
+                          0.25 * Math.abs(sin(t * (3 + i * 0.9) + i)) * (0.3 + f),
+                      );
+                lv[i] += (tgt - lv[i]) * (tgt > lv[i] ? 0.5 : 0.12);
+                /* 上がるときは速く、下がるときはゆっくり */ pk[i] = Math.max(pk[i] - 0.006, lv[i]);
+                const h = 8 + lv[i] * 110,
+                  x = 15 + i * bw;
+                g.fillStyle = f < 0.3 ? col("blue") : col("sky");
+                g.beginPath();
+                g.roundRect(x + 1, 130 - h, bw - 2, h, 2);
+                g.fill();
+                g.fillStyle = col("navy");
+                g.fillRect(x + 1, 128 - 8 - pk[i] * 110, bw - 2, 2);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

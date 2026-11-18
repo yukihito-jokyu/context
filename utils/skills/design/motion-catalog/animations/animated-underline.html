@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>伸び縮みする下線（Animated underline） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-animated-underline"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div style="display: grid; gap: 18px; font: 700 20px var(--font-sans); color: var(--ink)">
+          <span class="ac-animated-underline-a ac-animated-underline-l">Read more</span
+          ><span class="ac-animated-underline-a ac-animated-underline-c">Pricing</span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-animated-underline .ac-animated-underline-a {
+        position: relative;
+        justify-self: center;
+      }
+      .ac-animated-underline .ac-animated-underline-a::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -4px;
+        height: 2.5px;
+        border-radius: 2px;
+        background: var(--blue);
+        transform: scaleX(0);
+        transform-origin: right;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-animated-underline .ac-animated-underline-a::after {
+          transition: transform var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+      .ac-animated-underline .ac-animated-underline-c::after {
+        transform-origin: center;
+      }
+      .ac-animated-underline .ac-animated-underline-a.is-on::after {
+        transform: scaleX(1);
+        transform-origin: left;
+      }
+      .ac-animated-underline .ac-animated-underline-c.is-on::after {
+        transform-origin: center;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "animated-underline",
+        name: "伸び縮みする下線",
+        en: "Animated underline",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "リンクにポインターを乗せると、文字の下線が左から右へすっと伸び、離すと右へ抜けるように縮む動きです。中央から両側へ伸びる型、上線が出る型もあります。押せる文字であることが、さりげなく伝わります。",
+        use: "本文中のリンク、ナビゲーションのメニュー、フッターのリンク、タブ。",
+        params: [{ key: "dur", label: "時間", value: 300, min: 100, max: 700, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "疑似要素の線を <code>transform: scaleX(0 → 1)</code>｜out｜<code>transform-origin</code> は伸びるとき left、縮むとき right（右へ抜ける）",
+          ],
+          ["中央から", "<code>transform-origin: center</code> にすると両側へ伸びる"],
+          ["別の方法", "<code>background-size: 0% 2px → 100% 2px</code> なら複数行のリンクにも使える"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const [a, c] = stage.querySelectorAll(".ac-animated-underline-a");
+            return seq(3000, [
+              [400, () => a.classList.add("is-on")],
+              [
+                1300,
+                () => {
+                  a.classList.remove("is-on");
+                  c.classList.add("is-on");
+                },
+              ],
+              [2300, () => c.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

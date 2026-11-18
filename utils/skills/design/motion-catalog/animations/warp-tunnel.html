@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ワープトンネル（Warp tunnel） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-warp-tunnel"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+          background: var(--bg);
+        "
+      >
+        <div class="ac-warp-tunnel-t">
+          <i class="ac-warp-tunnel-w ac-warp-tunnel-top"><b></b></i
+          ><i class="ac-warp-tunnel-w ac-warp-tunnel-bot"><b></b></i
+          ><i class="ac-warp-tunnel-w ac-warp-tunnel-lf"><b></b></i
+          ><i class="ac-warp-tunnel-w ac-warp-tunnel-rt"><b></b></i>
+        </div>
+        <div
+          class="sb-card"
+          style="
+            width: 96px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-sizing: border-box;
+            position: absolute;
+            left: 62px;
+            top: 35px;
+            padding: 10px;
+            gap: 7px;
+          "
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 30px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 52px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 33px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-warp-tunnel .ac-warp-tunnel-t {
+        position: absolute;
+        inset: 0;
+        perspective: 90px;
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-w {
+        position: absolute;
+        overflow: hidden;
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-w b {
+        position: absolute;
+        inset: -24px 0 0 0;
+        background-image:
+          linear-gradient(var(--blue-soft) 1.5px, transparent 1.5px),
+          linear-gradient(90deg, var(--blue-soft) 1.5px, transparent 1.5px);
+        background-size: 24px 24px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-warp-tunnel .ac-warp-tunnel-w b {
+          animation: ac-warp-tunnel-run var(--dur, 600ms) linear infinite;
+        }
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-top,
+      .ac-warp-tunnel .ac-warp-tunnel-bot {
+        left: 0;
+        right: 0;
+        height: 400px;
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-top {
+        top: 0;
+        transform-origin: 50% 0;
+        transform: rotateX(-90deg);
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-bot {
+        bottom: 0;
+        transform-origin: 50% 100%;
+        transform: rotateX(90deg);
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-lf,
+      .ac-warp-tunnel .ac-warp-tunnel-rt {
+        top: 0;
+        bottom: 0;
+        width: 400px;
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-lf b,
+      .ac-warp-tunnel .ac-warp-tunnel-rt b {
+        inset: 0 0 0 -24px;
+        animation-name: ac-warp-tunnel-runx;
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-lf {
+        left: 0;
+        transform-origin: 0 50%;
+        transform: rotateY(90deg);
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-rt {
+        right: 0;
+        transform-origin: 100% 50%;
+        transform: rotateY(-90deg);
+      }
+      .ac-warp-tunnel .ac-warp-tunnel-bot b,
+      .ac-warp-tunnel .ac-warp-tunnel-rt b {
+        animation-direction: reverse;
+      }
+      @keyframes ac-warp-tunnel-run {
+        to {
+          transform: translateY(24px);
+        }
+      }
+      @keyframes ac-warp-tunnel-runx {
+        to {
+          transform: translateX(24px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "warp-tunnel",
+        name: "ワープトンネル",
+        en: "Warp tunnel",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "四方の壁に格子を描いた四角いトンネルの奥へ、格子が次々と流れ去っていくことで、猛スピードで前へ進んでいるように見せる背景です。中央の空間に、見せたいカードや文字を置けます。",
+        use: "製品のローンチ、スピード・パフォーマンスの訴求、カードやロゴを引き立てる背景。",
+        params: [{ key: "dur", label: "1マスの時間", value: 600, min: 200, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "トンネル",
+            "上下左右4枚の壁に格子（<code>linear-gradient</code>）を描き、<code>perspective</code> の中でそれぞれ <code>rotateX / rotateY(90deg)</code> で奥へ向ける",
+          ],
+          ["動き", "各壁の中の格子の層を、奥から手前へ 1 マスぶん <code>translate</code> で送る｜linear｜くり返し"],
+          ["中央", "見せたい要素は手前の平面に置き、トンネルとは別に動かさない"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/warp-background" target="_blank" rel="noopener">Magic UI: Warp Background</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

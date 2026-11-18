@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>通知の積み重ね（Notification stack） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-notification-stack" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-notification-stack-w"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-notification-stack .ac-notification-stack-w {
+        position: absolute;
+        left: 20px;
+        top: 26px;
+        width: 180px;
+      }
+      .ac-notification-stack .ac-notification-stack-n {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 180px;
+        transform-origin: 50% 0;
+        transition:
+          transform var(--dur, 360ms) cubic-bezier(0.34, 1.56, 0.64, 1),
+          opacity var(--dur, 360ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-notification-stack .ac-notification-stack-n {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "notification-stack",
+        name: "通知の積み重ね",
+        en: "Notification stack",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "新しい通知が上から入ってきて先頭に並び、それまでの通知は少しずつ小さくなって奥へ重なっていく動きです。奥の通知は端だけが見えるので、数が増えても場所を取りません。",
+        use: "通知センター、トーストの積み重ね、チャットの新着、アクティビティの一覧。",
+        params: [
+          { key: "dur", label: "時間", value: 360, min: 150, max: 800, step: 10, unit: "ms" },
+          { key: "depth", label: "奥への縮み", value: 0.06, min: 0, max: 0.15, step: 0.01, unit: "" },
+          { key: "offset", label: "奥へのずれ", value: 10, min: 4, max: 20, step: 1, unit: "px" },
+        ],
+        spec: [
+          ["新着", "<code>translateY(-24px) → 0</code> と <code>opacity 0 → 1</code>｜spring"],
+          [
+            "奥の通知",
+            "i 番目を <code>translateY(i × ずれ) scale(1 - i × 縮み)</code>｜3枚目より奥は <code>opacity 0</code>｜同じ時間で動かす",
+          ],
+          ["並び", "<code>z-index</code> は新しいものほど上"],
+          ["動きを減らす設定", "移動と縮みをやめ、透明度で入れ替える"],
+          [
+            "出典",
+            '<a href="https://motion.dev/examples/vue-notifications-stack" target="_blank" rel="noopener">Motion: notifications stack</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const w = stage.querySelector(".ac-notification-stack-w"),
+              grads = ["aqua", "sky", "deep", "hero"];
+            let n = 0,
+              items = [];
+            const layout = () =>
+              items.forEach((el, i) => {
+                el.style.zIndex = 10 - i;
+                el.style.opacity = i > 2 ? 0 : 1;
+                el.style.transform = rm
+                  ? `translateY(${i * 54}px)`
+                  : `translateY(${i * v.offset}px) scale(${1 - i * v.depth})`;
+              });
+            const push = () => {
+              const el = document.createElement("div");
+              el.className = "sb-item ac-notification-stack-n";
+              el.style.cssText += ";padding:10px 12px;gap:10px;box-sizing:border-box;border-radius:18px";
+              el.innerHTML = `<span class="sb-thumb sb-grad-${grads[n++ % 4]}" style="width:28px;height:28px;border-radius:9px"></span><span class="sb-lines" style="gap:7px"><span class="sb-bar sb-bar--xs sb-bar--strong" style="width:90px"></span><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width:60px"></span></span>`;
+              el.style.opacity = 0;
+              el.style.transform = "translateY(-24px)";
+              w.prepend(el);
+              items.unshift(el);
+              void el.offsetWidth;
+              layout();
+              if (items.length > 4) items.pop().remove();
+            };
+            return seq(1300, [[100, push]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>逐次に作る動き（Straight-ahead action） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-straight-ahead-action"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          place-items: center;
+        "
+      >
+        <div class="ac-straight-ahead-action-l">
+          <div class="ac-straight-ahead-action-w">
+            <span
+              class="ac-straight-ahead-action-t ac-straight-ahead-action-a"
+              style="filter: grayscale(1); opacity: 0.55"
+            ></span>
+          </div>
+        </div>
+        <div class="ac-straight-ahead-action-r">
+          <div class="ac-straight-ahead-action-w">
+            <span class="ac-straight-ahead-action-t ac-straight-ahead-action-b"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-straight-ahead-action .ac-straight-ahead-action-w {
+        position: relative;
+        width: 90px;
+        height: 120px;
+      }
+      .ac-straight-ahead-action .ac-straight-ahead-action-w::before {
+        content: "";
+        position: absolute;
+        left: 44px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--bar);
+      }
+      .ac-straight-ahead-action .ac-straight-ahead-action-t {
+        position: absolute;
+        left: 31px;
+        top: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 9px;
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "straight-ahead-action",
+        name: "逐次に作る動き",
+        en: "Straight-ahead action",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "最初のコマから順に、前のコマをもとに次のコマを作っていく作り方の原則です。UI では、ばねや物理の計算で毎フレーム次の位置を決める動きがこれにあたります。左は決めた位置どうしをキーフレームでつなぐ動き、右は毎フレーム計算して動くので、勢いのまま自然に揺れて止まります。",
+        use: "ばねの動き、ドラッグして放した後の慣性、パーティクル、炎・煙・水など流れる表現。",
+        params: [
+          { key: "k", label: "ばねの硬さ", value: 160, min: 40, max: 400, step: 10, unit: "" },
+          { key: "c", label: "減衰", value: 8, min: 2, max: 30, step: 1, unit: "" },
+        ],
+        spec: [
+          [
+            "作り方",
+            "前の状態（位置・速度）から次の状態を計算する。ばねなら <code>加速度 = -硬さ × ずれ - 減衰 × 速度</code>",
+          ],
+          [
+            "向いている",
+            "途中で触られても続きから自然に動ける（割り込める）。タイミングを正確に決めたいなら「ポーズからポーズへ」",
+          ],
+          ["比べる", "左（灰色）がこの原則なし、右（青）がこの原則あり"],
+          ["動きを減らす設定", "動きを止め、2つとも目的地に置く"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/principles-of-animation.html" target="_blank" rel="noopener">Adobe: 12 principles of animation</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const a = stage.querySelector(".ac-straight-ahead-action-a"),
+              b = stage.querySelector(".ac-straight-ahead-action-b");
+            if (rm) {
+              a.style.transform = b.style.transform = "translateY(80px)";
+              return null;
+            } // 動きを減らす設定
+            let y = 0,
+              vy = 0,
+              last = 0,
+              t0 = 0;
+            return raf((t) => {
+              const dt = Math.min(0.033, t - last);
+              last = t;
+              const k = t % 2.4,
+                target = k < 1.2 ? 80 : 0;
+              a.style.transform = `translateY(${k < 1.2 ? 80 * Math.min(1, k / 0.5) ** 0.5 : 80 - 80 * Math.min(1, (k - 1.2) / 0.5) ** 0.5}px)`;
+              vy += (-v.k * (y - target) - v.c * vy) * dt;
+              y += vy * dt;
+              b.style.transform = `translateY(${y}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

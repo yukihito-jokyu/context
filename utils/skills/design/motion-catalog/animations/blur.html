@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ブラー（Blur） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-blur" style="position: relative; width: 220px; height: 150px; display: grid; place-items: center">
+        <div
+          class="sb-card ac-blur-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 48px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-blur .ac-blur-c {
+        animation: ac-blur-in var(--dur, 500ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes ac-blur-in {
+        from {
+          opacity: 0;
+          filter: blur(var(--blur, 8px));
+        }
+        to {
+          opacity: 1;
+          filter: blur(0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-blur-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "blur",
+        name: "ブラー",
+        en: "Blur",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "ぼかしのフィルターを動かして、ピントが合うように現れる（Blur reveal）、背景をぼかして手前に集中させる、といった表現に使います。動きの細かな粗も、ぼかしで目立たなくなります。",
+        use: "画像や見出しの登場、モーダルの背景、切り替えの途中を柔らかく見せる。",
+        params: [
+          { key: "blur", label: "ぼかしの強さ", value: 8, min: 0, max: 20, step: 1, unit: "px" },
+          { key: "dur", label: "時間", value: 500, min: 150, max: 1200, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>filter: blur(ぼかしの強さ) → blur(0)</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["背景", "背景をぼかすなら <code>backdrop-filter: blur()</code>"],
+          ["注意", "大きな面のぼかしは重い。小さな要素か短い時間に限る"],
+          ["動きを減らす設定", "ぼかしをやめ、透明度の切り替えだけにする"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

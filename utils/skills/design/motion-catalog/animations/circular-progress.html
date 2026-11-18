@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>円の進捗（Circular progress） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-circular-progress"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div style="position: relative; width: 72px; height: 72px">
+          <progress
+            max="100"
+            value="0"
+            aria-label="読み込み"
+            style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)"
+          ></progress
+          ><svg viewBox="0 0 44 44" width="72" height="72" style="transform: rotate(-90deg)" aria-hidden="true">
+            <circle cx="22" cy="22" r="18" fill="none" stroke="var(--blue-soft)" stroke-width="4" />
+            <circle
+              class="ac-circular-progress-a"
+              cx="22"
+              cy="22"
+              r="18"
+              fill="none"
+              stroke="var(--blue)"
+              stroke-width="4"
+              stroke-linecap="round"
+              pathLength="100"
+            /></svg
+          ><span
+            class="ac-circular-progress-n"
+            style="
+              position: absolute;
+              inset: 0;
+              display: grid;
+              place-items: center;
+              font: 800 15px var(--font-sans);
+              color: var(--ink);
+              font-variant-numeric: tabular-nums;
+            "
+            >0%</span
+          >
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-circular-progress .ac-circular-progress-a {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-circular-progress .ac-circular-progress-a {
+          transition: stroke-dashoffset 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "circular-progress",
+        name: "円の進捗",
+        en: "Circular progress",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "円の輪郭が、処理の進み具合に合わせて時計回りに少しずつ伸びていき、満ちると完了する進捗表示です。小さなスペースでも、あとどれくらいかが分かります。",
+        use: "アップロード・ダウンロード、インストール、タイマー、目標の達成率。",
+        params: [{ key: "dur", label: "このデモの全体", value: 3000, min: 1000, max: 8000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            'SVG の円に <code>pathLength="100"</code>、<code>stroke-dasharray: 100</code>、<code>stroke-dashoffset: 100 - 進み具合</code>｜12時から始めるため <code>rotate(-90deg)</code>',
+          ],
+          [
+            "動き",
+            "進み具合が変わるたびに、<code>stroke-dashoffset</code> を 200–300ms の out で補間する（値が飛ばない）",
+          ],
+          ["数字", "中央に % を出すなら等幅の数字（tabular-nums）にする"],
+          ["動きを減らす設定", "補間をやめ、進み具合をそのまま表示する（情報なので輪は残す）"],
+          [
+            "出典",
+            '<a href="https://m2.material.io/components/progress-indicators" target="_blank" rel="noopener">Material Design: Progress indicators</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const a = stage.querySelector(".ac-circular-progress-a"),
+              n = stage.querySelector(".ac-circular-progress-n"),
+              pg = stage.querySelector("progress");
+            const set = (x) => {
+              a.style.strokeDashoffset = 100 - x;
+              n.textContent = `${Math.round(x)}%`;
+              pg.value = x;
+            }; // 読み上げ用の progress にも同じ値
+            const steps = [12, 30, 38, 55, 71, 80, 93, 100],
+              dt = v.dur / steps.length;
+            return seq(v.dur + 1200, [
+              [
+                0,
+                () => {
+                  a.style.transition = "none";
+                  set(0);
+                  void a.getBoundingClientRect();
+                  a.style.transition = "";
+                },
+              ],
+              ...steps.map((x, i) => [200 + i * dt, () => set(x)]),
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

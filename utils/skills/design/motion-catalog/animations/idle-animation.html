@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>待機中の動き（Idle animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-idle-animation"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="sb-fab ac-idle-animation-f"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" /></svg
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @keyframes ac-idle-animation-idle {
+        0%,
+        15%,
+        100% {
+          transform: none;
+        }
+        4% {
+          transform: translateY(-10px) rotate(-6deg);
+        }
+        8% {
+          transform: translateY(0) rotate(5deg);
+        }
+        11% {
+          transform: translateY(-4px) rotate(-2deg);
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-idle-animation .ac-idle-animation-f[data-idle] {
+          animation: ac-idle-animation-idle var(--dur, 4000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "idle-animation",
+        name: "待機中の動き",
+        en: "Idle animation",
+        cat: "ループ・常時の動き",
+        kind: "motion",
+        description:
+          "操作を待っているあいだ、ときどき小さく動いて「触れるよ」と知らせる動きです。数秒おきにボタンが軽く跳ねて、また静かになります。",
+        use: "押してほしい主ボタン、チャットボットの入口、ゲームのキャラクター、オンボーディングの次へ。",
+        params: [{ key: "dur", label: "くり返しの間隔", value: 4000, min: 2000, max: 8000, step: 250, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "間隔のうち最初の 15% だけ <code>translateY(0 → -10px → 0)</code> と <code>rotate(±6deg)</code>、残りは止まっている",
+          ],
+          ["きっかけ", "一定時間操作がないときに始め、操作されたら止める"],
+          ["注意", "主役 1 つだけ。間隔は数秒以上あける"],
+          ["動きを減らす設定", "動きをやめる"],
+          ["出典", "Animation Vocabulary（Looping & Ambient Motion）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const target = stage.querySelector(".ac-idle-animation-f");
+          const motion = matchMedia("(prefers-reduced-motion: no-preference)");
+          const activity = ["pointerdown", "pointermove", "keydown", "wheel", "scroll"];
+          const options = { capture: true, passive: true };
+          let timer;
+          function stop() {
+            clearTimeout(timer);
+            target.removeAttribute("data-idle");
+          }
+          function schedule() {
+            stop();
+            if (motion.matches) {
+              timer = setTimeout(() => target.setAttribute("data-idle", ""), 400);
+            }
+          }
+          for (const event of activity) window.addEventListener(event, schedule, options);
+          motion.addEventListener("change", schedule);
+          schedule();
+          return () => {
+            for (const event of activity) window.removeEventListener(event, schedule, options);
+            motion.removeEventListener("change", schedule);
+            stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

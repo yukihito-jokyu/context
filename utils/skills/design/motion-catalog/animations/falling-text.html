@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>落ちる文字（Falling text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-falling-text" style="position: relative; width: 220px; height: 150px">
+        <div
+          class="ac-falling-text-w"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 20px;
+            line-height: 26px;
+          "
+        >
+          <span>動きは</span><span>意味を</span><span>持つと</span><span class="ac-falling-text-b">効く</span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-falling-text .ac-falling-text-w {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 30px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0 8px;
+      }
+      .ac-falling-text .ac-falling-text-w span {
+        display: inline-block;
+        will-change: transform;
+      }
+      .ac-falling-text .ac-falling-text-b {
+        color: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "falling-text",
+        name: "落ちる文字",
+        en: "Falling text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文が単語ごとにばらばらになり、重力で落ちて床に当たって跳ね、転がって止まる動きです。ポインターで触るときっかけになる型が多く、遊び心のある見出しになります。",
+        use: "404 ページ、遊びのあるヒーロー、イベント・キャンペーンの見出し、スクロールで発動する演出。",
+        params: [
+          { key: "g", label: "重力", value: 1200, min: 400, max: 3000, step: 50, unit: "" },
+          { key: "bounce", label: "跳ね返り", value: 0.45, min: 0, max: 0.8, step: 0.05, unit: "" },
+        ],
+        spec: [
+          ["分け方", "単語（または文字）ごとに要素を分け、元の位置を測ってから <code>position: absolute</code> にする"],
+          [
+            "計算",
+            "毎フレーム：重力を足す → 位置と回転を進める → 床で跳ね返り（速度 × 跳ね返り）、摩擦で止める。単語どうしの衝突は Matter.js などの物理エンジンで",
+          ],
+          ["きっかけ", "ホバー・クリック・画面に入ったとき"],
+          ["動きを減らす設定", "落とさず、元の位置のまま見せる"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/falling-text" target="_blank" rel="noopener">React Bits: Falling Text</a>',
+          ],
+        ],
+        loop: 4200,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const ws = [...stage.querySelectorAll(".ac-falling-text-w span")],
+              root = stage.firstElementChild,
+              H = 150;
+            if (rm) return null;
+            const st = ws.map((el, i) => {
+              const r = el.getBoundingClientRect(),
+                b = root.getBoundingClientRect();
+              return {
+                el,
+                y: 0,
+                vy: 0,
+                vx: (i - 1.5) * 25,
+                x: 0,
+                rot: 0,
+                vr: (i % 2 ? 1 : -1) * (40 + i * 30),
+                floor: H - (r.bottom - b.top) - 4,
+              };
+            });
+            let last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.033, t - last);
+              last = t;
+              if (t < 0.8) return;
+              for (const s of st) {
+                s.vy += v.g * dt;
+                s.y += s.vy * dt;
+                s.x += s.vx * dt;
+                s.rot += s.vr * dt;
+                if (s.y > s.floor) {
+                  s.y = s.floor;
+                  s.vy *= -v.bounce;
+                  s.vx *= 0.8;
+                  s.vr *= 0.6;
+                  if (Math.abs(s.vy) < 30) s.vy = 0;
+                }
+                s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot}deg)`;
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画像の軌跡（Cursor image trail） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-cursor-image-trail" style="position: relative; width: 220px; height: 150px">
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cursor-image-trail",
+        name: "画像の軌跡",
+        en: "Cursor image trail",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "ポインターが一定の距離を動くたびに、その場所に画像が1枚ずつ現れて重なり、少しすると縮みながら消えていく動きです。ポインターの通り道が、写真のコラージュのように残ります。",
+        use: "写真家・デザイナーのポートフォリオ、ファッション・アートのサイト、ギャラリーの入口。",
+        params: [{ key: "gap", label: "画像の間隔", value: 34, min: 15, max: 80, step: 1, unit: "px" }],
+        spec: [
+          [
+            "出す",
+            "ポインターが前回から一定距離（40–80px）動いたら、用意した画像を順番に1枚出す（<code>scale(.6 → 1)</code>、<code>opacity 0 → 1</code>｜out）",
+          ],
+          [
+            "消す",
+            "出してから 400–800ms 後に <code>scale(→ .8)</code>、<code>opacity → 0</code>。新しい画像ほど上に重ねる",
+          ],
+          ["数", "同時に出す枚数に上限を設ける（古いものから消す）"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/image-trail" target="_blank" rel="noopener">React Bits: Image Trail</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const root = stage.firstElementChild,
+              G = ["sky", "aqua", "deep", "hero"];
+            let lx = -999,
+              ly = -999,
+              n = 0;
+            const live = [],
+              MAX = 8;
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const [x, y] = loop8(t * 0.9);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (rm || Math.hypot(x - lx, y - ly) < v.gap) return;
+              lx = x;
+              ly = y;
+              const im = document.createElement("span");
+              im.className = `sb-grad-${G[n++ % 4]}`;
+              im.style.cssText = `position:absolute;left:${x - 22}px;top:${y - 28}px;width:44px;height:56px;border-radius:8px;box-shadow:var(--shadow-card)`;
+              root.insertBefore(im, cur);
+              im.animate(
+                [
+                  { transform: "scale(.6)", opacity: 0 },
+                  { transform: "scale(1)", opacity: 1, offset: 0.25 },
+                  { transform: "scale(1)", opacity: 1, offset: 0.6 },
+                  { transform: "scale(.8)", opacity: 0 },
+                ],
+                { duration: 1400, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+              );
+              live.push(im);
+              im.getAnimations()[0].onfinish = () => {
+                im.remove();
+                live.splice(live.indexOf(im), 1);
+              };
+              if (live.length > MAX) {
+                const old = live.shift();
+                old.getAnimations().forEach((a) => a.cancel());
+                old.remove();
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

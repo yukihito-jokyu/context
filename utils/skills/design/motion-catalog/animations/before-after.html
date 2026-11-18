@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ビフォー・アフター（Before / after slider） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-before-after"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-before-after-w">
+          <span class="sb-grad-deep ac-before-after-after"></span
+          ><span class="sb-grad-hero ac-before-after-before"></span><span class="ac-before-after-line"><i></i></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-before-after .ac-before-after-w {
+        position: relative;
+        width: 200px;
+        height: 130px;
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .ac-before-after .ac-before-after-after,
+      .ac-before-after .ac-before-after-before {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-before-after .ac-before-after-before {
+        clip-path: inset(0 50% 0 0);
+      }
+      .ac-before-after .ac-before-after-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 3px;
+        margin-left: -1.5px;
+        background: #fff;
+        transform: translateX(100px);
+      }
+      .ac-before-after .ac-before-after-line i {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 26px;
+        height: 26px;
+        margin: -13px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: var(--shadow-card);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-before-after .ac-before-after-before {
+          animation: ac-before-after-clip var(--dur, 2200ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-before-after .ac-before-after-line {
+          animation: ac-before-after-line var(--dur, 2200ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-before-after-clip {
+        from {
+          clip-path: inset(0 80% 0 0);
+        }
+        to {
+          clip-path: inset(0 20% 0 0);
+        }
+      }
+      @keyframes ac-before-after-line {
+        from {
+          transform: translateX(40px);
+        }
+        to {
+          transform: translateX(160px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "before-after",
+        name: "ビフォー・アフター",
+        en: "Before / after slider",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "2枚の画像を重ね、仕切り線を動かして片方を拭き取るように見比べる表現です。仕切りをドラッグして、変化の前と後を比べられます。",
+        use: "写真の補正前後、リニューアル前後のデザイン、地図の昔と今。",
+        params: [{ key: "dur", label: "片道の時間", value: 2200, min: 1000, max: 4000, step: 100, unit: "ms" }],
+        spec: [
+          ["仕組み", "上の画像を <code>clip-path: inset(0 (100% - 位置) 0 0)</code> で切り、仕切り線を同じ位置に置く"],
+          [
+            "操作",
+            "仕切りをドラッグ（Pointer Events）。キーボードでも動かせるよう <code>input[type=range]</code> を重ねると簡単",
+          ],
+          ["デモ", "仕切りを自動で往復させている｜in-out｜<code>alternate</code>"],
+          ["動きを減らす設定", "自動の往復をやめ、真ん中で止めて表示する"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スミア（伸びた中割り）（Smear frames） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-smear-frames" style="position: relative; width: 220px; height: 110px">
+        <span class="ac-smear-frames-t"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-smear-frames .ac-smear-frames-t {
+        position: absolute;
+        left: 14px;
+        top: 35px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-smear-frames .ac-smear-frames-t {
+          animation: ac-smear-frames-sm var(--dur, 2000ms) infinite;
+        }
+      }
+      @keyframes ac-smear-frames-sm {
+        0%,
+        30% {
+          transform: translateX(0);
+          border-radius: 50%;
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        38% {
+          transform: translateX(60px) scale(var(--str, 2.6), 0.7);
+          border-radius: 40%;
+        }
+        46%,
+        80% {
+          transform: translateX(150px);
+          border-radius: 50%;
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        88% {
+          transform: translateX(90px) scale(var(--str, 2.6), 0.7);
+          border-radius: 40%;
+        }
+        96%,
+        100% {
+          transform: translateX(0);
+          border-radius: 50%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "smear-frames",
+        name: "スミア（伸びた中割り）",
+        en: "Smear frames",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "とても速い動きの途中の数コマだけ、形を進む方向へ大きく引き伸ばして描く手法です。1コマずつ見ると不自然な形ですが、動かすと速さと勢いが気持ちよく伝わります。手描きアニメの技法です。",
+        use: "ボタンを押した瞬間の速い動き、アイコンの瞬間移動、ゲームのダッシュ、キャラクターの素早い動き。",
+        params: [
+          { key: "dur", label: "往復の時間", value: 2000, min: 800, max: 4000, step: 100, unit: "ms" },
+          { key: "str", label: "伸ばす量", value: 2.6, min: 1, max: 4, step: 0.1, unit: "" },
+        ],
+        spec: [
+          [
+            "形",
+            "移動の途中（中間の 20–30%）だけ <code>scaleX(2–3)</code>（進む方向）と <code>scaleY(.7)</code>。始まりと終わりは元の形",
+          ],
+          ["向き", "伸ばす向きを進む方向に合わせる（<code>transform-origin</code> を後ろ側に）"],
+          ["echo との違い", "残像（echo）は複数の形を重ね、スミアは1つの形を伸ばす"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://www.toonboom.com/etienne-cote-on-animating-smear-frames-and-multiples-in-ednora" target="_blank" rel="noopener">Toon Boom: smear frames</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

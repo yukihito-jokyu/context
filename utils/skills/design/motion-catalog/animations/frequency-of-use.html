@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>使う頻度（Frequency of use） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-frequency-of-use" style="position: relative; width: 220px; height: 140px">
+        <div
+          class="sb-card"
+          style="position: absolute; left: 0; top: 20px; width: 96px; height: 100px; display: grid; place-items: center"
+        >
+          <span class="sb-switch sb-switch--off ac-frequency-of-use-sw"></span>
+        </div>
+        <div
+          class="sb-card"
+          style="
+            position: absolute;
+            right: 0;
+            top: 20px;
+            width: 110px;
+            height: 100px;
+            display: grid;
+            place-items: center;
+          "
+        >
+          <span class="sb-check-circle ac-frequency-of-use-c" style="width: 52px; height: 52px"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-frequency-of-use .ac-frequency-of-use-sw {
+        transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-frequency-of-use .ac-frequency-of-use-sw::after {
+        left: 3px;
+      }
+      .ac-frequency-of-use .ac-frequency-of-use-sw:not(.sb-switch--off)::after {
+        transform: translateX(24px);
+      }
+      .ac-frequency-of-use .ac-frequency-of-use-c svg {
+        width: 26px;
+        height: 26px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-frequency-of-use .ac-frequency-of-use-sw::after {
+          transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .ac-frequency-of-use .ac-frequency-of-use-c.go path {
+          stroke-dasharray: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "frequency-of-use",
+        name: "使う頻度",
+        en: "Frequency of use",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "何度も目にする動きほど、短く控えめにするべきだという原則です。左は1日に何十回も押すトグル（短く小さく）、右はたまにしか起きない達成の演出（長めで華やか）。",
+        use: "動きの長さや派手さを決めるとき。毎日使う操作の動きを見直すとき。",
+        params: [],
+        spec: [
+          ["よく使う", "120ms 前後、移動は小さく、弾みなし（ここではトグル）"],
+          ["まれ", "400–600ms、弾みや複数の動きを使ってよい（ここでは達成の演出）"],
+          ["迷ったら", "100回目に見ても邪魔にならないか、で判断する"],
+          ["動きを減らす設定", "色は補間、位置と印は即時反映"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const sw = stage.querySelector(".ac-frequency-of-use-sw"),
+            c = stage.querySelector(".ac-frequency-of-use-c");
+          const path = c.querySelector("path");
+          const motion = matchMedia("(prefers-reduced-motion: no-preference)");
+          const toggleTimer = setInterval(() => sw.classList.toggle("sb-switch--off"), 600);
+          let replayTimer,
+            animations = [];
+          const cancel = () => {
+            for (const animation of animations) animation.cancel();
+            animations = [];
+          };
+          const go = () => {
+            cancel();
+            animations = [
+              c.animate(
+                [
+                  { transform: "scale(0.4) rotate(-20deg)", opacity: 0 },
+                  { transform: "none", opacity: 1 },
+                ],
+                { duration: 500, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "both" },
+              ),
+              path.animate([{ strokeDashoffset: "1" }, { strokeDashoffset: "0" }], {
+                duration: 300,
+                delay: 350,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                fill: "both",
+              }),
+            ];
+          };
+          const update = () => {
+            clearInterval(replayTimer);
+            c.classList.toggle("go", motion.matches);
+            if (motion.matches) {
+              go();
+              replayTimer = setInterval(go, 3000);
+            } else {
+              cancel();
+            }
+          };
+          motion.addEventListener("change", update);
+          update();
+          return () => {
+            clearInterval(toggleTimer);
+            clearInterval(replayTimer);
+            cancel();
+            c.classList.remove("go");
+            motion.removeEventListener("change", update);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

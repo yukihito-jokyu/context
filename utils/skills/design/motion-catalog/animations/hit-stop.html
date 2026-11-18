@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ヒットストップ（Hit-stop） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-hit-stop" style="position: relative; width: 220px; height: 120px">
+        <span class="ac-hit-stop-wall"></span><span class="ac-hit-stop-b"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hit-stop .ac-hit-stop-wall {
+        position: absolute;
+        left: 150px;
+        top: 20px;
+        width: 14px;
+        height: 80px;
+        border-radius: 6px;
+        background: var(--bar-strong);
+      }
+      .ac-hit-stop .ac-hit-stop-b {
+        position: absolute;
+        left: 0;
+        top: 46px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hit-stop",
+        name: "ヒットストップ",
+        en: "Hit-stop",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "物がぶつかった瞬間に、ほんの一瞬（0.05–0.15秒）だけ全部の動きを止めてから、はじけ飛ぶように続きを動かす表現です。止まることで、その一撃の重さと手応えが強く伝わります。",
+        use: "ゲームの攻撃・衝突、クリックの決定の手応え、スポーツの決めの瞬間、重さを感じさせたい操作。",
+        params: [{ key: "stop", label: "止める時間", value: 120, min: 0, max: 300, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "止める",
+            "衝突の瞬間に、関係する物の動き（アニメーションの時間）を止める時間だけ止める（<code>playbackRate = 0</code> か、タイムラインに空白を入れる）",
+          ],
+          ["合わせ技", "止めている間に小さく震わせ（shake）、光らせる（hit flash）と、さらに強い"],
+          ["長さ", "強い衝撃ほど長く。ただし 0.2 秒を超えると引っかかりに感じる"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://github.com/reeboolabs/sprite-juice-kit-lite" target="_blank" rel="noopener">Sprite Juice Kit</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-hit-stop-b"),
+              w = stage.querySelector(".ac-hit-stop-wall"),
+              stop = v.stop;
+            if (rm) {
+              b.style.transform = "translateX(20px)";
+              return null;
+            } // 動きを減らす設定：止まった状態だけ
+            const go = () => {
+              b.animate([{ transform: "translateX(10px)" }, { transform: "translateX(122px)" }], {
+                duration: 380,
+                easing: "cubic-bezier(0.55, 0, 1, 0.45)",
+                fill: "forwards",
+              }).onfinish = () => {
+                if (!rm) {
+                  b.animate(
+                    [
+                      { transform: "translateX(122px) scale(.8, 1.15)" },
+                      { transform: "translateX(121px) scale(.8, 1.15)" },
+                      { transform: "translateX(123px) scale(.8, 1.15)" },
+                    ],
+                    { duration: stop, fill: "forwards" },
+                  );
+                  w.animate(
+                    [
+                      { transform: "translateX(0)" },
+                      { transform: "translateX(2px)" },
+                      { transform: "translateX(-1px)" },
+                    ],
+                    { duration: stop },
+                  );
+                }
+                setTimeout(
+                  () =>
+                    b.animate(
+                      [{ transform: "translateX(122px) scale(.8, 1.15)" }, { transform: "translateX(20px) scale(1)" }],
+                      { duration: 600, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" },
+                    ),
+                  stop,
+                );
+              };
+            };
+            return seq(2200, [[200, go]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>近いほど太くなる文字（Variable-font proximity） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-variable-font-proximity" style="position: relative; width: 230px; height: 130px">
+        <div class="ac-variable-font-proximity-w" aria-hidden="true">
+          <span class="ac-variable-font-proximity-ch" style="--i: 0" aria-hidden="true">V</span
+          ><span class="ac-variable-font-proximity-ch" style="--i: 1" aria-hidden="true">a</span
+          ><span class="ac-variable-font-proximity-ch" style="--i: 2" aria-hidden="true">r</span
+          ><span class="ac-variable-font-proximity-ch" style="--i: 3" aria-hidden="true">i</span
+          ><span class="ac-variable-font-proximity-ch" style="--i: 4" aria-hidden="true">a</span
+          ><span class="ac-variable-font-proximity-ch" style="--i: 5" aria-hidden="true">b</span
+          ><span class="ac-variable-font-proximity-ch" style="--i: 6" aria-hidden="true">l</span
+          ><span class="ac-variable-font-proximity-ch" style="--i: 7" aria-hidden="true">e</span>
+        </div>
+        <span
+          style="
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+          "
+          >Variable</span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap");
+      .ac-variable-font-proximity .ac-variable-font-proximity-w {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 40px;
+        display: flex;
+        justify-content: center;
+        font:
+          400 38px/48px "Noto Sans JP",
+          var(--font-sans);
+        color: var(--ink);
+      }
+      .ac-variable-font-proximity .ac-variable-font-proximity-ch {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "variable-font-proximity",
+        name: "近いほど太くなる文字",
+        en: "Variable-font proximity",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "可変フォントの太さ（ウェイト）を、ポインターとの距離に応じて1文字ずつなめらかに変える表現です。近い文字ほど太く、遠い文字ほど細くなり、ポインターが光を当てているように見えます。",
+        use: "タイポグラフィが主役のヒーロー、ポートフォリオ、フォントの紹介ページ、ブランドサイト。",
+        params: [
+          { key: "range", label: "影響する距離", value: 80, min: 30, max: 160, step: 5, unit: "px" },
+          { key: "min", label: "遠いときの太さ", value: 200, min: 100, max: 500, step: 50, unit: "" },
+          { key: "max", label: "近いときの太さ", value: 900, min: 500, max: 900, step: 50, unit: "" },
+        ],
+        spec: [
+          [
+            "書き方",
+            '<code>font-variation-settings: "wght" 太さ</code>（または <code>font-weight</code>）を文字ごとに設定。可変フォントを読み込む（ここでは Noto Sans JP の 100–900）',
+          ],
+          ["計算", "太さ = 遠いときの太さ + (近いときの太さ - 遠いときの太さ) × max(0, 1 - 距離 / 影響する距離)"],
+          ["軸", "太さ（wght）のほか、幅（wdth）・傾き（slnt）など、フォントが持つ軸なら何でも同じ方法で動かせる"],
+          ["動きを減らす設定", "ポインターへの反応をやめ、通常の太さにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/variable-proximity" target="_blank" rel="noopener">React Bits: Variable Proximity</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cs = [...stage.querySelectorAll(".ac-variable-font-proximity-ch")],
+              root = stage.firstElementChild;
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const b = root.getBoundingClientRect(),
+                px = 115 + 95 * Math.sin(t * 0.8);
+              cur.style.transform = `translate(${px}px, 104px)`;
+              cs.forEach((c) => {
+                const r = c.getBoundingClientRect(),
+                  d = Math.abs(r.left - b.left + r.width / 2 - px),
+                  f = rm ? 0 : Math.max(0, 1 - d / v.range);
+                c.style.fontVariationSettings = `"wght" ${Math.round(v.min + (v.max - v.min) * f)}`;
+                c.style.fontWeight = Math.round(v.min + (v.max - v.min) * f);
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

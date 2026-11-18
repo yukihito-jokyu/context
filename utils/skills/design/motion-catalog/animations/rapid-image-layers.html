@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画像の高速な重ね送り（Rapid image layers） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rapid-image-layers"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <div class="ac-rapid-image-layers-w">
+          <span class="sb-grad-deep ac-rapid-image-layers-i" style="--i: 0"></span
+          ><span class="sb-grad-aqua ac-rapid-image-layers-i" style="--i: 1"></span
+          ><span class="sb-grad-sky ac-rapid-image-layers-i" style="--i: 2"></span
+          ><span class="sb-grad-hero ac-rapid-image-layers-i" style="--i: 3"></span
+          ><span class="sb-grad-deep ac-rapid-image-layers-i" style="--i: 4"></span
+          ><span class="sb-grad-aqua ac-rapid-image-layers-i" style="--i: 5"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-rapid-image-layers .ac-rapid-image-layers-w {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-rapid-image-layers .ac-rapid-image-layers-i {
+        position: absolute;
+        inset: 0;
+        clip-path: inset(100% 0 0 0);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-rapid-image-layers .ac-rapid-image-layers-i {
+          animation: ac-rapid-image-layers-in 500ms cubic-bezier(0.22, 1, 0.36, 1)
+            calc(300ms + var(--i) * var(--gap, 90ms)) forwards;
+        }
+      }
+      .ac-rapid-image-layers .ac-rapid-image-layers-i:last-child {
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+        animation:
+          ac-rapid-image-layers-in 500ms cubic-bezier(0.22, 1, 0.36, 1) calc(300ms + var(--i) * var(--gap, 90ms))
+            forwards,
+          ac-rapid-image-layers-z 1200ms cubic-bezier(0.22, 1, 0.36, 1) calc(300ms + var(--i) * var(--gap, 90ms)) both;
+      }
+      @keyframes ac-rapid-image-layers-in {
+        to {
+          clip-path: inset(0);
+        }
+      }
+      @keyframes ac-rapid-image-layers-z {
+        from {
+          transform: scale(1.15);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-rapid-image-layers .ac-rapid-image-layers-i:last-child {
+          clip-path: none;
+          animation: ac-rapid-image-layers-rf 300ms both;
+        }
+        @keyframes ac-rapid-image-layers-rf {
+          from {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rapid-image-layers",
+        name: "画像の高速な重ね送り",
+        en: "Rapid image layers",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "何枚もの画像が、短い間隔でパパパッと下から重なるように次々と現れ、最後の1枚で止まる演出です。たくさんの場面を一瞬で見せ、勢いと期待感を生みます。",
+        use: "ヒーローの登場演出、ポートフォリオの導入、ブランドムービー風のイントロ、作品のダイジェスト。",
+        params: [{ key: "gap", label: "1枚ごとの間隔", value: 90, min: 30, max: 200, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "画像を同じ場所に重ね、i 枚目を i × 間隔（60–120ms）だけ遅らせて <code>clip-path: inset(100% 0 0 0) → inset(0)</code>（下から現れる）｜out",
+          ],
+          [
+            "終わり",
+            "最後の画像だけ残し、ほかは見えなくなってから取り除く。最後の画像は少し <code>scale(1.1 → 1)</code> すると締まる",
+          ],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://github.com/codrops/RapidLayersAnimation/" target="_blank" rel="noopener">Codrops: rapid layers</a>',
+          ],
+        ],
+        loop: 2800,
+      });
+    </script>
+  </body>
+</html>

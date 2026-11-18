@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ホワイトボードアニメーション（Whiteboard Animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-whiteboard-animation" style="position: relative; width: 210px; height: 120px">
+        <div
+          class="sb-card"
+          style="width: 210px; height: 120px; padding: 0; position: relative; box-sizing: border-box"
+        >
+          <svg
+            viewBox="0 0 210 120"
+            width="210"
+            height="120"
+            fill="none"
+            stroke="var(--ink-muted)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              class="ac-whiteboard-animation-p"
+              style="--k: 0"
+              pathLength="1"
+              d="M22 38 Q20 30 30 30 L78 31 Q86 31 86 40 L85 80 Q85 88 77 88 L30 88 Q22 88 22 80 Z"
+            />
+            <path
+              class="ac-whiteboard-animation-p"
+              style="--k: 1"
+              pathLength="1"
+              d="M98 60 Q118 56 138 60 M128 50 L140 60 L128 70"
+            />
+            <path
+              class="ac-whiteboard-animation-p"
+              style="--k: 2"
+              pathLength="1"
+              d="M172 34 C190 34 194 52 192 62 C190 80 176 88 164 86 C150 84 146 70 148 58 C150 44 160 34 174 36"
+            />
+            <path
+              class="ac-whiteboard-animation-p"
+              style="--k: 2; stroke: var(--blue)"
+              pathLength="1"
+              d="M160 60 L168 68 L182 52"
+            />
+          </svg>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-whiteboard-animation .ac-whiteboard-animation-p {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        animation: ac-whiteboard-animation-draw var(--step, 600ms) cubic-bezier(0.65, 0, 0.35, 1)
+          calc(200ms + var(--k) * var(--step, 600ms)) forwards;
+      }
+      @keyframes ac-whiteboard-animation-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-whiteboard-animation .ac-whiteboard-animation-p {
+          animation: ac-whiteboard-animation-fade 300ms forwards;
+          stroke-dashoffset: 0;
+          opacity: 0;
+        }
+        @keyframes ac-whiteboard-animation-fade {
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "whiteboard-animation",
+        name: "ホワイトボードアニメーション",
+        en: "Whiteboard Animation",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "白い面に図や矢印が手描きされるように順に現れ、説明を追っていく表現形式です。描かれる順番そのものが、話の順番になります。",
+        use: "サービスの仕組みの説明、チュートリアル、オンボーディング、説明動画風のセクション。",
+        params: [{ key: "step", label: "1筆の時間", value: 600, min: 300, max: 1200, step: 50, unit: "ms" }],
+        total: (p) => p["step"] * 3,
+        spec: [
+          ["表現形式", "手描き風の線画（白い面・線だけ・塗りは最小限）"],
+          ["演出", "Sequential Reveal：箱 → 矢印 → 丸、と説明の順に描く"],
+          [
+            "個別の動き",
+            "各図形は Line drawing（<code>stroke-dashoffset</code>）。描いている位置にペン（カーソル）を添えると手描き感が出る",
+          ],
+          ["時間・質感", "1筆 500–700ms、ease-in-out"],
+          ["カタログの関連", "line-drawing / sequential-reveal / stagger"],
+          ["動きを減らす設定", "描く動きをやめ、完成した図を透明度で表示する"],
+          ["出典", "ChatGPT との会話（表現スタイルの語彙）"],
+        ],
+        loop: 3200,
+      });
+    </script>
+  </body>
+</html>

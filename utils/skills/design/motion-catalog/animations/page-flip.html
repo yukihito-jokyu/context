@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ページめくり（Page Flip） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-page-flip" style="position: relative; width: 210px; height: 130px; perspective: 900px">
+        <div class="ac-page-flip-book">
+          <div
+            class="ac-page-flip-page"
+            style="left: 0; padding: 14px; display: flex; flex-direction: column; gap: 9px"
+          >
+            <span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 60px"></span
+            ><span class="sb-bar sb-bar--xxs" style="width: 70px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ><span class="sb-bar sb-bar--xxs" style="width: 66px"></span>
+          </div>
+          <div
+            class="ac-page-flip-page"
+            style="left: 50%; padding: 14px; display: flex; flex-direction: column; gap: 9px"
+          >
+            <span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 66px"></span
+            ><span class="sb-thumb sb-grad-aqua" style="width: 76px; height: 50px; border-radius: 10px"></span>
+          </div>
+          <div class="ac-page-flip-leaf">
+            <span class="ac-page-flip-face sb-grad-hero"></span
+            ><span class="ac-page-flip-face ac-page-flip-back"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 56px"></span
+              ><span class="sb-bar sb-bar--xxs" style="width: 70px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 60px"></span
+            ></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-page-flip .ac-page-flip-book {
+        position: relative;
+        width: 210px;
+        height: 130px;
+      }
+      .ac-page-flip .ac-page-flip-page {
+        position: absolute;
+        top: 0;
+        width: 50%;
+        height: 100%;
+        box-sizing: border-box;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-page-flip .ac-page-flip-page:first-child {
+        border-radius: 16px 4px 4px 16px;
+      }
+      .ac-page-flip .ac-page-flip-page:nth-child(2) {
+        border-radius: 4px 16px 16px 4px;
+      }
+      .ac-page-flip .ac-page-flip-leaf {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 50%;
+        height: 100%;
+        transform-origin: left center;
+        transform-style: preserve-3d;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-page-flip .ac-page-flip-leaf {
+          animation: ac-page-flip-flip var(--dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) 400ms both;
+        }
+      }
+      .ac-page-flip .ac-page-flip-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 4px 16px 16px 4px;
+        backface-visibility: hidden;
+      }
+      .ac-page-flip .ac-page-flip-back {
+        transform: rotateY(180deg);
+        background: var(--surface);
+        border-radius: 16px 4px 4px 16px;
+        box-sizing: border-box;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+      }
+      @keyframes ac-page-flip-flip {
+        from {
+          transform: rotateY(0);
+        }
+        to {
+          transform: rotateY(-180deg);
+        }
+      }
+      /* 動きを減らす設定：めくらずに、表を消して裏（次のページ）を左に出す */
+      @keyframes ac-page-flip-fade-out {
+        to {
+          opacity: 0;
+        }
+      }
+      @keyframes ac-page-flip-fade-in {
+        from {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-page-flip .ac-page-flip-face {
+          animation: ac-page-flip-fade-out 300ms 400ms both;
+        }
+        .ac-page-flip .ac-page-flip-back {
+          transform: translateX(-100%);
+          animation: ac-page-flip-fade-in 300ms 400ms both;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "page-flip",
+        name: "ページめくり",
+        en: "Page Flip",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "本のページのように、片側の端を軸にページが回転してめくれる動きです。裏面が見えながら反対側に倒れるので、紙をめくる感覚を再現できます。",
+        use: "電子書籍、カタログ、雑誌風のギャラリー、オンボーディングのページ送り。",
+        params: [{ key: "dur", label: "めくる時間", value: 900, min: 300, max: 2000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "右ページを <code>rotateY(0 → -180deg)</code>、軸は左端（<code>transform-origin: left center</code>）｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>",
+          ],
+          ["必要な設定", "親に <code>perspective: 900px</code>、表裏に <code>backface-visibility: hidden</code>"],
+          ["仕上げ", "めくれている途中だけ影を濃くすると紙らしくなる"],
+          ["動きを減らす設定", "めくりをやめ、次のページにクロスフェードで切り替える"],
+          ["出典", "ChatGPT との会話の分類表（画面・ページ）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

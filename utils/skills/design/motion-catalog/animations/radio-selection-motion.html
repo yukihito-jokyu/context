@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ラジオの選択の移動（Radio selection motion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-radio-selection-motion"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-radio-selection-motion-l">
+          <div class="ac-radio-selection-motion-o">
+            <span class="sb-radio"></span><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span>
+          </div>
+          <div class="ac-radio-selection-motion-o">
+            <span class="sb-radio"></span><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span>
+          </div>
+          <div class="ac-radio-selection-motion-o">
+            <span class="sb-radio"></span><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span>
+          </div>
+          <span class="ac-radio-selection-motion-dot"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-radio-selection-motion .ac-radio-selection-motion-l {
+        position: relative;
+        display: grid;
+        gap: 4px;
+        padding: 8px;
+        border-radius: 18px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-radio-selection-motion .ac-radio-selection-motion-o {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 32px;
+        padding: 0 10px;
+      }
+      .ac-radio-selection-motion .ac-radio-selection-motion-dot {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-radio-selection-motion .ac-radio-selection-motion-dot {
+          transition: transform var(--dur, 320ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "radio-selection-motion",
+        name: "ラジオの選択の移動",
+        en: "Radio selection motion",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "ラジオボタンの選択が変わるとき、青い印が前の項目から次の項目へ滑って移る動きです。印が1つしかないことと、どこからどこへ選択が移ったかが目で追えます。",
+        use: "ラジオボタンの一覧、プランの選択、設定の切り替え、アンケートの回答。",
+        params: [{ key: "dur", label: "時間", value: 320, min: 150, max: 700, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "印",
+            "共通の印を1つだけ持ち、<code>translateY</code> で選んだ項目へ移す｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>",
+          ],
+          ["途中", "移動の間は印を少し縦に伸ばすと（<code>scaleY 1.2</code>）、滑っている感じが出る"],
+          ["実装", "Motion の <code>layoutId</code> を共有するか、FLIP で印の位置を動かす"],
+          ["動きを減らす設定", "移動をやめ、選んだ項目の印をその場で切り替える"],
+          [
+            "出典",
+            '<a href="https://motion.dev/examples/vue-radix-radio-group" target="_blank" rel="noopener">Motion: radio group</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const d = stage.querySelector(".ac-radio-selection-motion-dot");
+            let i = 0;
+            const rs = [...stage.querySelectorAll(".sb-radio")],
+              L = stage.querySelector(".ac-radio-selection-motion-l");
+            const pos = (k) => {
+              const a = rs[k].getBoundingClientRect(),
+                b = L.getBoundingClientRect();
+              return [a.left - b.left + a.width / 2 - 6, a.top - b.top + a.height / 2 - 6];
+            };
+            const [x0, y0] = pos(0);
+            d.style.left = `${x0}px`;
+            d.style.top = `${y0}px`;
+            const go = () => {
+              i = (i + 1) % 3;
+              if (!rm) d.animate([{ scale: "1 1" }, { scale: "1 1.6" }, { scale: "1 1" }], { duration: v.dur });
+              d.style.transform = `translateY(${pos(i)[1] - y0}px)`;
+            };
+            return seq(1200, [[0, go]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

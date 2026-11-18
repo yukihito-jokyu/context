@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>前景で隠すワイプ（Natural wipe (invisible wipe)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-natural-wipe"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-natural-wipe-s ac-natural-wipe-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-natural-wipe-s ac-natural-wipe-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+        <span class="ac-natural-wipe-o"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-natural-wipe .ac-natural-wipe-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-natural-wipe .ac-natural-wipe-b {
+        animation: ac-natural-wipe-clip var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      .ac-natural-wipe .ac-natural-wipe-o {
+        position: absolute;
+        top: 18px;
+        bottom: -4px;
+        left: -54px;
+        width: 46px;
+        border-radius: 23px 23px 0 0;
+        background: #0b1430;
+        animation: ac-natural-wipe-move var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      @keyframes ac-natural-wipe-clip {
+        0%,
+        20% {
+          clip-path: inset(0 270px 0 0);
+        }
+        80%,
+        100% {
+          clip-path: inset(0 -40px 0 0);
+        }
+      }
+      @keyframes ac-natural-wipe-move {
+        0%,
+        20% {
+          transform: none;
+        }
+        80%,
+        100% {
+          transform: translateX(310px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-natural-wipe .ac-natural-wipe-b {
+          animation-timing-function: step-end;
+        }
+        .ac-natural-wipe .ac-natural-wipe-o {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "natural-wipe",
+        name: "前景で隠すワイプ",
+        en: "Natural wipe (invisible wipe)",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "画面の手前を通る物（人、車、柱）の後ろの縁に合わせて、次のショットが現れていく切り替えです。物が横切るのと同時に場面が入れ替わるので、自然で気づかれにくくなります。",
+        use: "ワンカット風の動画、場面をまたぐブランド動画、横に流れるストーリーの画面。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "手前の物を <code>translateX</code> で動かし、次のショットの <code>clip-path: inset(0 右 0 0)</code> を同じ時間・イージングで動かす（物の後ろの縁と同じ位置）",
+          ],
+          ["見えないカットとの違い", "あちらは物が画面を完全におおう瞬間に切る。こちらは縁に沿って少しずつ入れ替わる"],
+          ["UI では", "横に動くパネルや画像の縁を、そのまま切り替えの境目に使う"],
+          ["動きを減らす設定", "横切る物をなくし、カットにする"],
+          [
+            "出典",
+            '<a href="https://en.wikipedia.org/wiki/Wipe_(transition)" target="_blank" rel="noopener">Wikipedia: Wipe (transition)</a>、<a href="https://en.wikipedia.org/wiki/Film_transition" target="_blank" rel="noopener">Wikipedia: Film transition</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

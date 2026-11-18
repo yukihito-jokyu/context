@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>自動送りの残り時間（Carousel autoplay progress） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-carousel-autoplay-progress" style="position: relative; width: 200px; height: 150px">
+        <div class="ac-carousel-autoplay-progress-vp">
+          <div class="ac-carousel-autoplay-progress-tr">
+            <span
+              class="sb-grad-aqua"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 180px;
+                height: 104px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span
+              class="sb-grad-sky"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 180px;
+                height: 104px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span
+              class="sb-grad-deep"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 180px;
+                height: 104px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span
+              class="sb-grad-hero"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 180px;
+                height: 104px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i
+            ></span>
+          </div>
+        </div>
+        <div class="ac-carousel-autoplay-progress-bars">
+          <i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-carousel-autoplay-progress .ac-carousel-autoplay-progress-vp {
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        width: 180px;
+        height: 104px;
+        overflow: hidden;
+        border-radius: 16px;
+      }
+      .ac-carousel-autoplay-progress .ac-carousel-autoplay-progress-tr {
+        display: flex;
+        transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-carousel-autoplay-progress .ac-carousel-autoplay-progress-bars {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 16px;
+        display: flex;
+        gap: 6px;
+      }
+      .ac-carousel-autoplay-progress .ac-carousel-autoplay-progress-bars i {
+        flex: 1;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--bar-soft);
+        overflow: hidden;
+      }
+      .ac-carousel-autoplay-progress .ac-carousel-autoplay-progress-bars b {
+        display: block;
+        height: 100%;
+        background: var(--blue);
+        transform: scaleX(0);
+        transform-origin: left;
+      }
+      .ac-carousel-autoplay-progress .ac-carousel-autoplay-progress-bars i.is-done b {
+        transform: scaleX(1);
+      }
+      .ac-carousel-autoplay-progress .ac-carousel-autoplay-progress-bars i.is-on b {
+        animation: ac-carousel-autoplay-progress-fill var(--interval, 2500ms) linear forwards;
+      }
+      @keyframes ac-carousel-autoplay-progress-fill {
+        to {
+          transform: scaleX(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "carousel-autoplay-progress",
+        name: "自動送りの残り時間",
+        en: "Carousel autoplay progress",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "自動で切り替わるカルーセルで、次のスライドへ送られるまでの残り時間を、下のバーが伸びていくことで見せる動きです。いつ切り替わるか分かるので、読んでいる途中で急に変わる驚きを減らせます。",
+        use: "ヒーローのスライドショー、ストーリー（Instagram 風）、お知らせのバナー、商品のおすすめ。",
+        params: [
+          { key: "interval", label: "1枚の表示時間", value: 2500, min: 1000, max: 6000, step: 100, unit: "ms" },
+          { key: "dur", label: "送る時間", value: 500, min: 200, max: 900, step: 10, unit: "ms" },
+        ],
+        spec: [
+          ["残り時間", "現在のスライドのバーを <code>scaleX(0 → 1)</code>｜<code>linear</code>｜表示時間と同じ長さ"],
+          ["送る", "満ちたら次のスライドへ <code>translateX</code>｜in-out。次のバーを 0 から始める"],
+          ["止める", "ホバー・タッチ中・タブが非表示のときはバーを止める（<code>animation-play-state: paused</code>）"],
+          ["動きを減らす設定", "自動送りをやめる（WCAG 2.2.2）。残り時間のバーも出さない"],
+          ["出典", '<a href="https://swiperjs.com/demos" target="_blank" rel="noopener">Swiper demos</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const tr = stage.querySelector(".ac-carousel-autoplay-progress-tr"),
+              bs = [...stage.querySelectorAll(".ac-carousel-autoplay-progress-bars i")];
+            let i = 0;
+            const show_ = () => {
+              tr.style.transform = `translateX(${-180 * i}px)`;
+              bs.forEach((b, j) => {
+                b.className = j < i ? "is-done" : j === i ? "is-on" : "";
+              });
+            };
+            if (rm) {
+              tr.style.transform = "translateX(0)";
+              bs[0].parentElement.hidden = true;
+              return null;
+            }
+            show_();
+            const iv = setInterval(() => {
+              i = (i + 1) % 4;
+              show_();
+            }, v.interval);
+            return () => clearInterval(iv);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

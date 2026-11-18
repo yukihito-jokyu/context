@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ドラッグ（Drag） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-drag" style="position: relative; width: 220px; height: 150px">
+        <span
+          class="sb-thumb sb-grad-sky ac-drag-t"
+          style="position: absolute; left: 0; top: 0; width: 56px; height: 56px; border-radius: 18px"
+        ></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-drag .ac-drag-t {
+        transition:
+          transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-drag .ac-drag-t.is-lift {
+        box-shadow: var(--shadow-float);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "drag",
+        name: "ドラッグ",
+        en: "Drag",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "要素をつかんで動かす操作です。つかむと少し持ち上がり（大きく・影が深く）、離すと勢いの分だけ少し滑ってから止まります。",
+        use: "並べ替え、ボードのカード移動、地図やキャンバスの移動、スライダー。",
+        params: [
+          { key: "lift", label: "つかんだときの大きさ", value: 1.05, min: 1, max: 1.15, step: 0.01, unit: "" },
+          { key: "glide", label: "離したあとに滑る時間", value: 500, min: 0, max: 1200, step: 50, unit: "ms" },
+        ],
+        spec: [
+          ["つかむ", "<code>scale(1 → つかんだときの大きさ)</code> と影を <code>shadow-float</code>｜180ms"],
+          ["動かす", "補間せず、<code>transform: translate</code> で指に追従"],
+          ["離す", "離した瞬間の速さで少し進み、out で止まる（慣性）。大きさと影を戻す"],
+          ["実装", "Pointer Events。移動用 <code>button</code> の矢印キーも同じ範囲に制限"],
+          ["動きを減らす設定", "持ち上げの拡大と慣性をやめる（追従はそのまま）"],
+          ["出典", "Animation Vocabulary（Feedback & Interaction）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const motion = matchMedia("(prefers-reduced-motion: no-preference)");
+          const t = stage.querySelector(".ac-drag-t");
+          const at = (x, y, s, ms, ease) => {
+            t.style.transition = `transform ${ms}ms ${ease}, box-shadow 180ms`;
+            t.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+            if (!ms) void t.offsetWidth;
+          };
+          let phase = "rest";
+          const onMotionChange = () => {
+            if (motion.matches) return;
+            if (phase === "lift") at(20, 50, 1, 0, "linear");
+            if (phase === "drag") {
+              // Keep the simulated pointer tracking while dropping the scale.
+              t.style.transform = "translate(100px, 30px) scale(1)";
+            }
+            if (phase === "release") at(100, 30, 1, 0, "linear");
+            if (phase === "rest") at(20, 50, 1, 0, "linear");
+          };
+          at(20, 50, 1, 0, "linear");
+          move(220, 150, 0);
+          motion.addEventListener("change", onMotionChange);
+          const stop = seq(3200, [
+            [
+              100,
+              () => {
+                show(1);
+                move(48, 78, 500);
+              },
+            ],
+            [
+              650,
+              () => {
+                phase = "lift";
+                at(20, 50, motion.matches ? v.lift : 1, 180, "ease-out");
+                t.classList.add("is-lift");
+              },
+            ],
+            [
+              900,
+              () => {
+                phase = "drag";
+                move(128, 58, 450);
+                at(100, 30, motion.matches ? v.lift : 1, 450, "cubic-bezier(0.65, 0, 0.35, 1)");
+              },
+            ],
+            [
+              1350,
+              () => {
+                phase = "release";
+                t.classList.remove("is-lift");
+                if (motion.matches) at(140, 22, 1, v.glide, "cubic-bezier(0.22, 1, 0.36, 1)");
+                else at(100, 30, 1, 0, "linear");
+              },
+            ],
+            [1700, () => move(220, 150, 400)],
+            [2000, () => show(0)],
+            [
+              2500,
+              () => {
+                phase = "rest";
+                at(20, 50, 1, motion.matches ? 500 : 0, "cubic-bezier(0.65, 0, 0.35, 1)");
+              },
+            ],
+          ]);
+          return () => {
+            stop();
+            motion.removeEventListener("change", onMotionChange);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

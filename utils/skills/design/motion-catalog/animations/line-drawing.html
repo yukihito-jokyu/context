@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>線を描く（Line drawing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-line-drawing"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="sb-card" style="padding: 16px; width: 200px; box-sizing: border-box">
+          <svg viewBox="0 0 168 80" width="168" height="80" style="overflow: visible">
+            <path d="M0 79 H168" stroke="var(--bar)" stroke-width="2" />
+            <path
+              class="ac-line-drawing-p"
+              pathLength="1"
+              d="M2 66 C 22 66, 30 40, 50 44 S 80 70, 100 40 S 136 12, 166 10"
+              fill="none"
+              stroke="var(--blue)"
+              stroke-width="4"
+              stroke-linecap="round"
+            />
+            <circle
+              class="ac-line-drawing-dot"
+              cx="166"
+              cy="10"
+              r="6"
+              fill="var(--blue)"
+              stroke="#fff"
+              stroke-width="3"
+            />
+          </svg>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-line-drawing .ac-line-drawing-p {
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+          animation: ac-line-drawing-draw var(--dur, 1200ms) cubic-bezier(0.65, 0, 0.35, 1) 200ms forwards;
+        }
+        .ac-line-drawing .ac-line-drawing-dot {
+          transform-box: fill-box;
+          transform-origin: center;
+          transform: scale(0);
+          animation: ac-line-drawing-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--dur, 1200ms) + 150ms)
+            forwards;
+        }
+      }
+      @keyframes ac-line-drawing-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes ac-line-drawing-pop {
+        to {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "line-drawing",
+        name: "線を描く",
+        en: "Line drawing",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "SVG の線が、見えないペンでなぞるように描かれていく表現です。グラフ、署名、アイコン、図の接続線などに使え、描かれる順番で視線を導けます。",
+        use: "折れ線グラフの登場、チェックマーク、手書き風の図、ロゴ、地図の経路。",
+        params: [{ key: "dur", label: "描く時間", value: 1200, min: 300, max: 3000, step: 100, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            '<code>pathLength="1"</code> を付け、<code>stroke-dasharray: 1; stroke-dashoffset: 1 → 0</code>｜in-out',
+          ],
+          ["点", "線が届いた頃に、終点の点を <code>scale</code> で出す"],
+          ["注意", "<code>pathLength</code> を使わないなら、<code>getTotalLength()</code> で長さを測る"],
+          ["動きを減らす設定", "描く動きをやめ、線と終点を最初から表示する"],
+          ["出典", "Animation Vocabulary（Polish & Effects）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

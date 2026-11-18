@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>データモッシュ（Datamoshing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-datamosh"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "datamosh",
+        name: "データモッシュ",
+        en: "Datamoshing",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "映像の圧縮のしくみ（動きのベクトルだけを記録する）を利用し、新しい場面の動きで古い場面の絵を引きずり回す表現です。前の映像が溶けるように崩れて次の映像へ流れ込みます。",
+        use: "ミュージックビデオ、グリッチ系の映像、実験的なトランジション、アート寄りのブランド。",
+        params: [{ key: "mv", label: "動きの強さ", value: 1, min: 0.2, max: 2.5, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "仕組み",
+            "I フレーム（全体の絵）を消して P フレーム（動きのベクトル）だけを続けると、前の絵が次の場面の動きで動かされる",
+          ],
+          [
+            "Web で近い形",
+            "画面を小さなブロックに分け、ブロックごとの動きのベクトルで前のフレームの絵をずらして描き続ける（新しい絵は描かない）",
+          ],
+          [
+            "本格的に",
+            "動画編集ソフトや ffmpeg でキーフレームを抜く。リアルタイムなら WebGL で、オプティカルフローのベクトルで前のフレームのテクスチャを動かす",
+          ],
+          ["動きを減らす設定", "崩れる動きをやめ、2つの場面をクロスフェードする"],
+          [
+            "出典",
+            '<a href="https://github.com/niccolofanton/data-mosh/" target="_blank" rel="noopener">github.com（data-mosh）</a>、<a href="https://www.adobe.com/uk/express/learn/blog/what-is-datamosh" target="_blank" rel="noopener">adobe.com（what-is-datamosh）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const off = document.createElement("canvas");
+            off.width = W;
+            off.height = H;
+            const og = off.getContext("2d"),
+              buf = document.createElement("canvas");
+            buf.width = W;
+            buf.height = H;
+            const bg2 = buf.getContext("2d");
+            const sceneA = (c) => {
+              const gr = c.createLinearGradient(0, 0, 0, H);
+              gr.addColorStop(0, "#dbeafe");
+              gr.addColorStop(1, "#60a5fa");
+              c.fillStyle = gr;
+              c.fillRect(0, 0, W, H);
+              c.fillStyle = "#1b3a8a";
+              for (let i = 0; i < 6; i++) c.fillRect(14 + i * 34, 70 - (i % 3) * 14, 22, 80);
+              c.fillStyle = "#fff";
+              c.beginPath();
+              c.arc(170, 34, 16, 0, TAU);
+              c.fill();
+            };
+            const vec = (x, y, T) => {
+              const bx = 30 + ((T * 60) % 160),
+                dx = x - bx,
+                dy = y - 75,
+                d = Math.hypot(dx, dy);
+              return d < 40
+                ? [3 * v.mv, Math.sin(T * 6) * 2 * v.mv]
+                : [0.4 * v.mv, -0.3 * v.mv * Math.sin(x * 0.05 + T)];
+            };
+            let t0 = -99;
+            if (rm) {
+              sceneA(g);
+              return null;
+            } // 動きを減らす設定：明滅させず、場面の静止画だけ
+            return raf((t) => {
+              const T = t % 6;
+              if (T < 1.2) {
+                sceneA(bg2);
+              } else {
+                og.clearRect(0, 0, W, H);
+                og.drawImage(buf, 0, 0);
+                for (let y = 0; y < H; y += 10)
+                  for (let x = 0; x < W; x += 10) {
+                    const [mx, my] = vec(x + 5, y + 5, T);
+                    bg2.drawImage(off, x - mx, y - my, 10, 10, x, y, 10, 10);
+                  }
+              }
+              g.drawImage(buf, 0, 0, W, H);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>
