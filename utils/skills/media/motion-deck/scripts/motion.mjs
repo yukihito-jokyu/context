@@ -178,7 +178,7 @@ const sceneHash = (ssml, t) => sha([ssml, t.tts, t.voice || '', t.engine || ''].
 // ───────────────────────── 必ず備わる機能 ─────────────────────────
 
 const BOOT_TAG = /<script\s+src=["']motion\/boot\.js["'][^>]*><\/script>/g;
-const PLAYER_REQUIRED = ['player', 'scrubber', 'timelinePanel', 'modeToggle', 'presenterView', 'narrationToggle', 'blackout', 'help', 'keyboard'];
+const PLAYER_REQUIRED = ['player', 'scrubber', 'timelinePanel', 'modeToggle', 'presenterView', 'narrationToggle', 'blackout', 'help', 'keyboard', 'editPanel'];
 const REQUIRED = ['boot', 'composition', 'scenes', 'theme', 'kit', 'chapterBar', 'subtitles', 'liveLayout', 'transitions', 'fonts'];
 
 function bootLists() {
@@ -714,11 +714,12 @@ async function cmdCheck(pos, opt) {
         key('p'); r.toVideo = P.mode === 'video'; key('p'); r.toLive = P.mode === 'live';
         key('b'); r.blackOn = !!bo() && bo().classList.contains('is-on'); key('b'); r.blackOff = !!bo() && !bo().classList.contains('is-on');
         const h = document.getElementById('md-help'); key('?'); r.help = !!h && h.classList.contains('is-open'); key('Escape'); r.helpClose = !!h && !h.classList.contains('is-open');
+        r.editHidden = !P.editOpen; key('e'); r.editOn = P.editOpen; key('i'); r.inspect = P.inspecting; key('Escape'); r.inspectOff = !P.inspecting; key('e'); r.editOff = !P.editOpen;
         r.hasAudio = P.audioTime !== null;
         if (r.hasAudio) { const n0 = P.narration; key('v'); r.voice = P.narration === !n0; key('v'); r.voiceBack = P.narration === n0; }
         return r;
       })()`);
-      const PROBES = { startLive: '?mode=live で発表モードになる', play: '→でステップの動きが始まる', next: '→をもう一度で次のステップの終わりへ', prev: '←で前のステップ', toVideo: 'P で動画モード', toLive: 'P で発表モードに戻る', blackOn: 'B で画面を隠す', blackOff: 'B で戻す', help: '? でヘルプ', helpClose: 'Esc でヘルプを閉じる', voice: 'V でナレーションのオン・オフ', voiceBack: 'V で戻す' };
+      const PROBES = { startLive: '?mode=live で発表モードになる', play: '→でステップの動きが始まる', next: '→をもう一度で次のステップの終わりへ', prev: '←で前のステップ', toVideo: 'P で動画モード', toLive: 'P で発表モードに戻る', blackOn: 'B で画面を隠す', blackOff: 'B で戻す', help: '? でヘルプ', helpClose: 'Esc でヘルプを閉じる', editHidden: '発表モードでは修正の列を隠す', editOn: 'E で修正の列を出す', inspect: 'I で DOM選択', inspectOff: 'Esc で DOM選択をやめる', editOff: 'E で修正の列を隠す', voice: 'V でナレーションのオン・オフ', voiceBack: 'V で戻す' };
       for (const [k, label] of Object.entries(PROBES)) if (k in probe && !probe[k]) errors.push(`[操作] ${label} が動きません`);
       if (!probe.hasAudio) warnings.push('[音声] narration がないので、ナレーションのオン・オフは確かめていません（synth のあとで check し直してください）');
       pl.pageErrors.forEach((e) => errors.push('[ブラウザ] ' + e));
