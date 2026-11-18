@@ -2,31 +2,33 @@
   "schema_version": 1,
   "skill": "motion-deck",
   "skill_source": "utils/skills/media/motion-deck/SKILL.md",
-  "skill_sha256": "801f6920d2535e8e04ea8c0429c2bac849a744fac726a1348ab3e62617e0d55d",
-  "recorded_at": "2026-11-11T23:07:52.646Z",
+  "skill_sha256": "5b83d7c70e6eaa528255963b7843ae90141da02b7463212c673ce2cbbd5a3ed6",
+  "recorded_at": "2026-11-18T14:27:33.514Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "ad712c4cbb97432e7",
-    "task": "motion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキとしてinit・原稿・シーン・check・still・synth・timeline・still --live・pptxまで作り、公開できる成果物を伏せ字にして保存する"
+    "agent_id": "a9b7044c044634aea",
+    "task": "motion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキとしてinit・原稿・シーン・check・still・synth・timeline・still --live・pptx・エンジン停止まで行い、修正の列の画面を撮って、公開できる成果物を伏せ字にして保存する"
   },
   "input": "input.md",
-  "summary": "「Gitのブランチ入門」を3シーン・15文（433文字）のmotion-deckのデッキにし、local-ttsの既定の声とVoxCPM2でナレーションを付けて、1分15秒の動画・15ステップの発表・3スライドのPowerPointにしました。公開物は原稿・シーンのスクリプト・一覧画像・PPTX・checkとsynthの記録で、個人の声による音声は載せていません。声の名前と絶対パスは伏せ字にしています。",
-  "stage": "PPTXの書き出しとエンジン停止まで。音声の試聴、MP4の書き出し、bundleは未実施",
+  "summary": "「Gitのブランチ入門」を3シーン・13文（381文字）のmotion-deckのデッキにし、local-ttsの既定の声とVoxCPM2でナレーションを付けて、1分5秒の動画・13ステップの発表・4スライドのPowerPointにしました。動画モードの修正の列で指示を1件溜めた画面も撮り、声の名前と絶対パスは伏せ字にして、個人の声による音声は載せていません。",
+  "stage": "PPTXの書き出しと修正の列の画面の撮影まで。エンジンのサーバーは別のアプリが起動したもの（started elsewhere）で他の利用もあったため止めずに残した。音声の試聴、MP4の書き出し、bundleは未実施",
   "checks": [
-    "initで雛形を作り、script.jsonを3シーン・15文・433文字（読み上げ428文字）に書き換えた",
-    "音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）を確認し、still --cuesの一覧を見て1シーン目の空いた画面を直した",
-    "synth --dry-runで3シーン・428文字・目安約3分と出たため、synthをバックグラウンドで実行し、終了コード0・153秒で3シーン（21.9秒・24.3秒・23.0秒）の音声ができた",
+    "initで雛形を作り、script.jsonを3シーン・13文・381文字（読み上げ373文字）に書き換えた",
+    "音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）を確認し、still --cuesの一覧（13枚）を見て見た目の決まりにそろっていることを確かめた",
+    "synth --dry-runで3シーン・373文字・目安約3分と出たため、synthをバックグラウンドで実行し、終了コード0・177秒で3シーン（18.3秒・23.0秒・17.9秒）の音声ができた",
     "既定の声と既定のエンジン（VoxCPM2）が使われたことを、local-ttsの設定とサーバーのログで確認",
-    "local-tts server stopでエンジンを止め、server statusでvoxcpm2がnot runningであることを確認",
-    "timelineで3シーン・1.25分（2250フレーム）・音声ありになり、ffprobeでnarration.m4aが75.0秒であることを確認",
-    "合成後のcheckでエラー0件・注意0件、発表モード15ステップを確認",
-    "合成後のstill --cues（15枚）とstill --live（15枚）の一覧画像を見て、見出しが左上、太枠とずらした影のカード、章バーと字幕の帯、色の意味がそろっていることを確認",
-    "pptxで3スライド・絵58枚・要素のアニメーション15ステップ・差分の重ね6ステップのPPTXができ、ノートに台本とメモが入っていることを確認",
+    "timelineで3シーン・1.08分（1950フレーム）・音声ありになり、ffprobeでnarration.m4aが65.0秒であることを確認",
+    "合成後のcheckでエラー0件・注意0件、発表モード13ステップを確認",
+    "合成後のstill --cues（13枚）とstill --live（13枚、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影のカード、章バーと字幕の帯、色の意味がそろっていることを確認",
+    "pptxで4スライド（mergeは見出しの差し替えで2枚）・絵53枚・要素のアニメーション13ステップ・差分の重ね5ステップのPPTXができ、ノートに台本とメモが入っていることを確認",
+    "local-tts server stopは「No server started by this tool is running」。server statusでvoxcpm2とomnivoiceが別のアプリの起動したサーバー（started elsewhere）として動き続けていることを確認し、片付け手順に従い止めずに残した",
+    "ヘッドレスのChrome（1600×900）で動画モードをシーン2のフレーム958で開き、CDPでI→注釈カードのクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、左のシーンの一覧、右のDOM選択・原稿・対象と指示・溜めた指示（1件）が写り、選択モードが終わっていることを画像で確認",
+    "公開する全ファイル（PPTXのノート・XML・画像のメタデータを含む）に個人名と絶対パスがないことを確認",
     "実行者は音声を聞けないため、読みの正しさは未確認。試聴が必要な箇所をoutput.mdにシーンと文番号で記録"
   ],
   "preview": "contact.png",
-  "preview_alt": "紙色の背景に、ブランチの分岐を描いた線と走るキャラクター、ターミナル風のコードと注釈カード、合流の図とまとめの表が、各文の終わりごとに15枚並んだ一覧画像",
+  "preview_alt": "紙色の背景に、ブランチの分岐を描いた線と走るキャラクター、ターミナル風のコードと注釈カード、合流の図とまとめの表が、各文の終わりごとに13枚並んだ一覧画像",
   "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で差し替わる注釈カードは消えかけの薄い状態で写る（発表の各ステップは live-contact.png）",
   "downloads": [
     {
@@ -36,6 +38,10 @@
     {
       "file": "git-branch.pptx",
       "label": "PowerPointの書き出し（PPTX）"
+    },
+    {
+      "file": "player-edit.png",
+      "label": "プレーヤーの修正の列（PNG）"
     },
     {
       "file": "live-contact.png",
@@ -70,23 +76,23 @@
   "artifacts": [
     {
       "file": "check.log",
-      "sha256": "fbcb3e540351f8c1a30cafbb674981eea4420061849148e2f1bc75dcfbc0e721",
+      "sha256": "624f4243dd4d005be703a99826f732c7e7e9c183e534a8b52be94cc0bd09a016",
       "bytes": 98
     },
     {
       "file": "contact.png",
-      "sha256": "a38e47b703a46c3e118c85da2da36d1e2037ba4f9da763fad0b8e851978cd19e",
-      "bytes": 502896
+      "sha256": "e3414285a810a88b21f4b8037027ead752398e2bf55a3aa6b83e6aea60f5698d",
+      "bytes": 403822
     },
     {
       "file": "git-branch.pptx",
-      "sha256": "01885fb01fd94b3a30359fba53754f3431f8fc70ae201b71d2059b113ed8abd5",
-      "bytes": 976467
+      "sha256": "e46f58ccf1a7bd4f820adb39a2b6bfdb16fceb838dd332abd94946cc74618de6",
+      "bytes": 909953
     },
     {
       "file": "index.html",
-      "sha256": "e4bfb6736c51bbc1c5f02584c2daa91847199aada193469ef9937a3c9cb68980",
-      "bytes": 8165
+      "sha256": "9762ca57060e58964f9b1e0198f12968d5681a54aad45301742d9d1deeb7055a",
+      "bytes": 7625
     },
     {
       "file": "input.md",
@@ -95,13 +101,18 @@
     },
     {
       "file": "live-contact.png",
-      "sha256": "a697a1407e13e163d0a1afb5b3d8681f01e161b49c0cc7f20a357f229cfd9708",
-      "bytes": 349767
+      "sha256": "4b586dec9925c8b788e4a51a0a3b3f0375aa302be45d2e3690b545fd8a10b93d",
+      "bytes": 275436
     },
     {
       "file": "output.md",
-      "sha256": "c2d73a3e12c84bfc199464c14fc307272e4857b9f4561e6b6075d1a8f540c24b",
-      "bytes": 5761
+      "sha256": "4e7cf0876446ccc3acbc755dd961193a9264c6bc7bf440b0ef82ffdd7d33c864",
+      "bytes": 7817
+    },
+    {
+      "file": "player-edit.png",
+      "sha256": "22bad04aff88b72b4734f12cfdedf136ab9117caaf1ebad04ae7a5f35bfa7575",
+      "bytes": 169643
     },
     {
       "file": "scenes.js",
@@ -110,24 +121,24 @@
     },
     {
       "file": "script.json",
-      "sha256": "f46ec862c879c04103570e00d8f33fb4a240e465e92731657e94ffd66247dff3",
-      "bytes": 3252
+      "sha256": "769db35ddd274423fcd9efb575293ba566af73641287895ce885532c5408062b",
+      "bytes": 2713
     },
     {
       "file": "synth.log",
-      "sha256": "671accd909550854c01150a1fee8fb686f6cf8aec3fe2c974af777c3fc8f488e",
-      "bytes": 1327
+      "sha256": "9e15e565ba81e220dd0c6a05d05d42bc86d264bb55dcf6cd3a730dc57e0c56d5",
+      "bytes": 2152
     },
     {
       "file": "theme.css",
-      "sha256": "c3945807044b6793db9328db8a807e68499853ee76852e183a97ab9e9580e3a0",
-      "bytes": 1851
+      "sha256": "52d603867df0d3e987f2267cdb00b5796eaa28466d4f86188dd7e6fa6bab4daa",
+      "bytes": 1802
     }
   ],
   "source_files": [
     {
       "file": "SKILL.md",
-      "sha256": "801f6920d2535e8e04ea8c0429c2bac849a744fac726a1348ab3e62617e0d55d"
+      "sha256": "5b83d7c70e6eaa528255963b7843ae90141da02b7463212c673ce2cbbd5a3ed6"
     },
     {
       "file": "references/authoring.md",
@@ -139,11 +150,11 @@
     },
     {
       "file": "references/player.md",
-      "sha256": "bf92ff06accb465f639b58836b15ee8e9392d098b502027a6662a4761605b68f"
+      "sha256": "ac09dcfdad7bc3649306a80d954f9a75ce059a32f755011ef5411312800ff538"
     },
     {
       "file": "references/style.md",
-      "sha256": "a4813aeae67954b008838d2f9b1afd95f0da5d4a041e5e7a6a95fb39de35bedf"
+      "sha256": "ed1c981ea9d0a99e2595ceefea8ad9c23d62f9130384d75782de7c2963c4b6a1"
     },
     {
       "file": "runtime/boot.js",
@@ -171,15 +182,15 @@
     },
     {
       "file": "runtime/motion.css",
-      "sha256": "7f08fd3af237534f474487aa12ff13814e1bffc4aad5ab459238554267230880"
+      "sha256": "2bde9ac04d6f464a2c7a2fb0cdada606d27599741c7d05adbc56f5ea588a54a8"
     },
     {
       "file": "runtime/motion.js",
-      "sha256": "d344df7c184630f0692e940cf3743d44db7b4b1bf2a12499cf8c6816a8fc2522"
+      "sha256": "947e1a5bf9cd36c3995740a03a5ac6eaa21807dd466ff63b3c8594cdf7cd749b"
     },
     {
       "file": "scripts/motion.mjs",
-      "sha256": "a30a11b7764dfdb840992c85f6c1739497c612d55defafb9d569eed3a416e6e0"
+      "sha256": "1d7ea04e81e8f8fe3fd21626e13a7f6ec319514a61d47e932fe8c25e8088c2b9"
     },
     {
       "file": "scripts/pptx.mjs",
@@ -206,5 +217,5 @@
       "sha256": "a77bf1998d4d5a896742672845d306560aa60ed154ab22e816c0bc7c2ae5fedc"
     }
   ],
-  "source_sha256": "b348695f288284030964c66b69c6481e73e99179b3fe620109fac882a948d631"
+  "source_sha256": "a74dedc1c520df8ff3b6e8f2d4f1ac1fe1545c8401bbc2ba61265ae70108353e"
 }

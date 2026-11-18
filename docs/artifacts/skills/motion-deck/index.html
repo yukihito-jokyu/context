@@ -8,7 +8,7 @@
 <body>
 <main id="composition" data-chapter-bar>
 
-  <!-- 1. ブランチとは：一本の線（main）から枝が分かれる -->
+  <!-- 1. ブランチとは：一本の線（main）から枝が分かれ、走者が進む -->
   <section data-scene="idea" data-transition="none">
     <div class="title-bar cyan" data-at="0" data-anim="left">
       <div><div class="kicker"><span class="mono">Git</span> のブランチ入門</div><div class="h">ブランチ ＝ 作業の<span class="c-cyan">枝分かれ</span></div></div>
@@ -16,26 +16,23 @@
     <div class="steps" data-at="0" data-delay="12" data-anim="pop" data-stagger="8"><span class="chip cyan">作る</span><span class="chip yellow">移る</span><span class="chip green">合流する</span></div>
     <div class="card green bold safe-card" data-at="safe" data-anim="pop"><span class="mono">main</span> は そのまま</div>
     <div class="branch diagram">
-      <svg width="1300" height="400" viewBox="0 0 1300 400">
-        <path id="b-main" d="M0 200 L1300 200" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="main" data-anim="draw" data-dur="40"/>
-        <path id="b-feat" d="M380 200 C 500 200, 480 60, 620 60 L1300 60" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="split" data-anim="draw" data-dur="40"/>
-        <path id="b-exp" d="M700 200 C 820 200, 800 340, 940 340 L1300 340" fill="none" stroke="var(--coral)" stroke-width="8" stroke-linecap="round" data-at="many" data-anim="draw" data-dur="40"/>
+      <svg width="1300" height="340" viewBox="0 0 1300 340">
+        <path id="b-main" d="M0 260 L1300 260" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="main" data-anim="draw" data-dur="40"/>
+        <path id="b-feat" d="M420 260 C 540 260, 520 80, 660 80 L1300 80" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="split" data-anim="draw" data-dur="40"/>
       </svg>
-      <div class="at commit" style="left:68px;top:178px" data-at="main" data-delay="6" data-anim="scale"></div>
-      <div class="at commit" style="left:238px;top:178px" data-at="main" data-delay="14" data-anim="scale"></div>
-      <div class="at commit cyan" style="left:778px;top:38px" data-at="split" data-delay="30" data-anim="scale"></div>
-      <div class="at commit cyan" style="left:1028px;top:38px" data-at="split" data-delay="38" data-anim="scale"></div>
-      <div class="at commit coral" style="left:1078px;top:318px" data-at="many" data-delay="30" data-anim="scale"></div>
+      <div class="at commit" style="left:98px;top:238px" data-at="main" data-delay="8" data-anim="scale"></div>
+      <div class="at commit" style="left:278px;top:238px" data-at="main" data-delay="16" data-anim="scale"></div>
+      <div class="at commit" style="left:398px;top:238px" data-at="main" data-delay="24" data-anim="scale"></div>
+      <div class="at commit cyan" style="left:818px;top:58px" data-at="split" data-delay="30" data-anim="scale"></div>
+      <div class="at commit cyan" style="left:1038px;top:58px" data-at="safe" data-delay="6" data-anim="scale"></div>
       <div class="runner at" data-size="72" data-color="yellow" data-at="main" data-anim="follow" data-follow="#b-main" data-anchor="bottom" data-dur="40"></div>
       <div class="runner at" data-size="72" data-color="cyan" data-seed="2" data-at="split" data-anim="follow" data-follow="#b-feat" data-anchor="bottom" data-dur="40"></div>
-      <div class="runner at" data-size="72" data-color="coral" data-seed="4" data-at="many" data-anim="follow" data-follow="#b-exp" data-anchor="bottom" data-dur="40"></div>
-      <div class="at" style="left:1330px;top:172px" data-at="main" data-delay="36" data-anim="pop"><span class="chip mono">main</span></div>
-      <div class="at" style="left:1330px;top:32px" data-at="split" data-delay="40" data-anim="pop"><span class="chip mono cyan">feature/login</span></div>
-      <div class="at" style="left:1330px;top:312px" data-at="many" data-delay="40" data-anim="pop"><span class="chip coral">実験</span></div>
+      <div class="at" style="left:1330px;top:232px" data-at="main" data-delay="36" data-anim="pop"><span class="chip mono">main</span></div>
+      <div class="at" style="left:1330px;top:52px" data-at="split" data-delay="40" data-anim="pop"><span class="chip mono cyan">feature/login</span></div>
     </div>
   </section>
 
-  <!-- 2. 作って移る：コマンドの行が文ごとに強調され、走者（今いる枝）が移る -->
+  <!-- 2. 作って移る：コマンドの行が文ごとに強調され、走者（今いる枝）が移る。注釈のカードは文ごとに差し替える -->
   <section data-scene="switch" data-transition="slide">
     <h2 class="h" data-at="0">ブランチを<span class="c-cyan">作って</span>、移る</h2>
     <div class="switch-row">
@@ -68,7 +65,7 @@ Switched to branch 'main'
     </div>
   </section>
 
-  <!-- 3. 合流とまとめ：枝がメインに戻る線を描き、最後はまとめの表に差し替える -->
+  <!-- 3. 合流とまとめ：枝がメインに戻る線を描き、最後は見出しごとまとめの表に差し替える（PPTXでは別のスライドになる） -->
   <section data-scene="merge" data-transition="iris">
     <h2 class="h" data-at="0" data-until="sum">終わったら<span class="c-cyan">合流</span>させる</h2>
     <h2 class="h sum-head" data-at="sum">今日のまとめ</h2>
@@ -85,13 +82,11 @@ Switched to branch 'main'
         <div class="at commit cyan" style="left:698px;top:28px"></div>
         <div class="at commit merged" style="left:1032px;top:162px" data-at="joined" data-delay="24" data-anim="pop"></div>
         <div class="at" style="left:1330px;top:162px"><span class="chip mono">main</span></div>
-        <div class="at" style="left:440px;top:88px" data-until="tidy"><span class="chip mono cyan sm">feature/login</span></div>
+        <div class="at" style="left:400px;top:84px"><span class="chip mono cyan">feature/login</span></div>
       </div>
       <div class="merge-row">
         <div class="terminal" data-show="run" data-at="run" data-command="git merge feature/login" data-width="1080" data-size="30">
           <div data-at="run" data-delay="34" class="ok">Merge made by the 'ort' strategy.</div>
-          <div data-at="tidy">$ git branch -d feature/login</div>
-          <div data-at="tidy" data-delay="14" class="dim">Deleted branch feature/login</div>
         </div>
         <div class="card yellow bold" data-at="joined" data-anim="right">変更が <span class="kw">main</span> に入る</div>
       </div>
@@ -105,6 +100,7 @@ Switched to branch 'main'
   </section>
 
 </main>
+<!-- 読み込みはこの1行だけ -->
 <script src="motion/boot.js"></script>
 </body>
 </html>
