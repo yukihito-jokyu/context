@@ -35,6 +35,7 @@
 | [generate-domain-model](design/generate-domain-model/SKILL.md) | 業務の概念と関係からMermaid原本・PNG・検索できるHTMLカタログを作る。 |
 | [generate-domain-model-from-code](design/generate-domain-model-from-code/SKILL.md) | コードの行・抜粋・ハッシュを記録し、業務概念と関係のMermaid・PNG・HTMLカタログを作る。 |
 | [generate-usecase-diagram](design/generate-usecase-diagram/SKILL.md) | 要件文またはMermaidからユースケース図の原本とPNGを生成し、複数図をローカルのHTMLカタログで閲覧する。 |
+| [motion-catalog](design/motion-catalog/SKILL.md) | UIアニメーションのカタログ（608件）から動き・考え方・表現スタイルを選び、時間・イージング・キーフレーム・順序・きっかけを対象のプロジェクト（HTML/CSS・React・Vueなど）に移植する。名前やおまかせの依頼では候補や計画を先に示す。 |
 
 ## コミット・PR・レビュー（`development/`）
 
