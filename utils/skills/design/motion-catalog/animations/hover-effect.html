@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ホバー（Hover effect） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hover-effect"
+        style="position: relative; width: 200px; height: 160px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-hover-effect-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 48px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hover-effect .ac-hover-effect-c {
+        --hover-transform: translateY(calc(var(--lift, 4px) * -1));
+        transition:
+          transform var(--dur, 180ms) cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow var(--dur, 180ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-hover-effect .ac-hover-effect-c.is-hover {
+        transform: var(--hover-transform);
+        box-shadow: var(--shadow-float);
+      }
+      @media (hover: hover) {
+        .ac-hover-effect .ac-hover-effect-c:hover {
+          transform: var(--hover-transform);
+          box-shadow: var(--shadow-float);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-hover-effect .ac-hover-effect-c {
+          --hover-transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hover-effect",
+        name: "ホバー",
+        en: "Hover effect",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "カーソルが要素の上に乗ったときに、見た目を少し変えて「押せる」ことを伝える動きです。カードが少し浮き上がり、影が深くなります。",
+        use: "カード、ボタン、リンク、一覧の行など、クリックできるもの全般（PC）。",
+        params: [
+          { key: "lift", label: "浮く高さ", value: 4, min: 0, max: 12, step: 1, unit: "px" },
+          { key: "dur", label: "時間", value: 180, min: 100, max: 400, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>translateY(0 → -浮く高さ)</code> と影を <code>shadow-card → shadow-float</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["きっかけ", "<code>:hover</code>。タッチ端末では <code>@media (hover: hover)</code> の中だけで当てる"],
+          ["戻り", "同じ時間で戻す。詳細ページのプレビューは実際にホバーしても動く"],
+          ["動きを減らす設定", "移動をやめ、影や色の変化だけにする"],
+          ["出典", "Animation Vocabulary（Feedback & Interaction）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const c = stage.querySelector(".ac-hover-effect-c");
+          move(190, 150, 0);
+          return seq(2600, [
+            [
+              100,
+              () => {
+                show(1);
+                move(120, 80, 600);
+              },
+            ],
+            [600, () => c.classList.add("is-hover")],
+            [1600, () => move(190, 150, 600)],
+            [1800, () => c.classList.remove("is-hover")],
+            [2300, () => show(0)],
+          ]);
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>表示範囲のタイムライン（View progress timeline） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-view-progress-timeline" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-view-progress-timeline-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 60px 12px">
+            <div
+              class="sb-item ac-view-progress-timeline-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-view-progress-timeline-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-view-progress-timeline-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-view-progress-timeline-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-view-progress-timeline-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-view-progress-timeline-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item ac-view-progress-timeline-r"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 86px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      /* 未対応のブラウザでは JS が位置から同じ値を計算する */
+      @media (prefers-reduced-motion: no-preference) {
+        @supports (animation-timeline: view()) and (animation-range: entry 0% exit 100%) {
+          .ac-view-progress-timeline .ac-view-progress-timeline-r {
+            animation: ac-view-progress-timeline-v linear both;
+            animation-timeline: view();
+            animation-range: entry 0% exit 100%;
+          }
+        }
+      }
+      @keyframes ac-view-progress-timeline-v {
+        0% {
+          opacity: 0;
+          transform: scale(0.85);
+        }
+        30%,
+        70% {
+          opacity: 1;
+          transform: none;
+        }
+        100% {
+          opacity: 0;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "view-progress-timeline",
+        name: "表示範囲のタイムライン",
+        en: "View progress timeline",
+        cat: "スクロール",
+        kind: "concept",
+        description:
+          "要素がスクロール領域に入ってきて、通り過ぎて出ていくまでの進み具合を、そのままアニメーションの再生位置にする考え方です。入ってくる間に大きくなりながら現れ、出ていく間に薄くなって消えます。JS なしで CSS だけで書けます。",
+        use: "スクロールで現れる一覧・カード、画像のズーム、見出しの出し入れ、スクロールで進む説明。",
+        params: [],
+        spec: [
+          [
+            "書き方",
+            "<code>animation-timeline: view()</code> と <code>animation-range: entry 0% exit 100%</code>。未対応なら JS で位置から進み具合を出す",
+          ],
+          [
+            "範囲",
+            "<code>entry</code>（入ってくる間）、<code>cover</code>（入り始めから出終わりまで）、<code>contain</code>（全体が見えている間）、<code>exit</code>（出ていく間）",
+          ],
+          [
+            "このデモ",
+            "キーフレームの 0–30%（入る）で <code>scale .85 → 1</code> と <code>opacity 0 → 1</code>、70–100%（出る）で <code>opacity → 0</code>｜イージングは <code>linear</code>",
+          ],
+          ["動きを減らす設定", "拡大をやめ、透明度だけにする（または動きをなくす）"],
+          [
+            "出典",
+            '<a href="https://www.w3.org/TR/scroll-animations-1/" target="_blank" rel="noopener">W3C Scroll-driven Animations</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const auto = (sc, ms) => {
+              let raf,
+                start = null;
+              const tick = (now) => {
+                if (start === null) start = now;
+                const t = (now - start) % (ms + 1000),
+                  p = Math.min(1, t / ms),
+                  max = sc.scrollHeight - sc.clientHeight;
+                sc.scrollTop = max * (0.5 - Math.cos(Math.PI * p) / 2);
+                raf = requestAnimationFrame(tick);
+              };
+              raf = requestAnimationFrame(tick);
+              return () => cancelAnimationFrame(raf);
+            };
+            const sc = stage.querySelector(".ac-view-progress-timeline-sc"),
+              stop = auto(sc, 3600);
+            if (rm || CSS.supports("(animation-timeline: view()) and (animation-range: entry 0% exit 100%)"))
+              return stop;
+            const rows = [...sc.querySelectorAll(".ac-view-progress-timeline-r")];
+            const update = () => {
+              const top0 = sc.getBoundingClientRect().top;
+              for (const r of rows) {
+                const top = r.getBoundingClientRect().top - top0,
+                  p = Math.min(1, Math.max(0, (sc.clientHeight - top) / (sc.clientHeight + r.offsetHeight)));
+                r.style.opacity = p < 0.3 ? p / 0.3 : p > 0.7 ? (1 - p) / 0.3 : 1;
+                r.style.transform = p < 0.3 ? `scale(${0.85 + 0.5 * p})` : "none";
+              }
+            };
+            sc.addEventListener("scroll", update, { passive: true });
+            update();
+            return () => {
+              stop();
+              sc.removeEventListener("scroll", update);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

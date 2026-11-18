@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>水面のゆがみ（Water displacement） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-water-displacement"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-wd-f" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence
+              class="ac-water-displacement-tu"
+              type="turbulence"
+              baseFrequency="0.01 0.04"
+              numOctaves="2"
+              seed="5"
+            />
+            <feDisplacementMap class="ac-water-displacement-dm" in="SourceGraphic" scale="12" />
+          </filter></svg
+        ><span class="ac-water-displacement-i"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-water-displacement .ac-water-displacement-i {
+        position: absolute;
+        inset: -8px;
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+        filter: url(#ac-wd-f);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "water-displacement",
+        name: "水面のゆがみ",
+        en: "Water displacement",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像が水面に映ったように、ゆらゆらと波打ってゆがみ続ける表現です。ポインターを動かすと波紋が広がる型もあります。涼しさや夢の中のような、ゆったりした雰囲気を作ります。プレビューは SVG のフィルターで近い形を作っています（元の作例は WebGL）。",
+        use: "夏・水・リゾートのビジュアル、ヒーローの背景、アート寄りのギャラリー、夢の演出。",
+        params: [{ key: "amt", label: "ゆがみの強さ", value: 12, min: 2, max: 30, step: 1, unit: "" }],
+        spec: [
+          [
+            "ゆがみ",
+            "SVG の <code>feTurbulence</code>（波の模様）と <code>feDisplacementMap</code>（模様で画素をずらす）",
+          ],
+          [
+            "動き",
+            "<code>feTurbulence</code> の <code>baseFrequency</code> を時間でゆっくり変える（波が動いて見える）。強さは <code>scale</code>",
+          ],
+          ["波紋", "ポインターの位置から広がる同心円の波は、WebGL のシェーダーで計算する"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/ripple-distortion" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const tu = stage.querySelector(".ac-water-displacement-tu"),
+              dm = stage.querySelector(".ac-water-displacement-dm");
+            dm.setAttribute("scale", v.amt);
+            if (rm) {
+              dm.setAttribute("scale", 0);
+              return null;
+            }
+            let last = -1;
+            return raf((t) => {
+              if (t - last < 1 / 30) return;
+              last = t;
+              tu.setAttribute(
+                "baseFrequency",
+                `${(0.01 + 0.003 * Math.sin(t * 0.7)).toFixed(4)} ${(0.04 + 0.01 * Math.sin(t * 0.5 + 1)).toFixed(4)}`,
+              );
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

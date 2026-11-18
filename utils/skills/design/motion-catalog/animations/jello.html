@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ゼリーのぷるぷる（Jello） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-jello" style="position: relative; width: 200px; height: 150px; display: grid; place-items: center">
+        <div
+          class="sb-card ac-jello-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-jello .ac-jello-c {
+        transform-origin: center;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-jello .ac-jello-c {
+          animation: ac-jello-a var(--dur, 1000ms) both;
+        }
+      }
+      @keyframes ac-jello-a {
+        0%,
+        11.1%,
+        100% {
+          transform: none;
+        }
+        22.2% {
+          transform: skewX(-12.5deg) skewY(-12.5deg);
+        }
+        33.3% {
+          transform: skewX(6.25deg) skewY(6.25deg);
+        }
+        44.4% {
+          transform: skewX(-3.125deg) skewY(-3.125deg);
+        }
+        55.5% {
+          transform: skewX(1.56deg) skewY(1.56deg);
+        }
+        66.6% {
+          transform: skewX(-0.78deg) skewY(-0.78deg);
+        }
+        77.7% {
+          transform: skewX(0.39deg) skewY(0.39deg);
+        }
+        88.8% {
+          transform: skewX(-0.2deg) skewY(-0.2deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "jello",
+        name: "ゼリーのぷるぷる",
+        en: "Jello",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "ゼリーのように、左右にゆがみながらぷるぷる揺れて、だんだん収まる動きです。柔らかく、触って楽しい感じが出ます。",
+        use: "遊び心のあるボタン、キャラクター、空の状態のイラスト、ゲームの UI。",
+        params: [{ key: "dur", label: "時間", value: 1000, min: 300, max: 2500, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["動き", "<code>skewX / skewY</code> を -12.5° → 6.25° → -3.1° … と、半分ずつ小さくしながら向きを変える"],
+          ["中心", "<code>transform-origin: center</code>"],
+          ["動きを減らす設定", "動きをやめ、色や記号の変化だけで知らせる"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

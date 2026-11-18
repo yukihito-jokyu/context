@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スクロールで隠れるヘッダー（Hide-on-scroll header） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-hide-on-scroll-header" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-hide-on-scroll-header-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div class="ac-hide-on-scroll-header-hd">
+            <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 60px"></span
+            ><span class="sb-avatar sb-avatar--sm"></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 56px 12px 12px">
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 86px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 86px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hide-on-scroll-header .ac-hide-on-scroll-header-sc {
+        position: relative;
+      }
+      .ac-hide-on-scroll-header .ac-hide-on-scroll-header-hd {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin-bottom: -46px;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 1px 0 var(--line);
+        transition: transform var(--dur, 250ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-hide-on-scroll-header .ac-hide-on-scroll-header-hd.is-hidden:not(:focus-within) {
+        transform: translateY(-100%);
+        transition-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-hide-on-scroll-header .ac-hide-on-scroll-header-hd {
+          transition: opacity 150ms;
+        }
+        .ac-hide-on-scroll-header .ac-hide-on-scroll-header-hd.is-hidden:not(:focus-within) {
+          transform: none;
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hide-on-scroll-header",
+        name: "スクロールで隠れるヘッダー",
+        en: "Hide-on-scroll header",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "下へスクロールして読み進めている間はヘッダーが上へ引っ込み、少しでも上へスクロールし返すとすぐに降りてくる動きです。読むときは画面を広く使い、戻りたいときにはナビゲーションがすぐ手に入ります。",
+        use: "記事・ブログ、モバイルのサイト、ニュースアプリ、長い一覧のヘッダーやタブバー。",
+        params: [
+          { key: "dur", label: "時間", value: 250, min: 100, max: 500, step: 10, unit: "ms" },
+          { key: "th", label: "反応する量", value: 8, min: 0, max: 40, step: 2, unit: "px" },
+        ],
+        spec: [
+          [
+            "きっかけ",
+            "前回のスクロール位置との差が「反応する量」を超えたら向きを判定。下なら隠す、上なら出す。ページの最上部では必ず出す",
+          ],
+          ["動き", "<code>translateY(-100%)</code> ↔ <code>0</code>｜隠す：in、出す：out"],
+          ["置き方", "<code>position: sticky / fixed</code>。隠れている間はフォーカスが当たったら出す"],
+          ["動きを減らす設定", "移動をやめ、透明度で出し入れする（または常に表示する）"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/sticky-banner" target="_blank" rel="noopener">Aceternity UI: Sticky Banner</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const sc = stage.querySelector(".ac-hide-on-scroll-header-sc"),
+              hd = stage.querySelector(".ac-hide-on-scroll-header-hd");
+            let lastY = 0;
+            const onScroll = () => {
+              const y = sc.scrollTop,
+                d = y - lastY;
+              if (Math.abs(d) < v.th) return;
+              hd.classList.toggle("is-hidden", d > 0 && y > 40);
+              lastY = y;
+            };
+            sc.addEventListener("scroll", onScroll);
+            const stop = raf((t) => {
+              const k = t % 6,
+                max = sc.scrollHeight - sc.clientHeight;
+              sc.scrollTop =
+                k < 2.5
+                  ? max * 0.7 * (0.5 - Math.cos((Math.PI * k) / 2.5) / 2)
+                  : k < 3.5
+                    ? max * 0.7
+                    : k < 4.3
+                      ? max * (0.7 - (0.2 * (k - 3.5)) / 0.8)
+                      : max * 0.5 * (1 - (k - 4.3) / 1.7);
+            });
+            return () => {
+              stop();
+              sc.removeEventListener("scroll", onScroll);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

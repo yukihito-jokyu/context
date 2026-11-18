@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>終わりの分からない進捗バー（Indeterminate progress） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-indeterminate-progress"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div style="display: grid; gap: 10px">
+          <span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span>
+          <div class="ac-indeterminate-progress-t"><i></i><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-indeterminate-progress .ac-indeterminate-progress-t {
+        position: relative;
+        width: 170px;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--blue-soft);
+        overflow: hidden;
+      }
+      .ac-indeterminate-progress .ac-indeterminate-progress-t i {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-radius: 3px;
+        background: var(--blue);
+        transform-origin: 0 0;
+        transform: scaleX(0);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-indeterminate-progress .ac-indeterminate-progress-t i {
+          animation: ac-indeterminate-progress-a var(--dur, 2000ms) cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+        }
+      }
+      .ac-indeterminate-progress .ac-indeterminate-progress-t i + i {
+        animation: ac-indeterminate-progress-b var(--dur, 2000ms) cubic-bezier(0.165, 0.84, 0.44, 1)
+          calc(var(--dur, 2000ms) * 0.575) infinite;
+      }
+      /* 位置 = 左端、長さ = 100% − 左端 − 右端（left / right で書いたときと同じ動き） */
+      @keyframes ac-indeterminate-progress-a {
+        0% {
+          transform: translateX(-35%) scaleX(0.35);
+        }
+        60%,
+        100% {
+          transform: translateX(100%) scaleX(0.9);
+        }
+      }
+      @keyframes ac-indeterminate-progress-b {
+        0% {
+          transform: translateX(-200%) scaleX(2);
+        }
+        60%,
+        100% {
+          transform: translateX(107%) scaleX(0.01);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-indeterminate-progress .ac-indeterminate-progress-t i {
+          transform: none;
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "indeterminate-progress",
+        name: "終わりの分からない進捗バー",
+        en: "Indeterminate progress",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "どれくらいかかるか分からない処理の間、細いバーの中を、長さの変わる帯が左から右へ流れ続ける表示です。止まっていないことは伝えつつ、残り時間は約束しません。",
+        use: "ボタン・カード・画面の読み込み中、待ち時間の短い処理。",
+        params: [{ key: "dur", label: "周期", value: 2000, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "帯を2本使う。1本目は左端 -35% → 100%、長さ 35% → 90%（<code>translateX</code> と <code>scaleX</code>）、2本目は少し遅れて短く速く流れる",
+          ],
+          ["イージング", "Material の不確定バーの曲線（加速と減速の異なる2本）"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          [
+            "出典",
+            '<a href="https://m2.material.io/components/progress-indicators" target="_blank" rel="noopener">Material Design: Progress indicators</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

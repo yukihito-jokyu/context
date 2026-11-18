@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>つぶしと伸ばし（Squash &amp; stretch） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-squash-stretch"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div style="position: relative; width: 60px; height: 130px">
+          <span class="ac-squash-stretch-floor"></span
+          ><span class="ac-squash-stretch-y"><span class="ac-squash-stretch-ball sb-grad-sky"></span></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-squash-stretch .ac-squash-stretch-floor {
+        position: absolute;
+        left: -20px;
+        right: -20px;
+        bottom: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--bar-strong);
+      }
+      .ac-squash-stretch .ac-squash-stretch-y {
+        position: absolute;
+        left: 6px;
+        bottom: 0;
+      }
+      .ac-squash-stretch .ac-squash-stretch-ball {
+        display: block;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        transform-origin: 50% 100%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-squash-stretch .ac-squash-stretch-y {
+          animation: ac-squash-stretch-bounce var(--dur, 900ms) infinite;
+        }
+        .ac-squash-stretch .ac-squash-stretch-ball {
+          animation: ac-squash-stretch-shape var(--dur, 900ms) infinite;
+        }
+      }
+      @keyframes ac-squash-stretch-bounce {
+        0%,
+        100% {
+          transform: translateY(-80px);
+          animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+        }
+        45%,
+        55% {
+          transform: translateY(0);
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+      @keyframes ac-squash-stretch-shape {
+        0%,
+        100% {
+          transform: none;
+        }
+        35% {
+          transform: scale(calc(1 - var(--sq, 0.25) / 2), calc(1 + var(--sq, 0.25) / 2));
+        }
+        50% {
+          transform: scale(calc(1 + var(--sq, 0.25)), calc(1 - var(--sq, 0.25)));
+        }
+        65% {
+          transform: scale(calc(1 - var(--sq, 0.25) / 3), calc(1 + var(--sq, 0.25) / 3));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "squash-stretch",
+        name: "つぶしと伸ばし",
+        en: "Squash & stretch",
+        cat: "原則",
+        kind: "motion",
+        description:
+          "動いている物を少し変形させて、重さ・速さ・柔らかさを伝える表現です。落ちるときは縦に伸び、地面に当たるとつぶれ、また跳ね上がります。体積は保つように（縦に伸びたら横は細く）します。",
+        use: "ボールやキャラクター、楽しい反応のボタン、ゲーム的な UI。",
+        params: [
+          { key: "sq", label: "変形の量", value: 0.25, min: 0, max: 0.5, step: 0.05, unit: "" },
+          { key: "dur", label: "1回の跳ね", value: 900, min: 500, max: 1600, step: 50, unit: "ms" },
+        ],
+        spec: [
+          [
+            "落ちる",
+            "<code>translateY(上 → 床)</code>｜in、途中で <code>scale(1 - 量/2, 1 + 量/2)</code>（縦に伸びる）",
+          ],
+          [
+            "当たる",
+            "床で <code>scale(1 + 量, 1 - 量)</code>（つぶれる）。基準点は下（<code>transform-origin: bottom</code>）",
+          ],
+          ["上がる", "<code>translateY(→ 上)</code>｜out、形を戻す"],
+          ["動きを減らす設定", "ボールを床の位置に静止させる"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

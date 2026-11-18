@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>エッジ検出（Edge detection (Sobel)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-edge-detection"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-edge-detection-s"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-edge-detection-s ac-edge-detection-ed"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-edge-detection-f" color-interpolation-filters="sRGB">
+            <feColorMatrix type="saturate" values="0" />
+            <feConvolveMatrix order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" />
+            <feComponentTransfer>
+              <feFuncR type="linear" slope="-6" intercept="1" />
+              <feFuncG type="linear" slope="-6" intercept="1" />
+              <feFuncB type="linear" slope="-3" intercept="1" />
+            </feComponentTransfer>
+          </filter>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-edge-detection .ac-edge-detection-s {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-edge-detection .ac-edge-detection-ed {
+        filter: url(#ac-edge-detection-f);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-edge-detection .ac-edge-detection-ed {
+          animation: ac-edge-detection-t var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-edge-detection-t {
+        0%,
+        25% {
+          opacity: 0;
+        }
+        75%,
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-edge-detection .ac-edge-detection-ed {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "edge-detection",
+        name: "エッジ検出",
+        en: "Edge detection (Sobel)",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像の明るさが急に変わる所（物の輪郭）だけを取り出して、線画のように見せる表現です。写真や映像をスケッチや設計図のような見た目に切り替えたり、輪郭だけを光らせたりできます。",
+        use: "写真から線画へ切り替える演出、設計図・テック風の見せ方、読み込み中の下絵表示、3D の輪郭線（アウトライン）。",
+        params: [{ key: "dur", label: "片道の時間", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "仕組み",
+            "近くの画素との明るさの差を、横方向と縦方向の 3×3 の重み（Sobel）で計算し、差が大きい所を明るく（または濃く）する",
+          ],
+          [
+            "Web では",
+            "SVG の <code>feConvolveMatrix</code>（ここではラプラシアンの重み）を <code>filter: url(#…)</code> で当て、元の絵とクロスフェード",
+          ],
+          ["3D では", "three.js のポストプロセス（Sobel のシェーダー）、輪郭線は <code>OutlinePass</code>"],
+          ["動きを減らす設定", "切り替えの動きを止め、線画の状態にする"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/files.json" target="_blank" rel="noopener">three.js examples（一覧）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

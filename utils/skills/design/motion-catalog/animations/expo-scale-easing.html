@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>拡大に合わせたイージング（Exponential scale easing (expoScale)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-expo-scale-easing" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-expo-scale-easing-p"><span class="ac-expo-scale-easing-z"></span></div>
+        <div class="ac-expo-scale-easing-p ac-expo-scale-easing-q"><span class="ac-expo-scale-easing-z"></span></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-expo-scale-easing .ac-expo-scale-easing-p {
+        position: absolute;
+        top: 10px;
+        left: 6px;
+        width: 98px;
+        height: 106px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-expo-scale-easing .ac-expo-scale-easing-q {
+        left: 116px;
+      }
+      .ac-expo-scale-easing .ac-expo-scale-easing-z {
+        position: absolute;
+        left: 19px;
+        top: 23px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, var(--blue) 0 3px, transparent 3px),
+          repeating-radial-gradient(circle, var(--sky) 0 1.5px, transparent 1.5px 6px);
+      }
+      .ac-expo-scale-easing::after {
+        content: "等間隔　　　　　　比（expoScale）";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 10px;
+        text-align: center;
+        white-space: pre;
+        font: 600 11px var(--font-sans);
+        color: var(--ink-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "expo-scale-easing",
+        name: "拡大に合わせたイージング",
+        en: "Exponential scale easing (expoScale)",
+        cat: "イージング",
+        kind: "motion",
+        description:
+          "大きく拡大・縮小するとき、倍率を等間隔で変えると、拡大は終わりほど遅く、縮小は終わりほど速く見えます。倍率を比（対数）で補間すると、見た目の速さが一定に感じられます。左は倍率を等間隔で変えたもの、右は比で変えたものです。",
+        use: "地図や画像の大きなズーム、ズームで画面へ入る遷移、宇宙・ミクロへ潜るような演出。",
+        params: [
+          { key: "to", label: "拡大の倍率", value: 12, min: 2, max: 30, step: 1, unit: "倍" },
+          { key: "dur", label: "拡大の時間", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "式",
+            "<code>scale = 始め × (終わり / 始め)^p</code>（p は 0→1 の進み具合）。比で進むので、1 倍 → 2 倍と 6 倍 → 12 倍が同じ時間になる",
+          ],
+          [
+            "GSAP では",
+            '<code>ease: "expoScale(1, 12)"</code>。ほかのイージングと重ねられる（<code>expoScale(1, 12, "power2.inOut")</code>）',
+          ],
+          ["CSS では", "倍率を細かく区切った <code>linear()</code> のイージングを作るか、JS で補間する"],
+          ["動きを減らす設定", "拡大の動きをやめ、始めの大きさで止める"],
+          ["出典", '<a href="https://gsap.com/docs/v3/Plugins/" target="_blank" rel="noopener">GSAP: Plugins</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const [a, b] = [...stage.querySelectorAll(".ac-expo-scale-easing-z")];
+            return raf((t) => {
+              const T = v.dur / 1000,
+                p = rm ? 0 : Math.min(1, (t % (T + 1)) / T),
+                S = v.to;
+              a.style.transform = `scale(${1 + (S - 1) * p})`;
+              b.style.transform = `scale(${Math.pow(S, p)})`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

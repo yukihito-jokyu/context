@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>障害物をよける（Predictive obstacle avoidance） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-obstacle-avoidance"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "obstacle-avoidance",
+        name: "障害物をよける",
+        en: "Predictive obstacle avoidance",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "進む先に障害物があるかを、前方へ伸ばした「触角」（進む向きの細長い範囲）で調べ、ぶつかりそうなら横へ舵を切り、減速してよける動きです。近くの物すべてではなく、行く手の物だけに反応します。",
+        use: "ゲームのキャラクターの移動、群れの移動、障害物のある地図の上を動く点。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "進む向きの前方（速さに比例した長さ）にある障害物のうち、いちばん近いものを探し、その中心から離れる横向きの力と、ブレーキの力をかける",
+          ],
+          ["調整", "触角が長いほど早めによけ、短いほどぎりぎりでよける"],
+          ["組み合わせ", "目標へ向かう（seek）・道に沿う（path following）と足し合わせる"],
+          ["動きを減らす設定", "エージェントの動きを止め、向きと目標の静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.red3d.com/cwr/steer/" target="_blank" rel="noopener">red3d.com（steer）</a>、<a href="https://www.red3d.com/cwr/steer/Obstacle.html" target="_blank" rel="noopener">red3d.com（Obstacle）</a>、<a href="https://www.red3d.com/cwr/steer/gdc99/" target="_blank" rel="noopener">Craig Reynolds: Steering Behaviors For Autonomous Characters</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lim = (x, y, m) => {
+              const l = Math.hypot(x, y);
+              return l > m && l > 0 ? [(x / l) * m, (y / l) * m] : [x, y];
+            };
+            const ag = (x, y, a = 0, s = 1) => ({ x, y, vx: cos(a) * s, vy: sin(a) * s, w: rnd() * TAU });
+            const seek = (a, tx, ty, ms) => {
+              const dx = tx - a.x,
+                dy = ty - a.y,
+                l = Math.hypot(dx, dy) || 1;
+              return [(dx / l) * ms - a.vx, (dy / l) * ms - a.vy];
+            };
+            const go = (a, f, mf, ms) => {
+              const [fx, fy] = lim(f[0], f[1], mf);
+              a.vx += fx;
+              a.vy += fy;
+              [a.vx, a.vy] = lim(a.vx, a.vy, ms);
+              a.x += a.vx;
+              a.y += a.vy;
+            };
+            const wrap = (a) => {
+              if (a.x < -8) a.x += W + 16;
+              if (a.x > W + 8) a.x -= W + 16;
+              if (a.y < -8) a.y += H + 16;
+              if (a.y > H + 8) a.y -= H + 16;
+            };
+            const sep = (a, all, r) => {
+              let fx = 0,
+                fy = 0;
+              for (const b of all) {
+                if (b === a) continue;
+                const dx = a.x - b.x,
+                  dy = a.y - b.y,
+                  d = Math.hypot(dx, dy);
+                if (d > 0 && d < r) {
+                  fx += ((dx / d) * (r - d)) / r;
+                  fy += ((dy / d) * (r - d)) / r;
+                }
+              }
+              return [fx, fy];
+            };
+            const tri = (a, c, s = 1) => {
+              g.save();
+              g.translate(a.x, a.y);
+              g.rotate(Math.atan2(a.vy, a.vx));
+              g.fillStyle = c;
+              g.beginPath();
+              g.moveTo(7 * s, 0);
+              g.lineTo(-5 * s, 4 * s);
+              g.lineTo(-5 * s, -4 * s);
+              g.closePath();
+              g.fill();
+              g.restore();
+            };
+            const bg = () => {
+              g.fillStyle = col("surface");
+              g.fillRect(0, 0, W, H);
+            };
+            const steps = (() => {
+              let acc = 0,
+                last = null,
+                warmed = false;
+              return (t, fn, warm = 90) => {
+                if (rm) {
+                  if (!warmed) {
+                    warmed = true;
+                    for (let i = 0; i < warm; i++) fn();
+                  }
+                  return;
+                }
+                if (last !== null) acc += Math.min(0.1, t - last);
+                last = t;
+                for (let n = 0; acc >= 1 / 60 && n < 6; n++) {
+                  fn();
+                  acc -= 1 / 60;
+                }
+              };
+            })();
+            const O = [
+                [70, 50, 14],
+                [130, 95, 16],
+                [175, 45, 12],
+                [60, 110, 10],
+              ],
+              S0 = Array.from({ length: 5 }, (_, i) => ag(-10 - i * 40, 30 + i * 22, 0, 1.6));
+            return raf((t) => {
+              steps(t, () => {
+                for (const a of S0) {
+                  const l = Math.hypot(a.vx, a.vy) || 1,
+                    ux = a.vx / l,
+                    uy = a.vy / l,
+                    look = 34;
+                  let best = null,
+                    bd = 1e9;
+                  for (const [ox, oy, r] of O) {
+                    const rx = ox - a.x,
+                      ry = oy - a.y,
+                      along = rx * ux + ry * uy,
+                      lat = -rx * uy + ry * ux;
+                    if (along > 0 && along < look && Math.abs(lat) < r + 6 && along < bd) {
+                      bd = along;
+                      best = [lat, r];
+                    }
+                  }
+                  let f = [1.6 - a.vx, (a.y < 20 ? 0.3 : a.y > 130 ? -0.3 : 0) - a.vy * 0.2];
+                  if (best) {
+                    const s = best[0] > 0 ? -1 : 1,
+                      k = ((look - bd) / look) * 1.5;
+                    f = [f[0] - ux * k * 0.5 - uy * s * k, f[1] - uy * k * 0.5 + ux * s * k];
+                  }
+                  go(a, f, 0.15, 1.6);
+                  if (a.x > W + 8) {
+                    a.x = -8;
+                    a.y = 20 + rnd() * 110;
+                  }
+                }
+              });
+              bg();
+              for (const [ox, oy, r] of O) dot(ox, oy, r, col("ice"));
+              const a = S0[0],
+                l = Math.hypot(a.vx, a.vy) || 1;
+              g.strokeStyle = "rgba(229,72,77,.5)";
+              g.beginPath();
+              g.moveTo(a.x, a.y);
+              g.lineTo(a.x + (a.vx / l) * 34, a.y + (a.vy / l) * 34);
+              g.stroke();
+              S0.forEach((b, i) => tri(b, i ? col("sky") : col("blue")));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

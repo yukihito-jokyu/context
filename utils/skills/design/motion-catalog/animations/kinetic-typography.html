@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>キネティックタイポグラフィ（Kinetic Typography） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-kinetic-typography"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-kinetic-typography-w" style="font-weight: 800; color: var(--ink); letter-spacing: 0.02em">
+          <span class="ac-kinetic-typography-a" style="font-size: 40px; line-height: 44px">動く</span
+          ><span class="ac-kinetic-typography-b" style="font-size: 22px; line-height: 28px; color: var(--ink-muted)"
+            >文字が、</span
+          ><span class="ac-kinetic-typography-c" style="font-size: 32px; line-height: 38px; color: var(--blue)"
+            >伝える。</span
+          >
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-kinetic-typography .ac-kinetic-typography-w {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        animation: ac-kinetic-typography-out 300ms cubic-bezier(0.55, 0, 1, 0.45) calc(var(--beat, 450ms) * 3 + 1200ms)
+          forwards;
+      }
+      .ac-kinetic-typography .ac-kinetic-typography-w > span {
+        display: block;
+      }
+      .ac-kinetic-typography .ac-kinetic-typography-a {
+        animation: ac-kinetic-typography-slam 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .ac-kinetic-typography .ac-kinetic-typography-b {
+        animation: ac-kinetic-typography-slide 400ms cubic-bezier(0.22, 1, 0.36, 1) var(--beat, 450ms) both;
+      }
+      .ac-kinetic-typography .ac-kinetic-typography-c {
+        transform-origin: left bottom;
+        animation: ac-kinetic-typography-rot 450ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--beat, 450ms) * 2) both;
+      }
+      @keyframes ac-kinetic-typography-slam {
+        from {
+          opacity: 0;
+          transform: scale(2);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-kinetic-typography-slide {
+        from {
+          opacity: 0;
+          transform: translateX(60px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-kinetic-typography-rot {
+        from {
+          opacity: 0;
+          transform: rotate(-12deg) scale(0.6);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-kinetic-typography-out {
+        to {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+      }
+      @keyframes ac-kinetic-typography-fade {
+        from {
+          opacity: 0;
+        }
+      }
+      @keyframes ac-kinetic-typography-fade-out {
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-kinetic-typography .ac-kinetic-typography-a,
+        .ac-kinetic-typography .ac-kinetic-typography-b,
+        .ac-kinetic-typography .ac-kinetic-typography-c {
+          animation: ac-kinetic-typography-fade 300ms both;
+        }
+        .ac-kinetic-typography .ac-kinetic-typography-w {
+          animation-name: ac-kinetic-typography-fade-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "kinetic-typography",
+        name: "キネティックタイポグラフィ",
+        en: "Kinetic Typography",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "文字そのものを動かし（拡大・移動・回転）、言葉のリズムや感情を伝える表現形式です。言葉ごとに違う動きで現れ、文字が主役になります。",
+        use: "ヒーローのキャッチコピー、プロモーション、オープニング、SNS 向けの短い動画風セクション。",
+        params: [{ key: "beat", label: "言葉ごとの間隔", value: 450, min: 200, max: 900, step: 25, unit: "ms" }],
+        total: (p) => p["beat"] * 3 + 500,
+        spec: [
+          ["表現形式", "文字が主役のタイポグラフィ（太いウェイト、大きなサイズ差）"],
+          ["演出", "言葉ごとに拍を刻んで順に登場させる"],
+          [
+            "個別の動き",
+            "1語目は Scale（2 → 1 で着地）、2語目は Slide in、3語目は Rotate + Pop。最後にまとめて Fade out",
+          ],
+          ["時間・質感", "拍は 400–500ms。着地は spring、退出は ease-in"],
+          ["カタログの関連", "split-text / scale / slide-in / pop-in / stagger"],
+          ["動きを減らす設定", "動きをやめ、文章全体を透明度で表示する"],
+          ["出典", "ChatGPT との会話（表現スタイルの語彙）"],
+        ],
+        loop: 3400,
+      });
+    </script>
+  </body>
+</html>

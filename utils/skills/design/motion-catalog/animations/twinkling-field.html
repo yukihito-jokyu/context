@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>星のまたたき（Twinkling field） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-twinkling-field"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-twinkling-field-f"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-twinkling-field .ac-twinkling-field-s {
+        position: absolute;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-twinkling-field .ac-twinkling-field-s {
+          animation: ac-twinkling-field-tw var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      @keyframes ac-twinkling-field-tw {
+        0%,
+        100% {
+          opacity: 0.15;
+          transform: scale(0.6);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-twinkling-field .ac-twinkling-field-s {
+          opacity: 0.6;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "twinkling-field",
+        name: "星のまたたき",
+        en: "Twinkling field",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "たくさんの小さな光の点が散らばり、それぞれがばらばらのタイミングで、ふっと明るくなっては暗くなる背景です。夜空の星のように、静かで穏やかなきらめきがあります。",
+        use: "ダークテーマのヒーロー、見出しの背後の装飾、夜・宇宙・魔法をテーマにした画面。",
+        params: [
+          { key: "n", label: "点の数", value: 50, min: 10, max: 120, step: 5, unit: "個" },
+          { key: "dur", label: "またたきの周期", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          ["点", "ランダムな位置に、大きさの違う小さな点を置く"],
+          [
+            "動き",
+            "点ごとに <code>opacity .2 → 1 → .2</code>（と少しの <code>scale</code>）｜in-out｜周期と遅れをランダムに",
+          ],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/sparkles" target="_blank" rel="noopener">Aceternity UI: Sparkles</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const f = stage.querySelector(".ac-twinkling-field-f");
+            f.innerHTML = Array.from({ length: v.n }, () => {
+              const s = 1 + Math.random() * 2.2;
+              return `<i class="ac-twinkling-field-s" style="left:${Math.random() * 216}px;top:${Math.random() * 146}px;width:${s}px;height:${s}px;animation-delay:${-Math.random() * 3}s;animation-duration:${(0.6 + Math.random() * 0.8) * v.dur}ms"></i>`;
+            }).join("");
+            return null;
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

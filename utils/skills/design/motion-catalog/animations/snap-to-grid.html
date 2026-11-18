@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>格子に吸着（Snap to grid） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-snap-to-grid" style="position: relative; width: 220px; height: 160px">
+        <div class="ac-snap-to-grid-g"></div>
+        <span class="ac-snap-to-grid-hl"></span
+        ><span
+          class="sb-thumb sb-grad-sky ac-snap-to-grid-t"
+          style="width: 40px; height: 40px; border-radius: 12px; position: absolute; left: 0; top: 0"
+        ></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-snap-to-grid .ac-snap-to-grid-g {
+        position: absolute;
+        inset: 5px 10px;
+        background-image: radial-gradient(circle, var(--bar-strong) 1.5px, transparent 2px);
+        background-size: var(--cell, 50px) var(--cell, 50px);
+        background-position: calc(var(--cell, 50px) / -2) calc(var(--cell, 50px) / -2);
+      }
+      .ac-snap-to-grid .ac-snap-to-grid-hl {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--blue-soft);
+        opacity: 0;
+        transition:
+          opacity 150ms,
+          transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "snap-to-grid",
+        name: "格子に吸着",
+        en: "Snap to grid",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "ドラッグした要素を離すと、いちばん近い格子のマス目へ吸い付くように収まる動きです。ドラッグ中は吸着先のマスがうっすら光り、どこに収まるかが先に分かります。",
+        use: "ホーム画面のアイコン配置、カンバン、ダッシュボードのウィジェット、デザインツール。",
+        params: [
+          { key: "dur", label: "吸着の時間", value: 320, min: 120, max: 700, step: 10, unit: "ms" },
+          { key: "cell", label: "マスの大きさ", value: 50, min: 30, max: 70, step: 2, unit: "px" },
+        ],
+        spec: [
+          [
+            "吸着先",
+            "位置 ÷ マスの大きさ を四捨五入してマスの大きさを掛ける。投げた場合は慣性で止まる位置から計算する（GSAP Inertia の <code>snap</code>）",
+          ],
+          ["動き", "離したら吸着先へ <code>translate</code>｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>"],
+          ["予告", "ドラッグ中に吸着先のマスを薄い青で示す"],
+          ["動きを減らす設定", "吸着の動きをなくし、すぐマスへ置く"],
+          [
+            "出典",
+            '<a href="https://gsap.com/docs/v3/Plugins/InertiaPlugin/" target="_blank" rel="noopener">GSAP: InertiaPlugin</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const t = stage.querySelector(".ac-snap-to-grid-t"),
+              hl = stage.querySelector(".ac-snap-to-grid-hl"),
+              C = v.cell,
+              ox = 10,
+              oy = 5;
+            const snap = (x, y) => [
+              ox + Math.round((x - ox - C / 2) / C) * C + C / 2 - 20,
+              oy + Math.round((y - oy - C / 2) / C) * C + C / 2 - 20,
+            ];
+            const place = (el, x, y, ms) => {
+              el.style.transition = ms
+                ? `transform ${ms}ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms`
+                : "opacity 150ms";
+              el.style.transform = `translate(${x}px, ${y}px)`;
+            };
+            let anim;
+            const [sx, sy] = snap(40, 40);
+            place(t, sx, sy, 0);
+            const drag = (pts, ms) => () => {
+              const t0 = performance.now();
+              cancelAnimationFrame(anim);
+              hl.style.opacity = 1;
+              const f = (now) => {
+                const p = Math.min(1, (now - t0) / ms),
+                  e = 0.5 - Math.cos(Math.PI * p) / 2,
+                  x = pts[0] + (pts[2] - pts[0]) * e,
+                  y = pts[1] + (pts[3] - pts[1]) * e + Math.sin(Math.PI * p) * -20;
+                place(t, x - 20, y - 20, 0);
+                move(x + 8, y + 8, 0);
+                const [hx, hy] = snap(x, y);
+                hl.style.transform = `translate(${hx}px, ${hy}px)`;
+                if (p < 1) anim = requestAnimationFrame(f);
+              };
+              anim = requestAnimationFrame(f);
+            };
+            const drop = () => {
+              hl.style.opacity = 0;
+              const m = new DOMMatrix(getComputedStyle(t).transform),
+                [x, y] = snap(m.e + 20, m.f + 20);
+              place(t, x, y, rm ? 0 : v.dur);
+            };
+            const stop = seq(4400, [
+              [
+                100,
+                () => {
+                  show(1);
+                  move(48, 48, 0);
+                },
+              ],
+              [400, drag([40, 40, 128, 92], 900)],
+              [1350, drop],
+              [1900, () => show(0)],
+              [
+                2300,
+                () => {
+                  show(1);
+                  move(143, 88, 0);
+                },
+              ],
+              [2500, drag([135, 80, 46, 46], 900)],
+              [3450, drop],
+              [3900, () => show(0)],
+            ]);
+            return () => {
+              stop();
+              cancelAnimationFrame(anim);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

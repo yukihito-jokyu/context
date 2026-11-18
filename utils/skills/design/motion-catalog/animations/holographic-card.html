@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ホログラムカード（Holographic card） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-holographic-card"
+        style="position: relative; width: 200px; height: 170px; display: grid; place-items: center; perspective: 600px"
+      >
+        <div class="ac-holographic-card-c">
+          <span class="ac-holographic-card-foil"></span><span class="ac-holographic-card-glare"></span
+          ><span
+            style="
+              position: absolute;
+              left: 16px;
+              top: 16px;
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></span
+          ><span
+            class="sb-bar sb-bar--sm sb-bar--on-dark"
+            style="width: 70px; position: absolute; left: 16px; bottom: 34px"
+          ></span
+          ><span
+            class="sb-bar sb-bar--xs sb-bar--on-dark"
+            style="width: 44px; position: absolute; left: 16px; bottom: 18px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-holographic-card .ac-holographic-card-c {
+        position: relative;
+        width: 116px;
+        height: 156px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: linear-gradient(160deg, var(--navy), var(--cobalt));
+        box-shadow: var(--shadow-float);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-holographic-card .ac-holographic-card-c {
+          animation: ac-holographic-card-tilt var(--dur, 3200ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-holographic-card .ac-holographic-card-foil {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          115deg,
+          transparent 18%,
+          rgba(255, 140, 210, 0.55) 32%,
+          rgba(130, 220, 255, 0.6) 44%,
+          rgba(170, 255, 190, 0.5) 56%,
+          rgba(255, 235, 150, 0.5) 68%,
+          transparent 82%
+        );
+        background-size: 260% 260%;
+        mix-blend-mode: color-dodge;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-holographic-card .ac-holographic-card-foil {
+          animation: ac-holographic-card-foil var(--dur, 3200ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-holographic-card .ac-holographic-card-glare {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -50%;
+        width: 200%;
+        background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.45), transparent 62px);
+        transform: translateX(-15%);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-holographic-card .ac-holographic-card-glare {
+          animation: ac-holographic-card-glare var(--dur, 3200ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-holographic-card-tilt {
+        from {
+          transform: rotateY(calc(var(--tilt, 14deg) * -1)) rotateX(6deg);
+        }
+        to {
+          transform: rotateY(var(--tilt, 14deg)) rotateX(-6deg);
+        }
+      }
+      @keyframes ac-holographic-card-foil {
+        from {
+          background-position: 0% 0%;
+        }
+        to {
+          background-position: 100% 100%;
+        }
+      }
+      @keyframes ac-holographic-card-glare {
+        from {
+          transform: translateX(-17.5%);
+        }
+        to {
+          transform: translateX(17.5%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "holographic-card",
+        name: "ホログラムカード",
+        en: "Holographic card",
+        cat: "移動・変形",
+        kind: "style",
+        description:
+          "カードの傾きに合わせて、虹色の箔と光の反射が表面を流れる表現です。トレーディングカードのホログラム加工のように、手に取って傾けたくなる質感が出ます。",
+        use: "会員証・実績バッジ・限定アイテムの見せ方、コレクション系のカード、特典の演出。",
+        params: [
+          { key: "tilt", label: "傾き", value: 14, min: 0, max: 30, step: 1, unit: "deg" },
+          { key: "dur", label: "揺れの周期", value: 3200, min: 1000, max: 8000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          ["表現形式", "立体的に傾くカード（<code>perspective</code> と <code>rotateX / rotateY</code>）"],
+          [
+            "箔",
+            "虹色の <code>linear-gradient</code> を大きくして <code>background-position</code> を傾きに合わせて動かす｜<code>mix-blend-mode: color-dodge</code>",
+          ],
+          [
+            "光",
+            "白い <code>radial-gradient</code> の層も傾きに合わせて <code>translateX</code> で動かす。実際はポインターの位置（またはジャイロ）で傾ける",
+          ],
+          ["動きを減らす設定", "傾きと箔の流れを止め、静止した箔の模様だけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/components/holo-card" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

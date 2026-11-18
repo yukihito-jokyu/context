@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>トラッキング（Tracking shot） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-tracking-shot"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-tracking-shot-cam">
+          <div class="ac-tracking-shot-L ac-tracking-shot-sky"><i></i></div>
+          <div class="ac-tracking-shot-L ac-tracking-shot-far"><i></i></div>
+          <div class="ac-tracking-shot-L ac-tracking-shot-gr"><i></i></div>
+          <div class="ac-tracking-shot-L ac-tracking-shot-mid"><i></i></div>
+          <div class="ac-tracking-shot-L ac-tracking-shot-sub"><i></i></div>
+          <div class="ac-tracking-shot-L ac-tracking-shot-near"><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-tracking-shot .ac-tracking-shot-cam,
+      .ac-tracking-shot .ac-tracking-shot-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-tracking-shot .ac-tracking-shot-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-tracking-shot .ac-tracking-shot-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-tracking-shot .ac-tracking-shot-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-tracking-shot .ac-tracking-shot-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-tracking-shot .ac-tracking-shot-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-tracking-shot .ac-tracking-shot-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-tracking-shot .ac-tracking-shot-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-tracking-shot .ac-tracking-shot-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-tracking-shot .ac-tracking-shot-far i {
+          animation: ac-tracking-shot-f calc(var(--dur, 2400ms) * 4) linear infinite;
+        }
+        .ac-tracking-shot .ac-tracking-shot-mid i {
+          animation: ac-tracking-shot-m calc(var(--dur, 2400ms) * 1) linear infinite;
+        }
+        .ac-tracking-shot .ac-tracking-shot-near i {
+          animation: ac-tracking-shot-n calc(var(--dur, 2400ms) * 0.9) linear infinite;
+        }
+        .ac-tracking-shot .ac-tracking-shot-sub i {
+          animation: ac-tracking-shot-b calc(var(--dur, 2400ms) / 6) ease-in-out infinite alternate;
+        }
+      }
+      /* 1 周期 = 模様の幅（奥 120px、中 52px、手前 110px） */
+      @keyframes ac-tracking-shot-f {
+        to {
+          transform: translateX(-120px);
+        }
+      }
+      @keyframes ac-tracking-shot-m {
+        to {
+          transform: translateX(-52px);
+        }
+      }
+      @keyframes ac-tracking-shot-n {
+        to {
+          transform: translateX(-110px);
+        }
+      }
+      @keyframes ac-tracking-shot-b {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-4px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "tracking-shot",
+        name: "トラッキング",
+        en: "Tracking shot",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "歩く人や走る車などの被写体と一緒にカメラが動き、被写体を画面の同じ位置にとらえ続ける動きです。背景は奥行きに応じた速さで流れ、一緒に旅しているような没入感が出ます。",
+        use: "横スクロールのストーリー、ゲームのプレイヤー追従、配送・旅行のブランド動画、読み込み中のキャラクター演出。",
+        params: [
+          { key: "dur", label: "流れの速さ（遅いほど長い）", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "書き方",
+            "被写体は画面の中で止めたまま（歩きの上下だけ）、背景のレイヤーを奥行きの速さで流す（模様を端の外まで敷いた層を、模様 1 周期分ずつ <code>translateX</code> で流す）",
+          ],
+          ["速さの比", "奥 1 : 中 4 : 手前 10 くらい。くり返しの模様の幅で割り切れる距離にするとつながる"],
+          ["フォロー", "被写体の向きの前方に余白を広く取ると、行き先が感じられる"],
+          ["動きを減らす設定", "カメラの動きをやめ、最初（または最後）の構図で止める"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/camera-shots/camera-movements/" target="_blank" rel="noopener">StudioBinder: Camera Movements</a>、<a href="https://www.masterclass.com/articles/guide-to-camera-moves" target="_blank" rel="noopener">MasterClass: Guide to Camera Moves</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

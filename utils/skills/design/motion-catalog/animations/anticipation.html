@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>予備動作（Anticipation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-anticipation"
+        style="position: relative; width: 200px; height: 80px; display: flex; align-items: center"
+      >
+        <div style="position: relative; width: 200px; height: 48px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 23px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-anticipation-t"
+            style="position: absolute; left: 20px; top: 4px; width: 40px; height: 40px; border-radius: 12px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-anticipation .ac-anticipation-t {
+        animation: ac-anticipation-go var(--dur, 700ms) 300ms both;
+      }
+      @keyframes ac-anticipation-go {
+        0% {
+          transform: translateX(0);
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        30% {
+          transform: translateX(calc(var(--wind, 12px) * -1)) scaleX(0.92);
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        100% {
+          transform: translateX(140px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-anticipation-go {
+          from {
+            opacity: 0;
+            transform: translateX(140px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(140px);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "anticipation",
+        name: "予備動作",
+        en: "Anticipation",
+        cat: "原則",
+        kind: "motion",
+        description:
+          "大きく動く前に、反対の方向へ少しだけ溜める動きです。ジャンプの前にしゃがむように、これから動くことを予告するので、動きが自然で力強く見えます。",
+        use: "勢いよく飛び出す要素、送信ボタン、ゲームのキャラクター、注目させたい移動。",
+        params: [
+          { key: "wind", label: "溜める量", value: 12, min: 0, max: 30, step: 1, unit: "px" },
+          { key: "dur", label: "全体の時間", value: 700, min: 300, max: 1500, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "0–30%：<code>translateX(0 → -溜める量)</code>（少し縮む）、30–100%：<code>translateX(→ 目的地)</code>｜out",
+          ],
+          ["目安", "溜めは全体の 20–30%。大きすぎると遅く感じる"],
+          ["動きを減らす設定", "溜めを省き、まっすぐ動かす（または透明度で切り替える）"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

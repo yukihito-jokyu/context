@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>オーロラ（Aurora background） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-aurora-background"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <span class="ac-aurora-background-a"></span><span class="ac-aurora-background-a ac-aurora-background-a2"></span
+        ><span class="ac-aurora-background-a ac-aurora-background-a3"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-aurora-background .ac-aurora-background-a {
+        position: absolute;
+        left: -30%;
+        top: 6%;
+        width: 160%;
+        height: 46px;
+        border-radius: 50%;
+        background: linear-gradient(90deg, transparent, #7ff0dc, var(--aqua), transparent);
+        filter: blur(var(--blur, 14px));
+        opacity: 0.95;
+        mix-blend-mode: screen;
+        transform: rotate(-12deg);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-aurora-background .ac-aurora-background-a {
+          animation: ac-aurora-background-m var(--dur, 9000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-aurora-background .ac-aurora-background-a2 {
+        top: 36%;
+        background: linear-gradient(90deg, transparent, var(--sky), #b9a6ff, transparent);
+        animation-duration: calc(var(--dur, 9000ms) * 1.3);
+        animation-delay: -3s;
+      }
+      .ac-aurora-background .ac-aurora-background-a3 {
+        top: 64%;
+        height: 32px;
+        background: linear-gradient(90deg, transparent, var(--aqua), var(--ice), transparent);
+        opacity: 0.7;
+        animation-duration: calc(var(--dur, 9000ms) * 0.8);
+        animation-direction: alternate-reverse;
+      }
+      @keyframes ac-aurora-background-m {
+        from {
+          transform: translateX(-12%) rotate(-12deg) skewX(10deg);
+        }
+        to {
+          transform: translateX(12%) rotate(-4deg) skewX(-10deg) scaleY(1.4);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "aurora-background",
+        name: "オーロラ",
+        en: "Aurora background",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "暗い空に、ぼかした色の帯が何本もゆっくりと揺れ、混ざり合いながら流れる背景です。オーロラのように幻想的で、静かな高揚感があります。",
+        use: "AI・テック系のヒーロー、ログイン画面、プレミアム・夜をテーマにしたページ。",
+        params: [
+          { key: "dur", label: "揺れの周期", value: 9000, min: 3000, max: 20000, step: 500, unit: "ms" },
+          { key: "blur", label: "ぼかし", value: 14, min: 4, max: 40, step: 1, unit: "px" },
+        ],
+        spec: [
+          [
+            "帯",
+            "斜めに長い色の帯（<code>linear-gradient</code>）を数本重ね、<code>filter: blur(20–40px)</code> で溶かす",
+          ],
+          [
+            "動き",
+            "帯ごとに違う周期で <code>translate</code> と <code>skew</code> を往復｜in-out。色は同系の aqua・sky・cobalt",
+          ],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/aurora-background" target="_blank" rel="noopener">Aceternity UI: Aurora Background</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

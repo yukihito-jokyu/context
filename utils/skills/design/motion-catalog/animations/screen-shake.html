@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画面の揺れ（Screen shake） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-screen-shake" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-screen-shake-s">
+          <div
+            class="sb-item"
+            style="width: 170px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 170px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 170px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-screen-shake .ac-screen-shake-s {
+        position: absolute;
+        inset: 8px;
+        display: grid;
+        gap: 8px;
+        align-content: center;
+        justify-items: center;
+        border-radius: 18px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "screen-shake",
+        name: "画面の揺れ",
+        en: "Screen shake",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "衝撃の瞬間に、1つの部品ではなく画面全体がガタガタと揺れ、すぐに収まる表現です。爆発・衝突・大きなエラーなど、世界全体に響くできごとの大きさを伝えます。",
+        use: "ゲームの爆発・被ダメージ、強い警告、地震・衝撃の演出、大きな失敗の表現（控えめに）。",
+        params: [{ key: "max", label: "最大のずれ", value: 10, min: 2, max: 24, step: 1, unit: "px" }],
+        spec: [
+          [
+            "揺れ",
+            "「揺れの強さ」（0–1）を持ち、衝撃で 1 にして毎フレーム減らす。ずれ = 最大のずれ × 強さ² × ランダム（-1〜1）、少し回転も",
+          ],
+          ["滑らかに", "毎フレームの乱数より、ノイズ（Perlin）で揺らすと酔いにくい"],
+          ["注意", "酔いやすい表現。弱く短く、動きを減らす設定では必ず止める"],
+          ["動きを減らす設定", "揺らさない。必要なら色や枠の変化で衝撃を伝える"],
+          [
+            "出典",
+            '<a href="https://github.com/reeboolabs/sprite-juice-kit-lite" target="_blank" rel="noopener">Sprite Juice Kit</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const s = stage.querySelector(".ac-screen-shake-s");
+            let tr = 0,
+              last = 0;
+            if (rm) return null;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              if (t % 2.2 < dt) tr = 1;
+              tr = Math.max(0, tr - dt * 1.6);
+              const k = tr * tr;
+              s.style.transform = `translate(${(Math.random() * 2 - 1) * v.max * k}px, ${(Math.random() * 2 - 1) * v.max * k}px) rotate(${(Math.random() * 2 - 1) * 2 * k}deg)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

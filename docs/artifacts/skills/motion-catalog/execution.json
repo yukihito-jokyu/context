@@ -1,0 +1,2545 @@
+{
+  "schema_version": 1,
+  "skill": "motion-catalog",
+  "skill_source": "utils/skills/design/motion-catalog/SKILL.md",
+  "skill_sha256": "c130f44431bc456d9c8ccd016211cef98a7f61f52df0d142643986c8187f2cd2",
+  "recorded_at": "2026-11-18T18:02:22.199Z",
+  "executor": "Claude Code（サブエージェント）",
+  "runner": {
+    "kind": "subagent",
+    "agent_id": "ae99ad2625e5c5495",
+    "task": "motion-catalogのSKILL.mdの手順Aに従い、本の一覧のHTMLのカードにfade-in-outをフェードインとして実装し、ヘッドレスのChromeで途中と終わりの画面と動きを減らす設定の画面を撮って、実行報告とともに保存する"
+  },
+  "input": "input.md",
+  "summary": "本の一覧のページ（素のHTML/CSS）のカード6枚に、カタログの「フェードイン／アウト（fade-in-out）」をフェードインとして実装しました。詳細ページの値（260ms・cubic-bezier(0.22, 1, 0.36, 1)・透明度だけ）をそのまま使い、追加したのはCSS 2行だけです。",
+  "stage": "site/index.htmlへの実装と、ヘッドレスのChromeでの動きと動きを減らす設定の確認まで。Chrome以外のブラウザと実機での確認は未実施",
+  "checks": [
+    "読んだのはSKILL.mdとanimations/fade-in-out.htmlだけで、catalog.html・references/index.tsv・references/porting.mdは読んでいない（素のHTML/CSSのため）",
+    "ヘッドレスのChromeで、6枚のカードすべてに時間260ms・fill backwardsのアニメーションcard-fade-inが付いていた",
+    "アニメーションの時刻を合わせたとき、カードの不透明度は0msで0、40msで0.56、80msで0.84、130msで0.96、260msで1だった",
+    "実時間で読み込んだとき、不透明度は約50msで0.66、約300ms以降で1だった",
+    "アニメーションが終わった後、カードにアニメーションは残らず、不透明度は1だった",
+    "見本の「消える」側（180ms）は、消すきっかけがないため移していない",
+    "prefers-reduced-motion: reduceを有効にしたとき、specの「透明度だけなのでそのままでよい」に従い同じフェードインのまま表示された",
+    "preview.pngとreduced-motion.pngは画像を開いて確認した",
+    "Chrome以外のブラウザ（Safari・Firefox）、実機・低速な端末、スクリーンリーダーでの確認はしていない"
+  ],
+  "preview": "preview.png",
+  "preview_alt": "本の一覧ページを0msから260msまで6コマ並べた画像で、カードが何も見えない状態から薄く現れ、最後に完全に表示されるまでが分かる",
+  "preview_note": "各コマは、読み込み直後にアニメーションを止めて時刻を合わせて撮ったもの（実時間の連写ではない）。ラベルは経過ミリ秒とそのときのカードの不透明度",
+  "downloads": [
+    {
+      "file": "output.md",
+      "label": "実行報告（Markdown）"
+    },
+    {
+      "file": "before.html",
+      "label": "実装前のHTML"
+    },
+    {
+      "file": "after.html",
+      "label": "実装後のHTML"
+    },
+    {
+      "file": "reduced-motion.png",
+      "label": "動きを減らす設定で開いた画面（PNG）"
+    }
+  ],
+  "html_output": "after.html",
+  "text_output": "output.md",
+  "source_files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "c130f44431bc456d9c8ccd016211cef98a7f61f52df0d142643986c8187f2cd2"
+    },
+    {
+      "file": "animations/accordion.html",
+      "sha256": "2ae7c6c92d78fbfb3afa4c7a6a667a3d767390d19024627c453eaeb9122b2eaf"
+    },
+    {
+      "file": "animations/accumulative-animation.html",
+      "sha256": "ae2d287bc7227bf76658d084990b686fd8ed715064e10456691880811acae83b"
+    },
+    {
+      "file": "animations/adaptive-caret.html",
+      "sha256": "1e22641c41a88029eb32ed9f08e67985885c044608eb915f13da32ef5f30c8af"
+    },
+    {
+      "file": "animations/additive-animation.html",
+      "sha256": "bca8eb4e954194506034c79352296098b1a31838e235a3904e0956a1144e09ed"
+    },
+    {
+      "file": "animations/agent-avoidance.html",
+      "sha256": "dd205bf26aa38a4847c77e172115dcb9de0b2f89376ffdb87a7a89117d32621f"
+    },
+    {
+      "file": "animations/aim-camera-framing.html",
+      "sha256": "c5953a27adb3a98734662225ffee5a0e7f64db515eac76dbf809eeb9b8257aca"
+    },
+    {
+      "file": "animations/air-juggle.html",
+      "sha256": "9da9743b79d00bad15897053af124bfed4baf4689bf042e4f5b4e7de56d2b653"
+    },
+    {
+      "file": "animations/alternate.html",
+      "sha256": "32a3e14b7b1f12940284089565fdee9dbd6ba38788e8c1f9cb03984bd8963d37"
+    },
+    {
+      "file": "animations/animal-locomotion.html",
+      "sha256": "420584c37e755fd62cc57dd1c9bb158bf7b7daf1a55c97e50803a41d9b359c35"
+    },
+    {
+      "file": "animations/animated-chart.html",
+      "sha256": "5824f8481a078c017a62d08cea2f2607e273c3c15388be0bb964f03e1d07c773"
+    },
+    {
+      "file": "animations/animated-dithering.html",
+      "sha256": "3b39cfa90a15033ed8641395ef7b4fb44c5a8c07610bfc077b435807798e2406"
+    },
+    {
+      "file": "animations/animated-gradient-text.html",
+      "sha256": "b326dd4d9e07642fdce372e9f62c614dc15baa1ee600ea5d7add80e4bcb24881"
+    },
+    {
+      "file": "animations/animated-grain.html",
+      "sha256": "7a00dada08b2ca1d4d7a46cbbfc93bee7d4bfd50f93be3f16360157e9407212d"
+    },
+    {
+      "file": "animations/animated-grid-pattern.html",
+      "sha256": "8cda6ef0331c859291b9fb9c0d13a92181787c7e12282a6176b1ade77c8ff126"
+    },
+    {
+      "file": "animations/animated-light-rays.html",
+      "sha256": "5421c95a544a6b65aad58d2d26197b217d5017cf4d9c7dd5dc2be81c5875bead"
+    },
+    {
+      "file": "animations/animated-text-highlight.html",
+      "sha256": "37f04d50402fab8d362dee053a2e425ba04aedbc975a2ed8fcb7933bee547cbf"
+    },
+    {
+      "file": "animations/animated-underline.html",
+      "sha256": "f04c025f1eb1c5a900c576a3ab700768d201686530ee88120f4493d5585bbfb0"
+    },
+    {
+      "file": "animations/animation-blending.html",
+      "sha256": "be96b304f04719d99d5310e0508ff8ff9b4be809acbc57806b18499b4b778f7f"
+    },
+    {
+      "file": "animations/animation-retargeting.html",
+      "sha256": "066f0b833c4c5d81bd8adeb947e68dfb32062c228de98e6600ee36e82522582c"
+    },
+    {
+      "file": "animations/animation-state-machine.html",
+      "sha256": "e91c271defa97e1a0cdb62bc55d9e5850a79391089757109124b5a9842d15f2e"
+    },
+    {
+      "file": "animations/anticipation.html",
+      "sha256": "5a12606017376a89eb0dda42a16081fb9f335756a0cd74c855f11e813051fd3f"
+    },
+    {
+      "file": "animations/app-folder-expansion.html",
+      "sha256": "f4c949e86293b5e89a662b54dc474a5b7e3b08287214bf109eca4c2a24fb4050"
+    },
+    {
+      "file": "animations/appeal.html",
+      "sha256": "d43e309c3e5fa5355643195f0a78ab52c3fc993820a573f7937e4df0c4c99fb6"
+    },
+    {
+      "file": "animations/arcade-loader.html",
+      "sha256": "cf129c66cc82a33fcf2fe90ba764ac8f1d6567ae35025b2ffc1c11b56ae1df62"
+    },
+    {
+      "file": "animations/arcs.html",
+      "sha256": "9684dc995264d0b11075805c2bee8a209bda35c9bb636c2700db9aa38e0b8dc2"
+    },
+    {
+      "file": "animations/ascii-motion.html",
+      "sha256": "664809aa86456d56c05e04055479cc83a15ef886353eeb3ab263493cb6cff7f1"
+    },
+    {
+      "file": "animations/asymmetric-easing.html",
+      "sha256": "237887f2cac30734bac93c3e26da07ae7346a885ce4935a50894cabed82bfdfc"
+    },
+    {
+      "file": "animations/attack-strike.html",
+      "sha256": "2d4f20d480a41490dd87174b4d8c4f85c14583adb0505c0f164d8ad0083e4ad0"
+    },
+    {
+      "file": "animations/attack-telegraph.html",
+      "sha256": "4941fadbed4d827354d0bc6cb12ae40a16c8092388a41c3538e5eeea9165b465"
+    },
+    {
+      "file": "animations/audio-spectrum.html",
+      "sha256": "560bef17b69d00d1c97019679c28ea3072941bccdc875d7679e0f30e342916d6"
+    },
+    {
+      "file": "animations/audio-synchronized-motion.html",
+      "sha256": "ac4036c4aacc4b544a0275cc4e8900564abf39ceba3c30503d0c81361dacac9c"
+    },
+    {
+      "file": "animations/aurora-background.html",
+      "sha256": "53c9792f4d667e5ca85136f348e91b94a53648200a57e32b8ec20cb22f782fdd"
+    },
+    {
+      "file": "animations/auto-exposure.html",
+      "sha256": "0c6eb549aff9bcc522f225b3855df830ed88cbd783ac7bfb3f79feeb5bd68ea5"
+    },
+    {
+      "file": "animations/auto-orient-to-path.html",
+      "sha256": "27c94452fcb53e2ad01797359cbe2f0e3a7f82f28e402712554a246205978e27"
+    },
+    {
+      "file": "animations/autoscroll-camera.html",
+      "sha256": "125be37665288d0fb4f0a8d4c143a47d6af4cacbbdc742a4b75b1e346c568aae"
+    },
+    {
+      "file": "animations/axis-rescale-transition.html",
+      "sha256": "7d5fb66cda9e27575df4a91d277b7cbab95c6ed0e2f2d2869565843015228776"
+    },
+    {
+      "file": "animations/back-easing.html",
+      "sha256": "6e0521db164f3bd429df06e513b007c524ccaed3beba064dd4dce03e6e303b7e"
+    },
+    {
+      "file": "animations/back-entrance-exit.html",
+      "sha256": "273dde3cf54d83c4009f473f894108bab1d43f65a3af148f53fb9dd881c79914"
+    },
+    {
+      "file": "animations/background-beams.html",
+      "sha256": "2a9414927e026013684af29fa7e5eb58b04b570cd19a57ba6964279c32d778ae"
+    },
+    {
+      "file": "animations/bar-chart-race.html",
+      "sha256": "fcdcdbd8d7be2c9810dc7fb3d9268f7ca37bdbfe9dfb1b150cccb8fe4be38d55"
+    },
+    {
+      "file": "animations/bar-wave-loader.html",
+      "sha256": "753640178350362f1d6e652449c67d73ed6418cfda0bf13f666d567ddf9654ab"
+    },
+    {
+      "file": "animations/before-after.html",
+      "sha256": "dccf35144b162bc39cc7d5c07b9e536c0a738dd8cf75f39a322c7714dfbbbfe9"
+    },
+    {
+      "file": "animations/bend-warp.html",
+      "sha256": "c3888f1f2bfe008711ebdf3a369eabb9aed66a414cb0c3872740142686fba434"
+    },
+    {
+      "file": "animations/blob-cursor.html",
+      "sha256": "2f3d3862c48feb8f4a0bb4e55132c562d8540de751da892a58a4361b2149a621"
+    },
+    {
+      "file": "animations/block-parry.html",
+      "sha256": "7dedf1f88b62d79d1494725268681b6776b220820d0ba5a8957d721fd785a133"
+    },
+    {
+      "file": "animations/blur.html",
+      "sha256": "ef444a8b42e1f2df5a8a3ace838ce28a23b168b4f4d50ed4fdbb4c11042c6f0c"
+    },
+    {
+      "file": "animations/boing-in-out.html",
+      "sha256": "408914fae4553f32cc38a1853ebe325ac5e383e6a7d292f353427e8efcb1f836"
+    },
+    {
+      "file": "animations/bomb-exit.html",
+      "sha256": "8e5f127c3107644f2a781d9ac7ee22e68e159e73b68092da0eb21bf56eb1227f"
+    },
+    {
+      "file": "animations/border-beam.html",
+      "sha256": "46b4ea772679d20be2174509fa2f80173ec39c1f2c824e850104752973b426e8"
+    },
+    {
+      "file": "animations/border-trim.html",
+      "sha256": "f526445b9bf293bd98210ef9a895945e53f7ac7b8146d6af76789bf56850565c"
+    },
+    {
+      "file": "animations/bottleneck-queue.html",
+      "sha256": "a1e0641c6f73b7839c07bf073a269eab1a50de159cecc0010773c08521233acf"
+    },
+    {
+      "file": "animations/bottom-sheet.html",
+      "sha256": "ed454b39510153f532b85ff7ee512c4c913092a8a7bf1fdfc84607ab1dcb4c92"
+    },
+    {
+      "file": "animations/bounce.html",
+      "sha256": "c57cd8565e5cfa12d0fcdc7df86b12662d37e698649351dff6a15470f8ee6bb4"
+    },
+    {
+      "file": "animations/bouncy-lines.html",
+      "sha256": "cfd892b9a13551da4a7d5edd622966b921a0cfd942fdb5565ca7e354ebed80ed"
+    },
+    {
+      "file": "animations/breathing.html",
+      "sha256": "c75b9f9698ab64883785f2358022e3c8f926a62a248a5b57115f0d5ca63e0932"
+    },
+    {
+      "file": "animations/bubble-pointer-motion.html",
+      "sha256": "2cabf0199f1d3c5a33e914b30d1145d2fa2fcd67dacf9a8da81b4f7d6fa1d13e"
+    },
+    {
+      "file": "animations/bubbles.html",
+      "sha256": "c250bd3d240a136e4def3e2cfaf0a950be02e442ccf0589bb015990b0311793c"
+    },
+    {
+      "file": "animations/bullet-time.html",
+      "sha256": "6b999dcdb21d0b5113cff525a5c494a21621c82d3e54f74f773fd09772a28c1a"
+    },
+    {
+      "file": "animations/burn-away.html",
+      "sha256": "b2165987443bd09848beb152863902a0beefb8b75df4840e56f8eeb59226a845"
+    },
+    {
+      "file": "animations/button-loading-success.html",
+      "sha256": "b3c5c74a77ee08d2e824fbb0ba26651102d226ec6df9f4789bada50cce014994"
+    },
+    {
+      "file": "animations/camera-collision.html",
+      "sha256": "73f3e0658fb1ab2665877499dce8dd3916428cb1d55720d9cdbef3df9713a324"
+    },
+    {
+      "file": "animations/camera-cue-focus.html",
+      "sha256": "ee635325b2aebb70d909f488e174f238f3d82406248f1633b042f637742f3244"
+    },
+    {
+      "file": "animations/camera-dead-zone.html",
+      "sha256": "6893e817bf042603d9b5b1e999f049ed229f2fe1e3ba3251f0ffe6990d7d6d40"
+    },
+    {
+      "file": "animations/camera-edge-clamp.html",
+      "sha256": "542eba5f51d3960cd6372cfa54dfc6122e9180513a85614154bfbbc35849b8ad"
+    },
+    {
+      "file": "animations/camera-follow.html",
+      "sha256": "70f31f1e3df2fdfed389588d01532cf28493741bb5cc1b39f1281a3f645bf8e0"
+    },
+    {
+      "file": "animations/camera-kick.html",
+      "sha256": "cdfa8a5bc334c1638ae43e9d74580caa20c999b37c844468554b9360bae30dd3"
+    },
+    {
+      "file": "animations/camera-look-ahead.html",
+      "sha256": "a329313c1c4225dbad31ece0e148c800ab8d5b0a04d51f503a308d2db500eb84"
+    },
+    {
+      "file": "animations/camera-pan.html",
+      "sha256": "54bc15eb83c9653e3526813d283ccd5050c90ce555f85517a5edf5d32c8e44e9"
+    },
+    {
+      "file": "animations/camera-pedestal.html",
+      "sha256": "f293960851235e4266a476abe11699b9ed1e6217f5c7648419b8c0c3541c4aba"
+    },
+    {
+      "file": "animations/camera-pull-zone.html",
+      "sha256": "9362fed949d09ef25909c0735e1a908ee9bb1a91ebb464b7e48c0446974dab2d"
+    },
+    {
+      "file": "animations/camera-push-zone.html",
+      "sha256": "47cd02317fc060d4b13ed3d6db2c8bead22a2b9fefb57cbab554100a000de0a8"
+    },
+    {
+      "file": "animations/camera-region-anchors.html",
+      "sha256": "f8bb1b66029734898d682b889680e47f009595868454a1e11e126a2a5e067d4b"
+    },
+    {
+      "file": "animations/camera-takeover.html",
+      "sha256": "fce5565316ca67123b30a00ef5570376a141377ed8110c6c9cd96e7988ddec23"
+    },
+    {
+      "file": "animations/camera-tilt.html",
+      "sha256": "ff1665ab21a54efe1e4f8758abce5c8d0d5b4005044faeccefdf3cc9132384fd"
+    },
+    {
+      "file": "animations/camera-truck.html",
+      "sha256": "6468626034f1292f64b8b4d2328e1a45a14b911b5e59c0e815b45daee9f37267"
+    },
+    {
+      "file": "animations/camera-window-recenter.html",
+      "sha256": "ee48d3bc10b1986da8234a0bbf91751798764f04d8b8babae0249e8cccfb2df3"
+    },
+    {
+      "file": "animations/card-fan.html",
+      "sha256": "61713a775764993c62347345882f24e58edb5ccbd078a2bee7cd83db276547ef"
+    },
+    {
+      "file": "animations/card-stack-carousel.html",
+      "sha256": "ea6a415fee877420ebd28b9e3119eb6affb559748770d0676f186ccbc3bd4e91"
+    },
+    {
+      "file": "animations/card-wipe.html",
+      "sha256": "5ca4dbd55cebd9f9447f6e21e7cdc34a1b5441f08d42c7650c3d33f1977df997"
+    },
+    {
+      "file": "animations/carousel-autoplay-progress.html",
+      "sha256": "92b81526f89d92ff738ff81ed174494bc57acbade008047527f34a1016ad9c48"
+    },
+    {
+      "file": "animations/caustics.html",
+      "sha256": "3f31866b448aedc7b1f5b5fb43f1b115c016c9b2dd0a72eee13d254a12a03b8c"
+    },
+    {
+      "file": "animations/cel-animation-style.html",
+      "sha256": "33f6a84747ce99f1ad5768aad3b7ccbe3e750c1f01a315bd5776a1452fb71409"
+    },
+    {
+      "file": "animations/character-controller.html",
+      "sha256": "9574799b249947cdd5f5b61efccf54b59400def9ec3b78bc6eeb0b3824c60157"
+    },
+    {
+      "file": "animations/character-take.html",
+      "sha256": "22bad2953cb2dbc3fc2f83317fba1e408a3f0f6f0fa6382d2d7308c1f4bdda77"
+    },
+    {
+      "file": "animations/chart-type-morph.html",
+      "sha256": "cc0d00c35dbfae133a12cd621e75311b86ab04b50fbb269a716d11ced02c27e1"
+    },
+    {
+      "file": "animations/chasing-dots-loader.html",
+      "sha256": "99c5e8b72a2e29122ced9b8313acbdc8b873eb615e639dd5dff7186c8306f9ba"
+    },
+    {
+      "file": "animations/checkbox-check.html",
+      "sha256": "e8a7defc86be68bcab900f1cda11ba1ab04a8e43130899c614c997074a9ef9fd"
+    },
+    {
+      "file": "animations/chromatic-aberration-motion.html",
+      "sha256": "a0e1f917f065e76e4566dbac3bf4c12fc3d161c5a1a387513b7cf8263e0d2d10"
+    },
+    {
+      "file": "animations/circ-easing.html",
+      "sha256": "cbe1810c8206c2a89061aa97776d788e49a00bb4fabc3fd5e546cbc23f28faae"
+    },
+    {
+      "file": "animations/circle-packing.html",
+      "sha256": "012ffc66a3b51a3d6181ac5f69d7358be9a25f68d4176b38a537fa54a8d2ad70"
+    },
+    {
+      "file": "animations/circular-progress.html",
+      "sha256": "183989e8dadc8c72bd48bc6319650f15daa93659f34a2fdb93981f1f8be8ee7e"
+    },
+    {
+      "file": "animations/claymation-style.html",
+      "sha256": "48157683bd1c884b7354ffe7404bbb141eba4b175e4c2e593e0d788338b3a576"
+    },
+    {
+      "file": "animations/clip-path.html",
+      "sha256": "3423699ba4461986543b8ac9db724b710d9514c453d463113cf5f446c3491b95"
+    },
+    {
+      "file": "animations/clock-wipe.html",
+      "sha256": "abda90fc1e0045417acc05997cde256d807d3eddbb0f67d919602da93687e2c7"
+    },
+    {
+      "file": "animations/cloth-simulation.html",
+      "sha256": "eb9f94c5deff53f0416d8e71d81be95bd0522488e3996e31570a91745ce0cb6d"
+    },
+    {
+      "file": "animations/cloth-tearing.html",
+      "sha256": "2ebd6405739fde263966b40adc241984697526be37d47858628661085635f1e8"
+    },
+    {
+      "file": "animations/coarticulation.html",
+      "sha256": "8e1dbf91f9b80a6d363d489fc5430acc0b0113995c13a59b9b4a44a5f76b34b0"
+    },
+    {
+      "file": "animations/collapsible-tree-motion.html",
+      "sha256": "de51b5035f8fc2a1af35a453fdda6d7d0e2bb2d143e84714520b552734b3c072"
+    },
+    {
+      "file": "animations/collision-haptics.html",
+      "sha256": "c58f3f7cc821ff2e837399e69437b0b940775a2257f80e91a4dae8317ad1ad62"
+    },
+    {
+      "file": "animations/color-interpolation.html",
+      "sha256": "0f99dfc6ef694e72f26480d58c204749b0d93b3608fea497a514d2d6f2ec9892"
+    },
+    {
+      "file": "animations/color-restoration-reveal.html",
+      "sha256": "e8d2f4f51d6570567a06ae76dc39f9b86b16498ef4f5f3d4850c4a0951dd521c"
+    },
+    {
+      "file": "animations/compositing.html",
+      "sha256": "b42f64eb38cc5839a133348a3dac7a62b31cc42645ec3d85573c5afa573d49b0"
+    },
+    {
+      "file": "animations/confetti.html",
+      "sha256": "a0e8697b4dd45598246b2ce860f3be96a1104646e8ec93f222164d197a08938e"
+    },
+    {
+      "file": "animations/connection-beam.html",
+      "sha256": "f0f3422b5f79e1eab54a0a12397330f7d3854b8527c7e452ce062faa90d04c7b"
+    },
+    {
+      "file": "animations/constraints.html",
+      "sha256": "5ec043e666aa1b5497c2843499f3d2617226a0767e5a8bbb444c3d76f2cdaa01"
+    },
+    {
+      "file": "animations/constructive-editing.html",
+      "sha256": "ed6c4792d68eedca4ef263739b6c8992984d1523b6cb225e6e762d9e71e1e910"
+    },
+    {
+      "file": "animations/container-transform.html",
+      "sha256": "fac81f2746c029473b18dc5e86d175087896799bc30dec0eb4a384747047c1ec"
+    },
+    {
+      "file": "animations/containment.html",
+      "sha256": "5a2d8565dd294d9d7cc074f681d475f20e7b76b8486992c3b74e181627a79e1f"
+    },
+    {
+      "file": "animations/continuity-editing.html",
+      "sha256": "7cedae7f08e2f99efc410032a7900cdd32cd824e29d407694747e8352e41eddd"
+    },
+    {
+      "file": "animations/continuity-transition.html",
+      "sha256": "4d679504ac157aa63161d11bb128a57a45e199b7c43d26c4a1830991494901b3"
+    },
+    {
+      "file": "animations/contrast-cut.html",
+      "sha256": "19b544bdad7e7d5b203938ac2c75ca6468f7ae19bb6e50c54d1756442cb278bf"
+    },
+    {
+      "file": "animations/corner-curl.html",
+      "sha256": "9bfb735759ca46442ac900bbc552c45881d62cb8d5bc7377e138262c591c6807"
+    },
+    {
+      "file": "animations/corner-pin.html",
+      "sha256": "1eb98bf20e81044a770135e079511171e61052468ac1d58c67bc4685a1757671"
+    },
+    {
+      "file": "animations/corner-rounding.html",
+      "sha256": "950b08ef151919a634c5c53ef9a9030e438abb35b4b7f54312cbf1a30bfe71ce"
+    },
+    {
+      "file": "animations/corrective-shapes.html",
+      "sha256": "db377bef8907a1d3f23fa3ca71944f5634047bfc1ce65b26a20917ad6a960862"
+    },
+    {
+      "file": "animations/coverflow.html",
+      "sha256": "cd4fefcb76b07790621bcc1a438cce20106a95d7e7901e8a6268af29b7a52ded"
+    },
+    {
+      "file": "animations/crane-shot.html",
+      "sha256": "6df8e26f1488e7162c6c6eb9bfa0814e58b48eaf4c1e4b8de1ce15ace402c026"
+    },
+    {
+      "file": "animations/cross-cut.html",
+      "sha256": "f501480d75356694d068862e046abc990a72818921671f5d5c0948a3fa18159d"
+    },
+    {
+      "file": "animations/cross-slide-select.html",
+      "sha256": "679994a395bed54af90ed763f04b0be8c49b7d79a88aee92425993353e605bb0"
+    },
+    {
+      "file": "animations/cross-zoom.html",
+      "sha256": "d81af14594e180191984569f19cc91d75bc64266360fd94d84a868eaa9654e20"
+    },
+    {
+      "file": "animations/crossfade.html",
+      "sha256": "56c8390424b451dd60279808028f7a1940f3f1553e62c7f9648c9648dc481142"
+    },
+    {
+      "file": "animations/crowd-path-following.html",
+      "sha256": "9c151e9aa32aadfde71e9f6a8f66de3564432f0efe5f58d7f843836296030bf0"
+    },
+    {
+      "file": "animations/crt-flicker.html",
+      "sha256": "ba7f55be5aad0c5fc8cb5e312e9739edd91000a4c9812c7aab057c557fd485bb"
+    },
+    {
+      "file": "animations/cube-carousel.html",
+      "sha256": "62b5664b3ecc3667bf38072039d5b9ef77913dd6d6f59cb0772987daf68a71bf"
+    },
+    {
+      "file": "animations/cubic-bezier.html",
+      "sha256": "d94d735ad221fa1a4d82b571a0e028fe64773dd6ba8ff3ebcb5e05f1a071ef97"
+    },
+    {
+      "file": "animations/cubic-easing.html",
+      "sha256": "1233ce9a412299f5981e199f1e58dc7f11fae0ff2211934242f9179b538dd150"
+    },
+    {
+      "file": "animations/cursor-follower.html",
+      "sha256": "aedfed814ea8e2dda384834666026b6ec44e61b0557a9500d776de3a2fe25c91"
+    },
+    {
+      "file": "animations/cursor-grid-trail.html",
+      "sha256": "4e83ec96a2ff72639d0e7fc9728a144aac9488a82f0b5324375e7dc87a0d4758"
+    },
+    {
+      "file": "animations/cursor-image-trail.html",
+      "sha256": "129a3c88a3add8665c991028a04ef8f86ca040372f3e4b5267ff622f6e6607dc"
+    },
+    {
+      "file": "animations/cursor-pixel-trail.html",
+      "sha256": "bb6d3d819b8ac65655dc71db8a63269e3bea26bddcb4d86bccd2cf8bbb7a3681"
+    },
+    {
+      "file": "animations/cursor-ribbon.html",
+      "sha256": "a010745c1af586f58aaff7797e427a890745ebb73246c754d956efd591f8dfb8"
+    },
+    {
+      "file": "animations/cursor-scrubbing.html",
+      "sha256": "e2b9ea463badc782e00fe838e5cbd8457fd594effbd42f348229ce9420391d56"
+    },
+    {
+      "file": "animations/cursor-spotlight.html",
+      "sha256": "0a805f8620befb25a3b80aab6b47aa96ed46e5bfd4fc30efdd1c76d0a6eef272"
+    },
+    {
+      "file": "animations/cursor-target-morph.html",
+      "sha256": "ac793298a77d1883c690a5192123c159daa2bf1945d425e7d35332b70c7043ae"
+    },
+    {
+      "file": "animations/curved-text-conveyor.html",
+      "sha256": "09d40ea79ab005bb8777b4f51a5e091ef6dd26ca7f1cebad79a2899d8be4818a"
+    },
+    {
+      "file": "animations/cutaway.html",
+      "sha256": "1a90f5dd8c8eb9f807e99c9fde05b51b6cee2c13ede80e7b464df055a7a0bd11"
+    },
+    {
+      "file": "animations/cutout-animation.html",
+      "sha256": "d665294e51cd8472cbd3265163cc773c9f5e9156869c8e03da98e692830bd3ad"
+    },
+    {
+      "file": "animations/cycling-words.html",
+      "sha256": "95ad5c042b9acfbb685d68e4728f649de280298cfce91a7980fc044f6c476f6d"
+    },
+    {
+      "file": "animations/damping.html",
+      "sha256": "504d10a7e97dbcf73f77c9a64f57121291a3ff5960f94129ff77fef9fcbb0284"
+    },
+    {
+      "file": "animations/data-schema-change.html",
+      "sha256": "b9e8bb062c6f686e636260d93eaaafe8f72e6e6fc7b889b2107b69ef98f887a7"
+    },
+    {
+      "file": "animations/datamosh.html",
+      "sha256": "df2b50085ad3936199629d517609629f486b9f1ee9cc3e3b97d65503d984369f"
+    },
+    {
+      "file": "animations/delay.html",
+      "sha256": "282f0ee6a2cbabfcc51cf7170a127fa7e202f1e1f4be94142a9748472b83ac59"
+    },
+    {
+      "file": "animations/depth-of-field.html",
+      "sha256": "8ca46d95df327ebc89c3d47a7c984847ad8324d0a9894c0b1417a77942147994"
+    },
+    {
+      "file": "animations/determinate-progress.html",
+      "sha256": "07cae47db290b6e3c9c426a8f93e90f52be3e83e6274105be64b5cd70f90d9f1"
+    },
+    {
+      "file": "animations/dialog.html",
+      "sha256": "c13b7a90251834f5bf4ad5d60ec8d242d656e5c1aba64c0d5b2eccb5cc97049d"
+    },
+    {
+      "file": "animations/dialogue-hook.html",
+      "sha256": "1e97c6ce5f9b5625e50602db29450918b4368d1c9d099e53035ad687b670a279"
+    },
+    {
+      "file": "animations/differential-growth.html",
+      "sha256": "66b7d891a7dde6aa053c869dd613f8ae8ed67208d56145cf40b6412e5216b9ad"
+    },
+    {
+      "file": "animations/digital-rain.html",
+      "sha256": "dd17bac991e1b99607c06640eeaa900285d2da329fc3d0d40c665e23e5831dcd"
+    },
+    {
+      "file": "animations/dip-to-color.html",
+      "sha256": "7d99dcb750b99d8dc16ca398ecb3930bdddea7ee00ef07fe735dc06ff61a0350"
+    },
+    {
+      "file": "animations/direct-on-film.html",
+      "sha256": "ae299a796d0ca3c151c765896a8c590240882e2d01e63669dd1b621f5705564c"
+    },
+    {
+      "file": "animations/direction-aware-hover.html",
+      "sha256": "751160bcc17981554b4adb1040a301a14f76207014d4178b133ed2f1f38eaa38"
+    },
+    {
+      "file": "animations/direction-aware.html",
+      "sha256": "137d6ec7db4a961b83741002ec88a44098f2ed85b1587f46372d634701e0cfd7"
+    },
+    {
+      "file": "animations/discrete-transition.html",
+      "sha256": "4cba71517e153ae7089aca63f6ab0d4e65f34c776a51e830503fad70d0b57e06"
+    },
+    {
+      "file": "animations/displacement-transition.html",
+      "sha256": "ed6cf9a3163df2884ae9a80f00c0e1d4b7a0ae2fa77cb0cfc8359733f93c15ea"
+    },
+    {
+      "file": "animations/dissolve-to-particles.html",
+      "sha256": "eaa1e6d823fac4c91a7113e1745c0c60c831476a0232c0328625975fe26d2b16"
+    },
+    {
+      "file": "animations/distance-constraint.html",
+      "sha256": "0a57c65968764032ff49988cbd223432918f1a26cdd4dbfb0e3b66fd2ecffd10"
+    },
+    {
+      "file": "animations/distance-matching.html",
+      "sha256": "985ad588b73b83a7d305ad63b79ae761e75afb7f63133393104d4f6dc91476e9"
+    },
+    {
+      "file": "animations/dla-growth.html",
+      "sha256": "ee8f34919f381d73338ac4154dad92c89f4646058194188a2e2d72ef4c64923b"
+    },
+    {
+      "file": "animations/dock-magnification.html",
+      "sha256": "7a1a7e251203ed488e25da0ab8c64c768327734b90769268ebc73390a3a1bc11"
+    },
+    {
+      "file": "animations/dolly-zoom.html",
+      "sha256": "f88ba535350346d6c00d7c0608a0bccaa5e54e5a34b1f9921b6f9e6b5fb8ad76"
+    },
+    {
+      "file": "animations/dolly.html",
+      "sha256": "1ffa3a22d561631c85a1d3ab6bc97f2da482bd5b211d3bfa47a550b847f7c51c"
+    },
+    {
+      "file": "animations/dome-gallery.html",
+      "sha256": "04aa8269d151c49367c5fe28eeacd9c55c437a4eb02ab765a8849554126cfb33"
+    },
+    {
+      "file": "animations/doorway-transition.html",
+      "sha256": "4893c48b765b9cbb937ea0d885c8f28cb451294a2163fd73e50fd6c3baee86bd"
+    },
+    {
+      "file": "animations/dot-grid-push.html",
+      "sha256": "59ff22dd280460ddb0b88ed8571ebfb07982683db4a3afd1cc6dd1ce0809bca6"
+    },
+    {
+      "file": "animations/double-bounce-loader.html",
+      "sha256": "ae47a690974ed88f47002489a8d716b9ccc22dfcff802c6044f5f63122a3a9c9"
+    },
+    {
+      "file": "animations/drag-edge-autoscroll.html",
+      "sha256": "3b4c330e8339ad50fc197ad8e3c56262f1e6a2e86c18581e2878fccc204961be"
+    },
+    {
+      "file": "animations/drag-to-reorder.html",
+      "sha256": "f0d6252dbe78e53a88e79d40a0abe21bab978a322b536d977a24b79875e4b562"
+    },
+    {
+      "file": "animations/drag.html",
+      "sha256": "69c8196443bb41bc813fb9bbdb950db1ae4b8ed65096b4252a2f8ee1115729cd"
+    },
+    {
+      "file": "animations/draw-order.html",
+      "sha256": "0e21817be2ce1fb489bf1efc5a40822f318d0c7dcdefb8b8d91fd890f15efc16"
+    },
+    {
+      "file": "animations/drifting-clouds.html",
+      "sha256": "85af1c572620b5536fd9482bfd950d5fa01308645e280d4f33081175416af9de"
+    },
+    {
+      "file": "animations/drivers.html",
+      "sha256": "f87e45fe088d5b8b145d86dd165915fa25851120c1d124e050b6cf1b3635744c"
+    },
+    {
+      "file": "animations/dropdown-transition.html",
+      "sha256": "2d9c354da35d86f787e66b4ac147dab34ed06a858763ba866756ebe89e8af97c"
+    },
+    {
+      "file": "animations/dropped-frame.html",
+      "sha256": "db831d2935207ae23e920cbde5d6a9dbde2f1ebfa1b1fd2d18bbda7da706d1d2"
+    },
+    {
+      "file": "animations/dual-forward-focus.html",
+      "sha256": "ec913d2b3263cb3bb318c7886f62fd1cdcdbc8e61434911a52b0b9799232fbef"
+    },
+    {
+      "file": "animations/dual-quaternion-skinning.html",
+      "sha256": "036402fc95fae05b738d720a01d6e3f3d1da02644ba98ce0b48415fb3fd5a9d6"
+    },
+    {
+      "file": "animations/duration.html",
+      "sha256": "3b27500c1dea901e645097886af6ba9ae2b31f792beaac7b2e57418ed8c277ad"
+    },
+    {
+      "file": "animations/dynamic-cutting.html",
+      "sha256": "a29fd7022efa034a66d0737a70d9d5c5d48cfa44d7fdade108ceb9da474d5852"
+    },
+    {
+      "file": "animations/dynamic-parenting.html",
+      "sha256": "1cfadca020a99fc96889c283a652c9199a45fd4ace3462cfa8f5fdb982413c0a"
+    },
+    {
+      "file": "animations/dynamic-wrinkles.html",
+      "sha256": "dd81c55daa2f4c5903a155b113ce9f33969e2d3d4bc9696836ebf61a0d3d4fe8"
+    },
+    {
+      "file": "animations/ease-in-out.html",
+      "sha256": "86bf72684e7ff773e16feff2912b4694cd758582095496253d846d2bf9be938c"
+    },
+    {
+      "file": "animations/ease-in.html",
+      "sha256": "3650bcd43e688fa3e23c06cea3d5e0e617f25caf246a00cbdc0fcfed1325fa48"
+    },
+    {
+      "file": "animations/ease-out.html",
+      "sha256": "f754b59f41bb27e278813baa4c5471f486f8db26ed343e533c81865ba02059f8"
+    },
+    {
+      "file": "animations/easing.html",
+      "sha256": "93d28b5add297b269ef519cc44f4e3bfecbaf50c800a4c3f54c0ec3a55354bcf"
+    },
+    {
+      "file": "animations/edge-detection.html",
+      "sha256": "600534ec405727a48ed435298eab8408c6f53a9557a891c6eb41a941acac58d4"
+    },
+    {
+      "file": "animations/effector-clones.html",
+      "sha256": "0be75244e26af8849c428976b9db2369983287203891e101c5ab486bc799ce4c"
+    },
+    {
+      "file": "animations/elastic.html",
+      "sha256": "36cf9cc185afb399df43d4d6eab3c6cf0f5a39ddb465469c1a17b90b79c768ac"
+    },
+    {
+      "file": "animations/electric-border.html",
+      "sha256": "85ebbaed8ddf6964ca208759eb2f54e4bc1650015292b184b6046b55625a00f9"
+    },
+    {
+      "file": "animations/elevation-shadow.html",
+      "sha256": "db062f4588b800d00332134af959b867060c6c52986a015f8dff8fd7c1363d49"
+    },
+    {
+      "file": "animations/ellipsis-conveyor.html",
+      "sha256": "7588791217e693cf98cda26f012ca8ed62e76c43595392d6fecde13b7877a50f"
+    },
+    {
+      "file": "animations/elliptical-editing.html",
+      "sha256": "e6ef8c164d367b04b74df3a8717cfe8510086378379e30840d12d0382fba2bec"
+    },
+    {
+      "file": "animations/enter-exit.html",
+      "sha256": "44edecdca272ae93935d94191e612a21ee1436e0a608171775ec5624cd96750f"
+    },
+    {
+      "file": "animations/exaggeration.html",
+      "sha256": "ec538451ac90aa6cfff6e6fd12a211c9e13aea23b25ce4ec1806c655b7f7b729"
+    },
+    {
+      "file": "animations/expanding-toolbar.html",
+      "sha256": "a77e709fbcbb4dd44781ca90d0c79b3707d9b41251ead5539f2779c78710cccf"
+    },
+    {
+      "file": "animations/explode-transition.html",
+      "sha256": "5776db0116fa939a90af44cc478a6f4f3af496326a3d0c6f0d99602cadff5a40"
+    },
+    {
+      "file": "animations/expo-easing.html",
+      "sha256": "701dc9257a30ac3fb57e088f229f3200610db6cb87e770683d8b43db11ea4987"
+    },
+    {
+      "file": "animations/expo-scale-easing.html",
+      "sha256": "40db4474f0d6afbc8271966de4420a075bb7c79a4c5ab238d60265daf7f8e74f"
+    },
+    {
+      "file": "animations/extruded-text-parallax.html",
+      "sha256": "7266256f6f285d02f9fc00f30b72ca5d2a3c626370787e894ee81e777196ed51"
+    },
+    {
+      "file": "animations/eye-blink.html",
+      "sha256": "83d7d810355cc06dd28d650043147df3662b328faeff3da3e4c735a667263f9d"
+    },
+    {
+      "file": "animations/eye-darts.html",
+      "sha256": "4bf00cbb47eb4ebd131cb7ee4cf951c0c8a19c497d244de9fe2c1be58ac31684"
+    },
+    {
+      "file": "animations/eye-look-at.html",
+      "sha256": "dc4907b77d72723b3744e38718765f476a7353e82a1290a0a52c0c268f72d61d"
+    },
+    {
+      "file": "animations/eyeline-match.html",
+      "sha256": "cf2c8eb23eebc0517112372a760970f9e3e71ac490e30bfc2c17e003843a276c"
+    },
+    {
+      "file": "animations/face-extrusion.html",
+      "sha256": "fb9b46e33662b7eb876283f0e69be98ab3c5d186fe99fdc39f6805d48f805e4e"
+    },
+    {
+      "file": "animations/fade-in-out.html",
+      "sha256": "688ab74b3812cfbe8edede403515324a899f39fd6ab2242fd0fe130972e1c1bd"
+    },
+    {
+      "file": "animations/fade-through.html",
+      "sha256": "64b9ff28f3fa04af57d7d89613f9b309c2f857503245acc65d5c4e11b378811d"
+    },
+    {
+      "file": "animations/falling-snow.html",
+      "sha256": "fb8c115b4bda8d4321772c6e730bf258e453a84731cca4de517723dce7756b3e"
+    },
+    {
+      "file": "animations/falling-text.html",
+      "sha256": "a0a8f791f97684c08a5b3e80f3dd57591dfacfd1bd32871233c6b9f6a266adea"
+    },
+    {
+      "file": "animations/ferrofluid.html",
+      "sha256": "c8782e785a0c9359b7ea3b489f50acf8427d7cc72b606c0df5e39b7224d51b5f"
+    },
+    {
+      "file": "animations/fighting-footwork.html",
+      "sha256": "ae0f058c8731495e6883b4a78d31436f23dc64392debccf21a68f552baeae51b"
+    },
+    {
+      "file": "animations/fill-mode.html",
+      "sha256": "bbf66380bf4378b870fa2a6090b75107aa75fce696fbac440fc33ec5a822e9ad"
+    },
+    {
+      "file": "animations/film-strip-transition.html",
+      "sha256": "c835f46918ea3fd64273fed6ced7bd473ad764411f977995b468819e50284b0c"
+    },
+    {
+      "file": "animations/flash.html",
+      "sha256": "a584da4675c87b284b1e0cc89e9d2b6f78914e20e039d8fe7d639c743f2122ea"
+    },
+    {
+      "file": "animations/flat-2d-motion.html",
+      "sha256": "b13fda26e4540665f8a048b0855193a60ac1eeecb678a2e3fd5166c4cd4140e1"
+    },
+    {
+      "file": "animations/flickering-grid.html",
+      "sha256": "7bbbb6400f77eeb4890769608e00080d2565b479415a703c6f0dc7b560b27bc3"
+    },
+    {
+      "file": "animations/flip-3d.html",
+      "sha256": "62ba38f6f826dd645526eb215332fd697a874a18587f444587866a263c84d774"
+    },
+    {
+      "file": "animations/flip-technique.html",
+      "sha256": "5ab64410c99b3ead45fb366bf72458057e57666fa64d47eec6c066fb02464d56"
+    },
+    {
+      "file": "animations/float.html",
+      "sha256": "751692730edbb2b1f091947ee5352cfcd2e28261f0e8edce29f388f3a0a425e5"
+    },
+    {
+      "file": "animations/floating-damage-numbers.html",
+      "sha256": "eb50f3d675fb3fdcca693562a536ced849d886e67d24ef5c1692f254c593e74d"
+    },
+    {
+      "file": "animations/flocking.html",
+      "sha256": "6e65e7d78e1ab459dda42c5f5543faa411fff095ddef2a810b81bb981fea9bb8"
+    },
+    {
+      "file": "animations/flow-field-lines.html",
+      "sha256": "9b0b1bb5db7b7c5d08b95ee4a229d26d5e270a4601a26fd96e96ebfeb2f733ab"
+    },
+    {
+      "file": "animations/flowing-waves.html",
+      "sha256": "38ec0597f0d8799e82257640039d712e0ee200ec0924ffa51fc1929efe49b67a"
+    },
+    {
+      "file": "animations/fluid-cursor.html",
+      "sha256": "045e7b8f0e78cd55df1b0a107e41135afa647cc1e126390206443c5c0e043d5b"
+    },
+    {
+      "file": "animations/folding-text.html",
+      "sha256": "27fef82189f2cfb582f90b3da6fd9e4ec60d199389b80e3b9989386d97bbe7fa"
+    },
+    {
+      "file": "animations/follow-through.html",
+      "sha256": "7a4575b078595544420b6f7a2e29a9fcd0a8d02743e04f0c0fa46a4d6378fde3"
+    },
+    {
+      "file": "animations/foolish-entrance.html",
+      "sha256": "0aff263c1c282648fb925e7860453e4b7a9820921b19161caa0434849febffd5"
+    },
+    {
+      "file": "animations/foot-contact.html",
+      "sha256": "4131a87087e93c4586214f97c8e7b034af890282caf0bfd1e8f65191a21b9518"
+    },
+    {
+      "file": "animations/force-layout-settling.html",
+      "sha256": "f95bad9f030e6e30177ebdf3787f742dee2a9f8041b7e2892b09d5746a27deb4"
+    },
+    {
+      "file": "animations/forward-kinematics.html",
+      "sha256": "b33fcf98b3be5b8cdced53dd3e24bcf137bc6e428cd24fabd1b4eb1127cb1cd4"
+    },
+    {
+      "file": "animations/fov-tunneling.html",
+      "sha256": "757339230c0bcff47e9f45780309b32035bd85a7bb69d457b9809c0a20f669ad"
+    },
+    {
+      "file": "animations/frame-rate.html",
+      "sha256": "0fdf34d962f402251afaf3c8a3986b0ba43e2af274b7807ce85296605886504b"
+    },
+    {
+      "file": "animations/freeze-frame.html",
+      "sha256": "114f963be8bb10712720eb1de8b8952a38b3f1ddd55f64b979fefe99272663cb"
+    },
+    {
+      "file": "animations/frequency-of-use.html",
+      "sha256": "d481fc1b6dc56770123171383a436a850a759105b805298fddeeff7b8bc127fa"
+    },
+    {
+      "file": "animations/full-body-ik.html",
+      "sha256": "b0911c65431162d58ca6a6ebd40932594a7e8f5ddb9561835c877bc14114dfe7"
+    },
+    {
+      "file": "animations/fuzzy-text.html",
+      "sha256": "90b31c928c7a8f02b1dfef5419d39048f6d7fa9be4ab8f06c12279f747f91307"
+    },
+    {
+      "file": "animations/game-of-life.html",
+      "sha256": "cbc84809ca8eb1efb8a78a29c6636b516f1a47637a9077c57c67dc7c2894cd4d"
+    },
+    {
+      "file": "animations/gaze-scroll.html",
+      "sha256": "e0b46942c25dd5054ceabc27ef8c327029d1fe3fcff684e72a9f666165728e56"
+    },
+    {
+      "file": "animations/genie-effect.html",
+      "sha256": "786c8122fe9b20fd8659d3c67d2c4ee5cb23d393fba0c0179a8a154148fe24b2"
+    },
+    {
+      "file": "animations/gerstner-waves.html",
+      "sha256": "1d25e1e94354493acda344542004dced09a1f583d8b2a29e70362385eaba0abb"
+    },
+    {
+      "file": "animations/ghost-health-bar.html",
+      "sha256": "55017e80cdb6b9ef037c4f1480e7b0a661f8e0eb6f68f263355b80542c3724bc"
+    },
+    {
+      "file": "animations/glare-sweep.html",
+      "sha256": "e999676e5d5d48b2024b31e0b57e96c82c8b87768ccd4c5045fc0cc117313f27"
+    },
+    {
+      "file": "animations/glitch-text.html",
+      "sha256": "54823712a2fda500b1c93a99a201ac74f9a0a1d2a585756267e2b5d050617afb"
+    },
+    {
+      "file": "animations/globe.html",
+      "sha256": "86b2a30255242d3956e5ae84838ef38b0338534d28fa908c822ddd6cacff27b7"
+    },
+    {
+      "file": "animations/glow-transition.html",
+      "sha256": "b6016430809f3f0053451a0ef4a7c76a852c5ed16e2db683ecfefaa76e0aec93"
+    },
+    {
+      "file": "animations/gooey.html",
+      "sha256": "17664613d048a18e94ea28d6cd3be3efc24ff2410f0ced5f3c6cf19655b3bf91"
+    },
+    {
+      "file": "animations/grab-locomotion.html",
+      "sha256": "7f9c8fd0c2983e899321562d5f3d64274b8452cc3bf2eefe425ca8e262897f73"
+    },
+    {
+      "file": "animations/gradient-flow.html",
+      "sha256": "64fffc9049bf055015b2117030aee47fecbaff70478d95a6b0f76786db35a62e"
+    },
+    {
+      "file": "animations/gradient-wipe.html",
+      "sha256": "107630768d0343ae0c7797911a96c86b5742626f7b93877d3679610d8b388431"
+    },
+    {
+      "file": "animations/gravity-connected-transition.html",
+      "sha256": "882035876cde9f0346c5bb7cb093692873e95a13655d8b767e03eca54cb383b7"
+    },
+    {
+      "file": "animations/hair-growth.html",
+      "sha256": "03ec52e7c9d582fa8d06a12f5d2a6121ee652ce2b3d6c8306e6a40883ef5efba"
+    },
+    {
+      "file": "animations/halftone-reveal.html",
+      "sha256": "9d1434113129a5a8b62d71591e0e7cdb7504f00f9fd93aed2f39372e30de9e20"
+    },
+    {
+      "file": "animations/hamburger-morph.html",
+      "sha256": "14b4ec2bfc85f295cc4e8aa8cdf573ba20c9455d872dee56de2843a1220a7fac"
+    },
+    {
+      "file": "animations/haptic-detents.html",
+      "sha256": "14e9199540ef887685adbada16705092427b33d4560df8ab830dec70a05de272"
+    },
+    {
+      "file": "animations/hard-cut.html",
+      "sha256": "bbd0ef2cc69861c2358db8fca8073e9f2d1d3e8191d069452db4de3e3622b34a"
+    },
+    {
+      "file": "animations/hardware-acceleration.html",
+      "sha256": "2c354d9e6ba40371c54ffe48870516332f633b62e878977e3c0088431db8578f"
+    },
+    {
+      "file": "animations/head-bob.html",
+      "sha256": "3a055c8f8a883599321129dc3699cf055198a34f9d6488affbf2e7745b74dfb5"
+    },
+    {
+      "file": "animations/heartbeat.html",
+      "sha256": "aed0fe6747d9080b22ac9bb7b12471d04d0cce741a6939a04869676b3417bb22"
+    },
+    {
+      "file": "animations/helix-gallery.html",
+      "sha256": "292fa605d14df23019c1a605c0d1a9973c5284f0be92b5d7b31765f32150b7cb"
+    },
+    {
+      "file": "animations/hide-on-scroll-header.html",
+      "sha256": "50049bfbf767220e40d20b3ba971e19165725beb77d04ef339df1a022caff634"
+    },
+    {
+      "file": "animations/hinge-drop.html",
+      "sha256": "4d963811d1b5fef77c1666b4d59315d715f40e3d06a06fe80275a87a0a527a52"
+    },
+    {
+      "file": "animations/hit-flash.html",
+      "sha256": "824bd513cb847e4b03bead82e4dd76b212c54822a4784e633f58beb23f7419d6"
+    },
+    {
+      "file": "animations/hit-reaction.html",
+      "sha256": "15cffb1554635cf58737eebd45cf4c734c450ecaadecd015f0f5a89db71d4313"
+    },
+    {
+      "file": "animations/hit-stop.html",
+      "sha256": "a5460560fea5f6f214456a1e25fb63ba69f8a03fb5631cb2383596721e0e2c9f"
+    },
+    {
+      "file": "animations/hold-to-confirm.html",
+      "sha256": "56475cf06ecf40763dd5300f444ec7f5544c59ad9f41837446ed40b6f1e0e675"
+    },
+    {
+      "file": "animations/hole-disappearance.html",
+      "sha256": "0825db609ca446a9a8c48f2d2a5629bb6bf85c0d8f5c3e29b271e680e198f05e"
+    },
+    {
+      "file": "animations/holographic-card.html",
+      "sha256": "abfd40ce4ef51c6a4fffe404a0d8c83322011d2b94c6f5865a47361de3daee69"
+    },
+    {
+      "file": "animations/homing.html",
+      "sha256": "cede10f1677337e4230a26e632917355df933ca37dcd9f0cca1122e49930fcc5"
+    },
+    {
+      "file": "animations/hourglass-loader.html",
+      "sha256": "b2adb81d0b2b427dd78998b14ae69a4ed6cdb46bfb2cac569629217fd9add280"
+    },
+    {
+      "file": "animations/hover-effect.html",
+      "sha256": "bac5270d066ec7e782f6718f920aae80ac25f5df6655767ce6574229e4ca0a8c"
+    },
+    {
+      "file": "animations/hypothetical-outcome-plots.html",
+      "sha256": "54f146d1a06257230c50d10d6508e246df6d7fa547cec7e89e24cacf1b8ba5bf"
+    },
+    {
+      "file": "animations/idle-animation.html",
+      "sha256": "70c9234c79b95d17e990f0e7514f9dc15469d781348ca036682cca318ddc521f"
+    },
+    {
+      "file": "animations/ik-fk-switch.html",
+      "sha256": "fcd7dc79397a7541a875bcea9cb3b506f79d5de0e5dfbd15b6d99954424deb2c"
+    },
+    {
+      "file": "animations/image-blur-up.html",
+      "sha256": "61f0b2315ddaf2dc60fb999336ccdccce6e4d1cf0054e8848bd90cc8b985becc"
+    },
+    {
+      "file": "animations/image-decay.html",
+      "sha256": "32f5c1b5464118dabb51f2b21a3892b625ce7cef455cc41f7ca6494cfcf91fb9"
+    },
+    {
+      "file": "animations/image-scan-loader.html",
+      "sha256": "fe553abbb23b6a8903b357328e169d3d0cc69ef5b20cd776d438a7f7523c83ed"
+    },
+    {
+      "file": "animations/independent-transforms.html",
+      "sha256": "38fb491f6c319969e452490b3b4100cc041c7691d8a8cc7763b39b263e26951a"
+    },
+    {
+      "file": "animations/indeterminate-progress.html",
+      "sha256": "26610bc171667dc9f8fefc2bc50d2c0f17d73d37ed6852cc11925abe90102c54"
+    },
+    {
+      "file": "animations/indeterminate-to-determinate.html",
+      "sha256": "9a5548279815d30a7185d5623f7b3e6125dde29c01f1486586e8da3d0cb7eede"
+    },
+    {
+      "file": "animations/inertialization.html",
+      "sha256": "f2013d3a96787058f063c3d5b90ee97f037527b48d0970a36f918825e55a1533"
+    },
+    {
+      "file": "animations/infinity-loader.html",
+      "sha256": "50f72ce1c69bb3b427c55422ddd0e69ac5830981fa0e805160305b9f0b9ceadd"
+    },
+    {
+      "file": "animations/infographic-animation.html",
+      "sha256": "2d29f8a2e1fb403de83c6bf6022d0d0d5631e6f56e5d4e16da34fb45f4b5c56d"
+    },
+    {
+      "file": "animations/ink-dissolve.html",
+      "sha256": "f15c925ec38dfe48f4beaee69a0693e72bdd34343b70e007ff05083797f0f4fd"
+    },
+    {
+      "file": "animations/insert-cut.html",
+      "sha256": "349b47309ac7fff601b53cc58045b0d996ffd2e8380eee93a003366105e9515e"
+    },
+    {
+      "file": "animations/intellectual-montage.html",
+      "sha256": "5471b2da85ba32823c8249cf4e83a3ecc802fcaf5ccefdcb5643ffa7df80cca0"
+    },
+    {
+      "file": "animations/interactive-ballpit.html",
+      "sha256": "9a9ba20a7f16551c878024e48afbcb62d0a481fa0974e6da2db0b9c3243ecc84"
+    },
+    {
+      "file": "animations/interactive-zoom-transition.html",
+      "sha256": "b0d54d76b9b7a340432800c707e037c261e0c51242b575df49886ec8eca55e16"
+    },
+    {
+      "file": "animations/interruptible.html",
+      "sha256": "b968c0dc38e831bd482e718c91d063d0a2083a15917b56870272751791f7f5b1"
+    },
+    {
+      "file": "animations/inverse-kinematics.html",
+      "sha256": "c3d1c177d329afcb44deb966debe537ab60152df694a07a53571a7afe3a8345f"
+    },
+    {
+      "file": "animations/invisible-cut.html",
+      "sha256": "00ba56777d67dfdcdc2febfe275d065b317067179cee6c5cc28799e1539ad79a"
+    },
+    {
+      "file": "animations/iridescent-flow.html",
+      "sha256": "a0f1ff5536b33d522ab7ae1f935910ec26f393ed12f6471710d438ef9738805d"
+    },
+    {
+      "file": "animations/iris-wipe.html",
+      "sha256": "0ddcda522e3c7ff8c6c80c941f662e08d4b7f3c77ef5090dfc99d6e3143b9ef1"
+    },
+    {
+      "file": "animations/isometric-animation.html",
+      "sha256": "16aeefb5872c7e4b898fe13d2a9b5b88234bdf36c8aad366dc24ee24e941fca7"
+    },
+    {
+      "file": "animations/jack-in-the-box.html",
+      "sha256": "194395616ef34a11eb0b49a887eb24ff4e82a0969c2991e615370c2509ad24d2"
+    },
+    {
+      "file": "animations/jank.html",
+      "sha256": "40d6a983e6ddae6f73463fca7250823997be3137329f50d7d756c97d51f7e51a"
+    },
+    {
+      "file": "animations/jello.html",
+      "sha256": "310dee4ae487141aab402349af8ca570aa18ab472355e298d0d27b3420ee8728"
+    },
+    {
+      "file": "animations/jump-cut.html",
+      "sha256": "0716acd2ab456e64b956328808a125d9789e4bf43702e05bd01917fd5c6a2d92"
+    },
+    {
+      "file": "animations/ken-burns.html",
+      "sha256": "77f4d6561042ec6d84715635dbeb1e218567e2751747f60a69a4b5809ec5412b"
+    },
+    {
+      "file": "animations/keyframes.html",
+      "sha256": "206837f0942c056ca300b3748aee6888907e4a9e9665886d7e2c9945cf39549a"
+    },
+    {
+      "file": "animations/kinetic-typography.html",
+      "sha256": "0eb99011041b7504606831130ac51529d9a5a6615c0248af817244523de1a1e2"
+    },
+    {
+      "file": "animations/knockback.html",
+      "sha256": "8c1fbcc8ae848381137225bd29fd9175abd6ca88a4a98b99480f21180944f6fa"
+    },
+    {
+      "file": "animations/knockdown-getup.html",
+      "sha256": "7df448b0fb91c98e66a7af8e84a01b30cfe197f389d5ed8d80b96c88b972f36d"
+    },
+    {
+      "file": "animations/l-system-growth.html",
+      "sha256": "ed822ab8844d3f0285030e227ca11c7237b95a4db3a7c4d78e8913388469888d"
+    },
+    {
+      "file": "animations/landing-recenter.html",
+      "sha256": "c45b1634bd970cd116869e42b6199ef31e94fd750db99b0a864bc94c2b4e0767"
+    },
+    {
+      "file": "animations/lanyard-physics.html",
+      "sha256": "3ebba985fd8fcb608df655e3c03d6915501cfb12550879549de8f1166ba691c7"
+    },
+    {
+      "file": "animations/laser-flow.html",
+      "sha256": "839ed33a952590bba011b7eff6280abbb018b600d81402998b8bf12c9fea7fcb"
+    },
+    {
+      "file": "animations/layered-animation.html",
+      "sha256": "5a44f75b1fa31781bbfb937bab215b296ee36a8745b6554529b50dbcfa1eb9b1"
+    },
+    {
+      "file": "animations/layout-animation.html",
+      "sha256": "6c8b98113ef43c8c1d2d0ee9770fbd41c6f252ee04fddfcf90eb1a4c4eee9724"
+    },
+    {
+      "file": "animations/layout-thrashing.html",
+      "sha256": "db55fcaa8005bc3bb8a31a88e4d8b99f6cc270489a1a5046b87cf95f3fba065c"
+    },
+    {
+      "file": "animations/leader-following.html",
+      "sha256": "e2b2049bd9c4fdc0dc4be6232adc1de8bd7fd821bc94699494f3d07cd506ab1a"
+    },
+    {
+      "file": "animations/lens-flare.html",
+      "sha256": "3305209ce3b0ea9b03b542212b7a43523f829b37bcfe74feefe9404400c2de75"
+    },
+    {
+      "file": "animations/light-leak.html",
+      "sha256": "407ac51c8bef14d5ddebd169f7459bb741a709bc1c98cc0e04125db8b8410149"
+    },
+    {
+      "file": "animations/light-pillar.html",
+      "sha256": "780c7f0f0abd1ddb02207be6a24b2be3a9331f18bac729401f0581d1fc8a6ed5"
+    },
+    {
+      "file": "animations/light-speed.html",
+      "sha256": "3f4baaca74aced31f9bf486abbe4a7ec5162cd006044b5b83415eb9d1fcca889"
+    },
+    {
+      "file": "animations/lightning.html",
+      "sha256": "715f6b6a795adcf7dd32e6e63aab88998891ea08ac31ad00d019f8ede91dfd95"
+    },
+    {
+      "file": "animations/like-heart-burst.html",
+      "sha256": "5565f6ce6c21d4a92b7385d806f3778a57453821ac7f89187df45b0bc9983a7e"
+    },
+    {
+      "file": "animations/line-boil.html",
+      "sha256": "08fb52404062c0504d12e76c3ff62b5b67f26ed546eb7ea3a9f27597004a2854"
+    },
+    {
+      "file": "animations/line-drawing.html",
+      "sha256": "839db2076cdde9391525cfec763bd4fb85d91c3ec9de0513577142c69a61216e"
+    },
+    {
+      "file": "animations/linear.html",
+      "sha256": "e9af8f18515b1988d84c60a928aa800a9d723b8e999eef5c2c170f900bd622a3"
+    },
+    {
+      "file": "animations/lip-sync.html",
+      "sha256": "616db2842a348a76e0d3962df8c7d69af42dffc28c3f8d4d1151341d6a2b65ec"
+    },
+    {
+      "file": "animations/liquid-fill-loader.html",
+      "sha256": "c556acfe0978d6e847a0715daeea8324b624bd9b2b9105b1dc8f161fc4b3d9a4"
+    },
+    {
+      "file": "animations/liquid-metal.html",
+      "sha256": "def8999d38bc9051756973b8186b8841960f0ebacea83bf5e436e110219565e2"
+    },
+    {
+      "file": "animations/liquid-motion.html",
+      "sha256": "dc50153b430ddd43c9e22919e791a254760d7039f87c165ff128971cbd03cb16"
+    },
+    {
+      "file": "animations/liquid-simulation.html",
+      "sha256": "6145d37c885f7aeacd5e0005cfcf7bb7238d8a0f174cee5a1809a47d878aa191"
+    },
+    {
+      "file": "animations/loading-pulse.html",
+      "sha256": "48a9bb2a3e8a83c189a8b2dbe80cc9648059c6923fedd75b4acaee41bba4669d"
+    },
+    {
+      "file": "animations/loop.html",
+      "sha256": "61dcc3f13ac526d885fd37409a75fe0b579a87b9ea6a261aca03e9a670a23778"
+    },
+    {
+      "file": "animations/loot-reveal.html",
+      "sha256": "1ab48f31b8fc253c4ab095f1e15e43e9f1b66c8dafcf04b79dd51bd13c56ebe7"
+    },
+    {
+      "file": "animations/magnetic-button.html",
+      "sha256": "57820b7e9599d29f2637c66fb49c4cf2843d286b54b5045a49998a5dce605728"
+    },
+    {
+      "file": "animations/magnetic-line-field.html",
+      "sha256": "123b6defcbf65454bb61438c2f73a2a7654332c130a3a470dadec44469f35760"
+    },
+    {
+      "file": "animations/magnifying-lens.html",
+      "sha256": "84c0dfb90b18e4aa032d0808c98c805b06063d943186af86b86697689aa75513"
+    },
+    {
+      "file": "animations/marquee.html",
+      "sha256": "08ac362d2c097a91e11ed0e514ee9b0eaedc0b20c667c5d2694607850c6d3e8c"
+    },
+    {
+      "file": "animations/mask.html",
+      "sha256": "a048936bdc84c8f094b06b7e7a505cabc37093b6415a62c8a8e49b3d612f438a"
+    },
+    {
+      "file": "animations/mass.html",
+      "sha256": "e13fc4ff58c232b8649583d5aa643490a049bde186cf9a425b46a30bf5104ff5"
+    },
+    {
+      "file": "animations/match-cut.html",
+      "sha256": "add146a2638f8d5c41a8d0626d4656039d68fe45c6c57ba0fb04d23a14a683f3"
+    },
+    {
+      "file": "animations/material-fade.html",
+      "sha256": "f9aa4c8d5c03bb551d05225ca325f55501929db791ef9433d3b6f325106fd80d"
+    },
+    {
+      "file": "animations/mechanical-loader.html",
+      "sha256": "dfb5bcccf34b745288a474e7c2386a96dbfc99aaa28c7bb4279622fa88c0b0c8"
+    },
+    {
+      "file": "animations/mesh-deformation.html",
+      "sha256": "26f53258811a494d2a5586efc2138124a5f7500ca83816b39b5659d80b9d18a0"
+    },
+    {
+      "file": "animations/meteor-shower.html",
+      "sha256": "379faa0d61a2d352030129b714bf01c634f089383517461885f2fdf52f27a3df"
+    },
+    {
+      "file": "animations/moire.html",
+      "sha256": "2b4c2573d507adfaab01c0a5871c7d9c8c811b920e83a45ac2a993afb7019796"
+    },
+    {
+      "file": "animations/momentum.html",
+      "sha256": "94d3e67c1a7ae28fdc7b703a7bfc646d2d1f8a29b944122cd1350ac8d2e56856"
+    },
+    {
+      "file": "animations/montage-sequence.html",
+      "sha256": "196bcfca0e6174a395d156e3928d88e95bc3d8504a0813d6e0e97f5fe152adc3"
+    },
+    {
+      "file": "animations/morph-cut.html",
+      "sha256": "c84407996785a7526a6675b437a322f80a521ce6ca288649d6e87eafca8065fe"
+    },
+    {
+      "file": "animations/morph-targets.html",
+      "sha256": "69aedd6ec67476f4a0b006b5a64abae3f6b7692c9c086f0eb04e2652b5a01a5e"
+    },
+    {
+      "file": "animations/morph.html",
+      "sha256": "179fc02218af559ab09f6183689f2539568738049fd3b4bd4d59d142e7cb3bec"
+    },
+    {
+      "file": "animations/morphing-text.html",
+      "sha256": "31c15275b89769111a17fdb7540d392273d80a988801b37c94d3b0426a506738"
+    },
+    {
+      "file": "animations/motion-blur.html",
+      "sha256": "beb6a9c1411a9101e0d8801c43ee0ec72f4e6546439bf03d3b99332f3bb709b7"
+    },
+    {
+      "file": "animations/motion-capture.html",
+      "sha256": "d9b8c282065b46eb633759565b02321b9ae0b34b92003001cc05e633ef49d75f"
+    },
+    {
+      "file": "animations/motion-comfort.html",
+      "sha256": "708c3d4c889a6bdb2eaa373bd88d25f8b12b4b73793eced070239c8d239b0730"
+    },
+    {
+      "file": "animations/motion-echo.html",
+      "sha256": "9a210cd48166c1aec8ced89e2d4b90f7808eb2579e37d31a57aa7623370e86d6"
+    },
+    {
+      "file": "animations/motion-inbetweening.html",
+      "sha256": "816bb1e9097cd308de650813ab3a58e5f938ec1f9aef21e8a5f9b2ab1e57d4dc"
+    },
+    {
+      "file": "animations/motion-matching.html",
+      "sha256": "f66da4cf3de59d45e07d45f9a35f2e8eb3fdb05d84c5bf96aef3b3eab3b43c22"
+    },
+    {
+      "file": "animations/motion-path.html",
+      "sha256": "19e9ff6e746ca562bb5262926c504e4c89f4d5de7024240aef640249a22d37f0"
+    },
+    {
+      "file": "animations/motion-warping.html",
+      "sha256": "de6048e2c36d16de4bccacc53262f519243ec040002565ec456c7f83c950039f"
+    },
+    {
+      "file": "animations/moving-hold.html",
+      "sha256": "b90efcf10ce80b53304ce3069069af13e9169e9a94b9ce963333de8d25c74ae4"
+    },
+    {
+      "file": "animations/moving-text-shadow.html",
+      "sha256": "b94614b544d3e44aeae883fb0baa76ee3af69b9c091f451b9cd0e141d6f28208"
+    },
+    {
+      "file": "animations/multi-target-camera.html",
+      "sha256": "e13337fc4ee640f05339efd5f7a1194765472f6097ee3e6237b72a439023be77"
+    },
+    {
+      "file": "animations/muzzle-flash.html",
+      "sha256": "01edeb8de9eadc2a25e53df694c13a150ce82386f6b6c484e224dc5993c3c363"
+    },
+    {
+      "file": "animations/natural-wipe.html",
+      "sha256": "fc7cc56328bee88372bcaac95f0e4a3c93cc404da0d1ce1ce2956b7e636cbc4e"
+    },
+    {
+      "file": "animations/neon-text-flicker.html",
+      "sha256": "c708efea6765be3d852e43078bfb18753b26c96e722b52674eaaea35e6d5f4ca"
+    },
+    {
+      "file": "animations/notification-stack.html",
+      "sha256": "b62b502c635674ea3f593625b51c28db0fc375acb7cabb9083d2b8591fd98353"
+    },
+    {
+      "file": "animations/number-ticker.html",
+      "sha256": "635e24b509f38ddf357d862ce480830912fb1d8e0b71fd550f5345b96396ee81"
+    },
+    {
+      "file": "animations/obstacle-avoidance.html",
+      "sha256": "3b130e973548849152710dea3c7fa857d1c0c0fd208ad0a5dcb401090b9aa7af"
+    },
+    {
+      "file": "animations/odometer.html",
+      "sha256": "b3812fb88e69d425fa71b19ebd5117edfef0159fdf7b0d8f0e866a961dab3b85"
+    },
+    {
+      "file": "animations/offscreen-indicator.html",
+      "sha256": "ae6b75be3dd2ca68a5fbe445eb840dd1157436e69f51bb5c01941d9f1bce8946"
+    },
+    {
+      "file": "animations/optical-flow-interpolation.html",
+      "sha256": "88bb109a33ebeae0024b449aa45c9600f9da2d8320e24760273c77e1c1a42d2c"
+    },
+    {
+      "file": "animations/orbit.html",
+      "sha256": "e9d2b6e232141c16c29b441876db2f0897319d97ae3636c184cbd2575c12ad41"
+    },
+    {
+      "file": "animations/orchestration.html",
+      "sha256": "ef45e4388822de0cf92aec022fb9891b6c2bbe4056b19be81ec82df844c4682f"
+    },
+    {
+      "file": "animations/orientation-warping.html",
+      "sha256": "155015a5a7dc6f61fbc1c59658fe15816783ad475a837a2c4afba42971ef2870"
+    },
+    {
+      "file": "animations/origin-aware.html",
+      "sha256": "3312cd52acedc04de4817b1da17dbef6c2b6dfc224c935dda5e06a1a5ddfa0f4"
+    },
+    {
+      "file": "animations/outline-expansion.html",
+      "sha256": "645fccc4a244358e8907b2ad4bcb3d05be28503c08f92893e7e16d53eadf0c81"
+    },
+    {
+      "file": "animations/overlapping-action.html",
+      "sha256": "f2130b293b56a0ad88766a2b60f27e8b60e567ffd4cd014eec7aca7e85fcd5b5"
+    },
+    {
+      "file": "animations/overlapping-editing.html",
+      "sha256": "10fb176377fe810bfa56f2a57b7875c3135e60751a7c0a59c8c7a8ff1daffdc2"
+    },
+    {
+      "file": "animations/overtonal-montage.html",
+      "sha256": "61a264e894423b6f40ec6d598cff89189635be1165b3797f2634b21bdcb98d9a"
+    },
+    {
+      "file": "animations/page-flip.html",
+      "sha256": "ca9d637700ecb6ef7c11c660f7230d69fbe04e3de88ed025ca534f85e8732371"
+    },
+    {
+      "file": "animations/page-transition.html",
+      "sha256": "d52d080f71e2bae7cb6e870332c4d8d6c59554bff9f3e6420f8f8e8201d2346f"
+    },
+    {
+      "file": "animations/paint-on-transition.html",
+      "sha256": "800d7f9c6666e0af7a9b2e2186acb221109d97e83841ff8a4498d7e63129dbc4"
+    },
+    {
+      "file": "animations/paired-takedown.html",
+      "sha256": "c2a4ef5af4f9eaf2d0b7ec9a0bc4ed7e7864c7608b1d9829fb90af772725f118"
+    },
+    {
+      "file": "animations/paper-crumple.html",
+      "sha256": "21c31d653037e142a3c707eb068c34676fb902b1725bf917e04dce3e2936ba23"
+    },
+    {
+      "file": "animations/parallax-2-5d.html",
+      "sha256": "38dc674d8075681369ef79b02f2c746e27145ead5192f145959e1c6d1dc6966e"
+    },
+    {
+      "file": "animations/parallax.html",
+      "sha256": "bde8f358cb3ec4c41756643be7f11938ee79163130895816d1a56c93ae364ad8"
+    },
+    {
+      "file": "animations/particle-attractor.html",
+      "sha256": "c3598bbed316422bd5e8958da0403e4f065fb61258f9ca84cf9d5555a1c19316"
+    },
+    {
+      "file": "animations/particle-burst.html",
+      "sha256": "5cbd290fd6af49fd768395589c8a1270c4a822090235048062e14b9097864294"
+    },
+    {
+      "file": "animations/particle-emitter.html",
+      "sha256": "b1b38c22169c614c2ced44883ba732a9e2bf7903e1a5fea05c9aeac05f9671cf"
+    },
+    {
+      "file": "animations/particle-sub-emitter.html",
+      "sha256": "245c4859c9ad33aefec7377143adbe2f4a65f8a3e50186e2f203b3867254b48e"
+    },
+    {
+      "file": "animations/particle-text.html",
+      "sha256": "6562e3eb3bd704cdc4fd0637b390cc0efe1f47a889165af28e98652c8516fb71"
+    },
+    {
+      "file": "animations/particle-vortex.html",
+      "sha256": "cad0fa8f03a65d509fa4483135f9b82d51c6871586107b94f8588d307b8822ba"
+    },
+    {
+      "file": "animations/path-following.html",
+      "sha256": "9f8b97ffb136ccfb491df339b9a84048005a957c6b0864af74292c5493674217"
+    },
+    {
+      "file": "animations/path-offset.html",
+      "sha256": "c4e10e48cb3e7e4897f5be2efc1383b56eacac995166a45d24fe66bc1ea4ce7f"
+    },
+    {
+      "file": "animations/path-twist.html",
+      "sha256": "df3f07793177b65f529c9e1155c25b374921e953f55977af058dcc03fac7ba87"
+    },
+    {
+      "file": "animations/path-wiggle.html",
+      "sha256": "8725a92d7b2ce8474c208a6ef118212e7d51f79465266e9a0a6c6b1e345d8d7f"
+    },
+    {
+      "file": "animations/perceived-performance.html",
+      "sha256": "9119dcf6daf948e954790e346b627db1f009ef20df752f59e87b9e738c69e40a"
+    },
+    {
+      "file": "animations/perceptual-duration.html",
+      "sha256": "3e9b241d26e96c01d8ba3e35e7e358727ac446b2635e9cb28b6c79b74b2f1c46"
+    },
+    {
+      "file": "animations/permanence.html",
+      "sha256": "b0a18d8b1b1220f6a33b7d8375a6d5a78c24616ca9bb6e5edfa703704f68f89b"
+    },
+    {
+      "file": "animations/perspective.html",
+      "sha256": "1f2e280d8e5d3eb3ceaa3902d1e4afbacf92799b98de3dc7613f80b1fe26447a"
+    },
+    {
+      "file": "animations/physarum-trails.html",
+      "sha256": "d8a1a6813e59a3cc3a74521da096a72cf636e0cb5255d06026b905cad7fe5b60"
+    },
+    {
+      "file": "animations/physical-joints.html",
+      "sha256": "f4b9a4dbf8061d89acd84ee1ecb275c8ab10ae2f4f84d45403ce9e545892d762"
+    },
+    {
+      "file": "animations/piecewise-linear-easing.html",
+      "sha256": "f4e04d0acefab29a6fd7b0fe22253b49faeca760344e5cf3fba095d6a333152c"
+    },
+    {
+      "file": "animations/pinch-to-rotate.html",
+      "sha256": "0be7df672eb74f8b0899b8ee52737d86c10817880812da2039eef8c17b7a37e8"
+    },
+    {
+      "file": "animations/pinch-to-zoom.html",
+      "sha256": "3a6ef4f91aaea6172373e8c6dbfd6156387d9303af96d2232159d7e0da3f5f68"
+    },
+    {
+      "file": "animations/pinning.html",
+      "sha256": "4bd362de1df9bc84850400268765a563b86443b5bc60f46d03ce3b748e078a19"
+    },
+    {
+      "file": "animations/pinwheel-wipe.html",
+      "sha256": "cc3cb3f2e978d82e3f897372d6cdea2f8ae52988c73ac359ff015129f9949022"
+    },
+    {
+      "file": "animations/pixel-dissolve.html",
+      "sha256": "13e8788f0c4a35dc9a6927c76bb6c6dc6b1ec3b03aff95252bcfac75c1a96e74"
+    },
+    {
+      "file": "animations/pixel-sorting.html",
+      "sha256": "9e279080cdbff3bbbbcdf88da32e786da2daca7ca8ed17a0eece95d655683368"
+    },
+    {
+      "file": "animations/plastic-deformation.html",
+      "sha256": "90edb6513c3761317089a64691f493f41ee9d793f30f440c5f390073e2cc7b54"
+    },
+    {
+      "file": "animations/playback-rate.html",
+      "sha256": "081af7ca325d66eb2a3df57f4e7c9be9996510b5b2dd7848410ae0b83aa44f1d"
+    },
+    {
+      "file": "animations/playhead-scrubbing.html",
+      "sha256": "075f5382257c5e5e1bcff79ca1c274d14bede12bc57d08357e327c940dc584d0"
+    },
+    {
+      "file": "animations/polar-coordinates.html",
+      "sha256": "85c16ffddb3c0f95f6285779fe9db810f363a29d7e52748673bdd5e8423ca779"
+    },
+    {
+      "file": "animations/pop-in.html",
+      "sha256": "b35dde29c0dc5e13403657a927fd93c38b6b4aad48b60c5c1bd7a0668875276c"
+    },
+    {
+      "file": "animations/pose-to-pose.html",
+      "sha256": "bc4fb597648ac1fd93a265617713e865eec2a5212c91c0decebb089982bb4d3a"
+    },
+    {
+      "file": "animations/predictive-back.html",
+      "sha256": "1198301b33023a2f3f0eb36a28c270df571b449eda8e64d9278bcac20acb9116"
+    },
+    {
+      "file": "animations/press-feedback.html",
+      "sha256": "5bef693d232a71fe7f3117632dd32b776a7ef0f3d61e9948b349b26f914d551b"
+    },
+    {
+      "file": "animations/progressive-edge-blur.html",
+      "sha256": "496209c151fd6be0b38bb86c91eeea64e41dac3dd9d3830c4101fa55201bcb18"
+    },
+    {
+      "file": "animations/pucker-bloat.html",
+      "sha256": "04572ee02157f9c3f11a76ae51e8ccd83e7ededeff3fb25fb2c057d8abdd3024"
+    },
+    {
+      "file": "animations/puff-in-out.html",
+      "sha256": "50137fe5253c1bcec213ca31a39a7841a0b68f20fc3bb428f9b7cf7f5b94a375"
+    },
+    {
+      "file": "animations/pull-to-refresh.html",
+      "sha256": "bbe9caff5a50c67fc5f24dc51b0a7bf292c8ee8fad7181404bf1b7a9613afe10"
+    },
+    {
+      "file": "animations/pulse.html",
+      "sha256": "de4969e9d9a271a8a93da58c78a3494587c7fe0c09fda587e794287d0a20a661"
+    },
+    {
+      "file": "animations/purposeful-animation.html",
+      "sha256": "4952b9766e4537b96e4438444b0079adeb0a7ed3301e85c3014ed5304ba07e25"
+    },
+    {
+      "file": "animations/pursuit-evasion.html",
+      "sha256": "368cba4cc8ee09dbae1a40360f59f83185fa83b0daec6496a0a73f5ba0d39b05"
+    },
+    {
+      "file": "animations/puzzle-slide.html",
+      "sha256": "ef5d5ff059c0f98c01ad7decd04f070aaa407c70b9963cca924d133d07ec2852"
+    },
+    {
+      "file": "animations/quad-easing.html",
+      "sha256": "b6ec9c70cf0e26169096a691b6c738a32d33bf9f5fa0178ca675106eaeee623f"
+    },
+    {
+      "file": "animations/quart-easing.html",
+      "sha256": "c1f5ae7732b72e8c6cf05329e248e032696f760039aba10e5fd8e74760421870"
+    },
+    {
+      "file": "animations/quint-easing.html",
+      "sha256": "58fdf3a3655e9d4cd720a7e9607e8ad38560718434f232b845c3f9040098b407"
+    },
+    {
+      "file": "animations/rack-focus.html",
+      "sha256": "ff795b4d622a5ad2b8899f8d2b8d6d11b98340ca947f3de80ca6c6d4e6d46075"
+    },
+    {
+      "file": "animations/radar-sweep.html",
+      "sha256": "0a787634554009c8031960217ccf9fa7d1e502540586d11f64ecef4253eb0177"
+    },
+    {
+      "file": "animations/radial-fill.html",
+      "sha256": "59711fac1115cbebc2b495bd5e6ad1b1b50e0d4d3c2387c5f979875a9cbb8914"
+    },
+    {
+      "file": "animations/radial-menu.html",
+      "sha256": "3e707bdd214ed1248b0706139277290896dea3eecf63c6a373da87c73c24f7d2"
+    },
+    {
+      "file": "animations/radio-selection-motion.html",
+      "sha256": "d776c42beccc36d9c18ebb52a1d46077389177c69a9c62f04240fefbd83063d3"
+    },
+    {
+      "file": "animations/ragdoll.html",
+      "sha256": "f9ab812382c007f86b433d63d8fb5b8047938f09da8302d5b9a09126d06be37c"
+    },
+    {
+      "file": "animations/rain-ripples.html",
+      "sha256": "56e65323adf924a948d494f52f09fdab9258bd6cdffffa6f0f99a8771d20ae8a"
+    },
+    {
+      "file": "animations/rainfall.html",
+      "sha256": "1493ac6596536b9a392b99cec1bd9ad993f0c53f6e347da089ce28914fec235e"
+    },
+    {
+      "file": "animations/random-walk.html",
+      "sha256": "c190972a36f47f0b8c97a5ca3ee9f09b3a5b492e5a52786c6c56d68c56b95545"
+    },
+    {
+      "file": "animations/rapid-image-layers.html",
+      "sha256": "eca44fb9dba84e255eef0d9191924452140a026557aa31e0c4a2ff9326f9d805"
+    },
+    {
+      "file": "animations/reaction-diffusion.html",
+      "sha256": "f46b32b63fdfd9bb8d8690d9008e5bdcb6c6b6f0a6c6597c0cf5048ef856a3cc"
+    },
+    {
+      "file": "animations/reactive-cube-field.html",
+      "sha256": "b52c538b5599e252e174384990b34945064cc2c4f99a4675c84037f864642b35"
+    },
+    {
+      "file": "animations/recursive-feedback.html",
+      "sha256": "3cc674a874979860d2896a3d1755064e923e071cb4843468f22d48177cf5368b"
+    },
+    {
+      "file": "animations/redirected-walking.html",
+      "sha256": "1e5b7e130ea68889b8ed250b4c92c8a2c267139e48a610b6b3024892faa76301"
+    },
+    {
+      "file": "animations/reduced-motion.html",
+      "sha256": "57c979e1718c89c7193e2fbb5a193ca323c1f28cee1e062acd80d47c38f75739"
+    },
+    {
+      "file": "animations/refractive-glass-motion.html",
+      "sha256": "82a2565a40f792a5d180c93b9024e81dd6e7fc5eada4c3193a591e33df0a0325"
+    },
+    {
+      "file": "animations/region-weighted-focus.html",
+      "sha256": "c102cd273d7db58c061511860a92c1e1568f111a8ce25b60027e2fdaac111015"
+    },
+    {
+      "file": "animations/repeated-image-transition.html",
+      "sha256": "cb4362d88d0f2c14f1da52fa9d4cf69f5eca2374a92c920859082c13780beb84"
+    },
+    {
+      "file": "animations/reticle-spread.html",
+      "sha256": "6d46244767f7cd8772d18eb521b07aa40a36237e1a6a1852706d5c1d7eb908ff"
+    },
+    {
+      "file": "animations/retro-perspective-grid.html",
+      "sha256": "8b646c3b9ca95ff2de0bd4a2e5ab4ac915cbd62353bcd0aff5b0caeaa3e9aab5"
+    },
+    {
+      "file": "animations/reveal.html",
+      "sha256": "aba8c853555d13dce4e486f3adc3db55fe974c6b97325975dea1168b5f942029"
+    },
+    {
+      "file": "animations/reverse-playback.html",
+      "sha256": "2b8f304376b21219e75575078576012dfe87a2c5a94351a505599add84555ba4"
+    },
+    {
+      "file": "animations/rhythmic-montage.html",
+      "sha256": "4b87f2e050883f8fe58c8e445f8769f645013a9f606eac4e982bfc022663bd79"
+    },
+    {
+      "file": "animations/rigid-body.html",
+      "sha256": "ba3ac637235c90b2dfc3b92814d915a7be80d7dcd236ae502a6eeb70c449b586"
+    },
+    {
+      "file": "animations/ring-carousel.html",
+      "sha256": "dae75a142aa9ba038f6b7db317c9efef1c22b409b6c0aa94d643799588e25d2c"
+    },
+    {
+      "file": "animations/ripple.html",
+      "sha256": "d36e44e87b736dd2e9743a2b279784fcf6adb8fd61e5bd30c2408d5e40d2e5f5"
+    },
+    {
+      "file": "animations/roll-in-out.html",
+      "sha256": "34180c0a1e73fab43b0bb949066286dca59f343d37643440121249b890329651"
+    },
+    {
+      "file": "animations/rolling-loader.html",
+      "sha256": "a1297d2f37fbf96cafe3e9ce291db68efbcdc024238461f5455c448d49cacb5a"
+    },
+    {
+      "file": "animations/rolling-text.html",
+      "sha256": "c0cfc677c28db74428ea763bb142f94484d591aec14b516f35bc2256638b9706"
+    },
+    {
+      "file": "animations/root-motion.html",
+      "sha256": "d2e08a22855782eb615457b56ddd87bc7b8901eea4c5b85c728d542a0354fc3e"
+    },
+    {
+      "file": "animations/rotate.html",
+      "sha256": "3f0ef9dfa56ab3d9a1fc185965837c271125052ec77696372441b5bfdc1d1069"
+    },
+    {
+      "file": "animations/rotoscope-style.html",
+      "sha256": "2dd28ab997d3fdd4ab671309318d967ff85aba42629d1b680975caac6a5e73fe"
+    },
+    {
+      "file": "animations/rough-easing.html",
+      "sha256": "78fc036b73baaef0a747a4d90877f3c08500e410c958317f7732d51f36dbfa3f"
+    },
+    {
+      "file": "animations/rubber-banding.html",
+      "sha256": "6ef2218e0b916c5faf4cf42c997194c309b8bcb04c079986d218d4ef92ba1af5"
+    },
+    {
+      "file": "animations/run-cycle.html",
+      "sha256": "4bbb45cb93b08cd06a2148f4199a51f2609057a6767f5e256c05cdd7dfdbd926"
+    },
+    {
+      "file": "animations/save-confirm.html",
+      "sha256": "9cec07f2aceff564f6016ed74456edf681e6b4f9232f152e315cdaf6b4dd8507"
+    },
+    {
+      "file": "animations/scale-in.html",
+      "sha256": "f25fd460a7182e5c4cdd492beb8fc4f131579415d4c40aeaf681eab19b5f8e60"
+    },
+    {
+      "file": "animations/scale.html",
+      "sha256": "400df92e19a5242a1f28ab4b28237c62ceb7d8faa9a73d73778b662a389c0894"
+    },
+    {
+      "file": "animations/scanline-displacement.html",
+      "sha256": "70f094d66b20978e2b2a60e25c8ac8ba929fe783bc3600d82d9673a0d8ef9949"
+    },
+    {
+      "file": "animations/screen-shake.html",
+      "sha256": "808f24c0b40585212a049266cb535dba6b21158f06cb73d42460d40ec68633cd"
+    },
+    {
+      "file": "animations/scroll-card-stack.html",
+      "sha256": "e6e0c6ea7ca12a481948f1598eef21f4084b905bce8cdfc3ee39b84d24c27000"
+    },
+    {
+      "file": "animations/scroll-chaining.html",
+      "sha256": "056e97ad00bb5e9ae2d88011a247828a9910488aabe8477a81039d0afa18dda9"
+    },
+    {
+      "file": "animations/scroll-direction-lock.html",
+      "sha256": "b191fa88a271f447a63fc4f14468af5dfa9b498d68b5f9b0f29d49d7dfc53daf"
+    },
+    {
+      "file": "animations/scroll-driven.html",
+      "sha256": "dbbbdbd3119e1e5d2ea4a53dfc5a9eb3882bd6b93b4aaa1ebce15f60fe351f84"
+    },
+    {
+      "file": "animations/scroll-progress-indicator.html",
+      "sha256": "efee6d74ddb77a86f78d1d580f77ed17c489b8de518779e539f43cd1bbb831db"
+    },
+    {
+      "file": "animations/scroll-reveal.html",
+      "sha256": "5cad85b7b4f085d08bdec36b7d288dba5b05eff56d4d0e7b2fd9058ab9342226"
+    },
+    {
+      "file": "animations/scroll-snapping.html",
+      "sha256": "f9dd61090bb21c9dfe73e6b7738145cd8172f88065f794d1e3178386017a7c0b"
+    },
+    {
+      "file": "animations/scroll-text-reveal.html",
+      "sha256": "fedaf6cfde6ca7e027e6342862db8dd1ac4132a6de7010e532da98508034f7a3"
+    },
+    {
+      "file": "animations/scroll-to-full-bleed.html",
+      "sha256": "26b0e2e1a48a51ebde11eeb048c50a8370c605ac16e1f90da5e5125de5b1bc40"
+    },
+    {
+      "file": "animations/scroll-to.html",
+      "sha256": "0caa616b2af3e91675621b3a61a5481f8906e594f1ad289b39b86b9a9e9ab545"
+    },
+    {
+      "file": "animations/scroll-tracing-beam.html",
+      "sha256": "e5c641185036c0463bb13331056761408a8f7345d31bcd9926f2f198b586630c"
+    },
+    {
+      "file": "animations/secondary-action.html",
+      "sha256": "9d18e33f5794b645b84c12ce8903ff8215f63df9ed391c64674494536f7c66dd"
+    },
+    {
+      "file": "animations/seek-flee.html",
+      "sha256": "ec1520844084c01d6d526ad6f01d15236d84523ea12615a3516bab2ec25f7b51"
+    },
+    {
+      "file": "animations/segmented-control.html",
+      "sha256": "1195973494cd91c2a6bbd876974bf1a0fa6fc7d948a985a48097dae333c0e957"
+    },
+    {
+      "file": "animations/sequential-reveal.html",
+      "sha256": "5d4b5bf8d52c0c1805d91178aae9b818f551814a449586eca36fa7bcd6c7d528"
+    },
+    {
+      "file": "animations/shake.html",
+      "sha256": "6a029bcc386b96cddf93c498521deecf7ee0b1ee539d1768b7aed70ea3119f8f"
+    },
+    {
+      "file": "animations/shape-repeater.html",
+      "sha256": "97847e982dbf772027627f65a4f84a5d9bcc3c9cab2747508524f88f99ed0a82"
+    },
+    {
+      "file": "animations/shared-axis.html",
+      "sha256": "ed7eb82c7c9a7c580bd99559f82ac5adde47111005277626286880b2cccf412d"
+    },
+    {
+      "file": "animations/shared-element.html",
+      "sha256": "90fb17ee268ff6f425b94c00df618527f51bade7e4bb7023ae3c2918860c3536"
+    },
+    {
+      "file": "animations/shatter.html",
+      "sha256": "d4e89fa03197153f36cbc39192af88a45236b56da3ef2801a9537428d085a8bb"
+    },
+    {
+      "file": "animations/sheet-detent-snapping.html",
+      "sha256": "5402d64a648dca0908f784a8c71a4741a67240a67f5e9271a6cbc45f29da1e61"
+    },
+    {
+      "file": "animations/shot-reverse-shot.html",
+      "sha256": "6925e32c7c3cd7817a99cef40bfb224660772f1f4ce6198010ad08d7a6fc8606"
+    },
+    {
+      "file": "animations/shredder-delete.html",
+      "sha256": "ec7779ff8c62291bb50bcebfdd870d717b35c2a4f5e536598de824142c7fc819"
+    },
+    {
+      "file": "animations/shrinking-navbar.html",
+      "sha256": "7faea1fd76f3e89145bef69c260d3f53900541f26f1e572c9dda67866011afa1"
+    },
+    {
+      "file": "animations/shutter-transition.html",
+      "sha256": "f0ca65be946cb4cba85c4f5dcb6ccc4ce04204a3ca97b20caa4505ed835f128a"
+    },
+    {
+      "file": "animations/sibling-defocus.html",
+      "sha256": "8ae104868bf694d81d8ece189c167898c0317c5fc354aebdcf75c806fd91032a"
+    },
+    {
+      "file": "animations/silhouette-animation.html",
+      "sha256": "386689b72f06c27a1f5a38bdeb90315acff9d7d6682523c4db0bd59629194a3d"
+    },
+    {
+      "file": "animations/silk-waves.html",
+      "sha256": "e5dbbfafdf1571ed1f3a18d7170e621d4f2bdea77dd6ac0c30b12914733c6c62"
+    },
+    {
+      "file": "animations/sine-easing.html",
+      "sha256": "7d659f47c9adf0bb426da2cad4b21517fe8d41fbcd308759fca7c461db2d1f86"
+    },
+    {
+      "file": "animations/skeletal-animation.html",
+      "sha256": "706b2e0b103a752da6ea3027021ef53468495022021c0c76ed29ff760ece7855"
+    },
+    {
+      "file": "animations/skeleton-shimmer.html",
+      "sha256": "baf4069fc6413247a871c8c32ee0b077c9322f1b7a35d44dc426a43d4ba6bcfe"
+    },
+    {
+      "file": "animations/skew.html",
+      "sha256": "814129b1b61ae4e8c0e01284fa3e69bc3593e019de61918e9cc2765de64f24e1"
+    },
+    {
+      "file": "animations/skinning-weights.html",
+      "sha256": "c11737ce9d9a842b190f6197f17ff025355c6d0ed0a2b7ee6f8a9e9cfa422395"
+    },
+    {
+      "file": "animations/slats.html",
+      "sha256": "ce67df34e84d7834c1a67836e11cdb9d687c74f64f127be95f5d213b002a82ef"
+    },
+    {
+      "file": "animations/sliced-slide-transition.html",
+      "sha256": "5361e34f3ba20ccb6284d4625b38367767c06f93a68cd703ba62cae61c1bf8e7"
+    },
+    {
+      "file": "animations/slide-in.html",
+      "sha256": "9040aaf6e3d0948fd48eaeef16f4d60ce66cff74ae2bf6ab14200d71eab39263"
+    },
+    {
+      "file": "animations/sliding-active-indicator.html",
+      "sha256": "a39d117929d0dd05e34d7377fd9338fba38f920c45e946388719a5a667e554fc"
+    },
+    {
+      "file": "animations/sliding-carousel.html",
+      "sha256": "89e805f9fedbacd52dc3d71a47ee04ea63a67384ba6b38443dbd114b461231e0"
+    },
+    {
+      "file": "animations/slit-scan.html",
+      "sha256": "af1a6ccefbcd7f8011e51ead6ecf8c943a86419f894c86326b641755254b3c4f"
+    },
+    {
+      "file": "animations/slit-transition.html",
+      "sha256": "0091b1b084974c9a0dbff6f963a395b7f8e709410aa2fa1c6e21f25acf38d4af"
+    },
+    {
+      "file": "animations/slope-warping.html",
+      "sha256": "50547b0496f1b5bfd2091377b661677e5bd830c334f8b2a46e0be2c51eed626f"
+    },
+    {
+      "file": "animations/slow-motion-easing.html",
+      "sha256": "0fe65cd88204a5582af3aff19288e160bf36607426ddbf71d6997f43093aeff4"
+    },
+    {
+      "file": "animations/smear-frames.html",
+      "sha256": "8cb17559bfade43c67addfd099d8c23c0752885226cd00e8d37329ca0a875b54"
+    },
+    {
+      "file": "animations/smoke-fire.html",
+      "sha256": "f195d0c8b40251956ae48123672650dd3edb230d3c2cd1065eac57514adee146"
+    },
+    {
+      "file": "animations/smooth-data-zoom.html",
+      "sha256": "ff38f8f35896f4588fde9e4654c28bdc0e824c87ab2dcd34ed6afc3342e35ebb"
+    },
+    {
+      "file": "animations/smooth-scroll.html",
+      "sha256": "8af266c50d8a90b11b53706079bf67e2648d7c53095d5e4e59661de1a2829363"
+    },
+    {
+      "file": "animations/smoothed-scroll-scrub.html",
+      "sha256": "d0c5568aa7f2f65ac716892f2370e3f8bbe9289aa71900371c9879c0c91c8dd0"
+    },
+    {
+      "file": "animations/snap-to-grid.html",
+      "sha256": "55497b81c186366ad0364176f5088e5a1c99fc188cef36d5c081c80d4dd99b64"
+    },
+    {
+      "file": "animations/snap-turn.html",
+      "sha256": "35141acea7f22bab47b9c2748e5bb0e6348faf84469a2d07bd1e44ab9e4a9139"
+    },
+    {
+      "file": "animations/snorricam.html",
+      "sha256": "f5865283fd2c10e93a6104df007643921798b58450e846746c7e54cec33ecbae"
+    },
+    {
+      "file": "animations/soft-body.html",
+      "sha256": "3a8a7122a4e560b3228ba6649899c561b43b64bb37ec6a27979362f7c02cc848"
+    },
+    {
+      "file": "animations/solid-drawing.html",
+      "sha256": "bf5ba4de1a4e086c6ca7fee7c1f12b53487564e28240a280fd198998dc537ed7"
+    },
+    {
+      "file": "animations/sparkle-text.html",
+      "sha256": "976a6399b2155043c3bbeddfaf18dc3f17aac5c10dea9ba8f17bde312d7f3038"
+    },
+    {
+      "file": "animations/spatial-consistency.html",
+      "sha256": "69c49c956eb00a2de742c0797255a128ef217f052c3a8f839b31292c0059f824"
+    },
+    {
+      "file": "animations/sphere-cloud.html",
+      "sha256": "a4d66d091aa0b525c2ce39b5b25c93cea23d8c855473ce31850fdb79b0c7e8a1"
+    },
+    {
+      "file": "animations/spherize.html",
+      "sha256": "cf7096ef508c4188ce21b16b271dd964b0eda25c8a451aad8308ea32065b9653"
+    },
+    {
+      "file": "animations/spinner.html",
+      "sha256": "031f1a557c449c3ee994b7e172b043af1a48837bd89c67339847bc50a5a8837b"
+    },
+    {
+      "file": "animations/spinning-circular-text.html",
+      "sha256": "69fb04e8bc715d796a8c27f9240301eff8700a51cdee2152b4e06d36e1d15475"
+    },
+    {
+      "file": "animations/spiral-wipe.html",
+      "sha256": "3e77438b7aa7bb90580669c34fa239c63b6beeae9eac14470a3584a4c940dc1f"
+    },
+    {
+      "file": "animations/spline-wrap.html",
+      "sha256": "3ea913444e165e3f9f9eae58360cad64db551501951eedf320932ecbaa3795c9"
+    },
+    {
+      "file": "animations/split-edit.html",
+      "sha256": "0ecf45348215e1885494df30839241c452108113edf55f23dd125e69832faebb"
+    },
+    {
+      "file": "animations/split-flap-text.html",
+      "sha256": "89cab867a46795106ebbf373f3d53eb1fe081772a4032c7c48da6d4fed2ddcac"
+    },
+    {
+      "file": "animations/split-text.html",
+      "sha256": "1d432a896229578b49413a9ff1e802103d3878c7604162ea9f9622dbbf9cd2c2"
+    },
+    {
+      "file": "animations/spring-trail.html",
+      "sha256": "1c1826abbd94a959ef6f12cac4c31445e0a6ca5f3018a5a5b4abb18e8188d119"
+    },
+    {
+      "file": "animations/spring.html",
+      "sha256": "874ea603b744c224926c99f1a3512e91f1f874eef9b91290c2f1c1543b815057"
+    },
+    {
+      "file": "animations/sprite-sheet-playback.html",
+      "sha256": "90bb000f3fc50134499080263723da7c4886f89cf877794b6bb79a300563d8d7"
+    },
+    {
+      "file": "animations/squash-stretch.html",
+      "sha256": "b4942747f66a7d404eba5dea4faf35684c7a374a1c11590d7bb1fbf8e1eb4e85"
+    },
+    {
+      "file": "animations/stagger.html",
+      "sha256": "33818e04bf2fd4d744aef239b0acf7813356fd88b7a25bed1f3b2ed40effbe61"
+    },
+    {
+      "file": "animations/staging.html",
+      "sha256": "8642b11687cc584a716c7afe5476274af265810dba5df8a25e529832d5c884eb"
+    },
+    {
+      "file": "animations/starfield-flight.html",
+      "sha256": "f7da51143494f35116e18e247eaed924bdb428ec5fece14389fd48335884b53d"
+    },
+    {
+      "file": "animations/starting-style-transition.html",
+      "sha256": "15323af99cc8e35644ea7ec9129a1215672a8c10ef8c796e605e25355a85f1c9"
+    },
+    {
+      "file": "animations/status-badge-transition.html",
+      "sha256": "96b08c2ed1f8f6382df72adf89406e10d0a3795410a431eedd531d4a45d4af0d"
+    },
+    {
+      "file": "animations/stepped-animation.html",
+      "sha256": "0d2513afcb8ae1962e2db8515333d9648c799e8e25142b9d59033c69748cb5de"
+    },
+    {
+      "file": "animations/sticker-peel.html",
+      "sha256": "0746b1d9213a06dc91daaa7c889baa8bba3527d8f249a15315077813b3451f7a"
+    },
+    {
+      "file": "animations/stiffness.html",
+      "sha256": "1e5f970212600de6d88cb7593dd8e32e7b715a15bb3e00d5e2fe1fc2ec965799"
+    },
+    {
+      "file": "animations/stop-motion-style.html",
+      "sha256": "6eb37c4524d16d875435ecfbfabc6a91ab1e95e15c2504438580d50dd323f8df"
+    },
+    {
+      "file": "animations/straight-ahead-action.html",
+      "sha256": "f00ed2a428a559c19d35ef1d465520f54dba56897497136e9970b026f8103e02"
+    },
+    {
+      "file": "animations/stride-warping.html",
+      "sha256": "998ca43fd8c5f793096fa8659950b7623b8491ace0dba532ca9bfedefade677c"
+    },
+    {
+      "file": "animations/stroke-to-fill-text.html",
+      "sha256": "c75c1ceb5c7c93a306100f74362efa4a7b9740e027e2f9f4f313e2951fdc0e36"
+    },
+    {
+      "file": "animations/stroke-width-wave.html",
+      "sha256": "d71daf796cedd452f0bbf39af503dc0f4fe77a7265d01905400b64dcf04bd49c"
+    },
+    {
+      "file": "animations/swapping-dots-loader.html",
+      "sha256": "5f935394de7a6c4fb4604fccc68a3736aa76479be23a36bdaab7a6077473d637"
+    },
+    {
+      "file": "animations/swing.html",
+      "sha256": "123c8f4dbf1d547fe87b47923f8b41786609837f45a6778bab9c97ea46d06e77"
+    },
+    {
+      "file": "animations/swipe-to-dismiss.html",
+      "sha256": "50e76f67b5ba4b39b47ba2b9b305361577331d4bf770848542f509a244924dad"
+    },
+    {
+      "file": "animations/swirl-transition.html",
+      "sha256": "fae30e49a2a1258740063834080c6cf05f4febccdb4e04fedfbb82fe96d4185a"
+    },
+    {
+      "file": "animations/symbol-replace.html",
+      "sha256": "9ccbbbb694e4801db44f642ce72ec817c5342cdcc346aa2665b7b4e947713fb9"
+    },
+    {
+      "file": "animations/sync-markers.html",
+      "sha256": "c5bec33419f7cc5d4360910d26384519a10d6fb5824e8ae5709c4c0d64e488d2"
+    },
+    {
+      "file": "animations/tabular-numbers.html",
+      "sha256": "9d10fd2b55e942827160f995f90148ba6f21563c45ba6dc79e937a31a4a9ac2b"
+    },
+    {
+      "file": "animations/tada.html",
+      "sha256": "88a4512bb38106c2384090a3edc537d2d36261eb485852ba072b7c173d360bb8"
+    },
+    {
+      "file": "animations/tag-along.html",
+      "sha256": "30d559d245eaad782060dde26cd3016e48ce8f9deb7eb2529ecbaf87b58612d9"
+    },
+    {
+      "file": "animations/target-cursor.html",
+      "sha256": "af04bda0c13977991cfa4749d7877f976593ee50ea17c0edf5b0705c1ef137e6"
+    },
+    {
+      "file": "animations/teleport-locomotion.html",
+      "sha256": "7396e0f5bc26fc1ae8a8acf38027681f0866e8cdb0f6104715beb64ebce5772b"
+    },
+    {
+      "file": "animations/text-explosion.html",
+      "sha256": "84355db00733c5da657297e0697c1c7778e3b94f1a48fa500e0daea5116aefca"
+    },
+    {
+      "file": "animations/text-morph.html",
+      "sha256": "4cbdc58df22239d2b73298ea35a6547aee0fd6c43d208e877fed9eedaffc8ee2"
+    },
+    {
+      "file": "animations/text-pop-shadow.html",
+      "sha256": "922a9814e289aa1c40343c1dbafe44ecafc980ec353e7df0693f32df6578be56"
+    },
+    {
+      "file": "animations/text-pressure.html",
+      "sha256": "c2aedbba54877887664c4f3ff1dff311cf1f716c5eec85610124e59108b74e83"
+    },
+    {
+      "file": "animations/text-scramble.html",
+      "sha256": "914526f68012ec80a4ab8972a7e405a7b6597115d9c58a8f9273991d71fc7c12"
+    },
+    {
+      "file": "animations/text-shine.html",
+      "sha256": "cc73a1c04a52e1f4692fa0c2b21518e71f0fc6365335cdcf7670fe4540a8e756"
+    },
+    {
+      "file": "animations/three-dot-loader.html",
+      "sha256": "a0da8a1877c121cd2a4da3abe7d07e52a5ee25d8fa7181204950922ef3c0a180"
+    },
+    {
+      "file": "animations/ticket-tear.html",
+      "sha256": "514c1a0c051d7fd9c43e42757cf441faf3f973f59c53ea0a4686366971cccb97"
+    },
+    {
+      "file": "animations/time-remapping.html",
+      "sha256": "732e5538aa79fffe3a2b160e0cc7533f391ed7130cb422c0fe3201f920062813"
+    },
+    {
+      "file": "animations/tin-entrance-exit.html",
+      "sha256": "c4b105c2ba7516cd20ddef4cf1944313ee24433b08d66f03f16e80375ff1ad10"
+    },
+    {
+      "file": "animations/toast.html",
+      "sha256": "ce18f67e678ea2a0c1569ec5b4019afa4c47f59de925774b12b9cd68fb3d6f51"
+    },
+    {
+      "file": "animations/toggle-switch.html",
+      "sha256": "213d7be5f2825640ecf7137e8fa3210ea603ae3dcac3a286df08dacb46fecd89"
+    },
+    {
+      "file": "animations/tonal-montage.html",
+      "sha256": "234452997dc6993c03bca4e340c3b85d8de18456ff2bca2c46f5b4430ff93305"
+    },
+    {
+      "file": "animations/tooltip-transition.html",
+      "sha256": "7b937ea4d9c21062d4bb23194884016e0fed002fe1adc0e02981f3e48cb48d4b"
+    },
+    {
+      "file": "animations/topography.html",
+      "sha256": "3bcc2792581c197413fa3903171b9a34702631dcb7216800ce9f8929683f8c2e"
+    },
+    {
+      "file": "animations/track-driven-shape.html",
+      "sha256": "19fef90e85d219a94446db2b08d048dd8e1e2889fa132638f7b3c7a2ce44ec8c"
+    },
+    {
+      "file": "animations/tracking-shot.html",
+      "sha256": "c554ff46516aad7021e77a50546bc2c74970d823f78870b43586d899cc773af2"
+    },
+    {
+      "file": "animations/tracking-transition.html",
+      "sha256": "882aac7803f4e06153c0ca8aaafc7aabaa033be2137fd3fa6fec1862331be04a"
+    },
+    {
+      "file": "animations/transform-origin.html",
+      "sha256": "5ef3a38573f3efabf51ab874ade2a6ce710675f86255fcc258a46576b95a14ab"
+    },
+    {
+      "file": "animations/translate.html",
+      "sha256": "1430d4be29c1bf08723fc8465856ccd76f93b507b4a124f2393aa885918fbb3e"
+    },
+    {
+      "file": "animations/turn-in-place.html",
+      "sha256": "3ba89c23bb8963472ceb214e7ed17820a1765d14fb5212463cfbe46b105a2d05"
+    },
+    {
+      "file": "animations/tween.html",
+      "sha256": "f9953f5576135fb5ff612e605b26b4a08c386a665bc6ba8d57e2555b6d318ee0"
+    },
+    {
+      "file": "animations/twinkling-field.html",
+      "sha256": "480da9c97b2c6df888e18ab4cd5b57ccca6b647aaf4c8431b9b4bdd569fefe4e"
+    },
+    {
+      "file": "animations/twist-correction.html",
+      "sha256": "03136ef0ab1e7979459f71087004e1f7adb8252c8aba5186f7adffa5b3d0c567"
+    },
+    {
+      "file": "animations/twist-distribution.html",
+      "sha256": "fababe53de7e9db4237169d925fb48ce8b5d6879540f74fc94f94ebc76dc8747"
+    },
+    {
+      "file": "animations/twister-entrance.html",
+      "sha256": "06541f4f19a6093a8e6b1455c06d87fd85c0702dbf4310105b0918936611337a"
+    },
+    {
+      "file": "animations/typewriter.html",
+      "sha256": "207c54f050f9468f09a92676edb8845ba6dbef4cd21104008d8f40953ca7b3fc"
+    },
+    {
+      "file": "animations/typing-input.html",
+      "sha256": "42e04a7f59821f22a3f42ec41feed9bb2027a2e413adebbfc1c310d523e4969a"
+    },
+    {
+      "file": "animations/variable-color.html",
+      "sha256": "7869b6be5f3659ea0285aad376f77acb6ede3426411b45a2611629bd289af0f9"
+    },
+    {
+      "file": "animations/variable-font-proximity.html",
+      "sha256": "1ca73a6ed538298f8a88c20438cc0ffc5525eae48bc4bca8cba881cdb138b1cc"
+    },
+    {
+      "file": "animations/vehicle-motion.html",
+      "sha256": "998d4249e736a1ae78bcd629a6206154e1a14cd14c03dd99dc277602b87f3b04"
+    },
+    {
+      "file": "animations/velocity-reactive-marquee.html",
+      "sha256": "13b29f8793e5543514cf92d2be5413c61817192ff6b10de240d2efec711f2a6a"
+    },
+    {
+      "file": "animations/velocity.html",
+      "sha256": "7b796904eb1c5d7e0faff227b5a9ac0642404a6bb0852113b9c4aa0f1c10552e"
+    },
+    {
+      "file": "animations/venetian-blinds.html",
+      "sha256": "0855984f47655c1bee14e490a88d8638ef91a308ce9ba867077a1569297e9101"
+    },
+    {
+      "file": "animations/video-filled-text.html",
+      "sha256": "df47c61f17a859bebd064d3fa13eb3e0ebd5afeac6f1c5e1c28a8fd044e0bf29"
+    },
+    {
+      "file": "animations/view-progress-timeline.html",
+      "sha256": "aad36106424528a6e8c4785e7ed049606bf561161bcbc93d61a9171b29d2ab70"
+    },
+    {
+      "file": "animations/view-transition.html",
+      "sha256": "19074ddcb4d4040e5cbd35ce79ac456264585e3fe2426ec10466c8fdc5e6a62a"
+    },
+    {
+      "file": "animations/voice-orb.html",
+      "sha256": "8106182b09d6e69c1e28f28b3d1c107950d459760531df41d3c75b613d2daad7"
+    },
+    {
+      "file": "animations/voronoi-cells.html",
+      "sha256": "2a4c5d56a367c24f09e12874b8b98a351b613a7773fab47447710f6fd853a1c2"
+    },
+    {
+      "file": "animations/walk-cycle.html",
+      "sha256": "e72fa8e2105f604258ea4dfef09cb137182007ba5548e393774915f8c5484a86"
+    },
+    {
+      "file": "animations/wall-following.html",
+      "sha256": "ecca00fb6e01baf4fa5dda5bc46a83b3ac1cb561f65b68e1c876df95ff9048c8"
+    },
+    {
+      "file": "animations/wander.html",
+      "sha256": "85b70089c7683e493c7902f87cf7618b0e0544a3702c655b21fbc4b5c2b54678"
+    },
+    {
+      "file": "animations/warp-tunnel.html",
+      "sha256": "39dd2f939672d5c63ee2e540078f3338cf956025ff159d4ae6338e21f0a6a57d"
+    },
+    {
+      "file": "animations/water-displacement.html",
+      "sha256": "312f02d167ca62aedf25f1c653a1248f69a67e31808a162e8b77855368ad9821"
+    },
+    {
+      "file": "animations/wave-text.html",
+      "sha256": "e37a13540bc6db7a0f2bbcae5d6df967515dd986fe8c4c07a56fe9f7a768da9f"
+    },
+    {
+      "file": "animations/weight-shift.html",
+      "sha256": "0c5ffa6a72b7147b4d5c8dde40376bbbfe836d075151601bde0a9c6973d86158"
+    },
+    {
+      "file": "animations/wheel-picker.html",
+      "sha256": "6a0926c701330f4088941fc4d287a57598288cbfb05004ead2b9688347f72dc9"
+    },
+    {
+      "file": "animations/whip-pan.html",
+      "sha256": "cb2215389bc125cff5550292cc8c994a761f1d3efb2281afec51281fc1921204"
+    },
+    {
+      "file": "animations/whiteboard-animation.html",
+      "sha256": "3d540b1e6285bacdb84bace204863ad5aef27216a8704d3b5c88793605a135c0"
+    },
+    {
+      "file": "animations/will-change.html",
+      "sha256": "9c4c202642a2443f6aedb3ff98125b0552e0b6b82183ac17eab41243560af318"
+    },
+    {
+      "file": "animations/wipe.html",
+      "sha256": "fd975bdd158125ba57873b0865dd1d73756e6b42f6041ce7934d9f01a0db8926"
+    },
+    {
+      "file": "animations/wobble.html",
+      "sha256": "ed06c34b7717f3ce59bd398bd8fab4e9600a96bc45197355fade047dbba90498"
+    },
+    {
+      "file": "animations/word-focus-tracking.html",
+      "sha256": "1c0548a258798c154ce8d5e30f64595eac48f3b17dcbab74060d2abd930eb108"
+    },
+    {
+      "file": "animations/zigzag-loader.html",
+      "sha256": "e9f6d612c326fe438f38d7b2ba6d1b88957e41e102095c523cc95a966bd85584"
+    },
+    {
+      "file": "animations/zoom-out.html",
+      "sha256": "2666d4075da4619363d9c96839db8c0e449993bb7d16f77e3c1208b40ed82a80"
+    },
+    {
+      "file": "animations/zoom-to-fit.html",
+      "sha256": "d9a11e5f6ebb05cfc28c4b14b0b556f6667c40c4da21c5a2e0b551705a19955d"
+    },
+    {
+      "file": "animations/zoomable-circle-packing.html",
+      "sha256": "28bceddf667745ba3c0386fd4b8740ddbae3987b7787fd9f41bd24b012c46b08"
+    },
+    {
+      "file": "animations/zoomable-sunburst.html",
+      "sha256": "6e39e121918b724e8709dc148963a9957b7f9f0ea60d35b7c5263a10bb3be58b"
+    },
+    {
+      "file": "catalog.html",
+      "sha256": "bdda4e51eae4dc39b17d7babe75de3e2a91fbac0b89e4333238d58c569274473"
+    },
+    {
+      "file": "references/direction.md",
+      "sha256": "16336902100694d72a7f780135cdd832dc1ba1ec231baa5e693e2877ce2e37b2"
+    },
+    {
+      "file": "references/index.tsv",
+      "sha256": "dd53ded9b5b2a585e440d367d0c4eea20749580f217e8e5149a643fe9913e408"
+    },
+    {
+      "file": "references/porting.md",
+      "sha256": "6b850ccabda222c682a4512ecaf063450c74f70ccdff0124b60310b321ac1fc3"
+    },
+    {
+      "file": "shared/catalog.css",
+      "sha256": "0dbdc6703675bcbcfb4b6ecc1fce9f8b141c4d96edac07189391b54057fd334a"
+    },
+    {
+      "file": "shared/detail.js",
+      "sha256": "7042f3f166d989a184753cd0444b38ecd96d837a975f3c073245a8909bed8276"
+    }
+  ],
+  "source_sha256": "90886ce4364c584714ed689cc749eaf6782653b5bb866ccd2a1aefaee7945477",
+  "artifacts": [
+    {
+      "file": "after.html",
+      "sha256": "60eeb326c21a6a832894be39932020427a8f8da38a1c53bfe5d31fa83f73d916",
+      "bytes": 2704
+    },
+    {
+      "file": "before.html",
+      "sha256": "077d7ca173b857b30f6ab5abf488f9455df29d1624947f2a96f8bf86a43e8527",
+      "bytes": 2286
+    },
+    {
+      "file": "input.md",
+      "sha256": "1d7e82a283f04227eccb816aae297c829049e0df72170c83203564151102df21",
+      "bytes": 316
+    },
+    {
+      "file": "output.md",
+      "sha256": "8803c2b9a92415e91632a18ef5a4e24498a6bbfc9302f2d74b45dd303ebd0541",
+      "bytes": 3485
+    },
+    {
+      "file": "preview.png",
+      "sha256": "b3a8dccb18b0417eaec5973a546a773708220fb14f72152660e9c5f6ce909034",
+      "bytes": 138503
+    },
+    {
+      "file": "reduced-motion.png",
+      "sha256": "d23e297d3b698383c69add503f208f7b20eedfe0f208935bbf439676a8a7a4bc",
+      "bytes": 71882
+    }
+  ]
+}

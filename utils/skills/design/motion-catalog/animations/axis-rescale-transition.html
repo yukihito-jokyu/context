@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>目盛りの付け直し（Axis rescale transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-axis-rescale-transition" style="position: relative; width: 220px; height: 150px">
+        <svg
+          class="ac-axis-rescale-transition-s"
+          width="220"
+          height="150"
+          viewBox="0 0 220 150"
+          style="position: absolute; inset: 0; overflow: visible"
+        ></svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "axis-rescale-transition",
+        name: "目盛りの付け直し",
+        en: "Axis rescale transition",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "グラフの値の範囲が変わったとき、縦軸の目盛りと線が新しい位置へ滑って移り、棒の高さも同時に新しい縮尺で伸び縮みする動きです。数字が急に書き換わらないので、何が大きく・小さくなったのかを目で追えます。",
+        use: "ダッシュボードの期間の切り替え、絞り込み後のグラフ、リアルタイムに更新されるグラフ。",
+        params: [{ key: "dur", label: "時間", value: 700, min: 200, max: 1500, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "目盛り",
+            "新旧の目盛りを同じ縮尺の変化で動かす。残る目盛りは位置を移し、新しい目盛りはフェードで出し、消える目盛りはフェードで消す",
+          ],
+          ["棒", "目盛りと同じ時間・同じイージング（in-out 500–750ms）で高さを変える"],
+          [
+            "対応を保つ",
+            "同じデータ（同じ ID）は同じ要素のまま動かす。消える・増えるものはフェードで出し入れする（D3 の data join と key）",
+          ],
+          ["動きを減らす設定", "補間をやめ、新しい状態の図をすぐ表示する（またはフェードで切り替える）"],
+          [
+            "出典",
+            '<a href="https://d3js.org/d3-transition/control-flow" target="_blank" rel="noopener">D3 synchronized transitions</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const svg = stage.querySelector(".ac-axis-rescale-transition-s");
+            const NS = "http://www.w3.org/2000/svg",
+              el = (n, a = {}, p) => {
+                const e = document.createElementNS(NS, n);
+                for (const k in a) e.setAttribute(k, a[k]);
+                (p || svg).appendChild(e);
+                return e;
+              };
+            const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+            const tween = (ms, fn) => {
+              const t0 = performance.now();
+              let id;
+              const f = (now) => {
+                const k = Math.min(1, (now - t0) / ms);
+                fn(rm ? 1 : ease(k));
+                if (k < 1) id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => cancelAnimationFrame(id);
+            };
+            const data = [3, 5, 2, 7, 4],
+              hs = [40, 80];
+            const ax = el("g"),
+              bars = data.map((d, i) => el("rect", { x: 46 + i * 34, width: 22, rx: 4, fill: "var(--blue)" }));
+            const ticks = new Map();
+            const draw = (max, k0) => {
+              const y = (v) => 130 - (v / max) * 110;
+              bars.forEach((b, i) => {
+                b.setAttribute("y", y(data[i]));
+                b.setAttribute("height", 130 - y(data[i]));
+              });
+              const step = max > 20 ? 10 : max > 10 ? 5 : 2;
+              for (let v = 0; v <= 40; v++) {
+                if (v % 2 && v % 5) continue;
+                let t = ticks.get(v);
+                /* 2・5・10 刻みのどれでも出せる候補 */ const on = v % step === 0 && v <= max;
+                if (!t) {
+                  t = { g: el("g", {}, ax), o: 0 };
+                  el("line", { x1: 30, x2: 210, stroke: "var(--line)" }, t.g);
+                  const tx = el(
+                    "text",
+                    {
+                      x: 24,
+                      "text-anchor": "end",
+                      "dominant-baseline": "middle",
+                      style: "font: 600 10px var(--font-sans); fill: var(--ink-muted)",
+                    },
+                    t.g,
+                  );
+                  tx.textContent = v;
+                  ticks.set(v, t);
+                }
+                t.o += ((on ? 1 : 0) - t.o) * k0;
+                t.g.setAttribute("transform", `translate(0, ${y(v)})`);
+                t.g.setAttribute("opacity", t.o.toFixed(2));
+              }
+            };
+            let cur = 8,
+              stopT = null;
+            draw(cur, 1);
+            const go = (to) => () => {
+              const from = cur;
+              stopT && stopT();
+              stopT = tween(v.dur, (k) => {
+                cur = from + (to - from) * k;
+                draw(cur, Math.max(k, 0.2));
+              });
+            };
+            const stop = seq(4000, [
+              [800, go(30)],
+              [2800, go(8)],
+            ]);
+            return () => {
+              stop();
+              stopT && stopT();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

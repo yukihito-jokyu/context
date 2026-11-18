@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>入れ替わる2つの点（Swapping dots loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-swapping-dots-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-swapping-dots-loader-w"><i></i><i></i></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-swapping-dots-loader .ac-swapping-dots-loader-w {
+        position: relative;
+        width: 44px;
+        height: 44px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-swapping-dots-loader .ac-swapping-dots-loader-w {
+          animation: ac-swapping-dots-loader-r var(--dur, 2000ms) linear infinite;
+        }
+      }
+      .ac-swapping-dots-loader .ac-swapping-dots-loader-w i {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 60%;
+        height: 60%;
+        margin-left: -30%;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-swapping-dots-loader .ac-swapping-dots-loader-w i {
+          animation: ac-swapping-dots-loader-s var(--dur, 2000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      .ac-swapping-dots-loader .ac-swapping-dots-loader-w i + i {
+        top: auto;
+        bottom: 0;
+        background: var(--sky);
+        animation-delay: calc(var(--dur, 2000ms) / -2);
+      }
+      @keyframes ac-swapping-dots-loader-r {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes ac-swapping-dots-loader-s {
+        0%,
+        100% {
+          transform: scale(0);
+        }
+        50% {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "swapping-dots-loader",
+        name: "入れ替わる2つの点",
+        en: "Swapping dots loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "2つの点が回り込みながら位置を入れ替え、そのたびに大きさも入れ替わるローダーです。シンプルながら、くるくると軽快なリズムがあります。",
+        use: "ボタン・カード・画面の読み込み中、待ち時間の短い処理。",
+        params: [{ key: "dur", label: "周期", value: 2000, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "2つの点を囲む箱を <code>rotate(0 → 360deg)</code>｜linear、各点は <code>scale(0 → 1 → 0)</code>｜in-out",
+          ],
+          ["ずらし", "2つ目の点を周期の半分ずらす（片方が大きいとき、もう片方は小さい）"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/tobiasahlin/SpinKit/master/spinkit.css" target="_blank" rel="noopener">SpinKit</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ハードカット（Hard cut） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-hard-cut"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-hard-cut-s ac-hard-cut-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-hard-cut-s ac-hard-cut-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-hard-cut .ac-hard-cut-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-hard-cut .ac-hard-cut-b {
+        animation: ac-hard-cut-t var(--dur, 2600ms) step-end infinite;
+      }
+      @keyframes ac-hard-cut-t {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-hard-cut .ac-hard-cut-s {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "hard-cut",
+        name: "ハードカット",
+        en: "Hard cut",
+        cat: "映像の切り替え",
+        kind: "concept",
+        description:
+          "前のショットから次のショットへ、つなぎの効果を入れずに一瞬で切り替える、もっとも基本の切り替えです。何も足さない分テンポが良く、見る人は中身に集中できます。",
+        use: "スライドショー、製品紹介の動画、タブで中身を一瞬で切り替えるとき、オンボーディングの画面送り。",
+        params: [{ key: "dur", label: "1ショットの長さ ×2", value: 2600, min: 1000, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "次のショットを重ね、<code>opacity</code>（または <code>visibility</code>）を 1 フレームで切り替える。<code>steps(1)</code> か、トランジションなし",
+          ],
+          ["いつ切るか", "動きの途中や、音・拍に合わせて切ると自然につながる"],
+          ["使い分け", "時間や場所が大きく変わるときはディゾルブやフェード、同じ流れの中ならカット"],
+          ["動きを減らす設定", "もともと動きがないので、そのままでよい"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>、<a href="https://support.apple.com/en-il/guide/imovie-iphone/kna737b471f/ios" target="_blank" rel="noopener">Apple: iMovie のトランジション</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

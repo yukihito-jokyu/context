@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>渦を巻いて出入り（Swirl transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-swirl-transition"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-swirl-transition-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-swirl-transition .ac-swirl-transition-c {
+        animation:
+          ac-swirl-transition-in var(--in, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-swirl-transition-out var(--out, 500ms) cubic-bezier(0.55, 0, 1, 0.45) calc(var(--in, 700ms) + 1000ms)
+            forwards;
+      }
+      @keyframes ac-swirl-transition-in {
+        from {
+          opacity: 0;
+          transform: rotate(calc(var(--spin, 540deg) * -1)) scale(0);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-swirl-transition-out {
+        from {
+          opacity: 1;
+          transform: none;
+        }
+        to {
+          opacity: 0;
+          transform: rotate(var(--spin, 540deg)) scale(0);
+        }
+      }
+      @keyframes ac-swirl-transition-rf-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-swirl-transition-rf-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-swirl-transition .ac-swirl-transition-c {
+          animation-name: ac-swirl-transition-rf-in, ac-swirl-transition-rf-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "swirl-transition",
+        name: "渦を巻いて出入り",
+        en: "Swirl transition",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "点のように小さい状態から、何回転もしながら大きくなって現れる動きです。退出は逆に回りながら縮みます。",
+        use: "ご褒美・特典の登場、魔法のような演出、ロゴの出現。",
+        params: [
+          { key: "in", label: "登場の時間", value: 700, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "out", label: "退出の時間", value: 500, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "spin", label: "回転", value: 540, min: 90, max: 1080, step: 30, unit: "deg" },
+        ],
+        total: (p) => p["in"] + 1000 + p["out"],
+        spec: [
+          ["登場", "<code>rotate(-回転) scale(0) → none</code> と <code>opacity 0 → 1</code>｜out"],
+          ["退出", "<code>rotate(回転) scale(0)</code>｜in"],
+          ["動きを減らす設定", "回転と拡大をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://app.unpkg.com/animista-css-generator@1.0.2/files/animations" target="_blank" rel="noopener">Animista（プリセット一覧）</a>',
+          ],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

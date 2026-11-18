@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>文字が浮き出る（Text pop-up shadow） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-text-pop-shadow"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="ac-text-pop-shadow-t"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 36px;
+            line-height: 46px;
+            color: var(--sky);
+          "
+        >
+          POP!
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-text-pop-shadow .ac-text-pop-shadow-t {
+          animation: ac-text-pop-shadow-p var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1) 400ms both;
+        }
+      }
+      @keyframes ac-text-pop-shadow-p {
+        from {
+          transform: none;
+          text-shadow: none;
+        }
+        to {
+          transform: translateY(calc(var(--lift, 10px) * -1));
+          text-shadow:
+            0 1px 0 var(--cobalt),
+            0 2px 0 var(--cobalt),
+            0 3px 0 var(--cobalt),
+            0 4px 0 var(--cobalt),
+            0 5px 0 var(--navy),
+            0 6px 0 var(--navy),
+            0 7px 0 var(--navy),
+            0 8px 0 var(--navy),
+            0 9px 0 var(--navy),
+            0 10px 0 var(--navy),
+            0 16px 18px rgba(18, 26, 43, 0.3);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-text-pop-shadow .ac-text-pop-shadow-t {
+          text-shadow:
+            0 3px 0 var(--cobalt),
+            0 6px 0 var(--navy);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "text-pop-shadow",
+        name: "文字が浮き出る",
+        en: "Text pop-up shadow",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字が少し上へ持ち上がりながら、真下に何層もの影が積み重なって伸び、ブロックのような厚みを持って浮き出る動きです。平らな文字が立体のスタンプのように変わります。",
+        use: "ポップな見出し、ゲーム・子ども向けのタイトル、ボタンのホバー、バナーの強調。",
+        params: [
+          { key: "dur", label: "時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" },
+          { key: "lift", label: "持ち上がる量", value: 10, min: 4, max: 20, step: 1, unit: "px" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["動き", "<code>translateY(0 → -持ち上がる量)</code>｜in-out"],
+          [
+            "影",
+            "<code>text-shadow</code> を 1px ずつ下へずらした層で重ね（0 1px, 0 2px, … 0 持ち上がる量）、最後に柔らかい影を1つ｜文字と同時に伸ばす",
+          ],
+          ["色", "影は文字より少し濃い同系色の段階にすると立体に見える"],
+          ["動きを減らす設定", "持ち上げをやめ、影だけを付けた状態にする"],
+          [
+            "出典",
+            '<a href="https://app.unpkg.com/animista-css-generator@1.0.2/files/animations" target="_blank" rel="noopener">Animista（プリセット一覧）</a>',
+          ],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

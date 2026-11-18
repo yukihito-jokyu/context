@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>巻き上がる文字（Rolling text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rolling-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span
+          class="sb-btn sb-btn--primary sb-btn--l ac-rolling-text-b"
+          style="
+            gap: 0;
+            padding: 0 26px;
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 18px;
+            line-height: 23px;
+            color: var(--on-blue);
+            font-weight: 700;
+          "
+          aria-hidden="true"
+          ><span class="ac-rolling-text-c" style="--i: 0"><span>G</span><span>G</span></span
+          ><span class="ac-rolling-text-c" style="--i: 1"><span>e</span><span>e</span></span
+          ><span class="ac-rolling-text-c" style="--i: 2"><span>t</span><span>t</span></span
+          ><span class="ac-rolling-text-c" style="--i: 3"><span>&nbsp;</span><span>&nbsp;</span></span
+          ><span class="ac-rolling-text-c" style="--i: 4"><span>s</span><span>s</span></span
+          ><span class="ac-rolling-text-c" style="--i: 5"><span>t</span><span>t</span></span
+          ><span class="ac-rolling-text-c" style="--i: 6"><span>a</span><span>a</span></span
+          ><span class="ac-rolling-text-c" style="--i: 7"><span>r</span><span>r</span></span
+          ><span class="ac-rolling-text-c" style="--i: 8"><span>t</span><span>t</span></span
+          ><span class="ac-rolling-text-c" style="--i: 9"><span>e</span><span>e</span></span
+          ><span class="ac-rolling-text-c" style="--i: 10"><span>d</span><span>d</span></span></span
+        ><span
+          style="
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+          "
+          >Get started</span
+        >
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-rolling-text .ac-rolling-text-c {
+        display: inline-flex;
+        flex-direction: column;
+        height: 24px;
+        overflow: hidden;
+      }
+      .ac-rolling-text .ac-rolling-text-c span {
+        display: block;
+        line-height: 24px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-rolling-text .ac-rolling-text-c span {
+          transition: transform var(--dur, 400ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * var(--gap, 25ms));
+        }
+      }
+      .ac-rolling-text .ac-rolling-text-b.is-hover .ac-rolling-text-c span,
+      .ac-rolling-text .ac-rolling-text-b:hover .ac-rolling-text-c span {
+        transform: translateY(-100%);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-rolling-text .ac-rolling-text-b.is-hover .ac-rolling-text-c span,
+        .ac-rolling-text .ac-rolling-text-b:hover .ac-rolling-text-c span {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rolling-text",
+        name: "巻き上がる文字",
+        en: "Rolling text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "ボタンやリンクにポインターを乗せると、文字が1文字ずつ少し遅れながら上へ巻き上がり、下から同じ文字（または別の文字）が現れる動きです。小さな文字にもリズムのある反応が生まれます。",
+        use: "ボタン、ナビゲーションのリンク、CTA、メニューの項目。",
+        params: [
+          { key: "dur", label: "時間", value: 400, min: 150, max: 800, step: 10, unit: "ms" },
+          { key: "gap", label: "1文字ごとの遅れ", value: 25, min: 0, max: 80, step: 5, unit: "ms" },
+        ],
+        spec: [
+          ["組み方", "1文字ずつ、同じ文字を縦に2つ並べた枠（高さ1行・<code>overflow: hidden</code>）に入れる"],
+          ["動き", "ホバーで各文字を <code>translateY(-100%)</code>｜out｜i 文字目を i × 遅れ だけ遅らせる"],
+          [
+            "読み上げ",
+            "ボタンなら元の文字列を名前（<code>aria-label</code>）に、分けた文字は <code>aria-hidden</code>",
+          ],
+          ["動きを減らす設定", "巻き上げをやめ、色の変化だけにする"],
+          ["出典", '<a href="https://animata.design/docs" target="_blank" rel="noopener">Animata</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-rolling-text-b");
+            return seq(2400, [
+              [500, () => b.classList.add("is-hover")],
+              [1600, () => b.classList.remove("is-hover")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

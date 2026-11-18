@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>光沢が横切る（Glare sweep） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-glare-sweep"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-glare-sweep-c sb-grad-deep">
+          <span class="sb-bar sb-bar--sm sb-bar--on-dark" style="width: 80px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--on-dark" style="width: 50px"></span><i class="ac-glare-sweep-g"></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-glare-sweep .ac-glare-sweep-c {
+        position: relative;
+        overflow: hidden;
+        width: 160px;
+        height: 100px;
+        padding: 16px;
+        box-sizing: border-box;
+        display: grid;
+        align-content: end;
+        gap: 8px;
+        border-radius: 16px;
+        box-shadow: var(--shadow-float);
+      }
+      .ac-glare-sweep .ac-glare-sweep-g {
+        position: absolute;
+        top: -20%;
+        bottom: -20%;
+        left: -60%;
+        width: 40%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+        transform: skewX(-20deg);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-glare-sweep .ac-glare-sweep-c.is-on .ac-glare-sweep-g {
+          animation: ac-glare-sweep-s var(--dur, 800ms) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+      }
+      @keyframes ac-glare-sweep-s {
+        from {
+          transform: translateX(0) skewX(-20deg);
+        }
+        to {
+          transform: translateX(475%) skewX(-20deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "glare-sweep",
+        name: "光沢が横切る",
+        en: "Glare sweep",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "カードやボタンにポインターを乗せると、斜めの白い光の帯がすっと表面を横切る動きです。ガラスや金属の表面に光が反射したような、高級感とつやが出ます。",
+        use: "プレミアム・会員のカード、購入ボタン、商品のサムネイル、バッジ。",
+        params: [{ key: "dur", label: "時間", value: 800, min: 300, max: 1500, step: 50, unit: "ms" }],
+        spec: [
+          ["光", "斜め（<code>skewX(-20deg)</code>）の白いグラデーションの帯を、カードの外（左）に置く"],
+          ["動き", "ホバーで帯を <code>translateX(左の外 → 右の外)</code>｜in-out 600–800ms｜1回だけ"],
+          ["ポインターに合わせる", "帯の位置をポインターの x に合わせて動かす型もある"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/glare-hover" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const el = stage.querySelector(".ac-glare-sweep-c");
+            return seq(2600, [
+              [500, () => el.classList.add("is-on")],
+              [2200, () => el.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>やわらかい物体（Soft-body dynamics） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-soft-body"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "soft-body",
+        name: "やわらかい物体",
+        en: "Soft-body dynamics",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "ばねでつないだ点の輪に、中の空気が押し返す力（圧力）を足して、ぶつかるとつぶれて広がり、ぷるんと元の形へ戻るやわらかい物体を物理の計算で動かす方法です。決まった形のアニメーションでは出せない、毎回少しずつ違うつぶれ方になります。",
+        use: "遊び心のあるヒーロー、キャラクターやマスコット、ゲームのスライム、ドラッグできる飾り。",
+        params: [{ key: "press", label: "中の圧力", value: 1, min: 0.3, max: 2, step: 0.05, unit: "" }],
+        spec: [
+          [
+            "作り方",
+            "輪の上の点を隣どうし（と少し離れた点どうし）ばねでつなぎ、輪の面積を保つように外向きの力をかける。重力と床・壁との衝突を足して、ベルレ積分で動かす",
+          ],
+          ["調整", "ばねが強いほど固く、圧力が低いほどぐにゃっとつぶれる。減衰で揺れの残り方を決める"],
+          [
+            "本格的に",
+            "3D の弾性体は、物理エンジン（Ammo.js の softbody、PBD・FEM のソルバー）で四面体のメッシュを動かす",
+          ],
+          ["動きを減らす設定", "物理の動きをやめ、床に置かれた静止画にする"],
+          [
+            "出典",
+            '<a href="https://p5js.org/examples/Math-And-Physics-Soft-Body/" target="_blank" rel="noopener">p5js.org（Math-And-Physics-Soft-Body）</a>、<a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/chaos-flesh-overview" target="_blank" rel="noopener">dev.epicgames.com（chaos-flesh-overview）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const n = 20,
+              R = 22;
+            let P0 = [],
+              Q = [];
+            const init = () => {
+              P0 = [];
+              Q = [];
+              for (let i = 0; i < n; i++) {
+                const a = (i / n) * TAU;
+                P0.push([90 + cos(a) * R, 40 + sin(a) * R]);
+                Q.push([90 + cos(a) * R - 1.2, 40 + sin(a) * R]);
+              }
+            };
+            const area = () => {
+              let s = 0;
+              for (let i = 0; i < n; i++) {
+                const a = P0[i],
+                  b = P0[(i + 1) % n];
+                s += a[0] * b[1] - b[0] * a[1];
+              }
+              return s / 2;
+            };
+            const A0 = Math.PI * R * R,
+              L0 = 2 * R * Math.sin(Math.PI / n),
+              L2 = 2 * R * Math.sin((2 * Math.PI) / n);
+            const stick = (i, j, L) => {
+              const a = P0[i],
+                b = P0[j],
+                dx = b[0] - a[0],
+                dy = b[1] - a[1],
+                d = Math.hypot(dx, dy) || 1,
+                f = ((d - L) / d) * 0.5 * 0.6;
+              a[0] += dx * f;
+              a[1] += dy * f;
+              b[0] -= dx * f;
+              b[1] -= dy * f;
+            };
+            init();
+            let t0 = 0;
+            const step = () => {
+              for (let i = 0; i < n; i++) {
+                const p = P0[i],
+                  q = Q[i],
+                  vx = (p[0] - q[0]) * 0.995,
+                  vy = (p[1] - q[1]) * 0.995;
+                q[0] = p[0];
+                q[1] = p[1];
+                p[0] += vx;
+                p[1] += vy + 0.12;
+              }
+              for (let k = 0; k < 4; k++) {
+                for (let i = 0; i < n; i++) {
+                  stick(i, (i + 1) % n, L0);
+                  stick(i, (i + 2) % n, L2);
+                }
+                const d = ((A0 * v.press - area()) / (n * L0)) * 0.5;
+                for (let i = 0; i < n; i++) {
+                  const a = P0[(i - 1 + n) % n],
+                    b = P0[(i + 1) % n],
+                    nx = b[1] - a[1],
+                    ny = -(b[0] - a[0]),
+                    l = Math.hypot(nx, ny) || 1;
+                  P0[i][0] += (nx / l) * d;
+                  P0[i][1] += (ny / l) * d;
+                }
+                for (const p of P0) {
+                  if (p[1] > 128) p[1] = 128;
+                  if (p[0] < 6) p[0] = 6;
+                  if (p[0] > W - 6) p[0] = W - 6;
+                }
+              }
+            };
+            if (rm) for (let i = 0; i < 400; i++) step();
+            return raf((t) => {
+              if (!rm) {
+                if (t - t0 > 4.5) {
+                  init();
+                  t0 = t;
+                }
+                step();
+              }
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(0, 128, W, 22);
+              g.beginPath();
+              P0.forEach((p, i) => {
+                const q = P0[(i + 1) % n],
+                  mx = (p[0] + q[0]) / 2,
+                  my = (p[1] + q[1]) / 2;
+                i ? g.quadraticCurveTo(p[0], p[1], mx, my) : g.moveTo(mx, my);
+              });
+              g.closePath();
+              const gr = g.createLinearGradient(0, 20, 0, 130);
+              gr.addColorStop(0, col("sky"));
+              gr.addColorStop(1, col("blue"));
+              g.fillStyle = gr;
+              g.fill();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

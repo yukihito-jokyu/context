@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>カバーフロー（Coverflow） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-coverflow"
+        style="position: relative; width: 220px; height: 150px; perspective: 500px; transform-style: preserve-3d"
+      >
+        <span
+          class="ac-coverflow-i sb-grad-aqua"
+          style="
+            position: relative;
+            display: block;
+            flex: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: absolute;
+            left: 70px;
+            top: 30px;
+            transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+          "
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              top: 14px;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></i
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              bottom: 14px;
+              width: 60px;
+              height: 8px;
+              border-radius: 4px;
+              background: rgba(255, 255, 255, 0.7);
+            "
+          ></i></span
+        ><span
+          class="ac-coverflow-i sb-grad-sky"
+          style="
+            position: relative;
+            display: block;
+            flex: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: absolute;
+            left: 70px;
+            top: 30px;
+            transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+          "
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              top: 14px;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></i
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              bottom: 14px;
+              width: 60px;
+              height: 8px;
+              border-radius: 4px;
+              background: rgba(255, 255, 255, 0.7);
+            "
+          ></i></span
+        ><span
+          class="ac-coverflow-i sb-grad-deep"
+          style="
+            position: relative;
+            display: block;
+            flex: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: absolute;
+            left: 70px;
+            top: 30px;
+            transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+          "
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              top: 14px;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></i
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              bottom: 14px;
+              width: 60px;
+              height: 8px;
+              border-radius: 4px;
+              background: rgba(255, 255, 255, 0.7);
+            "
+          ></i></span
+        ><span
+          class="ac-coverflow-i sb-grad-hero"
+          style="
+            position: relative;
+            display: block;
+            flex: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: absolute;
+            left: 70px;
+            top: 30px;
+            transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+          "
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              top: 14px;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></i
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              bottom: 14px;
+              width: 60px;
+              height: 8px;
+              border-radius: 4px;
+              background: rgba(255, 255, 255, 0.7);
+            "
+          ></i></span
+        ><span
+          class="ac-coverflow-i sb-grad-aqua"
+          style="
+            position: relative;
+            display: block;
+            flex: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: absolute;
+            left: 70px;
+            top: 30px;
+            transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+          "
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              top: 14px;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></i
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              bottom: 14px;
+              width: 60px;
+              height: 8px;
+              border-radius: 4px;
+              background: rgba(255, 255, 255, 0.7);
+            "
+          ></i></span
+        ><span
+          class="ac-coverflow-i sb-grad-sky"
+          style="
+            position: relative;
+            display: block;
+            flex: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: absolute;
+            left: 70px;
+            top: 30px;
+            transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+          "
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              top: 14px;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></i
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              bottom: 14px;
+              width: 60px;
+              height: 8px;
+              border-radius: 4px;
+              background: rgba(255, 255, 255, 0.7);
+            "
+          ></i></span
+        ><span
+          class="ac-coverflow-i sb-grad-deep"
+          style="
+            position: relative;
+            display: block;
+            flex: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: absolute;
+            left: 70px;
+            top: 30px;
+            transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+          "
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              top: 14px;
+              width: 22px;
+              height: 22px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.85);
+            "
+          ></i
+          ><i
+            style="
+              position: absolute;
+              left: 14px;
+              bottom: 14px;
+              width: 60px;
+              height: 8px;
+              border-radius: 4px;
+              background: rgba(255, 255, 255, 0.7);
+            "
+          ></i
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "coverflow",
+        name: "カバーフロー",
+        en: "Coverflow",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "中央の画像だけを正面に向け、左右の画像は斜めに傾けて奥へ並べる見せ方で、送るたびに全体が滑って次の画像が正面へ回ってくる動きです。レコードの棚をめくるような立体感があります。",
+        use: "アルバム・作品・商品のギャラリー、選択肢の多いカルーセル、メディアライブラリ。",
+        params: [
+          { key: "dur", label: "時間", value: 500, min: 200, max: 900, step: 10, unit: "ms" },
+          { key: "tilt", label: "左右の傾き", value: 50, min: 20, max: 75, step: 5, unit: "deg" },
+        ],
+        spec: [
+          [
+            "並べ方",
+            "中央からの距離 d に応じて <code>translateX(d × 60px) translateZ(-|d| × 60px) rotateY(-sign(d) × 傾き)</code>｜親に <code>perspective</code>",
+          ],
+          ["送る", "d が1つずれ、全員が新しい位置へ｜in-out｜<code>z-index</code> は中央ほど上"],
+          ["ライブラリ", 'Swiper の <code>effect: "coverflow"</code>'],
+          ["動きを減らす設定", "傾きをやめ、平らなカルーセルにする"],
+          ["出典", '<a href="https://swiperjs.com/demos" target="_blank" rel="noopener">Swiper demos</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const is = [...stage.querySelectorAll(".ac-coverflow-i")];
+            let c = 3,
+              dir = 1;
+            const lay = () =>
+              is.forEach((el, i) => {
+                const d = i - c,
+                  s = Math.sign(d);
+                el.style.zIndex = 10 - Math.abs(d);
+                el.style.transform = rm
+                  ? `translateX(${d * 90}px)`
+                  : `translateX(${d * 46 + s * 20}px) translateZ(${-Math.abs(d) * 50}px) rotateY(${-s * v.tilt}deg)`;
+              });
+            lay();
+            return seq(1200, [
+              [
+                0,
+                () => {
+                  if (c + dir > 5 || c + dir < 1) dir = -dir;
+                  c += dir;
+                  lay();
+                },
+              ],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

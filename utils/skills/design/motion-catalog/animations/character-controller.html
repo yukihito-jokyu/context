@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>キャラクターの操作（Character controller） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-character-controller"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "character-controller",
+        name: "キャラクターの操作",
+        en: "Character controller",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "ゲームで、プレイヤーの入力（左右・ジャンプ）に合わせて、キャラクターを重力のある世界で動かし、床や段差や壁にきちんとぶつかるようにする仕組みです。加速・減速・ジャンプの高さの調整が、操作の気持ちよさを決めます。",
+        use: "横スクロールのゲーム、遊べるロゴや 404 ページ、オンボーディングのミニゲーム、操作のデモ。",
+        params: [{ key: "jump", label: "ジャンプの強さ", value: 330, min: 200, max: 450, step: 10, unit: "" }],
+        spec: [
+          [
+            "動き",
+            "横：入力で目標速度へ加速し、離したら減速（摩擦）。縦：重力、ジャンプは上向きの速さを与える。ボタンを早く離したら上昇を弱める（可変ジャンプ）",
+          ],
+          [
+            "当たり判定",
+            "横に動かして壁と重なったら押し戻す → 縦に動かして床と重なったら押し戻して着地、の順に分けて判定する",
+          ],
+          ["気持ちよさ", "着地の少し前の入力を覚えておく、足場を出た直後もしばらくジャンプできる（コヨーテタイム）"],
+          ["動きを減らす設定", "自動の操作を止め、立っている状態にする"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/files.json" target="_blank" rel="noopener">three.js examples（一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const tiles = [
+                [0, 130, 220, 20],
+                [70, 104, 40, 26],
+                [140, 84, 30, 46],
+              ],
+              p = { x: 20, y: 110, vx: 0, vy: 0, on: false };
+            let last = 0,
+              lastJ = -1;
+            const frame = (t) => {
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              const c = t % 5;
+              if (!rm) {
+                const want = c < 3.6 ? 1 : c < 4 ? 0 : -1;
+                p.vx += (want * 90 - p.vx) * Math.min(1, dt * 8);
+                if (
+                  p.on &&
+                  want > 0 &&
+                  tiles.some(([x, y]) => x - (p.x + 7) > 0 && x - (p.x + 7) < 14 && y < p.y + 8) &&
+                  t - lastJ > 0.2
+                ) {
+                  p.vy = -v.jump;
+                  p.on = false;
+                  lastJ = t;
+                }
+                p.vy += 900 * dt;
+              }
+              if (c > 4.9 || p.x > 230) {
+                p.x = 20;
+                p.y = 110;
+                p.vx = 0;
+                p.vy = 0;
+              }
+              p.x += p.vx * dt;
+              tiles.forEach(([x, y, w, h]) => {
+                if (p.x + 7 > x && p.x - 7 < x + w && p.y + 10 > y && p.y - 10 < y + h) {
+                  p.x = p.vx > 0 ? x - 7 : x + w + 7;
+                  p.vx = 0;
+                }
+              });
+              p.y += p.vy * dt;
+              p.on = false;
+              tiles.forEach(([x, y, w, h]) => {
+                if (p.x + 7 > x && p.x - 7 < x + w && p.y + 10 > y && p.y - 10 < y + h) {
+                  if (p.vy > 0) {
+                    p.y = y - 10;
+                    p.on = true;
+                  } else p.y = y + h + 10;
+                  p.vy = 0;
+                }
+              });
+              g.clearRect(0, 0, W, H);
+              tiles.forEach(([x, y, w, h], i) => {
+                g.fillStyle = i ? col("sky") : col("ice");
+                g.fillRect(x, y, w, h);
+              });
+              const sq = p.on ? 1 : Math.max(0.8, 1 - Math.abs(p.vy) / 1500);
+              g.fillStyle = col("blue");
+              g.beginPath();
+              g.roundRect(p.x - 7 / sq, p.y - 10 * sq, 14 / sq, 20 * sq, 5);
+              g.fill();
+              dot(p.x + 2 * Math.sign(p.vx || 1), p.y - 4 * sq, 1.8, "#fff");
+            };
+            if (rm) {
+              p.y = 120;
+              p.on = true;
+              frame(0);
+              return null;
+            } // 動きを減らす設定：止まった形を一度だけ描く
+            return raf(frame);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

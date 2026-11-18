@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>円が広がって塗る（Radial fill） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-radial-fill"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="ac-radial-fill-b"
+          ><span class="ac-radial-fill-l"
+            ><span class="sb-bar sb-bar--xs sb-bar--on-soft" style="width: 60px"></span></span
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-radial-fill .ac-radial-fill-b {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        width: 140px;
+        height: 48px;
+        border-radius: 14px;
+        background: var(--blue-soft);
+      }
+      .ac-radial-fill .ac-radial-fill-b::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 160px;
+        height: 160px;
+        margin: -80px 0 0 -80px;
+        border-radius: 50%;
+        background: var(--blue);
+        transform: scale(0);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-radial-fill .ac-radial-fill-b::before {
+          transition: transform var(--dur, 400ms) cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+      .ac-radial-fill .ac-radial-fill-l {
+        position: relative;
+      }
+      .ac-radial-fill .ac-radial-fill-l .sb-bar {
+        transition: background-color var(--dur, 400ms);
+      }
+      .ac-radial-fill .ac-radial-fill-b.is-on::before {
+        transform: scale(1);
+      }
+      .ac-radial-fill .ac-radial-fill-b.is-on .sb-bar {
+        background: var(--bar-on-blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "radial-fill",
+        name: "円が広がって塗る",
+        en: "Radial fill",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "ボタンにポインターを乗せると、中心（または押した位置）から色の円が広がって背景を塗り替え、離すと中心へ縮んで戻る動きです。押した場所から変化が始まるので、反応がはっきり伝わります。",
+        use: "CTA ボタン、メニューの項目、カードの選択、テーマの切り替え（画面全体）。",
+        params: [{ key: "dur", label: "時間", value: 400, min: 150, max: 900, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "疑似要素の円を中心に置き、<code>scale(0 → 1)</code>（ボタンの対角線より大きい円）｜out｜ボタンは <code>overflow: hidden</code>",
+          ],
+          [
+            "押した位置から",
+            "<code>pointerdown</code> の位置を <code>--x / --y</code> に入れて円の中心に。半径はいちばん遠い角まで",
+          ],
+          ["文字", "塗りに合わせて文字の色も切り替える（同じ時間で）"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const el = stage.querySelector(".ac-radial-fill-b");
+            return seq(2600, [
+              [600, () => el.classList.add("is-on")],
+              [1900, () => el.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

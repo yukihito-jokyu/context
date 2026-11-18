@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>状態で動きを切り替える（Animation state machine） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-animation-state-machine" style="position: relative; width: 220px; height: 150px">
+        <span
+          class="sb-btn sb-btn--primary sb-btn--l ac-animation-state-machine-b"
+          style="position: absolute; left: 40px; top: 40px; width: 140px"
+          ><span class="ac-animation-state-machine-l"
+            ><span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 56px"></span></span
+          ><span class="ac-animation-state-machine-ok"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span
+        ></span>
+        <div class="ac-animation-state-machine-dots"><i></i><i></i><i></i><i></i></div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-animation-state-machine .ac-animation-state-machine-b {
+        transition:
+          transform var(--dur, 220ms) cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow var(--dur, 220ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-animation-state-machine .ac-animation-state-machine-b {
+          animation: ac-animation-state-machine-idle 2400ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-b[data-s="hover"] {
+        animation: none;
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-float);
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-b[data-s="press"] {
+        animation: none;
+        transform: scale(0.94);
+        transition-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-b[data-s="done"] {
+        animation: none;
+        transform: none;
+        transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-l,
+      .ac-animation-state-machine .ac-animation-state-machine-ok {
+        transition:
+          opacity var(--dur, 220ms),
+          transform var(--dur, 220ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-ok {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: var(--on-blue);
+        opacity: 0;
+        transform: scale(0.6);
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-ok svg {
+        width: 22px;
+        height: 22px;
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-b[data-s="done"] .ac-animation-state-machine-l {
+        opacity: 0;
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-b[data-s="done"] .ac-animation-state-machine-ok {
+        opacity: 1;
+        transform: none;
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-dots {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 14px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-dots i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--bar);
+        transition:
+          background-color 200ms,
+          transform 200ms;
+      }
+      .ac-animation-state-machine .ac-animation-state-machine-dots i.is-on {
+        background: var(--blue);
+        transform: scale(1.3);
+      }
+      @keyframes ac-animation-state-machine-idle {
+        50% {
+          transform: scale(1.03);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-animation-state-machine .ac-animation-state-machine-b {
+          transform: none !important;
+        }
+        .ac-animation-state-machine .ac-animation-state-machine-ok,
+        .ac-animation-state-machine .ac-animation-state-machine-b[data-s="done"] .ac-animation-state-machine-ok,
+        .ac-animation-state-machine .ac-animation-state-machine-dots i.is-on {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "animation-state-machine",
+        name: "状態で動きを切り替える",
+        en: "Animation state machine",
+        cat: "状態の遷移",
+        kind: "concept",
+        description:
+          "「待機」「ホバー」「押下」「完了」のような状態ごとに動きを用意し、入力（ホバー・クリックなど）で状態の間を移る、と決めておく考え方です。どの状態からどこへ、どの動きで移るかが表になっているので、操作が重なっても動きが破綻しません。",
+        use: "インタラクティブなアイコン・ボタン、キャラクター、Rive / Lottie のアニメーション、複雑なコンポーネント。",
+        params: [{ key: "dur", label: "状態の間の遷移", value: 220, min: 100, max: 500, step: 10, unit: "ms" }],
+        spec: [
+          ["状態", "待機（ゆっくり呼吸）→ ホバー（浮く）→ 押下（縮む）→ 完了（チェックが出る）→ 待機"],
+          ["遷移", "状態の組ごとに時間とイージングを決める。下の点が今の状態"],
+          ["ツール", "Rive の State Machine、XState などの状態管理と組み合わせる"],
+          ["動きを減らす設定", "待機中の呼吸をやめる。状態の変化は色と形で示す"],
+          [
+            "出典",
+            '<a href="https://rive.app/docs/editor/state-machine/state-machine" target="_blank" rel="noopener">Rive: state machine</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-animation-state-machine-b"),
+              dots = stage.querySelectorAll(".ac-animation-state-machine-dots i");
+            const set = (s, i) => () => {
+              b.dataset.s = s;
+              dots.forEach((d, j) => d.classList.toggle("is-on", j === i));
+            };
+            set("idle", 0)();
+            move(200, 140, 0);
+            return seq(5200, [
+              [
+                300,
+                () => {
+                  show(1);
+                  move(120, 66, 600);
+                },
+              ],
+              [900, set("hover", 1)],
+              [1600, set("press", 2)],
+              [1900, set("done", 3)],
+              [3200, () => move(200, 140, 600)],
+              [3400, set("done", 3)],
+              [4000, () => show(0)],
+              [4200, set("idle", 0)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

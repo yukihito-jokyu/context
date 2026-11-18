@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>空中で浮かせ続ける（Aerial hit juggling） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-air-juggle"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "air-juggle",
+        name: "空中で浮かせ続ける",
+        en: "Aerial hit juggling",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "攻撃で空中に浮かせた相手が地面に落ちる前に次の攻撃を当て、もう一度打ち上げて空中にとどめ続ける動きです。当たるたびに少しだけ上へ跳ね上げ、重力を弱めて落ちるのを遅くすると、連続技（コンボ）がつながります。",
+        use: "格闘・アクションゲームの連続技、リズムよく続けると報われる演出、コンボのカウンター。",
+        params: [{ key: "lift", label: "打ち上げの強さ", value: 220, min: 100, max: 400, step: 10, unit: "px/秒" }],
+        spec: [
+          [
+            "仕組み",
+            "当たった瞬間に上向きの速さを与え直す（毎回少しずつ弱くする）。空中では重力を弱め、当たった瞬間は短いヒットストップを入れる",
+          ],
+          [
+            "見せ方",
+            "当たるたびに火花と、コンボの数を数える表示を弾ませる。上限の回数やだんだん落ちやすくする決まりで、無限に続かないようにする",
+          ],
+          ["組み合わせ", "ヒットストップ、ノックバック、画面の揺れ"],
+          ["動きを減らす設定", "空中の動きを止め、当たった瞬間の火花とコンボの数だけを出す"],
+          [
+            "出典",
+            '<a href="https://media.gdcvault.com/gdc2019/presentations/Sheth_Mihir_EvolvingCombat.pdf" target="_blank" rel="noopener">media.gdcvault.com（Sheth_Mihir_EvolvingCombat）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let y = 110,
+              vy = 0,
+              last = 0,
+              n = 0,
+              hits = [],
+              stop = 0,
+              t0 = 0,
+              nextHit = 0;
+            return raf((t) => {
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              if (t - t0 > 5) {
+                y = 110;
+                vy = 0;
+                n = 0;
+                t0 = t;
+                nextHit = t + 0.4;
+              }
+              if (!rm) {
+                if (stop > 0) stop -= dt;
+                else {
+                  vy += (y < 110 ? 380 : 0) * dt;
+                  y = Math.min(110, y + vy * dt);
+                  if (y >= 110) vy = 0;
+                }
+              }
+              if (t > nextHit && n < 6) {
+                if (!rm) {
+                  vy = -v.lift * (1 - n * 0.08);
+                  stop = 0.06;
+                }
+                n++;
+                hits.push([120, y - 10, t]);
+                nextHit = t + 0.55;
+              }
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(0, 122, W, 28);
+              g.fillStyle = col("blue");
+              g.beginPath();
+              g.roundRect(70, 92, 16, 30, 6);
+              g.fill();
+              g.fillStyle = col("cobalt");
+              g.save();
+              g.translate(120, y);
+              g.rotate(-0.3 * Math.min(1, (110 - y) / 40));
+              g.beginPath();
+              g.roundRect(-9, -16, 18, 28, 6);
+              g.fill();
+              g.restore();
+              hits = hits.filter(([x, hy, ht]) => t - ht < 0.25);
+              for (const [x, hy, ht] of hits) {
+                const k = (t - ht) / 0.25;
+                g.strokeStyle = `rgba(255,190,60,${1 - k})`;
+                g.lineWidth = 2;
+                for (let i = 0; i < 6; i++) {
+                  const a = (i / 6) * TAU;
+                  g.beginPath();
+                  g.moveTo(x + cos(a) * 4, hy + sin(a) * 4);
+                  g.lineTo(x + cos(a) * (8 + k * 12), hy + sin(a) * (8 + k * 12));
+                  g.stroke();
+                }
+              }
+              if (n) {
+                const pop = hits.length && !rm ? 1.25 : 1;
+                g.fillStyle = col("navy");
+                g.font = `800 ${Math.round(16 * pop)}px sans-serif`;
+                g.textAlign = "right";
+                g.fillText(`${n} HIT`, 208, 24);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

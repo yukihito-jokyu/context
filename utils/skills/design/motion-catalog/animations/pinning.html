@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ピン留め（Pinning） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-pinning" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-pinning-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <section>
+            <div class="ac-pinning-h"><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 80px"></span></div>
+            <div class="ac-pinning-c">
+              <div
+                class="sb-item"
+                style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+              >
+                <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+                ><span class="sb-lines" style="gap: 6px"
+                  ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                  ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+                ></span>
+              </div>
+              <div
+                class="sb-item"
+                style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+              >
+                <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+                ><span class="sb-lines" style="gap: 6px"
+                  ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span
+                  ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+                ></span>
+              </div>
+              <div
+                class="sb-item"
+                style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+              >
+                <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+                ><span class="sb-lines" style="gap: 6px"
+                  ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                  ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+                ></span>
+              </div>
+            </div>
+          </section>
+          <section>
+            <div class="ac-pinning-h ac-pinning-h2">
+              <span class="sb-bar sb-bar--sm sb-bar--on-soft" style="width: 100px"></span>
+            </div>
+            <div class="ac-pinning-c">
+              <div
+                class="sb-item"
+                style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+              >
+                <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+                ><span class="sb-lines" style="gap: 6px"
+                  ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+                  ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+                ></span>
+              </div>
+              <div
+                class="sb-item"
+                style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+              >
+                <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+                ><span class="sb-lines" style="gap: 6px"
+                  ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+                  ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+                ></span>
+              </div>
+              <div
+                class="sb-item"
+                style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+              >
+                <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+                ><span class="sb-lines" style="gap: 6px"
+                  ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                  ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+                ></span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-pinning .ac-pinning-h {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 14px;
+        background: var(--surface);
+        box-shadow: 0 6px 12px rgba(27, 58, 138, 0.06);
+      }
+      .ac-pinning .ac-pinning-h2 {
+        background: var(--blue-soft);
+      }
+      .ac-pinning .ac-pinning-c {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "pinning",
+        name: "ピン留め",
+        en: "Pinning",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "スクロールしても、ある要素（見出しやヒーロー）がその場に留まり続け、ほかの中身だけが流れていく動きです。今どこを読んでいるのかを見失わず、ストーリーの舞台を固定できます。",
+        use: "固定ヘッダー、セクション見出し、スクロールで進むストーリーの背景、比較表の見出し行。",
+        params: [],
+        spec: [
+          ["仕組み", "<code>position: sticky; top: 0;</code> で、スクロール領域の上端に留める"],
+          ["区間", "親要素の範囲を出ると一緒に流れていく（区間ごとに見出しが入れ替わる）"],
+          [
+            "演出",
+            "ピン留め中にスクロール連動（<code>animation-timeline: view()</code>）を重ねると、GSAP の pin + scrub のような演出になる",
+          ],
+          ["動きを減らす設定", "ピン留めは動きではないのでそのままでよい"],
+          ["出典", "ChatGPT との会話の分類表（スクロール）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const auto = (sc, ms) => {
+            let raf,
+              start = null;
+            const tick = (now) => {
+              if (start === null) start = now;
+              const t = (now - start) % (ms + 1000),
+                p = Math.min(1, t / ms),
+                max = sc.scrollHeight - sc.clientHeight;
+              sc.scrollTop = max * (0.5 - Math.cos(Math.PI * p) / 2);
+              raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+            return () => cancelAnimationFrame(raf);
+          };
+          return auto(stage.querySelector(".ac-pinning-sc"), 3200);
+        },
+      });
+    </script>
+  </body>
+</html>

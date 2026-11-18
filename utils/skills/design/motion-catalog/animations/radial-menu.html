@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>放射状に開くメニュー（Radial menu） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-radial-menu" style="position: relative; width: 220px; height: 150px">
+        <span class="sb-icon-btn ac-radial-menu-i" style="--a: 180deg; --k: 0"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="sb-icon-btn ac-radial-menu-i" style="--a: 225deg; --k: 1"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="sb-icon-btn ac-radial-menu-i" style="--a: 270deg; --k: 2"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="sb-icon-btn ac-radial-menu-i" style="--a: 315deg; --k: 3"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="sb-icon-btn ac-radial-menu-i" style="--a: 360deg; --k: 4"
+          ><span class="sb-shape sb-shape--sm sb-shape--round"></span></span
+        ><span class="sb-fab ac-radial-menu-f"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" /></svg
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-radial-menu .ac-radial-menu-f {
+        position: absolute;
+        left: 86px;
+        top: 92px;
+        width: 48px;
+        height: 48px;
+        z-index: 1;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-radial-menu .ac-radial-menu-f {
+          transition: transform var(--dur, 400ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      }
+      .ac-radial-menu .ac-radial-menu-i {
+        position: absolute;
+        left: 90px;
+        top: 96px;
+        width: 40px;
+        height: 40px;
+        box-shadow: var(--shadow-card);
+        opacity: 0;
+        transform: scale(0.4);
+        transition:
+          transform calc(var(--dur, 400ms) * 0.6) cubic-bezier(0.55, 0, 1, 0.45),
+          opacity calc(var(--dur, 400ms) * 0.6);
+        transition-delay: calc((4 - var(--k)) * var(--gap, 40ms) / 2);
+      }
+      .ac-radial-menu.is-open .ac-radial-menu-f {
+        transform: rotate(45deg);
+      }
+      .ac-radial-menu.is-open .ac-radial-menu-i {
+        opacity: 1;
+        transform: rotate(var(--a)) translateX(var(--r, 64px)) rotate(calc(var(--a) * -1));
+        transition:
+          transform var(--dur, 400ms) cubic-bezier(0.34, 1.56, 0.64, 1),
+          opacity 150ms;
+        transition-delay: calc(var(--k) * var(--gap, 40ms));
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-radial-menu .ac-radial-menu-i {
+          transition: opacity 150ms !important;
+        }
+        .ac-radial-menu:not(.is-open) .ac-radial-menu-i {
+          transform: rotate(var(--a)) translateX(var(--r, 64px)) rotate(calc(var(--a) * -1));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "radial-menu",
+        name: "放射状に開くメニュー",
+        en: "Radial menu",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "1つのボタンを押すと、選択肢がボタンを中心に扇形（または円形）に飛び出して並ぶ動きです。少しずつ遅れて弾むように出てくるので、どこから出てきたかが分かります。親指の届く範囲に選択肢を集められます。",
+        use: "FAB から出す作成メニュー、画像編集の道具、ゲームのアクション選択、スピードダイヤル。",
+        params: [
+          { key: "dur", label: "時間", value: 400, min: 200, max: 800, step: 10, unit: "ms" },
+          { key: "r", label: "半径", value: 64, min: 40, max: 90, step: 2, unit: "px" },
+          { key: "gap", label: "1つごとの遅れ", value: 40, min: 0, max: 100, step: 5, unit: "ms" },
+        ],
+        spec: [
+          [
+            "出る",
+            "i 番目を角度 θi の方向へ <code>translate(cosθi × 半径, sinθi × 半径)</code> と <code>scale(.4 → 1)</code>｜spring｜1つごとに遅らせる",
+          ],
+          ["ボタン", "メインのボタンは <code>rotate(45deg)</code> で＋を×に"],
+          ["閉じる", "逆の順で中心へ戻す（短く）。閉じた選択肢は <code>inert</code>"],
+          ["動きを減らす設定", "飛び出す動きをやめ、選択肢をその位置にフェードで出す"],
+          ["出典", '<a href="https://animata.design/docs" target="_blank" rel="noopener">Animata</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const r = stage.firstElementChild,
+              items = stage.querySelectorAll(".ac-radial-menu-i");
+            const open = (on) => () => {
+              r.classList.toggle("is-open", on);
+              items.forEach((i) => (i.inert = !on));
+            }; // 閉じた選択肢はフォーカスも受けない
+            items.forEach((i) => (i.inert = true));
+            return seq(2800, [
+              [400, open(true)],
+              [1900, open(false)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

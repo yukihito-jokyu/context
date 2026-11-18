@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>インクがにじんで現れる（Ink dissolve） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ink-dissolve"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <svg viewBox="0 0 220 150" width="220" height="150" style="position: absolute; inset: 0">
+          <defs>
+            <linearGradient id="ac-id-g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--ice)" />
+              <stop offset="1" stop-color="var(--cobalt)" />
+            </linearGradient>
+            <filter id="ac-id-f">
+              <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="4" />
+              <feDisplacementMap in="SourceGraphic" scale="40" />
+              <feGaussianBlur stdDeviation="2" />
+            </filter>
+            <mask id="ac-id-m">
+              <circle class="ac-ink-dissolve-c" cx="110" cy="80" r="0" fill="#fff" filter="url(#ac-id-f)" />
+            </mask>
+          </defs>
+          <rect width="220" height="150" fill="var(--surface)" />
+          <g mask="url(#ac-id-m)">
+            <rect width="220" height="150" fill="url(#ac-id-g)" />
+            <circle cx="160" cy="44" r="14" fill="#fff" />
+            <ellipse cx="60" cy="160" rx="110" ry="70" fill="var(--navy)" opacity=".7" />
+          </g>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ink-dissolve",
+        name: "インクがにじんで現れる",
+        en: "Ink dissolve",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像が、水にたらしたインクのようにふちのにじんだ不規則な形で広がりながら現れ、最後に全体が見える動きです。和紙や水彩のような、柔らかく有機的な登場になります。プレビューは SVG のゆがみフィルターで近い形を作っています。",
+        use: "アート・和風・ナチュラル系のサイト、ギャラリーの登場、ストーリーの場面転換。",
+        params: [{ key: "dur", label: "広がる時間", value: 2000, min: 800, max: 3000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "形",
+            "広がる円を <code>feTurbulence</code> と <code>feDisplacementMap</code> でゆがめ、<code>feGaussianBlur</code> でふちをにじませて、画像のマスクにする",
+          ],
+          ["動き", "円の半径を 0 → 画面の対角線ほど｜in-out。にじみの模様を少しずつ動かすとより自然"],
+          ["本格的に", "インクの動画や画像列をマスクに使う（<code>mask-image</code> にスプライト）"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://tympanus.net/Development/RepeatingImageTransition/" target="_blank" rel="noopener">Codrops: repeating images</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const c = stage.querySelector(".ac-ink-dissolve-c");
+            if (rm) {
+              c.setAttribute("r", 200);
+              return null;
+            }
+            return raf((t) => {
+              const k = (t % 3.2) / (v.dur / 1000),
+                e = Math.min(1, k),
+                s = e < 0.5 ? 2 * e * e : 1 - Math.pow(-2 * e + 2, 2) / 2;
+              c.setAttribute("r", (s * 170).toFixed(1));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

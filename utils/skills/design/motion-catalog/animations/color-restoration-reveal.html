@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>色を取り戻す（Color-restoration reveal） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-color-restoration-reveal"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <span class="ac-color-restoration-reveal-col"></span><span class="ac-color-restoration-reveal-gray"></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-color-restoration-reveal .ac-color-restoration-reveal-col,
+      .ac-color-restoration-reveal .ac-color-restoration-reveal-gray {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-color-restoration-reveal .ac-color-restoration-reveal-gray {
+        --x: 50%;
+        --y: 50%;
+        filter: grayscale(1) contrast(0.9);
+        -webkit-mask: radial-gradient(circle var(--r, 44px) at var(--x) var(--y), transparent 55%, #000 100%);
+        mask: radial-gradient(circle var(--r, 44px) at var(--x) var(--y), transparent 55%, #000 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "color-restoration-reveal",
+        name: "色を取り戻す",
+        en: "Color-restoration reveal",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "白黒の写真の上で、ポインターのまわりだけが本来の色に戻って見える動きです。触れたところに色と命が戻るような、印象的なギャラリーの見せ方になります。",
+        use: "写真のギャラリー、ビフォー・アフターの比較、ポートフォリオ、アート作品の紹介。",
+        params: [{ key: "r", label: "色が戻る範囲", value: 44, min: 20, max: 90, step: 2, unit: "px" }],
+        spec: [
+          ["重ね方", "カラーの画像の上に、白黒（<code>filter: grayscale(1)</code>）の同じ画像を重ねる"],
+          [
+            "穴",
+            "白黒の層に <code>mask: radial-gradient(circle 半径 at var(--x) var(--y), transparent 60%, #000)</code>。<code>pointermove</code> で <code>--x / --y</code> を更新",
+          ],
+          ["出入り", "対象に入ったら半径を 0 → 目標へ（out 300ms）"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/components/chroma-grid" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const gr = stage.querySelector(".ac-color-restoration-reveal-gray");
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const x = 110 + 80 * Math.sin(t * 0.8),
+                y = 75 + 40 * Math.sin(t * 1.5);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!rm) {
+                gr.style.setProperty("--x", `${x}px`);
+                gr.style.setProperty("--y", `${y}px`);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

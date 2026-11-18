@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>軌道（オービット）（Orbit） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-orbit" style="position: relative; width: 220px; height: 150px; display: grid; place-items: center">
+        <div style="position: relative; width: 150px; height: 150px; display: grid; place-items: center">
+          <span class="ac-orbit-ring"></span><span class="sb-avatar"></span>
+          <div class="ac-orbit-arm" style="--phase: 0"><span class="sb-thumb sb-grad-aqua ac-orbit-sat"></span></div>
+          <div class="ac-orbit-arm" style="--phase: 1"><span class="sb-thumb sb-grad-sky ac-orbit-sat"></span></div>
+          <div class="ac-orbit-arm" style="--phase: 2"><span class="sb-thumb sb-grad-deep ac-orbit-sat"></span></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-orbit .ac-orbit-ring {
+        position: absolute;
+        width: calc(var(--r, 56px) * 2);
+        height: calc(var(--r, 56px) * 2);
+        border-radius: 50%;
+        box-shadow: inset 0 0 0 2px var(--bar);
+      }
+      .ac-orbit .ac-orbit-arm {
+        position: absolute;
+        inset: 0;
+        transform: rotate(calc(var(--phase, 0) * 120deg));
+      }
+      .ac-orbit .ac-orbit-sat {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 24px;
+        height: 24px;
+        margin: -12px;
+        border-radius: 8px;
+        transform: translateX(var(--r, 56px));
+      }
+      @keyframes ac-orbit-spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-orbit .ac-orbit-arm {
+          animation: ac-orbit-spin var(--dur, 4000ms) linear infinite;
+          animation-delay: calc(var(--dur, 4000ms) * var(--phase, 0) / -3);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "orbit",
+        name: "軌道（オービット）",
+        en: "Orbit",
+        cat: "ループ・常時の動き",
+        kind: "motion",
+        description:
+          "ある要素のまわりを、別の要素が円を描いて回り続ける動きです。中心と周りの関係（つながり・連携）を表せます。",
+        use: "連携サービスの図、読み込み中の装飾、ヒーローの背景の飾り。",
+        params: [
+          { key: "dur", label: "一周の時間", value: 4000, min: 1000, max: 10000, step: 250, unit: "ms" },
+          { key: "r", label: "半径", value: 56, min: 30, max: 70, step: 2, unit: "px" },
+        ],
+        spec: [
+          [
+            "動き",
+            "回転させた親の中に子を半径分ずらして置き、親を <code>rotate(0 → 360deg)</code>｜<code>linear</code>｜<code>infinite</code>",
+          ],
+          ["向き", "子の向きを保つなら、子を逆向きに同じ速さで回す"],
+          ["CSS だけで", "<code>offset-path: circle()</code> と <code>offset-distance</code> でも書ける"],
+          ["動きを減らす設定", "回転をやめ、止めた配置で表示する"],
+          ["出典", "Animation Vocabulary（Looping & Ambient Motion）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

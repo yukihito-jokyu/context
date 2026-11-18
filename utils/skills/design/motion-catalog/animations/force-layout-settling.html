@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>力学配置の落ち着き（Force-layout settling） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-force-layout-settling" style="position: relative; width: 220px; height: 150px">
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "force-layout-settling",
+        name: "力学配置の落ち着き",
+        en: "Force-layout settling",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "つながりのある点（ノード）どうしが、ばねのように引き合い、つながりのない点どうしは反発しながら動き回り、だんだん勢いが弱まって見やすい配置に落ち着く動きです。関係の構造が、動きの中で自然に浮かび上がります。",
+        use: "ネットワーク図、人や物の関係図、ナレッジグラフ、依存関係の可視化。",
+        params: [{ key: "period", label: "やり直す間隔", value: 5000, min: 2000, max: 10000, step: 500, unit: "ms" }],
+        spec: [
+          [
+            "力",
+            "毎フレーム：全ペアに反発（力の大きさは距離に反比例）、線でつながったペアにばね、全体に中心への弱い引力を足す",
+          ],
+          [
+            "落ち着き",
+            "速度に摩擦（×0.85 前後）をかけ、全体の熱（alpha）を少しずつ下げて止める（D3 の <code>forceSimulation</code>）",
+          ],
+          ["操作", "ノードをドラッグ（または選んで矢印キー）で動かしたら熱を少し上げて、まわりが追従して並び直す"],
+          ["動きを減らす設定", "補間をやめ、新しい状態の図をすぐ表示する（またはフェードで切り替える）"],
+          ["出典", '<a href="https://d3js.org/d3-force" target="_blank" rel="noopener">D3 force simulation</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const n = 14,
+              links = [];
+            for (let i = 1; i < n; i++) links.push([i, Math.floor(Math.random() * i)]);
+            links.push([3, 9], [5, 12]);
+            let ns, alpha;
+            const reset = () => {
+              ns = Array.from({ length: n }, () => ({
+                x: 110 + (Math.random() - 0.5) * 200,
+                y: 75 + (Math.random() - 0.5) * 130,
+                vx: 0,
+                vy: 0,
+              }));
+              alpha = 1;
+            };
+            const step = () => {
+              for (let i = 0; i < n; i++)
+                for (let j = i + 1; j < n; j++) {
+                  const a = ns[i],
+                    b = ns[j],
+                    dx = b.x - a.x,
+                    dy = b.y - a.y,
+                    d2 = Math.max(30, dx * dx + dy * dy),
+                    f = (260 / d2) * alpha;
+                  a.vx -= (dx * f) / 10;
+                  a.vy -= (dy * f) / 10;
+                  b.vx += (dx * f) / 10;
+                  b.vy += (dy * f) / 10;
+                }
+              for (const [i, j] of links) {
+                const a = ns[i],
+                  b = ns[j],
+                  dx = b.x - a.x,
+                  dy = b.y - a.y,
+                  d = Math.hypot(dx, dy) || 1,
+                  f = (d - 34) * 0.04 * alpha;
+                a.vx += (dx / d) * f;
+                a.vy += (dy / d) * f;
+                b.vx -= (dx / d) * f;
+                b.vy -= (dy / d) * f;
+              }
+              for (const p of ns) {
+                p.vx += (110 - p.x) * 0.004 * alpha;
+                p.vy += (75 - p.y) * 0.004 * alpha;
+                p.vx *= 0.85;
+                p.vy *= 0.85;
+                p.x = Math.max(8, Math.min(212, p.x + p.vx));
+                p.y = Math.max(8, Math.min(142, p.y + p.vy));
+              }
+              alpha = Math.max(0.02, alpha * 0.985);
+            };
+            const draw = () => {
+              g.clearRect(0, 0, W, H);
+              g.strokeStyle = col("bar-strong") || "#c5cbd6";
+              g.lineWidth = 1.2;
+              g.beginPath();
+              for (const [i, j] of links) {
+                g.moveTo(ns[i].x, ns[i].y);
+                g.lineTo(ns[j].x, ns[j].y);
+              }
+              g.stroke();
+              ns.forEach((p, i) => {
+                g.fillStyle = i ? col("sky") || "#7ab8ff" : col("blue") || "#2563eb";
+                g.beginPath();
+                g.arc(p.x, p.y, i ? 5 : 7, 0, 7);
+                g.fill();
+                g.strokeStyle = "#fff";
+                g.lineWidth = 1.5;
+                g.stroke();
+              });
+            };
+            reset();
+            if (rm) {
+              for (let i = 0; i < 400; i++) step();
+              draw();
+              return null;
+            }
+            let last = 0;
+            return raf((t) => {
+              if (t - last > v.period / 1000) {
+                last = t;
+                reset();
+              }
+              step();
+              draw();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

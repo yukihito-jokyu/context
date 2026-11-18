@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ボールプール（Interactive ball pit） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-interactive-ballpit"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 18px;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas
+          class="ac-interactive-ballpit-cv"
+          width="220"
+          height="150"
+          style="position: absolute; inset: 0; width: 220px; height: 150px"
+        ></canvas
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "interactive-ballpit",
+        name: "ボールプール",
+        en: "Interactive ball pit",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "たくさんの球が重力で積もり、ぶつかり合い、ポインターが通ると押しのけられて転がる動きです。物理計算で動くので、触るたびに違う動きになり、つい遊びたくなります。",
+        use: "遊び心のあるトップページの背景、404 ページ、キャンペーンのビジュアル。",
+        params: [
+          { key: "count", label: "球の数", value: 28, min: 8, max: 50, step: 1, unit: "" },
+          { key: "push", label: "押す強さ", value: 260, min: 0, max: 600, step: 20, unit: "" },
+          { key: "g", label: "重力", value: 900, min: 200, max: 2000, step: 50, unit: "" },
+        ],
+        spec: [
+          [
+            "計算",
+            "毎フレーム：重力を速度に足す → 位置を進める → 壁・床で跳ね返す（反発 0.5–0.6）→ 球どうしの重なりを押し戻す",
+          ],
+          ["ポインター", "ポインターを大きな球として扱い、重なった球を外へ押し出して、押す強さの分だけ速度を足す"],
+          ["描画", "<code>canvas</code> か WebGL。数が多いときは DOM ではなく canvas にする"],
+          ["動きを減らす設定", "動かさず、積もった状態の静止画にする"],
+          ["出典", '<a href="https://reactbits.dev/backgrounds/ballpit" target="_blank" rel="noopener">React Bits</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector(".ac-interactive-ballpit-cv"),
+              W = 220,
+              H = 150,
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              cols = ["--sky", "--cobalt", "--aqua", "--ice"].map((k) => css.getPropertyValue(k).trim() || "#8ab4ff");
+            const balls = Array.from({ length: v.count }, (_, i) => ({
+              x: 14 + Math.random() * 192,
+              y: -Math.random() * 120,
+              vx: 0,
+              vy: 0,
+              r: 8 + Math.random() * 7,
+              c: cols[i % 4],
+            }));
+            const pr = 16;
+            let px = -50,
+              py = -50,
+              ppx = px,
+              ppy = py;
+            const step = (dt) => {
+              for (const b of balls) {
+                b.vy += v.g * dt;
+                b.x += b.vx * dt;
+                b.y += b.vy * dt;
+                if (b.x < b.r) {
+                  b.x = b.r;
+                  b.vx *= -0.6;
+                }
+                if (b.x > W - b.r) {
+                  b.x = W - b.r;
+                  b.vx *= -0.6;
+                }
+                if (b.y > H - b.r) {
+                  b.y = H - b.r;
+                  b.vy *= -0.5;
+                  b.vx *= 0.97;
+                }
+                const dx = b.x - px,
+                  dy = b.y - py,
+                  d = Math.hypot(dx, dy) || 1;
+                if (d < b.r + pr) {
+                  const nx = dx / d,
+                    ny = dy / d;
+                  b.x = px + nx * (b.r + pr);
+                  b.y = py + ny * (b.r + pr);
+                  b.vx += nx * v.push;
+                  b.vy += ny * v.push;
+                }
+              }
+              for (let i = 0; i < balls.length; i++)
+                for (let j = i + 1; j < balls.length; j++) {
+                  const a = balls[i],
+                    b = balls[j],
+                    dx = b.x - a.x,
+                    dy = b.y - a.y,
+                    d = Math.hypot(dx, dy) || 1,
+                    o = a.r + b.r - d;
+                  if (o > 0) {
+                    const nx = dx / d,
+                      ny = dy / d;
+                    a.x -= (nx * o) / 2;
+                    a.y -= (ny * o) / 2;
+                    b.x += (nx * o) / 2;
+                    b.y += (ny * o) / 2;
+                    const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+                    if (rv < 0) {
+                      const j2 = -rv * 0.75;
+                      a.vx -= nx * j2;
+                      a.vy -= ny * j2;
+                      b.vx += nx * j2;
+                      b.vy += ny * j2;
+                    }
+                  }
+                }
+            };
+            const draw = () => {
+              g.clearRect(0, 0, W, H);
+              for (const b of balls) {
+                g.fillStyle = b.c;
+                g.beginPath();
+                g.arc(b.x, b.y, b.r, 0, 7);
+                g.fill();
+                g.fillStyle = "rgba(255,255,255,.45)";
+                g.beginPath();
+                g.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.3, 0, 7);
+                g.fill();
+              }
+            };
+            if (rm) {
+              for (let i = 0; i < 400; i++) step(1 / 120);
+              draw();
+              return null;
+            }
+            cur.style.transition = "opacity 200ms";
+            show(1);
+            let acc = 0,
+              last = null;
+            return raf((t) => {
+              const k = Math.max(0, t - 1.5);
+              px = k ? 110 + 95 * Math.sin(k * 1.4) : -50;
+              py = k ? 112 + 22 * Math.sin(k * 2.8) : -50;
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              cur.style.opacity = k ? 1 : 0;
+              if (last !== null) acc += Math.min(0.1, t - last);
+              last = t;
+              for (let n = 0; acc >= 1 / 120 && n < 12; n++) {
+                step(1 / 120);
+                acc -= 1 / 120;
+              }
+              draw();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

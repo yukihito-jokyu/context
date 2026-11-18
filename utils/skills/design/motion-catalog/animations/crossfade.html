@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>クロスフェード（Crossfade） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-crossfade ac-crossfade-root" style="position: relative; width: 200px; height: 130px">
+        <span class="sb-hero sb-grad-hero ac-crossfade-a"></span
+        ><span class="sb-hero sb-grad-deep ac-crossfade-b"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-crossfade .sb-hero {
+        position: absolute;
+        inset: 0;
+        height: auto;
+        transition: opacity var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-crossfade .ac-crossfade-b {
+        opacity: 0;
+      }
+      .ac-crossfade.is-b .ac-crossfade-a {
+        opacity: 0;
+      }
+      .ac-crossfade.is-b .ac-crossfade-b {
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-crossfade .sb-hero {
+          transition-duration: 100ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "crossfade",
+        name: "クロスフェード",
+        en: "Crossfade",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "同じ場所で、古い要素が薄くなるのと同時に新しい要素が現れる切り替えです。位置が変わらないので、中身だけが入れ替わったことが静かに伝わります。",
+        use: "画像の切り替え、タブの中身、アイコンの状態（再生 ↔ 一時停止）、数値の更新。",
+        params: [{ key: "dur", label: "時間", value: 400, min: 100, max: 1200, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "古い要素 <code>opacity 1 → 0</code> と新しい要素 <code>opacity 0 → 1</code> を同時に｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>",
+          ],
+          ["重ね方", "2つを同じ位置に重ねる（<code>position: absolute</code> や <code>grid-area: 1 / 1</code>）"],
+          ["きっかけ", "状態が変わったとき（デモは 1.6 秒ごと）"],
+          ["動きを減らす設定", "時間を短く（100ms 程度）するか、瞬時に切り替える"],
+          ["出典", "Animation Vocabulary（Transitions Between States）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const root = stage.firstElementChild;
+          const t = setInterval(() => root.classList.toggle("is-b"), 1600);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

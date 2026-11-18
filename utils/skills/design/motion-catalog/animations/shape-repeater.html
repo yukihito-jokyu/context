@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>図形の繰り返し（Shape repeater） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-shape-repeater"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-shape-repeater-w">
+          <span class="ac-shape-repeater-s" style="--i: 0"></span
+          ><span class="ac-shape-repeater-s" style="--i: 1"></span
+          ><span class="ac-shape-repeater-s" style="--i: 2"></span
+          ><span class="ac-shape-repeater-s" style="--i: 3"></span
+          ><span class="ac-shape-repeater-s" style="--i: 4"></span
+          ><span class="ac-shape-repeater-s" style="--i: 5"></span
+          ><span class="ac-shape-repeater-s" style="--i: 6"></span
+          ><span class="ac-shape-repeater-s" style="--i: 7"></span
+          ><span class="ac-shape-repeater-s" style="--i: 8"></span
+          ><span class="ac-shape-repeater-s" style="--i: 9"></span
+          ><span class="ac-shape-repeater-s" style="--i: 10"></span
+          ><span class="ac-shape-repeater-s" style="--i: 11"></span
+          ><span class="ac-shape-repeater-s" style="--i: 12"></span
+          ><span class="ac-shape-repeater-s" style="--i: 13"></span
+          ><span class="ac-shape-repeater-s" style="--i: 14"></span
+          ><span class="ac-shape-repeater-s" style="--i: 15"></span
+          ><span class="ac-shape-repeater-s" style="--i: 16"></span
+          ><span class="ac-shape-repeater-s" style="--i: 17"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-shape-repeater .ac-shape-repeater-w {
+        position: relative;
+        width: 120px;
+        height: 120px;
+      }
+      .ac-shape-repeater .ac-shape-repeater-s {
+        position: absolute;
+        inset: 0;
+        border: 2px solid color-mix(in srgb, var(--blue) calc(100% - var(--i) * 5%), var(--aqua));
+        border-radius: 28%;
+        transform: rotate(calc(var(--i) * 10deg)) scale(calc(1 - var(--i) * 0.045));
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-shape-repeater .ac-shape-repeater-s {
+          animation: ac-shape-repeater-a var(--dur, 4000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-shape-repeater-a {
+        from {
+          transform: rotate(calc(var(--i) * 2deg)) scale(calc(1 - var(--i) * 0.045));
+        }
+        to {
+          transform: rotate(calc(var(--i) * 20deg)) scale(calc(1 - var(--i) * 0.045));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "shape-repeater",
+        name: "図形の繰り返し",
+        en: "Shape repeater",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "1つの図形を、少しずつ回転・縮小させながら何十個も重ねて並べ、その回転を動かすことで万華鏡やスピログラフのような模様が生まれる表現です。After Effects の「リピーター」と同じ考え方です。",
+        use: "ローディング、抽象的なヒーロー、ブランドの装飾、音楽のビジュアル。",
+        params: [{ key: "dur", label: "うねりの周期", value: 4000, min: 1500, max: 10000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "仕組み",
+            "i 番目の複製に <code>rotate(i × 角度) scale(1 - i × 縮み)</code>。色や不透明度も i で少しずつ変える",
+          ],
+          ["動き", "角度（<code>--angle</code>）そのものを時間で往復させると、全体の模様がうねる"],
+          ["書き方", "CSS なら <code>--i</code> を持たせた要素を並べて <code>calc()</code>"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/be_nl/after-effects/desktop/drawing-painting-and-paths/shapes-and-shape-attributes/shape-attributes-paint-operations-path.html" target="_blank" rel="noopener">Adobe: shape operations</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

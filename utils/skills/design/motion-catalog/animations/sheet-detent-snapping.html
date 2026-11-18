@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>シートの段階吸着（Sheet detent snapping） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-sheet-detent-snapping" style="position: relative; width: 220px; height: 160px">
+        <div class="ac-sheet-detent-snapping-ph">
+          <div style="display: grid; gap: 8px; padding: 10px">
+            <div
+              class="sb-item"
+              style="width: 130px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 130px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 130px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+          <span class="ac-sheet-detent-snapping-dim"></span>
+          <div class="ac-sheet-detent-snapping-sh">
+            <span class="sb-handle" style="margin: 8px auto 10px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 70px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sheet-detent-snapping .ac-sheet-detent-snapping-ph {
+        position: absolute;
+        left: 35px;
+        top: 4px;
+        width: 150px;
+        height: 152px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--bg);
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+      .ac-sheet-detent-snapping .ac-sheet-detent-snapping-dim {
+        position: absolute;
+        inset: 0;
+        background: rgba(18, 26, 43, 0.3);
+        opacity: 0;
+      }
+      .ac-sheet-detent-snapping .ac-sheet-detent-snapping-sh {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 152px;
+        padding: 0 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-radius: 18px 18px 0 0;
+        background: var(--surface);
+        box-shadow: 0 -6px 20px rgba(18, 26, 43, 0.12);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sheet-detent-snapping",
+        name: "シートの段階吸着",
+        en: "Sheet detent snapping",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "下から出るシートをドラッグすると指に付いてきて、離すと「低い・中くらい・全体」などの決まった高さのうち、近いほうへ吸い付くように止まる動きです。強くはじけば、勢いの向きの次の段へ進みます。",
+        use: "地図アプリの詳細シート、音楽プレイヤー、共有シート、フィルターのパネル。",
+        params: [{ key: "dur", label: "吸着の時間", value: 380, min: 150, max: 800, step: 10, unit: "ms" }],
+        spec: [
+          ["段", "高さの段（例：画面の 25% / 55% / 90%）を決める"],
+          [
+            "離したとき",
+            "今の高さに、離した瞬間の速さ × 0.2 秒ぶんを足した位置に近い段へ。spring（行き過ぎは小さく）。段を選ぶボタンからも同じ処理",
+          ],
+          ["背景", "高い段ほど背景を暗くする。iOS の <code>sheetPresentationController.detents</code> と同じ考え方"],
+          ["動きを減らす設定", "吸着の弾みをやめ、段へすぐ移す"],
+          [
+            "出典",
+            '<a href="https://developer.apple.com/design/human-interface-guidelines/sheets" target="_blank" rel="noopener">Apple HIG: Sheets</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const sh = stage.querySelector(".ac-sheet-detent-snapping-sh"),
+              dim = stage.querySelector(".ac-sheet-detent-snapping-dim"),
+              D = [114, 70, 16];
+            const at = (y, ms) => {
+              sh.style.transition = dim.style.transition = ms
+                ? `transform ${ms}ms cubic-bezier(0.34, 1.2, 0.64, 1), opacity ${ms}ms`
+                : "none";
+              sh.style.transform = `translateY(${y}px)`;
+              dim.style.opacity = ((114 - y) / 98) * 0.9;
+            };
+            let anim,
+              y = D[0],
+              vel = 0,
+              lastT = 0;
+            const drag = (to, ms) => () => {
+              const from = y,
+                t0 = performance.now();
+              cancelAnimationFrame(anim);
+              lastT = t0;
+              const f = (now) => {
+                const p = Math.min(1, (now - t0) / ms),
+                  e = p * (2 - p),
+                  ny = from + (to - from) * e;
+                vel = ((ny - y) / Math.max(1, now - lastT)) * 1000;
+                lastT = now;
+                y = ny;
+                /* 速さ（px/秒） */ at(y, 0);
+                move(110, y + 16, 0);
+                if (p < 1) anim = requestAnimationFrame(f);
+              };
+              anim = requestAnimationFrame(f);
+            };
+            const snap = () => {
+              const aim = y + vel * 0.2,
+                n = D.reduce((a, b) => (Math.abs(b - aim) < Math.abs(a - aim) ? b : a));
+              /* 今の高さ + 離した速さ × 0.2 秒 */ y = n;
+              at(n, rm ? 0 : v.dur);
+              show(0);
+            };
+            at(D[0], 0);
+            move(110, 130, 0);
+            const stop = seq(6400, [
+              [
+                0,
+                () => {
+                  y = D[0];
+                  at(y, 0);
+                },
+              ],
+              [
+                100,
+                () => {
+                  show(1);
+                  move(110, 130, 300);
+                },
+              ],
+              [500, drag(84, 600)],
+              [1150, snap],
+              [
+                2000,
+                () => {
+                  show(1);
+                  move(110, 86, 300);
+                },
+              ],
+              [2400, drag(34, 500)],
+              [2950, snap],
+              [
+                4000,
+                () => {
+                  show(1);
+                  move(110, 32, 300);
+                },
+              ],
+              [4400, drag(100, 600)],
+              [5050, snap],
+            ]);
+            return () => {
+              stop();
+              cancelAnimationFrame(anim);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

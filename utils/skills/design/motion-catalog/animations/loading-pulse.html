@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>読み込み中（Loading pulse） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-loading-pulse" style="position: relative; width: 200px; height: 150px">
+        <div
+          class="sb-card ac-loading-pulse-c"
+          style="width: 200px; padding: 14px; display: flex; flex-direction: column; gap: 10px"
+        >
+          <div class="sb-loading-img" style="height: 60px"></div>
+          <span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 120px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 80px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-loading-pulse .ac-loading-pulse-c > * {
+          animation: ac-loading-pulse-pulse var(--dur, 1200ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-loading-pulse-pulse {
+        to {
+          opacity: var(--low, 0.6);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-loading-pulse .ac-loading-pulse-c > * {
+          opacity: 0.8;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "loading-pulse",
+        name: "読み込み中",
+        en: "Loading pulse",
+        cat: "Soft Blue の部品",
+        kind: "motion",
+        description:
+          "中身を読み込んでいる間、画像の枠とバーの透明度をゆっくり往復させる動きです。何かを待っていることを、静かに伝えます。",
+        use: "一覧・カードの読み込み中、画像の読み込み待ち。",
+        params: [
+          { key: "dur", label: "往復の時間", value: 1200, min: 600, max: 2400, step: 100, unit: "ms" },
+          { key: "low", label: "いちばん薄いとき", value: 0.6, min: 0.2, max: 0.9, step: 0.05, unit: "" },
+        ],
+        spec: [
+          [
+            "全体",
+            "<code>opacity 1 ↔ 薄いとき</code>｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>｜<code>alternate</code> でくり返す",
+          ],
+          [
+            "読み上げ",
+            '飾りは <code>aria-hidden</code>、読み込み中は文字でも伝える（<code>role="status"</code> など）',
+          ],
+          ["動きを減らす設定", "点滅をやめ、薄い色のまま止めて表示する"],
+          ["出典", "Soft Blue「モーション」の読み込み中"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

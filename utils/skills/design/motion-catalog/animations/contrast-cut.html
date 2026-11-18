@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>対比のカット（Contrast cut） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-contrast-cut"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-contrast-cut-s ac-contrast-cut-a"
+          style="
+            background:
+              radial-gradient(circle at 70% 30%, #fff 0 16px, transparent 17px),
+              linear-gradient(160deg, #fff, var(--ice));
+          "
+        ></div>
+        <div
+          class="ac-contrast-cut-s ac-contrast-cut-b"
+          style="
+            background:
+              repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.08) 0 6px, transparent 6px 14px),
+              radial-gradient(ellipse at 50% 120%, #0a1846 0 55%, transparent 56%),
+              linear-gradient(200deg, #1a2a66, #0b1430);
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-contrast-cut .ac-contrast-cut-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-contrast-cut .ac-contrast-cut-b {
+        animation: ac-contrast-cut-t var(--dur, 2600ms) step-end infinite;
+      }
+      @keyframes ac-contrast-cut-t {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-contrast-cut .ac-contrast-cut-s {
+          transition: opacity 200ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "contrast-cut",
+        name: "対比のカット",
+        en: "Contrast cut",
+        cat: "映像の切り替え",
+        kind: "concept",
+        description:
+          "明るい場面から暗い場面へ、静かな場面からにぎやかな場面へなど、正反対のショットを並べて切り替える方法です。違いがぶつかり合うことで、意味や感情が強く伝わります。",
+        use: "ビフォー・アフター、課題と解決を見せる紹介動画、季節や時間の対比。",
+        params: [{ key: "dur", label: "1ショットの長さ ×2", value: 2600, min: 1000, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["書き方", "明るさ・色・動きの量が正反対の2ショットをカットでつなぐ"],
+          ["伝え方", "前のショットを少し長めに見せてから切ると、対比が効く"],
+          ["UI では", "比較のスライダーやタブ切り替えで、前後をはっきり違う見た目にする"],
+          ["動きを減らす設定", "もともとカットなので、そのままでよい"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

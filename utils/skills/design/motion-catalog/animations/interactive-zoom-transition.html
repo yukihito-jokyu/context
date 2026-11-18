@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>指で戻せるズーム遷移（Interactive zoom transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-interactive-zoom-transition" style="position: relative; width: 220px; height: 160px">
+        <div class="ac-interactive-zoom-transition-g">
+          <span class="sb-grad-aqua" style="width: 44px; height: 44px; border-radius: 10px"></span
+          ><span class="sb-grad-sky" style="width: 44px; height: 44px; border-radius: 10px"></span
+          ><span class="sb-grad-deep" style="width: 44px; height: 44px; border-radius: 10px"></span
+          ><span class="sb-grad-hero" style="width: 44px; height: 44px; border-radius: 10px"></span
+          ><span class="sb-grad-sky" style="width: 44px; height: 44px; border-radius: 10px"></span
+          ><span class="sb-grad-aqua" style="width: 44px; height: 44px; border-radius: 10px"></span
+          ><span class="sb-grad-hero" style="width: 44px; height: 44px; border-radius: 10px"></span
+          ><span class="sb-grad-deep" style="width: 44px; height: 44px; border-radius: 10px"></span>
+        </div>
+        <span class="ac-interactive-zoom-transition-bd"></span
+        ><span class="ac-interactive-zoom-transition-m sb-grad-deep"></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-interactive-zoom-transition .ac-interactive-zoom-transition-g {
+        position: absolute;
+        left: 12px;
+        top: 28px;
+        display: grid;
+        grid-template-columns: repeat(4, 44px);
+        gap: 8px 10px;
+      }
+      .ac-interactive-zoom-transition .ac-interactive-zoom-transition-bd {
+        position: absolute;
+        inset: 0;
+        background: var(--surface);
+        opacity: 0;
+        border-radius: 16px;
+      }
+      .ac-interactive-zoom-transition .ac-interactive-zoom-transition-m {
+        position: absolute;
+        left: 66px;
+        top: 28px;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        transform-origin: 0 0;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "interactive-zoom-transition",
+        name: "指で戻せるズーム遷移",
+        en: "Interactive zoom transition",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "一覧の写真を押すと、その写真が拡大して画面いっぱいの詳細になります。詳細を指で下へ引くと、指に合わせて縮みながら元の位置へ近づき、離すとそのまま元のサムネイルへ戻ります。遷移の途中でも指で操れるのが特徴です。プレビューは指の動きを再現した近い形です。",
+        use: "写真アプリ、ギャラリーの拡大表示、メディアの詳細画面、カードから全画面への遷移。",
+        params: [{ key: "dur", label: "時間", value: 450, min: 200, max: 900, step: 10, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["開く", "サムネイルの位置・大きさから全画面へ（共有要素）｜spring"],
+          [
+            "引いている間",
+            "下へ引いた量 y に合わせて <code>translateY(y) scale(1 - y / 画面の高さ × .6)</code>、背景を透かす。指に付いてくる（イージングなし）",
+          ],
+          [
+            "離したとき",
+            "引いた量か速さが一定を超えたら、今の位置からサムネイルへ戻す。超えなければ全画面へ戻す（どちらも spring）。「閉じる」ボタンからも同じ処理",
+          ],
+          ["動きを減らす設定", "拡大と縮小をやめ、フェードで切り替える"],
+          [
+            "出典",
+            '<a href="https://developer.apple.com/documentation/uikit/enhancing-your-app-with-fluid-transitions.md" target="_blank" rel="noopener">Apple: fluid transitions</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const m = stage.querySelector(".ac-interactive-zoom-transition-m"),
+              bd = stage.querySelector(".ac-interactive-zoom-transition-bd");
+            const S0 = { x: 0, y: 0, sx: 1, sy: 1 },
+              S1 = { x: -56, y: -18, sx: 200 / 44, sy: 124 / 44 };
+            const set = (s, k, ms, ease) => {
+              m.style.transition = bd.style.transition = ms
+                ? `transform ${ms}ms ${ease}, opacity ${ms}ms, border-radius ${ms}ms`
+                : "none";
+              m.style.transform = `translate(${s.x}px, ${s.y}px) scale(${s.sx}, ${s.sy})`;
+              bd.style.opacity = k;
+              m.style.opacity = 1;
+            };
+            const fade = (s, k) => {
+              set(s, bd.style.opacity || 0, 0);
+              m.style.opacity = k ? 0 : 1;
+              void m.offsetWidth;
+              m.style.transition = bd.style.transition = "opacity 200ms";
+              bd.style.opacity = k;
+              m.style.opacity = k;
+            }; // 動きを減らす設定用
+            const lerp = (a, b, k) => ({
+              x: a.x + (b.x - a.x) * k,
+              y: a.y + (b.y - a.y) * k,
+              sx: a.sx + (b.sx - a.sx) * k,
+              sy: a.sy + (b.sy - a.sy) * k,
+            });
+            let anim;
+            const drag = () => {
+              const t0 = performance.now();
+              cancelAnimationFrame(anim);
+              const f = (now) => {
+                const p = Math.min(1, (now - t0) / 900),
+                  y = 50 * (p * (2 - p)),
+                  k = Math.min(1, y / 120);
+                const s = lerp(S1, S0, k * 0.5);
+                s.y += y;
+                if (!rm) set(s, 1 - k * 1.2, 0);
+                move(110, 70 + y, 0);
+                if (p < 1) anim = requestAnimationFrame(f);
+              };
+              anim = requestAnimationFrame(f);
+            };
+            set(S0, 0, 0);
+            m.style.opacity = 0;
+            move(200, 150, 0);
+            const sp = "cubic-bezier(0.34, 1.2, 0.64, 1)";
+            const stop = seq(5000, [
+              [
+                0,
+                () => {
+                  set(S0, 0, 0);
+                  m.style.opacity = 0;
+                },
+              ],
+              [
+                100,
+                () => {
+                  show(1);
+                  move(88, 50, 500);
+                },
+              ],
+              [700, () => (rm ? fade(S1, 1) : set(S1, 1, v.dur, sp))],
+              [800, () => show(0)],
+              [
+                1700,
+                () => {
+                  show(1);
+                  move(110, 70, 300);
+                },
+              ],
+              [2100, drag],
+              [
+                3000,
+                () => {
+                  show(0);
+                  if (rm) fade(S1, 0);
+                  else set(S0, 0, v.dur, sp);
+                },
+              ],
+              [
+                3000 + v.dur + 50,
+                () => {
+                  m.style.opacity = 0;
+                },
+              ],
+            ]);
+            return () => {
+              stop();
+              cancelAnimationFrame(anim);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

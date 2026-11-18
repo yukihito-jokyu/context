@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>サイン（Sine easing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-sine-easing"
+        style="
+          position: relative;
+          width: 200px;
+          height: 150px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 18px;
+        "
+      >
+        <div class="ac-sine-easing-g">
+          <svg viewBox="0 0 80 80" width="80" height="80" style="overflow: visible">
+            <path d="M0,80 L80,80 M0,80 L0,0" stroke="var(--bar)" stroke-width="2" fill="none" />
+            <path d="M0,80 L80,0" stroke="var(--bar)" stroke-width="1.5" stroke-dasharray="3 4" fill="none" />
+            <path
+              class="ac-sine-easing-curve"
+              d="M0,80 C48.8,0.0 70.4,0.0 80,0"
+              stroke="var(--cobalt)"
+              stroke-width="3"
+              fill="none"
+              stroke-linecap="round"
+            /></svg
+          ><span class="ac-sine-easing-dx"><span class="ac-sine-easing-dy"></span></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-sine-easing-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sine-easing .ac-sine-easing-g {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      .ac-sine-easing .ac-sine-easing-dx {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 10px;
+        height: 80px;
+        margin-left: -5px;
+        animation: ac-sine-easing-x var(--dur, 1000ms) linear both;
+      }
+      .ac-sine-easing .ac-sine-easing-dy {
+        position: absolute;
+        left: 0;
+        bottom: -5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 3px #fff;
+        animation: ac-sine-easing-y var(--dur, 1000ms) cubic-bezier(0.61, 1, 0.88, 1) both;
+      }
+      .ac-sine-easing .ac-sine-easing-t {
+        animation: ac-sine-easing-m var(--dur, 1000ms) cubic-bezier(0.61, 1, 0.88, 1) both;
+      }
+      @keyframes ac-sine-easing-x {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(80px);
+        }
+      }
+      @keyframes ac-sine-easing-y {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-80px);
+        }
+      }
+      @keyframes ac-sine-easing-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-sine-easing-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-sine-easing .ac-sine-easing-dx {
+          transform: translateX(80px);
+          animation-name: none;
+        }
+        .ac-sine-easing .ac-sine-easing-dy {
+          transform: translateY(-80px);
+          animation-name: ac-sine-easing-fade;
+        }
+        .ac-sine-easing .ac-sine-easing-t {
+          transform: translateX(168px);
+          animation-name: ac-sine-easing-fade;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sine-easing",
+        name: "サイン",
+        en: "Sine easing",
+        cat: "イージング",
+        kind: "concept",
+        description:
+          "正弦波（サインカーブ）から作った、いちばん穏やかな加速・減速の曲線です。速さの変化がなだらかで、ほとんど等速に近い柔らかさがあります。",
+        use: "ゆっくりした常時の動き（浮遊・呼吸）、背景の動き、控えめなフェード。",
+        params: [{ key: "dur", label: "時間", value: 1000, min: 200, max: 2000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["out（このデモ）", "<code>cubic-bezier(0.61, 1, 0.88, 1)</code>"],
+          ["in", "<code>cubic-bezier(0.12, 0, 0.39, 0)</code>"],
+          ["in-out", "<code>cubic-bezier(0.37, 0, 0.63, 1)</code>"],
+          ["印象", "やさしい・控えめ。変化が小さいので、長い時間の動きでも疲れない"],
+          ["グラフ", "横が時間、縦が進み具合。点線は等速（linear）"],
+          ["動きを減らす設定", "終点に固定し、透明度だけを変える"],
+          ["出典", '<a href="https://easings.net/" target="_blank" rel="noopener">Easings.net</a>'],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

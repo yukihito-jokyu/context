@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ページ遷移（Page transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-page-transition"
+        style="
+          position: relative;
+          width: 200px;
+          height: 160px;
+          overflow: hidden;
+          border-radius: 22px;
+          box-shadow: inset 0 0 0 1px var(--line);
+        "
+      >
+        <div
+          class="ac-page-transition-a"
+          style="
+            position: absolute;
+            inset: 0;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--bg);
+          "
+        >
+          <span class="sb-bar sb-bar--md sb-bar--strong" style="width: 90px"></span>
+          <div
+            class="sb-item"
+            style="width: 172px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 172px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 172px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <div
+          class="ac-page-transition-b"
+          style="
+            position: absolute;
+            inset: 0;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--surface);
+          "
+        >
+          <span class="sb-hero sb-grad-aqua" style="height: 70px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span
+          ><span class="sb-bar sb-bar--sm" style="width: 150px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 90px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-page-transition .ac-page-transition-a {
+        animation:
+          ac-page-transition-back var(--dur, 320ms) cubic-bezier(0.22, 1, 0.36, 1) 400ms both,
+          ac-page-transition-return var(--dur, 320ms) cubic-bezier(0.22, 1, 0.36, 1) 1800ms forwards;
+      }
+      .ac-page-transition .ac-page-transition-b {
+        box-shadow: -10px 0 24px rgba(27, 58, 138, 0.12);
+        animation:
+          ac-page-transition-in var(--dur, 320ms) cubic-bezier(0.22, 1, 0.36, 1) 400ms both,
+          ac-page-transition-out var(--dur, 320ms) cubic-bezier(0.22, 1, 0.36, 1) 1800ms forwards;
+      }
+      @keyframes ac-page-transition-in {
+        from {
+          transform: translateX(100%);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @keyframes ac-page-transition-out {
+        from {
+          transform: none;
+        }
+        to {
+          transform: translateX(100%);
+        }
+      }
+      @keyframes ac-page-transition-back {
+        from {
+          transform: none;
+          filter: none;
+        }
+        to {
+          transform: translateX(calc(var(--dist, 30%) * -1));
+          filter: brightness(0.92);
+        }
+      }
+      @keyframes ac-page-transition-return {
+        from {
+          transform: translateX(calc(var(--dist, 30%) * -1));
+          filter: brightness(0.92);
+        }
+        to {
+          transform: none;
+          filter: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-page-transition-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes ac-page-transition-out {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+        @keyframes ac-page-transition-back {
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes ac-page-transition-return {
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "page-transition",
+        name: "ページ遷移",
+        en: "Page transition",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "ページやルートを移動するときに再生する切り替えです。前のページが少し下がって薄くなり、次のページが横から重なるように入ってきます（スマホの「進む」と同じ方向感）。",
+        use: "SPA のルート移動、スマホアプリ風の画面遷移、モーダルページ。",
+        params: [
+          { key: "dur", label: "時間", value: 320, min: 150, max: 800, step: 10, unit: "ms" },
+          { key: "dist", label: "ずれる量", value: 30, min: 0, max: 100, step: 5, unit: "%" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["次のページ", "<code>translateX(100% → 0)</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>"],
+          ["前のページ", "<code>translateX(0 → -ずれる量)</code> と少し暗く｜同じ時間"],
+          [
+            "戻る",
+            "向きを反対にする。実装は View Transitions API、各フレームワークのルーター遷移、Framer Motion の AnimatePresence",
+          ],
+          ["動きを減らす設定", "移動をやめ、クロスフェードで切り替える"],
+          ["出典", "Animation Vocabulary（Scroll）"],
+        ],
+        loop: 3000,
+      });
+    </script>
+  </body>
+</html>

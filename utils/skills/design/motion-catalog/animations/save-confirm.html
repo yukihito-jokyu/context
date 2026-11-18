@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>完了チェック（Save confirm） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-save-confirm sb-confirm">
+        <div class="sb-check-circle" role="img" aria-label="完了">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+        </div>
+        <span class="sb-bar sb-bar--sm" style="width: 120px"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-save-confirm .sb-check-circle {
+        animation: ac-save-confirm-pop var(--circle-dur, 260ms) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .ac-save-confirm .sb-check-circle path {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-save-confirm .sb-check-circle path {
+          animation: ac-save-confirm-draw var(--check-dur, 180ms) cubic-bezier(0.22, 1, 0.36, 1)
+            calc(var(--circle-dur, 260ms) + var(--check-gap, 80ms)) forwards;
+        }
+      }
+      @keyframes ac-save-confirm-pop {
+        from {
+          opacity: 0;
+          transform: scale(var(--circle-from, 0.6));
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes ac-save-confirm-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes ac-save-confirm-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-save-confirm .sb-check-circle {
+          animation: ac-save-confirm-fade 180ms ease-out both;
+        }
+        .ac-save-confirm .sb-check-circle path {
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "save-confirm",
+        name: "完了チェック",
+        en: "Save confirm",
+        cat: "Soft Blue の部品",
+        kind: "motion",
+        description:
+          "保存・送信・投稿などの操作が終わったことを、一瞬で伝える動きです。青い丸が小さく弾んで「カチッ」と止まり、少し遅れてチェックが線で描かれます。弾みと線描きの2段階にすることで、「終わった」という手応えが残ります。",
+        use: "保存・送信・投稿の完了、タスクの完了など、成功を短く知らせたい場面。",
+        params: [
+          { key: "circle-dur", label: "丸の時間", value: 260, min: 100, max: 400, step: 10, unit: "ms" },
+          { key: "circle-from", label: "丸の出だしの大きさ", value: 0.6, min: 0.6, max: 1, step: 0.02, unit: "" },
+          { key: "check-dur", label: "チェックの時間", value: 180, min: 100, max: 400, step: 10, unit: "ms" },
+          { key: "check-gap", label: "チェックの遅れ", value: 80, min: 0, max: 200, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["circle-dur"] + p["check-gap"] + p["check-dur"],
+        spec: [
+          [
+            "丸",
+            "<code>scale 出だしの大きさ → 1</code> と <code>opacity 0 → 1</code>｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>",
+          ],
+          [
+            "チェック",
+            '線を描く（path に <code>pathLength="1"</code>、<code>stroke-dashoffset 1 → 0</code>）｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>｜丸の後「遅れ」だけ待って開始',
+          ],
+          ["光・読み上げ", '丸の影（glow）は丸と一緒に出す。<code>role="status"</code> の欄に「保存しました」を入れる'],
+          ["動きを減らす設定", "拡大と線描きをやめ、180ms の透明度の切り替えだけにする"],
+          ["出典", "Soft Blue「モーション」の完了（SaveConfirm）"],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

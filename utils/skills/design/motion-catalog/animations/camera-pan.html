@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>パン（Pan） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-camera-pan"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-camera-pan-cam">
+          <div class="ac-camera-pan-L ac-camera-pan-sky"><i></i></div>
+          <div class="ac-camera-pan-L ac-camera-pan-far"><i></i></div>
+          <div class="ac-camera-pan-L ac-camera-pan-gr"><i></i></div>
+          <div class="ac-camera-pan-L ac-camera-pan-mid"><i></i></div>
+          <div class="ac-camera-pan-L ac-camera-pan-sub"><i></i></div>
+          <div class="ac-camera-pan-L ac-camera-pan-near"><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-camera-pan .ac-camera-pan-cam,
+      .ac-camera-pan .ac-camera-pan-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-camera-pan .ac-camera-pan-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-camera-pan .ac-camera-pan-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-camera-pan .ac-camera-pan-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-camera-pan .ac-camera-pan-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-camera-pan .ac-camera-pan-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-camera-pan .ac-camera-pan-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-camera-pan .ac-camera-pan-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-camera-pan .ac-camera-pan-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      .ac-camera-pan .ac-camera-pan-cam {
+        transform: translateX(60px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-camera-pan .ac-camera-pan-cam {
+          animation: ac-camera-pan-k0 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-camera-pan-k0 {
+        0%,
+        20% {
+          transform: translateX(60px);
+        }
+        80%,
+        100% {
+          transform: translateX(-60px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "camera-pan",
+        name: "パン",
+        en: "Pan",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "カメラの位置は動かさず、向きだけを左右に振る動きです。景色全体が同じ速さで横に流れるのが特徴で（手前も奥もずれない）、広い場所の見渡しや、視線の移動を表せます。",
+        use: "広いイラストや地図の見渡し、横長のヒーロー画像、横に並ぶ商品の紹介、場面の説明。",
+        params: [{ key: "dur", label: "片道の時間", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "景色全体（1枚）を <code>translateX</code>｜in-out。手前と奥を同じ量だけ動かす（ずらすとトラックになる）",
+          ],
+          ["速さ", "ゆっくり（画面幅を 3〜6 秒）。速すぎると目で追えず、揺れて見える"],
+          ["始まりと終わり", "止めた構図から始め、止めた構図で終える（途中で止めない）"],
+          ["動きを減らす設定", "カメラの動きをやめ、最初（または最後）の構図で止める"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/camera-shots/camera-movements/" target="_blank" rel="noopener">StudioBinder: Camera Movements</a>、<a href="https://www.masterclass.com/articles/guide-to-camera-moves" target="_blank" rel="noopener">MasterClass: Guide to Camera Moves</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

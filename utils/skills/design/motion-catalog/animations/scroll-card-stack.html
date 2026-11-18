@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>重なっていくカード（Scroll card stack） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-scroll-card-stack" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-scroll-card-stack-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div style="padding: 10px 12px 60px">
+            <div class="sb-card ac-scroll-card-stack-c" style="--i: 0">
+              <span class="sb-hero sb-grad-aqua" style="display: block; height: 52px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 100px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 70px"></span>
+            </div>
+            <div class="sb-card ac-scroll-card-stack-c" style="--i: 1">
+              <span class="sb-hero sb-grad-sky" style="display: block; height: 52px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 100px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 70px"></span>
+            </div>
+            <div class="sb-card ac-scroll-card-stack-c" style="--i: 2">
+              <span class="sb-hero sb-grad-deep" style="display: block; height: 52px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 100px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 70px"></span>
+            </div>
+            <div class="sb-card ac-scroll-card-stack-c" style="--i: 3">
+              <span class="sb-hero sb-grad-hero" style="display: block; height: 52px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 100px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 70px"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-card-stack .ac-scroll-card-stack-c {
+        position: sticky;
+        top: calc(10px + var(--i) * var(--top, 8px));
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        height: 120px;
+        padding: 12px;
+        margin-bottom: 30px;
+        box-sizing: border-box;
+        border-radius: 18px;
+        transform-origin: 50% 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-card-stack",
+        name: "重なっていくカード",
+        en: "Scroll card stack",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "スクロールすると、次のカードが下から上がってきて前のカードの上に重なり、前のカードは少し小さく暗くなって奥へ下がる動きです。セクションを紙の束のように積み重ねて見せます。",
+        use: "特徴の紹介、事例のスライド、ステップの説明、料金プランの比較。",
+        params: [
+          { key: "shrink", label: "奥のカードの縮み", value: 0.08, min: 0, max: 0.2, step: 0.01, unit: "" },
+          { key: "top", label: "重なる位置のずれ", value: 8, min: 0, max: 20, step: 1, unit: "px" },
+        ],
+        spec: [
+          ["重ね方", "各カードに <code>position: sticky; top: 基準 + i × ずれ</code>"],
+          [
+            "奥へ",
+            "次のカードが重なるほど <code>scale(1 → 1 - 縮み)</code> と <code>filter: brightness(.95)</code>｜スクロール量に連動（<code>animation-timeline: view()</code> か JS）",
+          ],
+          ["きっかけ", "スクロール（時間で動かさない）"],
+          ["動きを減らす設定", "縮みと暗さをやめ、sticky で重なるだけにする"],
+          ["出典", '<a href="https://reactbits.dev/get-started/index" target="_blank" rel="noopener">React Bits</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const auto = (sc, ms) => {
+              let raf,
+                start = null;
+              const tick = (now) => {
+                if (start === null) start = now;
+                const t = (now - start) % (ms + 1000),
+                  p = Math.min(1, t / ms),
+                  max = sc.scrollHeight - sc.clientHeight;
+                sc.scrollTop = max * (0.5 - Math.cos(Math.PI * p) / 2);
+                raf = requestAnimationFrame(tick);
+              };
+              raf = requestAnimationFrame(tick);
+              return () => cancelAnimationFrame(raf);
+            };
+            const sc = stage.querySelector(".ac-scroll-card-stack-sc"),
+              cs = [...stage.querySelectorAll(".ac-scroll-card-stack-c")];
+            const upd = () =>
+              cs.forEach((c, i) => {
+                const nx = cs[i + 1];
+                if (!nx || rm) return;
+                const k = Math.min(1, Math.max(0, 1 - (nx.offsetTop - sc.scrollTop - 10 - i * v.top) / 150));
+                c.style.transform = `scale(${1 - k * v.shrink})`;
+                c.style.filter = `brightness(${1 - k * 0.06})`;
+              });
+            sc.addEventListener("scroll", upd);
+            upd();
+            const stop = auto(sc, 3600);
+            return () => {
+              stop();
+              sc.removeEventListener("scroll", upd);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

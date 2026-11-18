@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>浮遊（フロート）（Float） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-float" style="position: relative; width: 220px; height: 150px; display: grid; place-items: center">
+        <div
+          class="sb-card ac-float-c"
+          style="width: 130px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 71px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 45px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @keyframes ac-float-float {
+        to {
+          transform: translateY(calc(var(--dist, 8px) * -1));
+          box-shadow: 0 18px 32px rgba(27, 58, 138, 0.06);
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-float .ac-float-c {
+          animation: ac-float-float var(--dur, 2000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "float",
+        name: "浮遊（フロート）",
+        en: "Float",
+        cat: "ループ・常時の動き",
+        kind: "motion",
+        description:
+          "要素がふわふわと上下にゆっくり漂い続ける動きです。止まっているはずのものに重さのない軽やかさが出ます。",
+        use: "ヒーローのイラストやカード、空の状態の絵、装飾のバッジ。",
+        params: [
+          { key: "dist", label: "上下の幅", value: 8, min: 2, max: 20, step: 1, unit: "px" },
+          { key: "dur", label: "片道の時間", value: 2000, min: 800, max: 4000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          ["動き", "<code>translateY(0 ↔ -上下の幅)</code>｜in-out｜<code>alternate infinite</code>"],
+          ["影", "浮いたときに影を少し薄く・小さくすると、浮いている感じが増す"],
+          ["ずらし", "複数あるときは時間や始まりを少しずつずらし、そろって動かないようにする"],
+          ["動きを減らす設定", "漂いをやめて止める"],
+          ["出典", "Animation Vocabulary（Looping & Ambient Motion）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>カメラの追従（Camera follow (lerp)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-camera-follow"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-camera-follow-wd">
+          <span class="ac-camera-follow-grid"></span><span class="ac-camera-follow-pl"></span>
+        </div>
+        <span class="ac-camera-follow-x"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-camera-follow .ac-camera-follow-cam,
+      .ac-camera-follow .ac-camera-follow-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-camera-follow .ac-camera-follow-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-camera-follow .ac-camera-follow-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-camera-follow .ac-camera-follow-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-camera-follow .ac-camera-follow-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-camera-follow .ac-camera-follow-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-camera-follow .ac-camera-follow-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-camera-follow .ac-camera-follow-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-camera-follow .ac-camera-follow-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      .ac-camera-follow .ac-camera-follow-wd {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 0;
+        height: 0;
+      }
+      .ac-camera-follow .ac-camera-follow-grid {
+        position: absolute;
+        left: -400px;
+        top: -400px;
+        width: 1000px;
+        height: 1000px;
+        background:
+          radial-gradient(circle 4px, var(--cobalt) 97%, transparent) 0 0 / 60px 60px,
+          linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 30px 30px,
+          linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 30px 30px,
+          var(--surface);
+      }
+      .ac-camera-follow .ac-camera-follow-pl {
+        position: absolute;
+        left: -10px;
+        top: -10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        background: var(--blue);
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+      }
+      .ac-camera-follow .ac-camera-follow-x {
+        position: absolute;
+        left: 104px;
+        top: 69px;
+        width: 12px;
+        height: 12px;
+        border: 1.5px dashed var(--ink-muted);
+        border-radius: 50%;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "camera-follow",
+        name: "カメラの追従",
+        en: "Camera follow (lerp)",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "ゲームで、動き回るプレイヤーをカメラが少し遅れてなめらかに追いかける動きです。急に止まったり曲がったりしても画面はなめらかに動くので、酔いにくく、スピードも感じられます。",
+        use: "ゲームの画面、地図で現在地を追う画面、ドラッグで動かす大きなキャンバス、カーソルを追う拡大鏡。",
+        params: [{ key: "k", label: "追いつく速さ", value: 0.08, min: 0.02, max: 0.4, step: 0.01, unit: "" }],
+        spec: [
+          [
+            "書き方",
+            "毎フレーム <code>カメラ += (プレイヤー − カメラ) × k</code>（線形補間）。世界のレイヤーを <code>translate(−カメラ)</code>",
+          ],
+          [
+            "k",
+            "0.05〜0.2。小さいほどゆったり。フレームの長さが変わっても同じになるよう <code>1 − (1 − k)^(dt×60)</code> にする",
+          ],
+          [
+            "先読み・遊び",
+            "進む方向の少し先を見る（look-ahead）、中央の小さな範囲では動かない（デッドゾーン）を足すとさらに快適",
+          ],
+          ["動きを減らす設定", "遅れて追う動きをやめ、カメラをプレイヤーにぴたりと合わせる"],
+          [
+            "出典",
+            '<a href="https://medienwissenschaft.uni-bayreuth.de/wp-content/uploads/GxD-10-Game-Feel.pdf#page=7" target="_blank" rel="noopener">The Art of Screenshake の解説（Bayreuth 大学）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const wd = stage.querySelector(".ac-camera-follow-wd"),
+              pl = stage.querySelector(".ac-camera-follow-pl");
+            let cx = 0,
+              cy = 0,
+              last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              const s = Math.floor(t / 0.9),
+                f = t / 0.9 - s,
+                dir = [
+                  [1, 0],
+                  [0, 1],
+                  [1, 0],
+                  [0, -1],
+                  [-1, 0],
+                  [0, 1],
+                  [-1, 0],
+                  [0, -1],
+                ];
+              let px = 0,
+                py = 0;
+              for (let i = 0; i < 8; i++) {
+                const k = i < s % 8 ? 1 : i === s % 8 ? Math.min(1, f * 1.6) : 0;
+                px += dir[i][0] * 110 * k;
+                py += dir[i][1] * 70 * k;
+              }
+              const k = rm ? 1 : 1 - Math.pow(1 - v.k, dt * 60);
+              cx += (px - cx) * k;
+              cy += (py - cy) * k;
+              pl.style.transform = `translate(${px}px, ${py}px)`;
+              wd.style.transform = `translate(${110 - cx}px, ${75 - cy}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

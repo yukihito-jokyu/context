@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>吹き出しの先端（Speech-bubble pointer motion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-bubble-pointer-motion"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-bubble-pointer-motion-w">
+          <div class="ac-bubble-pointer-motion-b">
+            <span class="sb-bar sb-bar--xs sb-bar--on-dark" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--on-dark" style="width: 50px"></span>
+          </div>
+          <i class="ac-bubble-pointer-motion-t"></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-bubble-pointer-motion .ac-bubble-pointer-motion-w {
+        position: relative;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-bubble-pointer-motion .ac-bubble-pointer-motion-w {
+          transition: transform var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+      .ac-bubble-pointer-motion .ac-bubble-pointer-motion-b {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 7px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--toast);
+      }
+      .ac-bubble-pointer-motion .ac-bubble-pointer-motion-t {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 18px;
+        height: 12px;
+        margin-left: -9px;
+        background: var(--toast);
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+        transform: translateY(-4px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-bubble-pointer-motion .ac-bubble-pointer-motion-t {
+          transition: transform var(--dur, 300ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      }
+      .ac-bubble-pointer-motion .ac-bubble-pointer-motion-w.is-on {
+        transform: translateY(-4px);
+      }
+      .ac-bubble-pointer-motion .ac-bubble-pointer-motion-w.is-on .ac-bubble-pointer-motion-t {
+        transform: translateY(10px);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "bubble-pointer-motion",
+        name: "吹き出しの先端",
+        en: "Speech-bubble pointer motion",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "吹き出しの先端（しっぽ）が、ポインターを乗せるとぴょこっと伸びて飛び出し、指している先を強調する動きです。吹き出し全体も少し浮き上がります。",
+        use: "ツールチップ、チャットの吹き出し、ヘルプのヒント、コーチマーク。",
+        params: [{ key: "dur", label: "時間", value: 300, min: 100, max: 700, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "しっぽ",
+            "三角形（<code>clip-path</code> か <code>border</code>）を <code>translateY(-6px → 0)</code>（隠れていた先端が出る）｜spring",
+          ],
+          ["本体", "<code>translateY(-3px)</code> と影を濃く｜out"],
+          ["向き", "指す相手の位置に合わせて、しっぽの位置（左右）も動かすとさらに分かりやすい"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const el = stage.querySelector(".ac-bubble-pointer-motion-w");
+            return seq(2600, [
+              [600, () => el.classList.add("is-on")],
+              [1900, () => el.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

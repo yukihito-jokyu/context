@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>波打つ文字（Wave text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-wave-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 30px;
+            line-height: 39px;
+            display: flex;
+          "
+          aria-hidden="true"
+        >
+          <span class="ac-wave-text-ch" style="--i: 0" aria-hidden="true">W</span
+          ><span class="ac-wave-text-ch" style="--i: 1" aria-hidden="true">a</span
+          ><span class="ac-wave-text-ch" style="--i: 2" aria-hidden="true">v</span
+          ><span class="ac-wave-text-ch" style="--i: 3" aria-hidden="true">e</span
+          ><span class="ac-wave-text-ch" style="--i: 4" aria-hidden="true">&nbsp;</span
+          ><span class="ac-wave-text-ch" style="--i: 5" aria-hidden="true">t</span
+          ><span class="ac-wave-text-ch" style="--i: 6" aria-hidden="true">e</span
+          ><span class="ac-wave-text-ch" style="--i: 7" aria-hidden="true">x</span
+          ><span class="ac-wave-text-ch" style="--i: 8" aria-hidden="true">t</span>
+        </div>
+        <span
+          style="
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+          "
+          >Wave text</span
+        >
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-wave-text .ac-wave-text-ch {
+        display: inline-block;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-wave-text .ac-wave-text-ch {
+          animation: ac-wave-text-w var(--dur, 1200ms) cubic-bezier(0.65, 0, 0.35, 1) calc(var(--i) * var(--gap, 80ms))
+            infinite;
+        }
+      }
+      .ac-wave-text .ac-wave-text-ch:nth-child(-n + 4) {
+        color: var(--blue);
+      }
+      @keyframes ac-wave-text-w {
+        0%,
+        60%,
+        100% {
+          transform: none;
+        }
+        30% {
+          transform: translateY(calc(var(--amp, 8px) * -1));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "wave-text",
+        name: "波打つ文字",
+        en: "Wave text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字が1文字ずつ少しずつ遅れて上下に揺れ、文字の列に波が通っていくように見える表現です。軽やかで楽しげなリズムが生まれます。",
+        use: "ローディングの文字、楽しげな見出し、子ども向けの画面、音楽・イベントの演出。",
+        params: [
+          { key: "dur", label: "1回の揺れ", value: 1200, min: 400, max: 3000, step: 50, unit: "ms" },
+          { key: "amp", label: "揺れの高さ", value: 8, min: 2, max: 20, step: 1, unit: "px" },
+          { key: "gap", label: "1文字ごとの遅れ", value: 80, min: 20, max: 200, step: 10, unit: "ms" },
+        ],
+        spec: [
+          ["動き", "各文字に <code>translateY(0 → -揺れの高さ → 0)</code>｜in-out｜くり返し"],
+          [
+            "ずらし",
+            "i 文字目を <code>animation-delay: i × 遅れ</code>。遅れ × 文字数 が揺れの周期と同じくらいだと、波がきれいにつながる",
+          ],
+          ["読み上げ", "元の文字列を見えない要素で1回置き、分けた文字は <code>aria-hidden</code>"],
+          ["動きを減らす設定", "揺れをやめ、普通の文字にする"],
+          ["出典", '<a href="https://animata.design/docs" target="_blank" rel="noopener">Animata</a>'],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

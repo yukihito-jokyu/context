@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>照準カーソル（Target cursor） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-target-cursor" style="position: relative; width: 220px; height: 150px">
+        <span
+          class="sb-btn sb-btn--soft ac-target-cursor-t"
+          style="position: absolute; left: 30px; top: 30px; width: 70px"
+          ><span class="sb-bar sb-bar--xs sb-bar--on-soft" style="width: 30px"></span></span
+        ><span
+          class="sb-chip ac-target-cursor-t"
+          style="position: absolute; left: 130px; top: 96px; width: 64px; height: 30px"
+        ></span
+        ><span class="ac-target-cursor-pt"></span><span class="ac-target-cursor-fr"><i></i><i></i><i></i><i></i></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-target-cursor .ac-target-cursor-pt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 6px;
+        height: 6px;
+        margin: -3px 0 0 -3px;
+        border-radius: 50%;
+        background: var(--ink);
+        z-index: 6;
+      }
+      .ac-target-cursor .ac-target-cursor-fr {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 5;
+      }
+      .ac-target-cursor .ac-target-cursor-fr i {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 8px;
+        height: 8px;
+        border: 2.5px solid var(--blue);
+      }
+      .ac-target-cursor .ac-target-cursor-fr i:nth-child(1) {
+        border-right: 0;
+        border-bottom: 0;
+      }
+      .ac-target-cursor .ac-target-cursor-fr i:nth-child(2) {
+        border-left: 0;
+        border-bottom: 0;
+      }
+      .ac-target-cursor .ac-target-cursor-fr i:nth-child(3) {
+        border-right: 0;
+        border-top: 0;
+      }
+      .ac-target-cursor .ac-target-cursor-fr i:nth-child(4) {
+        border-left: 0;
+        border-top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "target-cursor",
+        name: "照準カーソル",
+        en: "Target cursor",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "ポインターのまわりに四隅だけの照準の枠が付き、ふだんはゆっくり回りながら追いかけ、ボタンなどの対象に乗ると回転を止めて対象の四隅にぴたりと広がる動きです。狙って押す感覚が強まります。",
+        use: "ゲーム・テック系のサイト、ポートフォリオ、ツールの選択モード。",
+        params: [],
+        spec: [
+          ["ふだん", "四隅の枠（24px 角）をポインターに付け、ゆっくり <code>rotate</code>（linear、数秒で1周）"],
+          ["対象の上", "回転を 0 に戻し、四隅を対象の四隅へ（位置と大きさを spring で）。対象の外へ出たら元の大きさへ"],
+          ["中心", "ポインターの位置に小さな点を残す"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/target-cursor" target="_blank" rel="noopener">React Bits: Target Cursor</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const ts = [...stage.querySelectorAll(".ac-target-cursor-t")],
+              fr = stage.querySelector(".ac-target-cursor-fr"),
+              pt = stage.querySelector(".ac-target-cursor-pt"),
+              root = stage.firstElementChild;
+            const way = mkway(
+              [
+                [180, 40],
+                [65, 50],
+                [110, 120],
+                [162, 111],
+              ],
+              1.2,
+            );
+            let fx = 180,
+              fy = 40,
+              fw = 24,
+              fh = 24,
+              rot = 0,
+              lt = 0;
+            const cs = [...fr.children];
+            fr.hidden = rm;
+            if (rm)
+              return raf((t) => {
+                const [x, y] = way(t);
+                pt.style.transform = `translate(${x}px, ${y}px)`;
+              });
+            return raf((t) => {
+              const [x, y] = way(t),
+                b = root.getBoundingClientRect();
+              pt.style.transform = `translate(${x}px, ${y}px)`;
+              let hit = null;
+              ts.forEach((el) => {
+                const r = el.getBoundingClientRect(),
+                  L = r.left - b.left,
+                  T = r.top - b.top;
+                if (x > L && x < L + r.width && y > T && y < T + r.height)
+                  hit = [L + r.width / 2, T + r.height / 2, r.width + 8, r.height + 8];
+              });
+              const [tx, ty, tw, th] = hit || [x, y, 24, 24],
+                k = rm ? 1 : 0.22;
+              fx += (tx - fx) * k;
+              fy += (ty - fy) * k;
+              fw += (tw - fw) * k;
+              fh += (th - fh) * k;
+              const dt = Math.min(0.05, t - lt);
+              lt = t;
+              rot = hit ? rot * Math.pow(0.8, dt * 60) : (rot + 120 * dt) % 360; // 1秒に120°
+              fr.style.transform = `translate(${fx}px, ${fy}px) rotate(${rot}deg)`;
+              const hw = fw / 2,
+                hh = fh / 2;
+              [
+                [-hw - 2, -hh - 2],
+                [hw - 6, -hh - 2],
+                [-hw - 2, hh - 6],
+                [hw - 6, hh - 6],
+              ].forEach(([ox, oy], i) => {
+                cs[i].style.transform = `translate(${ox}px, ${oy}px)`;
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

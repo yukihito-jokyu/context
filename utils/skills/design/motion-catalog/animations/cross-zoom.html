@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ズームで切り替え（Cross zoom / Crash zoom） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-cross-zoom"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-cross-zoom-s ac-cross-zoom-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-cross-zoom-s ac-cross-zoom-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cross-zoom .ac-cross-zoom-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-cross-zoom .ac-cross-zoom-a {
+          animation: ac-cross-zoom-a var(--dur, 2600ms) linear infinite alternate;
+        }
+      }
+      .ac-cross-zoom .ac-cross-zoom-b {
+        animation: ac-cross-zoom-t var(--dur, 2600ms) linear infinite alternate;
+      }
+      @keyframes ac-cross-zoom-a {
+        0%,
+        30% {
+          transform: scale(1);
+          filter: blur(0);
+          animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+        }
+        50% {
+          transform: scale(3);
+          filter: blur(8px);
+        }
+        100% {
+          transform: scale(3);
+        }
+      }
+      @keyframes ac-cross-zoom-t {
+        0%,
+        49.9% {
+          opacity: 0;
+          transform: scale(3);
+          filter: blur(8px);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(3);
+          filter: blur(8px);
+          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        70%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+          filter: blur(0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-cross-zoom .ac-cross-zoom-b {
+          animation: ac-cross-zoom-rf2 var(--dur, 2600ms) infinite alternate;
+        }
+      }
+      @keyframes ac-cross-zoom-rf2 {
+        0%,
+        45% {
+          opacity: 0;
+        }
+        55%,
+        100% {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cross-zoom",
+        name: "ズームで切り替え",
+        en: "Cross zoom / Crash zoom",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "前のショットへ勢いよくズームインしてぼかし、次のショットはズームした状態からぐっと引いて元の大きさに戻る切り替えです。スピード感と、ぐいっと引き込まれる感じが出ます。",
+        use: "スポーツ・ゲームの動画、プロモーションのテンポの速い場面転換、ショート動画、カードを開いて詳細へ入る演出。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "A：<code>scale(1 → 3)</code> と <code>blur(0 → 8px)</code>｜in。B：<code>scale(3 → 1)</code> と <code>blur(8px → 0)</code>｜out。中間で入れ替え",
+          ],
+          ["時間", "合わせて 400〜700ms。中間の速い所を短く"],
+          ["クラッシュズーム", "同じ被写体へ一気に 2 段階ズームインして強調する、似た手法"],
+          ["動きを減らす設定", "ズームとぼかしをやめ、クロスフェードにする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/premiere/desktop/add-video-effects/effects-and-transitions-library/list-of-video-transitions.html" target="_blank" rel="noopener">Adobe Premiere: List of Video transitions</a>、<a href="https://docs.imaster.org/davinci-resolve-21-manual/part-7-editing-effects-and-transitions/ch.-55-using-transitions" target="_blank" rel="noopener">DaVinci Resolve 21 リファレンスマニュアル（写し）: Using Transitions</a>、<a href="https://raw.githubusercontent.com/CommandPost/CommandPost/develop/src/extensions/cp/apple/finalcutpro/plugins.lua" target="_blank" rel="noopener">Final Cut Pro の内蔵トランジション一覧（CommandPost）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ズームアウト（Zoom out） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-zoom-out"
+        style="position: relative; width: 220px; height: 130px; border-radius: 20px; overflow: hidden"
+      >
+        <span
+          class="sb-hero sb-hero--tall sb-grad-hero ac-zoom-out-h"
+          style="display: block; width: 100%; height: 100%; border-radius: 0"
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-zoom-out .ac-zoom-out-h {
+        animation: ac-zoom-out-in var(--dur, 400ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes ac-zoom-out-in {
+        from {
+          opacity: 0;
+          transform: scale(var(--from, 1.15));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-zoom-out-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "zoom-out",
+        name: "ズームアウト",
+        en: "Zoom out",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "少し大きい状態から元の大きさへ縮みながら現れる動きです。スケールインの逆で、近くから引いていくような、落ち着いた登場になります。",
+        use: "ページやヒーローの最初の表示、写真の登場、モーダルを閉じたあとの画面の戻り。",
+        params: [
+          { key: "from", label: "出だしの大きさ", value: 1.15, min: 1, max: 1.5, step: 0.01, unit: "" },
+          { key: "dur", label: "時間", value: 400, min: 150, max: 1000, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>scale(出だしの大きさ → 1)</code> と <code>opacity 0 → 1</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          ["はみ出し", "大きくなる分は親の <code>overflow: hidden</code> で切る"],
+          ["動きを減らす設定", "拡大縮小をやめ、透明度の切り替えだけにする"],
+          ["出典", "ChatGPT との会話の分類表（登場・退出）"],
+        ],
+        loop: 2000,
+      });
+    </script>
+  </body>
+</html>

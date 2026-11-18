@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>輪郭のゆらぎ（Path wiggle） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-path-wiggle"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <svg viewBox="-70 -70 140 140" width="140" height="140">
+          <path class="ac-path-wiggle-p" fill="var(--sky)" />
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "path-wiggle",
+        name: "輪郭のゆらぎ",
+        en: "Path wiggle",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "図形の輪郭の点が一つひとつ不規則に揺れて、形がぐにゃぐにゃと生き物のように変わり続ける表現です。After Effects の「パスのウィグル」のように、手描きの温かさや有機的な動きを出せます。",
+        use: "ブロブ型の背景装飾、キャラクター・マスコット、音声入力中の表示、遊び心のあるボタン。",
+        params: [
+          { key: "amp", label: "揺れの大きさ", value: 8, min: 2, max: 18, step: 1, unit: "px" },
+          { key: "speed", label: "速さ", value: 1, min: 0.2, max: 3, step: 0.1, unit: "" },
+        ],
+        spec: [
+          [
+            "仕組み",
+            "円などの輪郭を 8–16 個の点で表し、各点の半径を、点ごとに位相の違う <code>sin</code>（またはノイズ）で揺らす",
+          ],
+          ["なめらかに", "点どうしを曲線（Catmull-Rom → ベジェ）でつなぐと、角のない柔らかい形になる"],
+          ["強さ", "揺れの大きさ・速さを状態で変える（例：音量に合わせる）"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/be_nl/after-effects/desktop/drawing-painting-and-paths/shapes-and-shape-attributes/shape-attributes-paint-operations-path.html" target="_blank" rel="noopener">Adobe: shape operations</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const p = stage.querySelector(".ac-path-wiggle-p"),
+              n = 10,
+              ph = Array.from({ length: n }, () => Math.random() * 7);
+            const draw = (t) => {
+              const pts = ph.map((f, i) => {
+                const a = (i / n) * Math.PI * 2,
+                  r = 46 + Math.sin(t * v.speed * 2 + f) * v.amp + Math.sin(t * v.speed * 1.3 + f * 2) * v.amp * 0.5;
+                return [Math.cos(a) * r, Math.sin(a) * r];
+              });
+              let d = "";
+              for (let i = 0; i < n; i++) {
+                const p0 = pts[(i - 1 + n) % n],
+                  p1 = pts[i],
+                  p2 = pts[(i + 1) % n],
+                  p3 = pts[(i + 2) % n];
+                const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6],
+                  c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+                d +=
+                  (i ? "" : `M${p1[0].toFixed(1)},${p1[1].toFixed(1)}`) +
+                  ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+              }
+              p.setAttribute("d", d + "Z");
+            };
+            if (rm) {
+              draw(0);
+              return null;
+            }
+            return raf(draw);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

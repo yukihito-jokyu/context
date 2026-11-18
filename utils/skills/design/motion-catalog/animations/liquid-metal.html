@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れる金属（Liquid metal） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-liquid-metal"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-lm-f">
+            <feTurbulence
+              class="ac-liquid-metal-tu"
+              type="fractalNoise"
+              baseFrequency="0.02 0.06"
+              numOctaves="2"
+              seed="2"
+            />
+            <feDisplacementMap in="SourceGraphic" scale="10" />
+          </filter>
+        </svg>
+        <div class="ac-liquid-metal-t">METAL</div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-liquid-metal .ac-liquid-metal-t {
+        font: 900 46px/1 var(--font-sans);
+        letter-spacing: 0.02em;
+        background: repeating-linear-gradient(
+          170deg,
+          #f4f7fb 0,
+          #9aa7bd 10%,
+          #3c4a66 18%,
+          #dbe3ee 26%,
+          #f8fbff 32%,
+          #6b7a96 42%,
+          #f4f7fb 50%
+        );
+        background-size: 100% 200%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        filter: url(#ac-lm-f) drop-shadow(0 2px 2px rgba(18, 26, 43, 0.3));
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-liquid-metal .ac-liquid-metal-t {
+          animation: ac-liquid-metal-m var(--dur, 4000ms) linear infinite;
+        }
+      }
+      @keyframes ac-liquid-metal-m {
+        to {
+          background-position: 0 200%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "liquid-metal",
+        name: "流れる金属",
+        en: "Liquid metal",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "文字や形の表面に、溶けた金属のような明暗の反射がうねりながら流れ続ける表現です。クロムやメッキのような光沢が、未来的で高級な印象を作ります。プレビューは CSS のグラデーションと SVG のゆがみで近い形を作っています（元の作例は WebGL）。",
+        use: "ブランドロゴ、プレミアム製品のヒーロー、音楽・ファッションのタイトル、限定バッジ。",
+        params: [{ key: "dur", label: "流れる周期", value: 4000, min: 1500, max: 10000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "反射",
+            "白・灰・濃い灰を何段も重ねた縞のグラデーション（<code>repeating-linear-gradient</code>）を文字で切り抜き（<code>background-clip: text</code>）、位置を流す",
+          ],
+          [
+            "うねり",
+            "SVG の <code>feTurbulence</code> と <code>feDisplacementMap</code> で縞をゆがめ、<code>baseFrequency</code> を時間で少し変える",
+          ],
+          ["色", "青みを少し入れると冷たい金属、黄みを入れると金"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/metallic-paint" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const tu = stage.querySelector(".ac-liquid-metal-tu");
+            if (rm) return null;
+            return raf((t) =>
+              tu.setAttribute(
+                "baseFrequency",
+                `${(0.02 + 0.006 * Math.sin(t * 0.8)).toFixed(4)} ${(0.06 + 0.02 * Math.cos(t * 0.6)).toFixed(4)}`,
+              ),
+            );
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

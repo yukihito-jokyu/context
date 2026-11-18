@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>端ほどぼける（Progressive edge blur） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-progressive-edge-blur" style="position: relative; width: 200px; height: 160px">
+        <div class="ac-progressive-edge-blur-sc">
+          <div style="display: grid; gap: 8px; padding: 12px">
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+        <span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-top"
+          style="--b: 1px; --s: 0%; --e: 100%"
+        ></span
+        ><span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-bot"
+          style="--b: 1px; --s: 0%; --e: 100%"
+        ></span
+        ><span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-top"
+          style="--b: 2px; --s: 0%; --e: 66%"
+        ></span
+        ><span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-bot"
+          style="--b: 2px; --s: 0%; --e: 66%"
+        ></span
+        ><span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-top"
+          style="--b: 4px; --s: 0%; --e: 40%"
+        ></span
+        ><span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-bot"
+          style="--b: 4px; --s: 0%; --e: 40%"
+        ></span
+        ><span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-top"
+          style="--b: 8px; --s: 0%; --e: 20%"
+        ></span
+        ><span
+          class="ac-progressive-edge-blur-bl ac-progressive-edge-blur-bot"
+          style="--b: 8px; --s: 0%; --e: 20%"
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-progressive-edge-blur .ac-progressive-edge-blur-sc {
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        scrollbar-width: none;
+        border-radius: 22px;
+        background: var(--bg);
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+      .ac-progressive-edge-blur .ac-progressive-edge-blur-bl {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 40px;
+        pointer-events: none;
+        backdrop-filter: blur(var(--b));
+        -webkit-backdrop-filter: blur(var(--b));
+      }
+      .ac-progressive-edge-blur .ac-progressive-edge-blur-top {
+        top: 0;
+        border-radius: 22px 22px 0 0;
+        -webkit-mask: linear-gradient(#000 var(--e), transparent);
+        mask: linear-gradient(#000 var(--e), transparent);
+      }
+      .ac-progressive-edge-blur .ac-progressive-edge-blur-bot {
+        bottom: 0;
+        border-radius: 0 0 22px 22px;
+        -webkit-mask: linear-gradient(transparent, #000 calc(100% - var(--e)));
+        mask: linear-gradient(transparent, #000 calc(100% - var(--e)));
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "progressive-edge-blur",
+        name: "端ほどぼける",
+        en: "Progressive edge blur",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "スクロールする一覧の上下の端に近づくほど、中身がだんだん強くぼけて見える表現です。端で急に切れず、カメラの被写界深度のように自然に消えていくので、まだ続きがあることも伝わります。",
+        use: "スクロールする一覧・タイムライン、ヘッダー・フッターの下の領域、カードの重なり。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "上（下）の端に、<code>backdrop-filter: blur()</code> の強さが違う層を何枚か重ね、それぞれを帯状の <code>mask</code> で区切る（端ほど強いぼかしの層が効く）",
+          ],
+          ["層", "1px → 2px → 4px → 8px のように倍々にすると、なめらかに強まって見える"],
+          ["負荷", "<code>backdrop-filter</code> は重い。層の数と範囲は最小限に"],
+          ["動きを減らす設定", "ぼかしはそのままでよい（スクロールに連動した動きはない）"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/gradual-blur" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const sc = stage.querySelector(".ac-progressive-edge-blur-sc");
+            return raf((t) => {
+              const max = sc.scrollHeight - sc.clientHeight;
+              sc.scrollTop = max * (0.5 - 0.5 * Math.cos(t * 0.9));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

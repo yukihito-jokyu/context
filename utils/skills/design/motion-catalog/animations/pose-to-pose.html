@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ポーズからポーズへ（Pose-to-pose） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-pose-to-pose" style="position: relative; width: 220px; height: 140px">
+        <span class="ac-pose-to-pose-k" style="left: 20px; top: 96px; width: 36px; height: 30px"></span
+        ><span
+          class="ac-pose-to-pose-k"
+          style="left: 92px; top: 20px; width: 30px; height: 44px; transform: rotate(15deg)"
+        ></span
+        ><span class="ac-pose-to-pose-k" style="left: 164px; top: 96px; width: 36px; height: 30px"></span
+        ><span class="ac-pose-to-pose-t"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-pose-to-pose .ac-pose-to-pose-k {
+        position: absolute;
+        border: 2px dashed var(--bar-strong);
+        border-radius: 10px;
+        box-sizing: border-box;
+      }
+      .ac-pose-to-pose .ac-pose-to-pose-t {
+        position: absolute;
+        left: 20px;
+        top: 96px;
+        width: 36px;
+        height: 30px;
+        border-radius: 10px;
+        background: var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-pose-to-pose .ac-pose-to-pose-t {
+          animation: ac-pose-to-pose-p var(--dur, 2000ms) cubic-bezier(0.65, 0, 0.35, 1) both;
+        }
+      }
+      @keyframes ac-pose-to-pose-p {
+        0% {
+          left: 20px;
+          top: 96px;
+          width: 36px;
+          height: 30px;
+          transform: none;
+        }
+        50% {
+          left: 92px;
+          top: 20px;
+          width: 30px;
+          height: 44px;
+          transform: rotate(15deg);
+        }
+        100% {
+          left: 164px;
+          top: 96px;
+          width: 36px;
+          height: 30px;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-pose-to-pose .ac-pose-to-pose-t {
+          left: 164px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "pose-to-pose",
+        name: "ポーズからポーズへ",
+        en: "Pose-to-pose",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "まず大事な姿勢（キーポーズ）だけを決め、その間の動きは後から埋める、という作り方の原則です。UI のキーフレームアニメーションそのもので、点線の枠が決めたポーズ、青い形がその間をつないで動きます。",
+        use: "キーフレームで作るすべての動き、ロゴのアニメーション、イラストの動き、複数の段階がある演出。",
+        params: [{ key: "dur", label: "時間", value: 2000, min: 800, max: 4000, step: 100, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "作り方",
+            "最初・途中・最後の「決めのポーズ」をキーフレームの 0% / 50% / 100% などに書き、間はイージングに任せる",
+          ],
+          [
+            "向いている",
+            "タイミングを正確に決めたい UI の動き。物理的な自然さが欲しいときは「逐次に作る」（ばねの計算など）",
+          ],
+          ["このデモ", "点線の3つの枠がキーポーズ（左下で縮む → 上で伸びる → 右下で着地）"],
+          ["動きを減らす設定", "移動をやめ、最後のポーズで止める"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/principles-of-animation.html" target="_blank" rel="noopener">Adobe: 12 principles of animation</a>',
+          ],
+        ],
+        loop: 2800,
+      });
+    </script>
+  </body>
+</html>

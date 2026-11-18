@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ぶつかった強さで振動（Collision-based haptic feedback） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-collision-haptics"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "collision-haptics",
+        name: "ぶつかった強さで振動",
+        en: "Collision-based haptic feedback",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "画面の中の物がぶつかる瞬間に端末を短く振動させ、ぶつかった速さが大きいほど強くする方法です。見た目の跳ね返りと手に伝わる感触がそろい、重さや勢いが体で分かります。",
+        use: "引っぱって離す UI、跳ねるボタン、ゲームの衝突、ピッカーの端。",
+        params: [{ key: "rest", label: "跳ね返りの強さ", value: 0.7, min: 0.3, max: 0.9, step: 0.05, unit: "" }],
+        spec: [
+          ["仕組み", "衝突の速さを 0〜1 にして振動の強さにする。小さすぎる衝突は無視し、続くときは間引く"],
+          [
+            "iOS / Android では",
+            "<code>UIImpactFeedbackGenerator.impactOccurred(intensity:)</code>、Core Haptics。Android は <code>VibrationEffect</code> の振幅",
+          ],
+          [
+            "Web では",
+            "<code>navigator.vibrate(ms)</code>（強さは変えられない）。振動できなくても見た目で伝わるようにする",
+          ],
+          ["動きを減らす設定", "跳ねる動きをやめ、ぶつかる瞬間の振動の印だけを見せる"],
+          [
+            "出典",
+            '<a href="https://developer.apple.com/documentation/corehaptics/playing-collision-based-haptic-patterns.md" target="_blank" rel="noopener">developer.apple.com（playing-collision-based-hapt）</a>、<a href="https://developer.android.com/develop/ui/views/haptics/haptics-principles" target="_blank" rel="noopener">developer.android.com（haptics-principles）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let y = 20,
+              vy = 0,
+              last = 0,
+              buzz = 0,
+              lvl = 0,
+              t0 = 0;
+            const phone = (x, y0, a) => {
+              const dx = a && !rm ? sin(performance.now() / 18) * a * 3 : 0;
+              g.strokeStyle = col("navy");
+              g.lineWidth = 2;
+              g.beginPath();
+              g.roundRect(x - 13 + dx, y0 - 22, 26, 44, 6);
+              g.stroke();
+              g.fillStyle = col("navy");
+              g.fillRect(x - 4 + dx, y0 + 16, 8, 2);
+              if (a > 0.02) {
+                g.strokeStyle = `rgba(37,99,235,${a})`;
+                g.lineWidth = 1.6;
+                for (const s of [-1, 1])
+                  for (let k = 1; k <= 2; k++) {
+                    g.beginPath();
+                    g.arc(x + dx, y0, 18 + k * 5, s > 0 ? -0.5 : Math.PI - 0.5, s > 0 ? 0.5 : Math.PI + 0.5);
+                    g.stroke();
+                  }
+              }
+            };
+            return raf((t) => {
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              if (t - t0 > 4) {
+                y = 20;
+                vy = 0;
+                t0 = t;
+              }
+              if (!rm) {
+                vy += 600 * dt;
+                y += vy * dt;
+                if (y > 112) {
+                  y = 112;
+                  const sp = vy;
+                  vy = -vy * v.rest;
+                  if (sp > 40) {
+                    lvl = Math.min(1, sp / 330);
+                    buzz = lvl;
+                  }
+                }
+              } else {
+                y = 112;
+                if (t % 1.2 < dt) {
+                  lvl = 0.8;
+                  buzz = 0.8;
+                }
+              }
+              buzz = Math.max(0, buzz - dt * 6);
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(14, 124, 130, 4);
+              dot(70, y, 12, col("blue"));
+              if (buzz > 0.05) {
+                g.strokeStyle = `rgba(37,99,235,${buzz})`;
+                g.lineWidth = 2;
+                g.beginPath();
+                g.ellipse(70, 124, rm ? 24 : 14 + (1 - buzz) * 20, 4, 0, 0, TAU);
+                g.stroke();
+              }
+              phone(180, 60, buzz);
+              g.fillStyle = col("ice");
+              g.fillRect(162, 100, 36, 6);
+              g.fillStyle = col("blue");
+              g.fillRect(162, 100, 36 * lvl, 6);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>コンテナ変形（Container transform） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-container-transform" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-container-transform-box">
+          <div class="ac-container-transform-small">
+            <div
+              class="sb-item"
+              style="
+                width: 150px;
+                padding: 8px 12px;
+                gap: 10px;
+                box-sizing: border-box;
+                border-radius: 18px;
+                box-shadow: none;
+                background: transparent;
+              "
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 90px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+          <div class="ac-container-transform-big">
+            <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 12px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 120px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 90px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-container-transform .ac-container-transform-box {
+        position: absolute;
+        left: 30px;
+        top: 92px;
+        width: 160px;
+        height: 44px;
+        border-radius: 18px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+        overflow: hidden;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-container-transform .ac-container-transform-box {
+          transition:
+            left var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1),
+            top var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1),
+            width var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1),
+            height var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1),
+            border-radius var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1);
+        }
+      }
+      .ac-container-transform .ac-container-transform-box.is-open {
+        left: 6px;
+        top: 6px;
+        width: 208px;
+        height: 138px;
+        border-radius: 16px;
+      }
+      .ac-container-transform .ac-container-transform-small {
+        position: absolute;
+        left: 0;
+        top: 0;
+        padding: 2px 0;
+        transition: opacity calc(var(--dur, 400ms) * 0.3) linear calc(var(--dur, 400ms) * 0.7);
+      }
+      .ac-container-transform .ac-container-transform-big {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 208px;
+        padding: 12px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        opacity: 0;
+        transition: opacity calc(var(--dur, 400ms) * 0.3) linear;
+      }
+      .ac-container-transform .ac-container-transform-box.is-open .ac-container-transform-small {
+        opacity: 0;
+        transition-delay: 0ms;
+      }
+      .ac-container-transform .ac-container-transform-box.is-open .ac-container-transform-big {
+        opacity: 1;
+        transition: opacity calc(var(--dur, 400ms) * 0.7) linear calc(var(--dur, 400ms) * 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "container-transform",
+        name: "コンテナ変形",
+        en: "Container transform",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "一覧のカードそのものが広がって、詳細画面になる遷移です。外枠（コンテナ）は大きさと角の丸みを変えながら途切れずにつながり、中身は途中で入れ替わります。押したものが「開いた」ことがはっきり分かります。",
+        use: "カードから詳細、リストの行から編集画面、FAB から作成画面、検索バーから検索画面。",
+        params: [{ key: "dur", label: "時間", value: 400, min: 200, max: 800, step: 10, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "外枠",
+            "位置・幅・高さ・角丸を、元の要素の形から行き先の形へ｜in-out（Material の emphasized）｜実装は FLIP か共有要素の遷移（View Transitions）",
+          ],
+          ["中身", "最初の 30% で元の中身を消し、残りで行き先の中身を出す（フェードスルー）"],
+          ["戻り", "閉じるときは同じ道をたどって元のカードへ戻す"],
+          ["動きを減らす設定", "外枠の変形をやめ、行き先の画面をフェードで出す"],
+          [
+            "出典",
+            '<a href="https://m2.material.io/design/motion/the-motion-system.html" target="_blank" rel="noopener">Material Design: motion system</a>',
+          ],
+        ],
+        loop: 3400,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-container-transform-box");
+            return seq(3400, [
+              [500, () => b.classList.add("is-open")],
+              [2200, () => b.classList.remove("is-open")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

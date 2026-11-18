@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>網点から現れる（Halftone reveal） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-halftone-reveal"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <span class="ac-halftone-reveal-i"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-halftone-reveal .ac-halftone-reveal-i {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+        -webkit-mask: radial-gradient(circle, #000 var(--hs), transparent calc(var(--hs) + 0.6px)) 0 0 / 10px 10px;
+        mask: radial-gradient(circle, #000 var(--hs), transparent calc(var(--hs) + 0.6px)) 0 0 / 10px 10px;
+        --hs: 0px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-halftone-reveal .ac-halftone-reveal-i {
+          -webkit-mask: none;
+          mask: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "halftone-reveal",
+        name: "網点から現れる",
+        en: "Halftone reveal",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像が印刷の網点（小さな丸の集まり）として現れ、丸がだんだん大きくなって互いにつながり、最後に普通の画像になる動きです。印刷物やポップアートのような、グラフィカルな登場になります。",
+        use: "ヒーローの画像、ポスター風のビジュアル、記事のアイキャッチ、ブランドのイラスト。",
+        params: [{ key: "dur", label: "時間", value: 1600, min: 600, max: 3000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "網点",
+            "画像に <code>mask: radial-gradient(circle, #000 半径, transparent 半径+0.5px) 0 0 / 間隔 間隔</code> をかける",
+          ],
+          ["動き", "半径（CSS 変数を JS で更新）を 0 → 間隔の 0.75 倍（丸がつながって全面になる）｜in-out"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/halftone-reveal" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 2800,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const i = stage.querySelector(".ac-halftone-reveal-i");
+            if (rm) return null;
+            const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2); // in-out
+            return raf((t) => {
+              const k = Math.min(1, Math.max(0, (t - 0.3) / (v.dur / 1000)));
+              i.style.setProperty("--hs", `${(ease(k) * 7.5).toFixed(2)}px`);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

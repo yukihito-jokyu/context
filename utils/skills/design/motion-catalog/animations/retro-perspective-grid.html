@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>レトロな遠近グリッド（Retro perspective grid） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-retro-perspective-grid"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+          background: linear-gradient(180deg, var(--navy) 0 45%, #2a2f7a 60%);
+        "
+      >
+        <span class="ac-retro-perspective-grid-sun"></span>
+        <div class="ac-retro-perspective-grid-pl">
+          <span class="ac-retro-perspective-grid-fl"><i></i></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-retro-perspective-grid .ac-retro-perspective-grid-sun {
+        position: absolute;
+        left: 75px;
+        top: 22px;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #ffd1e8, var(--sky));
+        -webkit-mask: repeating-linear-gradient(180deg, #000 0 8px, transparent 8px 11px);
+        mask: repeating-linear-gradient(180deg, #000 0 8px, transparent 8px 11px);
+        opacity: 0.9;
+      }
+      .ac-retro-perspective-grid .ac-retro-perspective-grid-pl {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 75px;
+        bottom: 0;
+        perspective: 160px;
+        perspective-origin: 50% 0;
+        overflow: hidden;
+      }
+      .ac-retro-perspective-grid .ac-retro-perspective-grid-fl {
+        position: absolute;
+        left: -150%;
+        right: -150%;
+        top: 0;
+        height: 600px;
+        transform-origin: 50% 0;
+        transform: rotateX(75deg);
+        overflow: hidden;
+        -webkit-mask: linear-gradient(transparent, #000 30%);
+        mask: linear-gradient(transparent, #000 30%);
+      }
+      .ac-retro-perspective-grid .ac-retro-perspective-grid-fl i {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -40px;
+        bottom: 0;
+        background-image:
+          linear-gradient(var(--sky) 2px, transparent 2px), linear-gradient(90deg, var(--sky) 2px, transparent 2px);
+        background-size: 40px 40px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-retro-perspective-grid .ac-retro-perspective-grid-fl i {
+          animation: ac-retro-perspective-grid-run var(--dur, 900ms) linear infinite;
+        }
+      }
+      @keyframes ac-retro-perspective-grid-run {
+        to {
+          transform: translateY(40px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "retro-perspective-grid",
+        name: "レトロな遠近グリッド",
+        en: "Retro perspective grid",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "地平線の向こうまで続く格子の床が、手前へ流れてくることで、前へ進み続けているように感じさせる背景です。80年代のシンセウェーブのような、レトロで未来的な雰囲気になります。",
+        use: "ゲーム・音楽・イベントのヒーロー、レトロフューチャーなブランド、カウントダウンの背景。",
+        params: [{ key: "dur", label: "1マスの時間", value: 900, min: 300, max: 3000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "床",
+            "格子（<code>linear-gradient</code> の線2本）の面を <code>perspective</code> と <code>rotateX(60–75deg)</code> で倒す",
+          ],
+          [
+            "動き",
+            "格子を描いた内側の層を 1 マスぶん <code>translateY</code> で送る｜linear｜くり返し（遠近とマスクは外側の層に固定）",
+          ],
+          ["地平線", "奥をマスクで消し、上に夕焼けのグラデーションや太陽を置く"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/retro-grid" target="_blank" rel="noopener">Magic UI: Retro Grid</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>残像の連なり（Motion echo） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-motion-echo" style="position: relative; width: 220px; height: 130px">
+        <span class="ac-motion-echo-e" style="--i: 5"></span><span class="ac-motion-echo-e" style="--i: 4"></span
+        ><span class="ac-motion-echo-e" style="--i: 3"></span><span class="ac-motion-echo-e" style="--i: 2"></span
+        ><span class="ac-motion-echo-e" style="--i: 1"></span><span class="ac-motion-echo-e" style="--i: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-motion-echo .ac-motion-echo-e {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--blue);
+        opacity: calc(1 - var(--i) * 0.17);
+        offset-path: path("M20,100 C70,0 150,0 200,100");
+        offset-anchor: center;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-motion-echo .ac-motion-echo-e {
+          animation: ac-motion-echo-go var(--dur, 1400ms) cubic-bezier(0.65, 0, 0.35, 1)
+            calc(var(--i) * var(--gap, 50ms)) infinite alternate both;
+        }
+      }
+      @keyframes ac-motion-echo-go {
+        from {
+          offset-distance: 0%;
+        }
+        to {
+          offset-distance: 100%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-motion-echo .ac-motion-echo-e {
+          offset-distance: 50%;
+        }
+        .ac-motion-echo .ac-motion-echo-e:not(:last-child) {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "motion-echo",
+        name: "残像の連なり",
+        en: "Motion echo",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "動いている物の少し前の姿が、薄い影のように何枚も後ろに残り、動きの軌跡が見える表現です。After Effects の「エコー」と同じで、速さと流れを楽しく見せられます。",
+        use: "ロゴ・アイコンの演出、ゲーム、スポーツ・ダンスの表現、遊び心のあるローディング。",
+        params: [
+          { key: "dur", label: "時間", value: 1400, min: 500, max: 3000, step: 50, unit: "ms" },
+          { key: "gap", label: "残像の間隔", value: 50, min: 15, max: 150, step: 5, unit: "ms" },
+        ],
+        spec: [
+          [
+            "仕組み",
+            "同じ要素を 3–6 個複製し、同じアニメーションを i × 遅れ（30–60ms）だけ遅らせて再生。後ろほど <code>opacity</code> を下げる",
+          ],
+          ["重なり", "後ろの残像ほど下に重ねる（<code>z-index</code>）"],
+          ["リアルタイム", "ドラッグなど操作で動くなら、前の位置を数フレーム分記録して描く"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/list-of-effects/time-effects.html" target="_blank" rel="noopener">Adobe: time effects</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

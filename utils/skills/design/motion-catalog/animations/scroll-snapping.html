@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スクロールの吸着（Scroll snapping） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-scroll-snapping" style="position: relative; width: 220px; height: 160px">
+        <div
+          class="ac-scroll-snapping-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div class="ac-scroll-snapping-p">
+            <div
+              class="sb-card"
+              style="
+                height: 132px;
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                box-sizing: border-box;
+                border-radius: 18px;
+              "
+            >
+              <span class="sb-hero sb-grad-aqua" style="display: block; height: 70px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span>
+            </div>
+          </div>
+          <div class="ac-scroll-snapping-p">
+            <div
+              class="sb-card"
+              style="
+                height: 132px;
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                box-sizing: border-box;
+                border-radius: 18px;
+              "
+            >
+              <span class="sb-hero sb-grad-sky" style="display: block; height: 70px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span>
+            </div>
+          </div>
+          <div class="ac-scroll-snapping-p">
+            <div
+              class="sb-card"
+              style="
+                height: 132px;
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                box-sizing: border-box;
+                border-radius: 18px;
+              "
+            >
+              <span class="sb-hero sb-grad-deep" style="display: block; height: 70px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span>
+            </div>
+          </div>
+          <div class="ac-scroll-snapping-p">
+            <div
+              class="sb-card"
+              style="
+                height: 132px;
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                box-sizing: border-box;
+                border-radius: 18px;
+              "
+            >
+              <span class="sb-hero sb-grad-hero" style="display: block; height: 70px; border-radius: 12px"></span
+              ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span>
+            </div>
+          </div>
+        </div>
+        <div class="ac-scroll-snapping-dots"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-snapping .ac-scroll-snapping-sc {
+        position: absolute;
+        left: 0;
+        top: 0;
+        scroll-snap-type: y mandatory;
+      }
+      .ac-scroll-snapping .ac-scroll-snapping-p {
+        height: 160px;
+        padding: 14px;
+        box-sizing: border-box;
+        scroll-snap-align: start;
+      }
+      .ac-scroll-snapping .ac-scroll-snapping-dots {
+        position: absolute;
+        right: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: grid;
+        gap: 6px;
+      }
+      .ac-scroll-snapping .ac-scroll-snapping-dots i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--bar);
+        transition: background-color 200ms;
+      }
+      .ac-scroll-snapping .ac-scroll-snapping-dots i.is-on {
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-snapping",
+        name: "スクロールの吸着",
+        en: "Scroll snapping",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "スクロールを止めたとき、中途半端な位置で止まらず、いちばん近い区切り（カードやセクションの頭）までなめらかに寄って止まる動きです。1枚ずつ見せたい内容が、必ずきれいな位置に収まります。",
+        use: "カルーセル、全画面のセクション、写真のスワイプ、オンボーディングのページ送り。",
+        params: [],
+        spec: [
+          [
+            "CSS",
+            "スクロール領域に <code>scroll-snap-type: y mandatory</code>（横なら x）、各区切りに <code>scroll-snap-align: start</code>",
+          ],
+          ["強さ", "<code>mandatory</code> は必ず吸着、<code>proximity</code> は近いときだけ吸着"],
+          ["JS", "GSAP ScrollTrigger の <code>snap</code> で、区切りや進み具合の位置へ寄せることもできる"],
+          [
+            "動きを減らす設定",
+            "吸着の動きはブラウザに任せる。<code>scroll-behavior: smooth</code> は reduce のときに <code>auto</code> にする",
+          ],
+          [
+            "出典",
+            '<a href="https://gsap.com/docs/v3/Plugins/ScrollTrigger/" target="_blank" rel="noopener">GSAP ScrollTrigger</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const sc = stage.querySelector(".ac-scroll-snapping-sc"),
+              dots = stage.querySelectorAll(".ac-scroll-snapping-dots i");
+            const mark = () =>
+              dots.forEach((d, i) => d.classList.toggle("is-on", i === Math.round(sc.scrollTop / 160)));
+            sc.addEventListener("scroll", mark);
+            mark();
+            const nudge = (dy) => () => sc.scrollBy({ top: dy, behavior: rm ? "auto" : "smooth" });
+            const stop = seq(6400, [
+              [0, () => sc.scrollTo({ top: 0 })],
+              [600, nudge(60)],
+              [1800, nudge(50)],
+              [3000, nudge(70)],
+              [4200, nudge(-60)],
+              [5400, nudge(-200)],
+            ]);
+            return () => {
+              stop();
+              sc.removeEventListener("scroll", mark);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

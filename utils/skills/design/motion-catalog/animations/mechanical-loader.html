@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>歯車ローダー（Mechanical loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-mechanical-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-mechanical-loader-w">
+          <span class="ac-mechanical-loader-g ac-mechanical-loader-g1"></span
+          ><span class="ac-mechanical-loader-g ac-mechanical-loader-g2"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-mechanical-loader .ac-mechanical-loader-w {
+        position: relative;
+        width: 90px;
+        height: 70px;
+      }
+      .ac-mechanical-loader .ac-mechanical-loader-g {
+        position: absolute;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, var(--surface) 0 22%, var(--blue) 23% 62%, transparent 63%),
+          conic-gradient(var(--blue) 0 15deg, transparent 15deg 30deg);
+        -webkit-mask: radial-gradient(circle, #000 0 70%, transparent 71%);
+        mask: radial-gradient(circle, #000 0 70%, transparent 71%);
+      }
+      .ac-mechanical-loader .ac-mechanical-loader-g {
+        background:
+          radial-gradient(circle, var(--surface) 0 18%, var(--blue) 19% 56%, transparent 57%),
+          repeating-conic-gradient(var(--blue) 0 15deg, transparent 15deg 30deg);
+      }
+      .ac-mechanical-loader .ac-mechanical-loader-g1 {
+        left: 0;
+        top: 4px;
+        width: 56px;
+        height: 56px;
+      }
+      .ac-mechanical-loader .ac-mechanical-loader-g2 {
+        left: 50px;
+        top: 34px;
+        width: 36px;
+        height: 36px;
+        background:
+          radial-gradient(circle, var(--surface) 0 18%, var(--sky) 19% 56%, transparent 57%),
+          repeating-conic-gradient(var(--sky) 0 22.5deg, transparent 22.5deg 45deg);
+        rotate: 11deg;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-mechanical-loader .ac-mechanical-loader-g1 {
+          animation: ac-mechanical-loader-r var(--dur, 2400ms) linear infinite;
+        }
+        .ac-mechanical-loader .ac-mechanical-loader-g2 {
+          animation: ac-mechanical-loader-r calc(var(--dur, 2400ms) * 36 / 56) linear infinite reverse;
+        }
+      }
+      @keyframes ac-mechanical-loader-r {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (forced-colors: active) {
+        .ac-mechanical-loader .ac-mechanical-loader-g {
+          background: none;
+          -webkit-mask: none;
+          mask: none;
+          border: 4px dotted CanvasText;
+          box-sizing: border-box;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "mechanical-loader",
+        name: "歯車ローダー",
+        en: "Mechanical loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "大小2つの歯車がかみ合って、反対向きに回り続けるローダーです。「中で何かが動いている」「作業している」ことを、機械の記号で表します。",
+        use: "設定の保存・適用中、ビルド・変換などの処理中、メンテナンス画面。",
+        params: [{ key: "dur", label: "周期", value: 2400, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "形",
+            "歯は <code>repeating-conic-gradient</code>、穴は <code>radial-gradient</code> で描ける（SVG でもよい）",
+          ],
+          ["動き", "2つを反対向きに回す。速さは歯の数（大きさ）に反比例させると、ちゃんとかみ合って見える"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          ["出典", '<a href="https://css-loaders.com/" target="_blank" rel="noopener">CSS Loaders</a>'],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

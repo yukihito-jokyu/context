@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ドラッグで並べ替え（Drag to reorder） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-drag-to-reorder" style="position: relative; width: 190px; height: 150px">
+        <div class="ac-drag-to-reorder-r" style="position: absolute; left: 0; top: 14px">
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <div class="ac-drag-to-reorder-r" style="position: absolute; left: 0; top: 60px">
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <div class="ac-drag-to-reorder-r" style="position: absolute; left: 0; top: 106px">
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 96px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-drag-to-reorder .ac-drag-to-reorder-r {
+        transition: transform var(--dur, 220ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-drag-to-reorder .ac-drag-to-reorder-r .sb-item {
+        transition:
+          transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-drag-to-reorder .ac-drag-to-reorder-r.is-lift {
+        z-index: 2;
+      }
+      .ac-drag-to-reorder .ac-drag-to-reorder-r.is-lift .sb-item {
+        transform: scale(1.03);
+        box-shadow: var(--shadow-float);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "drag-to-reorder",
+        name: "ドラッグで並べ替え",
+        en: "Drag to reorder",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "リストの項目をつかんで動かすと、ほかの項目が場所を空けるようにずれていく動きです。離した場所に項目が収まり、新しい順番がわかります。",
+        use: "ToDo やプレイリストの並べ替え、カンバンボード、設定の優先順位。",
+        params: [{ key: "dur", label: "ずれる時間", value: 220, min: 100, max: 500, step: 10, unit: "ms" }],
+        spec: [
+          ["つかんだ項目", "持ち上げる（<code>scale(1.03)</code> と <code>shadow-float</code>）、指に追従"],
+          [
+            "ほかの項目",
+            "入れ替わる位置を越えたら <code>translateY(±項目の高さ)</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>｜ずれる時間",
+          ],
+          ["離す", "200ms で収める。上下ボタンでも移動し、DOM 順を更新して新しい位置を通知"],
+          ["動きを減らす設定", "ずれの動きをやめ、離したときに瞬時に並べ替える"],
+          ["出典", "Animation Vocabulary（Feedback & Interaction）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const motion = matchMedia("(prefers-reduced-motion: no-preference)");
+          const [a, b] = stage.querySelectorAll(".ac-drag-to-reorder-r");
+          const set = (el, y, ms, ease) => {
+            el.style.transition = ms == null ? "" : `transform ${ms}ms ${ease}`;
+            el.style.transform = y ? `translateY(${y}px)` : "";
+          };
+          let phase = "rest";
+          const settle = (y) => {
+            set(a, y, 0, "linear");
+            set(b, -y, 0, "linear");
+          };
+          const onMotionChange = () => {
+            if (motion.matches) return;
+            if (phase === "drag") set(b, 0, 0, "linear");
+            if (phase === "drop") settle(46);
+            if (phase === "rest") settle(0);
+          };
+          move(200, 150, 0);
+          motion.addEventListener("change", onMotionChange);
+          const stop = seq(3400, [
+            [
+              100,
+              () => {
+                show(1);
+                move(30, 34, 500);
+              },
+            ],
+            [650, () => a.classList.add("is-lift")],
+            [
+              850,
+              () => {
+                phase = "drag";
+                move(30, 82, 600);
+                set(a, 48, 600, "cubic-bezier(0.65, 0, 0.35, 1)");
+              },
+            ],
+            [
+              1100,
+              () => {
+                if (motion.matches) set(b, -46);
+              },
+            ],
+            [
+              1500,
+              () => {
+                phase = "drop";
+                a.classList.remove("is-lift");
+                if (motion.matches) {
+                  set(a, 46, 200, "cubic-bezier(0.22, 1, 0.36, 1)");
+                  if (!b.style.transform) set(b, -46);
+                } else settle(46);
+              },
+            ],
+            [1800, () => move(200, 150, 400)],
+            [2100, () => show(0)],
+            [
+              2700,
+              () => {
+                phase = "rest";
+                if (motion.matches) {
+                  set(a, 0, 400, "ease");
+                  set(b, 0, 400, "ease");
+                } else settle(0);
+              },
+            ],
+          ]);
+          return () => {
+            stop();
+            motion.removeEventListener("change", onMotionChange);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>パーティクルの放出（Particle emitter） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-particle-emitter"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "particle-emitter",
+        name: "パーティクルの放出",
+        en: "Particle emitter",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "1つの発生源（エミッター）から小さな粒を次々と生み出し、粒ごとに速さ・向き・寿命・重力を持たせて動かす仕組みです。火花、煙、噴水、魔法のきらめきなど、多くの自然な効果の土台になります。",
+        use: "ボタンを押したときの火花、背景の煙や湯気、ゲームのエフェクト、ローディングの演出、マウスの軌跡。",
+        params: [
+          { key: "rate", label: "1秒に生まれる数", value: 60, min: 10, max: 200, step: 5, unit: "個" },
+          { key: "grav", label: "重力", value: 220, min: 0, max: 600, step: 10, unit: "" },
+        ],
+        spec: [
+          [
+            "粒の性質",
+            "生まれる量（毎秒）、初速と向きのばらつき、寿命、重力・空気抵抗、寿命に合わせた大きさ・色・透明度の変化",
+          ],
+          [
+            "書き方",
+            "粒を配列で持ち、毎フレーム <code>速さ += 重力 × dt</code>、<code>位置 += 速さ × dt</code>、寿命が尽きたら消す。数が多いなら canvas か WebGL",
+          ],
+          ["ツールでは", "After Effects の CC Particle Systems II / Particle World / Particle Playground"],
+          ["動きを減らす設定", "粒の数を大きく減らし、ゆっくり消えるだけにする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Simulation）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const ps = [];
+            let last = 0,
+              acc = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              acc += dt * (rm ? 8 : v.rate);
+              const ex = rm ? 110 : 110 + 40 * sin(t * 0.8),
+                ey = 118;
+              while (acc >= 1) {
+                acc -= 1;
+                const a = -Math.PI / 2 + (rnd() - 0.5) * 0.9,
+                  sp = 120 + rnd() * 90;
+                ps.push(
+                  rm
+                    ? {
+                        x: ex + (rnd() - 0.5) * 80,
+                        y: ey - 20 - rnd() * 70,
+                        vx: 0,
+                        vy: 0,
+                        life: 0,
+                        max: 1.5 + rnd(),
+                        r: 2.5,
+                      }
+                    : {
+                        x: ex,
+                        y: ey,
+                        vx: cos(a) * sp,
+                        vy: sin(a) * sp,
+                        life: 0,
+                        max: 0.9 + rnd() * 0.8,
+                        r: 2 + rnd() * 2.5,
+                      },
+                );
+              }
+              g.clearRect(0, 0, W, H);
+              for (let i = ps.length - 1; i >= 0; i--) {
+                const p = ps[i];
+                p.life += dt;
+                if (p.life > p.max) {
+                  ps.splice(i, 1);
+                  continue;
+                }
+                if (!rm) {
+                  p.vy += v.grav * dt;
+                  p.vx *= Math.pow(0.995, dt * 60);
+                  p.x += p.vx * dt;
+                  p.y += p.vy * dt;
+                }
+                const k = 1 - p.life / p.max;
+                g.globalAlpha = k;
+                dot(p.x, p.y, rm ? p.r : p.r * (0.5 + k * 0.7), rm || k > 0.5 ? "#fff" : col("sky"));
+              }
+              g.globalAlpha = 1;
+              dot(ex, ey + 4, 6, col("blue"));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

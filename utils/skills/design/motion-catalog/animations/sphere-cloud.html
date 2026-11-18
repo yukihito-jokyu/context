@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>球に並べて回す（Sphere cloud (icon cloud)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-sphere-cloud"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-sphere-cloud-s">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sphere-cloud .ac-sphere-cloud-s {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-sphere-cloud .ac-sphere-cloud-s i {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        background: linear-gradient(150deg, var(--ice), var(--sky));
+        box-shadow: 0 2px 6px rgba(27, 58, 138, 0.12);
+        transition: box-shadow 200ms;
+      }
+      .ac-sphere-cloud .ac-sphere-cloud-s i:nth-child(3n) {
+        background: linear-gradient(150deg, var(--sky), var(--blue));
+      }
+      .ac-sphere-cloud .ac-sphere-cloud-s i.is-on {
+        box-shadow:
+          0 0 0 3px #fff,
+          0 0 0 5px var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sphere-cloud",
+        name: "球に並べて回す",
+        en: "Sphere cloud (icon cloud)",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "アイコンや画像を球の外側にまんべんなく並べ、球ごとゆっくり回します。選んだ項目は、球を回して正面へ持ってきます。奥ほど小さく薄くします。プレビューは DOM と JS で近い形にしています（元の作例には WebGL のものもあります）。",
+        use: "使っている技術・連携先のロゴの紹介、タグクラウド、ギャラリーのメニュー。",
+        params: [],
+        spec: [
+          [
+            "並べ方・回し方",
+            "フィボナッチ球で N 個を均等に置き、回転後の奥行き z に合わせて <code>scale</code>・<code>opacity</code>・<code>z-index</code> を毎フレーム当てる",
+          ],
+          ["選んだとき", "その点が正面に来る角度（yaw = atan2(−x, z)）へ 0.9 秒の in-out で回す"],
+          ["本格的に", "数が多い・画像を曲げるときは WebGL（three.js）。項目は一覧からも選べるように"],
+          ["動きを減らす設定", "回転を止め、球の形のまま静止させる（選ぶと即座に正面へ切り替える）"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components" target="_blank" rel="noopener">Magic UI: Components</a>、<a href="https://reactbits.dev/llms.txt" target="_blank" rel="noopener">React Bits（コンポーネント一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const ts = [...stage.querySelectorAll(".ac-sphere-cloud-s i")],
+              N = ts.length,
+              R = 56;
+            const Pt = ts.map((_, i) => {
+              const y = 1 - (2 * (i + 0.5)) / N,
+                r = Math.sqrt(1 - y * y),
+                a = i * 2.39996;
+              return [Math.cos(a) * r, y, Math.sin(a) * r];
+            });
+            let yaw = 0,
+              pitch = 0.25,
+              tgt = null,
+              pick = 0,
+              last = 0;
+            const place = () => {
+              const cy = Math.cos(yaw),
+                sy = Math.sin(yaw),
+                cp = Math.cos(pitch),
+                sp = Math.sin(pitch);
+              ts.forEach((el, i) => {
+                let [x, y, z] = Pt[i];
+                [x, z] = [x * cy + z * sy, -x * sy + z * cy];
+                [y, z] = [y * cp - z * sp, y * sp + z * cp];
+                const d = (z + 1) / 2;
+                el.style.transform = `translate(${110 + x * R - 12}px, ${75 - y * R - 12}px) scale(${0.55 + 0.45 * d})`;
+                el.style.opacity = 0.3 + 0.7 * d;
+                el.style.zIndex = Math.round(d * 100);
+              });
+            };
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              if (rm) {
+                yaw = 0.4;
+                place();
+                return;
+              }
+              const k = t % 4.2,
+                n = Math.floor(t / 4.2);
+              if (k < 2.2) {
+                if (tgt) ts[pick].classList.remove("is-on");
+                tgt = null;
+                yaw += dt * 0.7;
+                pitch += (0.25 - pitch) * 0.05;
+              } else {
+                if (!tgt) {
+                  pick = (n * 7 + 3) % N;
+                  const [x, y, z] = Pt[pick];
+                  let ty = Math.atan2(-x, z);
+                  ty += Math.round((yaw - ty) / (2 * Math.PI)) * 2 * Math.PI;
+                  tgt = [yaw, pitch, ty, Math.atan2(y, Math.hypot(x, z))];
+                }
+                const f = Math.min(1, (k - 2.2) / 0.9),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
+                yaw = tgt[0] + (tgt[2] - tgt[0]) * e;
+                pitch = tgt[1] + (tgt[3] - tgt[1]) * e;
+                ts[pick].classList.toggle("is-on", f >= 1);
+              }
+              place();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

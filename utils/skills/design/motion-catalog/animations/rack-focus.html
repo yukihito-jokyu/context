@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ラックフォーカス（Rack focus） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rack-focus"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-rack-focus-cam">
+          <div class="ac-rack-focus-L ac-rack-focus-sky"><i></i></div>
+          <div class="ac-rack-focus-L ac-rack-focus-far"><i></i></div>
+          <div class="ac-rack-focus-L ac-rack-focus-gr"><i></i></div>
+          <div class="ac-rack-focus-L ac-rack-focus-mid"><i></i></div>
+          <div class="ac-rack-focus-L ac-rack-focus-sub"><i></i></div>
+          <div class="ac-rack-focus-L ac-rack-focus-near"><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-rack-focus .ac-rack-focus-cam,
+      .ac-rack-focus .ac-rack-focus-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-rack-focus .ac-rack-focus-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-rack-focus .ac-rack-focus-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-rack-focus .ac-rack-focus-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-rack-focus .ac-rack-focus-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-rack-focus .ac-rack-focus-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-rack-focus .ac-rack-focus-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-rack-focus .ac-rack-focus-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-rack-focus .ac-rack-focus-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      .ac-rack-focus .ac-rack-focus-near i {
+        bottom: -26px;
+        height: 70px;
+        background: radial-gradient(ellipse 30px 34px at 50% 100%, #0f2563 97%, transparent) 0 100% / 90px 70px repeat-x;
+      }
+      .ac-rack-focus .ac-rack-focus-sub i {
+        left: 140px;
+        bottom: 34px;
+      }
+      .ac-rack-focus .ac-rack-focus-near {
+        animation: ac-rack-focus-n var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      .ac-rack-focus .ac-rack-focus-far,
+      .ac-rack-focus .ac-rack-focus-mid,
+      .ac-rack-focus .ac-rack-focus-sub,
+      .ac-rack-focus .ac-rack-focus-gr,
+      .ac-rack-focus .ac-rack-focus-sky {
+        animation: ac-rack-focus-b var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      @keyframes ac-rack-focus-n {
+        0%,
+        25% {
+          filter: blur(0);
+        }
+        75%,
+        100% {
+          filter: blur(6px);
+        }
+      }
+      @keyframes ac-rack-focus-b {
+        0%,
+        25% {
+          filter: blur(5px);
+        }
+        75%,
+        100% {
+          filter: blur(0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-rack-focus .ac-rack-focus-L {
+          animation-timing-function: step-end;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rack-focus",
+        name: "ラックフォーカス",
+        en: "Rack focus",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "手前の物にピントが合った状態から、奥の物へピントを移す（またはその逆）動きです。ぼけていた所がはっきりし、はっきりしていた所がぼけるので、見る人の視線を自然に移せます。",
+        use: "2つの情報のどちらを見てほしいかを切り替える画面、ヒーローの導入、モーダルの背景のぼかし、写真ギャラリー。",
+        params: [{ key: "dur", label: "片道の時間", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "手前のレイヤー：<code>filter: blur(0 → 6px)</code>、奥のレイヤー：<code>blur(6px → 0)</code>｜in-out、同じ時間で",
+          ],
+          ["時間", "400〜1000ms。ゆっくりなほど映画らしい"],
+          ["UI では", "モーダルを開くとき背景を <code>backdrop-filter: blur()</code> でぼかすのも、同じ視線の移し方"],
+          ["動きを減らす設定", "ピントの移動を一瞬の切り替えにする"],
+          [
+            "出典",
+            '<a href="https://www.masterclass.com/articles/guide-to-camera-moves" target="_blank" rel="noopener">MasterClass: Guide to Camera Moves</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

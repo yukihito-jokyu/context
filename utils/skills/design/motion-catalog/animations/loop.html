@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ループ（Loop） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-loop" style="position: relative; width: 220px; height: 150px; display: grid; place-items: center">
+        <span class="sb-thumb sb-grad-sky ac-loop-t" style="width: 56px; height: 56px; border-radius: 18px"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @keyframes ac-loop-hop {
+        50% {
+          transform: translateY(-16px);
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-loop .ac-loop-t {
+          animation: ac-loop-hop var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1) 200ms var(--count, 3) both;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "loop",
+        name: "ループ",
+        en: "Loop",
+        cat: "ループ・常時の動き",
+        kind: "concept",
+        description:
+          "同じアニメーションを決まった回数、または無限にくり返すことです。回数を決めれば「数回だけ注意を引いて止まる」動きになります。",
+        use: "注意を引くバッジ（数回）、読み込み中（無限）、背景の装飾（無限）。",
+        params: [
+          { key: "count", label: "くり返す回数", value: 3, min: 1, max: 10, step: 1, unit: "" },
+          { key: "dur", label: "1回の時間", value: 500, min: 200, max: 1200, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["count"] * p["dur"],
+        spec: [
+          ["書き方", "<code>animation-iteration-count: くり返す回数</code>（無限は <code>infinite</code>）"],
+          ["動き", "<code>translateY(0 → -16px → 0)</code>｜1回ごとに in-out"],
+          ["注意", "注意を引く動きは無限にしない。数回で止める"],
+          ["動きを減らす設定", "くり返しをやめ、1回だけ（または動かさない）にする"],
+          ["出典", "Animation Vocabulary（Looping & Ambient Motion）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const el = stage.querySelector(".ac-loop-t");
+          const motion = matchMedia("(prefers-reduced-motion: no-preference)");
+          let timer;
+          function restart() {
+            el.style.animation = "none";
+            void el.offsetWidth;
+            el.style.animation = "";
+          }
+          function sync() {
+            clearInterval(timer);
+            if (motion.matches) timer = setInterval(restart, v.count * v.dur + 1200);
+          }
+          motion.addEventListener("change", sync);
+          sync();
+          return () => {
+            clearInterval(timer);
+            motion.removeEventListener("change", sync);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>転がって出入り（Roll in / out） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-roll-in-out"
+        style="position: relative; width: 220px; height: 120px; display: grid; place-items: center"
+      >
+        <span class="sb-fab ac-roll-in-out-c" style="width: 64px; height: 64px"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" /></svg
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-roll-in-out .ac-roll-in-out-c {
+        animation:
+          ac-roll-in-out-in var(--in, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-roll-in-out-out var(--out, 600ms) cubic-bezier(0.55, 0, 1, 0.45) calc(var(--in, 700ms) + 1000ms) forwards;
+      }
+      @keyframes ac-roll-in-out-in {
+        from {
+          opacity: 0;
+          transform: translateX(-120px) rotate(calc(var(--spin, 120deg) * -1));
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-roll-in-out-out {
+        from {
+          opacity: 1;
+          transform: none;
+        }
+        to {
+          opacity: 0;
+          transform: translateX(120px) rotate(var(--spin, 120deg));
+        }
+      }
+      @keyframes ac-roll-in-out-rf-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-roll-in-out-rf-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-roll-in-out .ac-roll-in-out-c {
+          animation-name: ac-roll-in-out-rf-in, ac-roll-in-out-rf-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "roll-in-out",
+        name: "転がって出入り",
+        en: "Roll in / out",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "左から転がりながら入ってきて、まっすぐに止まる動きです。退出は右へ転がっていきます。丸いもの・軽いものに合います。",
+        use: "丸いアイコンやボール、ステッカー、遊びのある登場。",
+        params: [
+          { key: "in", label: "登場の時間", value: 700, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "out", label: "退出の時間", value: 600, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "spin", label: "回転", value: 120, min: 30, max: 360, step: 10, unit: "deg" },
+        ],
+        total: (p) => p["in"] + 1000 + p["out"],
+        spec: [
+          ["登場", "<code>translateX(-120px) rotate(-回転) → none</code> と <code>opacity 0 → 1</code>｜out"],
+          ["物理らしさ", "円なら、移動距離 = 半径 × 回転角（ラジアン）にすると滑らずに転がって見える"],
+          ["動きを減らす設定", "回転と移動をやめ、透明度の切り替えだけにする"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

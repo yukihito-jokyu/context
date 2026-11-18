@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>方向を合わせた遷移（Direction-aware transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-direction-aware" style="position: relative; width: 200px; height: 160px; overflow: hidden">
+        <div class="ac-direction-aware-p" style="opacity: 1">
+          <div
+            class="sb-card"
+            style="
+              width: 140px;
+              padding: 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              box-sizing: border-box;
+              box-shadow: none;
+            "
+          >
+            <span class="sb-hero sb-grad-hero" style="height: 50px; border-radius: 14px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+          </div>
+        </div>
+        <div class="ac-direction-aware-p" style="">
+          <div
+            class="sb-card"
+            style="
+              width: 140px;
+              padding: 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              box-sizing: border-box;
+              box-shadow: none;
+            "
+          >
+            <span class="sb-hero sb-grad-sky" style="height: 50px; border-radius: 14px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+          </div>
+        </div>
+        <div class="ac-direction-aware-p" style="">
+          <div
+            class="sb-card"
+            style="
+              width: 140px;
+              padding: 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              box-sizing: border-box;
+              box-shadow: none;
+            "
+          >
+            <span class="sb-hero sb-grad-deep" style="height: 50px; border-radius: 14px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+          </div>
+        </div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 8px">
+          <span
+            class="sb-shape sb-shape--sm sb-shape--round ac-direction-aware-d sb-shape--on"
+            style="width: 8px; height: 8px"
+          ></span
+          ><span
+            class="sb-shape sb-shape--sm sb-shape--round ac-direction-aware-d"
+            style="width: 8px; height: 8px"
+          ></span
+          ><span
+            class="sb-shape sb-shape--sm sb-shape--round ac-direction-aware-d"
+            style="width: 8px; height: 8px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-direction-aware .ac-direction-aware-p {
+        position: absolute;
+        left: 30px;
+        top: 0;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "direction-aware",
+        name: "方向を合わせた遷移",
+        en: "Direction-aware transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "進むときは中身が左へ流れ、戻るときは右へ流れるように、移動の方向を操作の向きに合わせる切り替えです。いまどちらへ進んでいるのかが体で分かります。",
+        use: "ステップ形式のフォーム、カルーセル、タブ、日付の前後移動、戻る操作。",
+        params: [
+          { key: "dur", label: "時間", value: 300, min: 150, max: 700, step: 10, unit: "ms" },
+          { key: "dist", label: "移動の距離", value: 40, min: 10, max: 120, step: 5, unit: "px" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "進む",
+            "古い中身 <code>translateX(0 → -距離)</code> で消え、新しい中身 <code>translateX(距離 → 0)</code> で現れる（どちらも <code>opacity</code> 付き）｜out",
+          ],
+          ["戻る", "向きを反対にする"],
+          ["実装", "前のページ番号と比べて向き（+1 / -1）を決め、それを動きに掛ける"],
+          ["動きを減らす設定", "移動をやめ、クロスフェードで切り替える"],
+          ["出典", "Animation Vocabulary（Transitions Between States）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const ps = [...stage.querySelectorAll(".ac-direction-aware-p")],
+            dots = [...stage.querySelectorAll(".ac-direction-aware-d")];
+          const seq = [1, 2, 1, 0];
+          let cur = 0,
+            n = 0;
+          const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const go = () => {
+            const next = seq[n];
+            n = (n + 1) % seq.length;
+            const dir = next > cur ? 1 : -1,
+              d = rm ? 0 : v.dist,
+              o = { duration: v.dur, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" };
+            ps[cur].animate(
+              [
+                { transform: "none", opacity: 1 },
+                { transform: `translateX(${-dir * d}px)`, opacity: 0 },
+              ],
+              o,
+            );
+            ps[next].animate(
+              [
+                { transform: `translateX(${dir * d}px)`, opacity: 0 },
+                { transform: "none", opacity: 1 },
+              ],
+              o,
+            );
+            dots[cur].classList.remove("sb-shape--on");
+            dots[next].classList.add("sb-shape--on");
+            cur = next;
+          };
+          const t = setInterval(go, 1200);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

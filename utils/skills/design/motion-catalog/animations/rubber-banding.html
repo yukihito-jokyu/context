@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ラバーバンド（Rubber-banding） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rubber-banding"
+        style="position: relative; width: 190px; height: 150px; overflow: hidden; border-radius: 20px"
+      >
+        <div class="ac-rubber-banding-c">
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+          <div
+            class="sb-item"
+            style="width: 190px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+          >
+            <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+            ><span class="sb-lines" style="gap: 6px"
+              ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+            ></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-rubber-banding .ac-rubber-banding-c {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rubber-banding",
+        name: "ラバーバンド",
+        en: "Rubber-banding",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "端を越えて引っ張ると、ゴムのように抵抗しながら少しだけ伸び、離すと弾んで元に戻る動きです（iOS のスクロールの端と同じ感触）。これ以上進めないことを、止めるのではなく手応えで伝えます。",
+        use: "スクロールの端、スライダーやカルーセルの端、ボトムシートを上に引っ張りすぎたとき。",
+        params: [
+          { key: "resist", label: "抵抗（伸びの割合）", value: 0.35, min: 0.1, max: 1, step: 0.05, unit: "" },
+          { key: "back", label: "戻る時間", value: 450, min: 200, max: 900, step: 10, unit: "ms" },
+        ],
+        spec: [
+          [
+            "伸び",
+            "指の移動量 × 抵抗 だけ動かす（端から遠いほど伸びにくくするとさらに自然：<code>移動量 × 0.55 × 幅 / (幅 + 0.55 × 移動量)</code>）",
+          ],
+          [
+            "戻り",
+            "離したら <code>translate(→ 0)</code>｜spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>｜戻る時間",
+          ],
+          ["CSS", "スクロールなら <code>overscroll-behavior</code> で端の挙動を調整できる"],
+          ["動きを減らす設定", "伸びと弾みをやめ、端で止める"],
+          ["出典", "Animation Vocabulary（Feedback & Interaction）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const c = stage.querySelector(".ac-rubber-banding-c");
+          const set = (y, ms, ease) => {
+            c.style.transition = `transform ${ms}ms ${ease}`;
+            c.style.transform = `translateY(${y}px)`;
+          };
+          move(100, 160, 0);
+          return seq(2800, [
+            [
+              100,
+              () => {
+                show(1);
+                move(100, 30, 500);
+              },
+            ],
+            [
+              700,
+              () => {
+                move(100, 110, 700);
+                set(rm ? 0 : 80 * v.resist, 700, "cubic-bezier(0.65, 0, 0.35, 1)");
+              },
+            ],
+            [
+              1450,
+              () => {
+                set(0, v.back, "cubic-bezier(0.34, 1.56, 0.64, 1)");
+                move(140, 160, 500);
+              },
+            ],
+            [1900, () => show(0)],
+          ]);
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>まわりをぼかす（Sibling defocus） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-sibling-defocus" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-sibling-defocus-g">
+          <span class="ac-sibling-defocus-c sb-card"
+            ><span class="sb-hero sb-grad-aqua" style="display: block; height: 34px; border-radius: 9px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 46px"></span></span
+          ><span class="ac-sibling-defocus-c sb-card"
+            ><span class="sb-hero sb-grad-sky" style="display: block; height: 34px; border-radius: 9px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 46px"></span></span
+          ><span class="ac-sibling-defocus-c sb-card"
+            ><span class="sb-hero sb-grad-deep" style="display: block; height: 34px; border-radius: 9px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 46px"></span></span
+          ><span class="ac-sibling-defocus-c sb-card"
+            ><span class="sb-hero sb-grad-hero" style="display: block; height: 34px; border-radius: 9px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 46px"></span
+          ></span>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-sibling-defocus .ac-sibling-defocus-g {
+        position: absolute;
+        left: 20px;
+        top: 12px;
+        display: grid;
+        grid-template-columns: repeat(2, 84px);
+        gap: 12px 12px;
+      }
+      .ac-sibling-defocus .ac-sibling-defocus-c {
+        display: grid;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 14px;
+        transition:
+          filter var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1),
+          opacity var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1),
+          transform var(--dur, 260ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-sibling-defocus .ac-sibling-defocus-g.is-focus .ac-sibling-defocus-c:not(.is-hover) {
+        filter: blur(var(--blur, 2px));
+        opacity: var(--dim, 0.55);
+        transform: scale(0.98);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-sibling-defocus .ac-sibling-defocus-g.is-focus .ac-sibling-defocus-c:not(.is-hover) {
+          filter: none;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "sibling-defocus",
+        name: "まわりをぼかす",
+        en: "Sibling defocus",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "ポインターを乗せたカードはそのままに、まわりのカードを少しぼかして薄くする動きです。比べながら選ぶ一覧で、今見ているものだけに自然と視線が集まります。",
+        use: "作品・商品のギャラリー、料金プランの比較、メニューの一覧、カードのグリッド。",
+        params: [
+          { key: "blur", label: "ぼかし", value: 2, min: 0, max: 6, step: 0.5, unit: "px" },
+          { key: "dim", label: "まわりの濃さ", value: 0.55, min: 0.2, max: 1, step: 0.05, unit: "" },
+          { key: "dur", label: "時間", value: 260, min: 100, max: 600, step: 10, unit: "ms" },
+        ],
+        spec: [
+          [
+            "まわり",
+            "<code>filter: blur(ぼかし)</code>、<code>opacity(まわりの濃さ)</code>、<code>scale(.98)</code>｜out",
+          ],
+          ["書き方", "<code>.grid:has(.card:hover) .card:not(:hover)</code> で、ホバー中のもの以外に当てる"],
+          ["負荷", "ぼかしは重いので、枚数が多いときは透明度だけにする"],
+          ["動きを減らす設定", "ぼかしと縮みをやめ、透明度だけを変える"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/focus-cards" target="_blank" rel="noopener">Aceternity UI: Focus Cards</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const g = stage.querySelector(".ac-sibling-defocus-g"),
+              cs = g.children;
+            const at = (i) => () => {
+              [...cs].forEach((c, j) => c.classList.toggle("is-hover", j === i));
+              g.classList.toggle("is-focus", i >= 0);
+            };
+            move(210, 150, 0);
+            return seq(4600, [
+              [
+                100,
+                () => {
+                  show(1);
+                  move(62, 48, 500);
+                },
+              ],
+              [550, at(0)],
+              [1300, () => move(158, 112, 600)],
+              [1650, at(-1)],
+              [1850, at(3)],
+              [2700, () => move(158, 48, 400)],
+              [2900, at(1)],
+              [3700, () => move(210, 150, 500)],
+              [3850, at(-1)],
+              [4200, () => show(0)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

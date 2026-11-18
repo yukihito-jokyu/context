@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スプリットテキスト（Split Text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-split-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="ac-split-text-l"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 28px;
+            line-height: 38px;
+          "
+          aria-hidden="true"
+        >
+          動きで伝える
+        </div>
+        <span
+          style="
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+          "
+          >動きで伝える</span
+        >
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-split-text .ac-split-text-l {
+        display: flex;
+        overflow: hidden;
+      }
+      .ac-split-text .ac-split-text-ch {
+        display: inline-block;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-split-text .ac-split-text-ch {
+          animation: ac-split-text-up var(--dur, 500ms) cubic-bezier(0.22, 1, 0.36, 1)
+            calc(var(--i) * var(--step, 40ms)) both;
+        }
+      }
+      @keyframes ac-split-text-up {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-split-text .ac-split-text-l {
+          animation: ac-split-text-fade var(--dur, 500ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+      }
+      @keyframes ac-split-text-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "split-text",
+        name: "スプリットテキスト",
+        en: "Split Text",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "見出しを1文字（または1単語）ずつに分け、それぞれを時間差で動かす表現です。文字が下からせり上がるように順に現れ、見出しにリズムが生まれます。",
+        use: "ヒーローの見出し、セクションのタイトル、ロゴタイプ、キャッチコピー。",
+        params: [
+          { key: "step", label: "1文字ずつずらす間隔", value: 40, min: 0, max: 150, step: 5, unit: "ms" },
+          { key: "dur", label: "1文字の時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" },
+        ],
+        total: (p) => p["step"] * 5 + p["dur"],
+        spec: [
+          ["仕組み", "文字ごとに <code>span</code> に分け、行を <code>overflow: hidden</code> で切る"],
+          [
+            "動き",
+            "各文字 <code>translateY(100%) → 0</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>｜<code>animation-delay: 順番 × 間隔</code>",
+          ],
+          [
+            "実装",
+            "GSAP SplitText、Splitting.js、自前なら <code>Intl.Segmenter</code> で書記素に分ける。全文を視覚的に隠し、演出は <code>aria-hidden</code> にする",
+          ],
+          ["動きを減らす設定", "文字ごとの動きをやめ、見出し全体を透明度で表示する"],
+          ["出典", "ChatGPT との会話の分類表（テキスト・視覚効果）"],
+        ],
+        loop: 2400,
+        run: (stage) => {
+          const heading = stage.querySelector(".ac-split-text-l");
+          const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+          const spans = Array.from(segmenter.segment(heading.textContent), ({ segment }, i) => {
+            const span = document.createElement("span");
+            span.className = "ac-split-text-ch";
+            span.style.setProperty("--i", i);
+            span.textContent = segment;
+            return span;
+          });
+          heading.replaceChildren(...spans);
+        },
+      });
+    </script>
+  </body>
+</html>

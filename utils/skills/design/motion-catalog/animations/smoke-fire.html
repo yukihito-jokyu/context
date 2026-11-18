@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>煙と炎（Buoyant smoke and flame） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-smoke-fire"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "smoke-fire",
+        name: "煙と炎",
+        en: "Buoyant smoke and flame",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "熱い所ほど軽くなって昇る、という浮力で炎や煙を動かす表現です。明るい炎は揺れながら昇って冷め、煙になって渦を巻き、薄れます。プレビューは粒の簡単な計算で近い形にしています。",
+        use: "ゲームの焚き火・爆発の後の煙、キャンドルや暖炉の演出、ローディングの装飾、季節のキャンペーン。",
+        params: [{ key: "rate", label: "1秒に出す粒の数", value: 120, min: 30, max: 300, step: 10, unit: "個" }],
+        spec: [
+          [
+            "作り方",
+            "粒ごとに温度を持たせ、温度が高いほど上向きの力（浮力）を強くする。温度は時間で下げ、色を白黄 → 橙 → 赤 → 灰色の煙へ変え、大きく薄くする",
+          ],
+          [
+            "揺らぎ",
+            "カールノイズなどの渦の場で横に揺らすと、炎のちらつきと煙の巻き込みが出る。炎は加算合成、煙はふつうの重ね方で描く",
+          ],
+          ["本格的に", "格子の流体ソルバー（移流と圧力の計算）を WebGL で動かし、3D はボリュームで描く"],
+          ["動きを減らす設定", "動きを止め、炎と煙の静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.sidefx.com/docs/houdini/pyro/background.html" target="_blank" rel="noopener">sidefx.com（background）</a>、<a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/niagara-fluids-reference-in-unreal-engine" target="_blank" rel="noopener">dev.epicgames.com（niagara-fluids-reference-in-）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const ps = [];
+            let last = 0,
+              acc = 0;
+            const spawn = () =>
+              ps.push({
+                x: 110 + (rnd() - 0.5) * 18,
+                y: 128,
+                vx: (rnd() - 0.5) * 0.3,
+                vy: -0.5 - rnd() * 0.5,
+                T: 1,
+                r: 4 + rnd() * 3,
+              });
+            if (rm) {
+              for (let i = 0; i < 200; i++) {
+                spawn();
+                const p = ps[ps.length - 1],
+                  k = rnd();
+                p.T = 1 - k;
+                p.y = 128 - k * 120;
+                p.x += (rnd() - 0.5) * k * 40;
+                p.r += k * 16;
+              }
+            }
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              if (!rm) {
+                acc += dt * v.rate;
+                while (acc > 1) {
+                  acc--;
+                  spawn();
+                }
+                for (let i = ps.length - 1; i >= 0; i--) {
+                  const p = ps[i];
+                  p.T -= dt * 0.55;
+                  if (p.T < -0.6) {
+                    ps.splice(i, 1);
+                    continue;
+                  }
+                  p.vy -= 0.03 * Math.max(0, p.T);
+                  p.vx += sin(p.y * 0.08 + t * 2 + p.x * 0.03) * 0.03;
+                  p.vx *= 0.98;
+                  p.vy *= 0.985;
+                  p.x += p.vx;
+                  p.y += p.vy;
+                  p.r += 0.12;
+                }
+              }
+              g.globalCompositeOperation = "source-over";
+              g.fillStyle = col("navy");
+              g.fillRect(0, 0, W, H);
+              for (const p of ps)
+                if (p.T <= 0.15) {
+                  g.fillStyle = `rgba(160,170,190,${Math.max(0, 0.18 * (1 + p.T / 0.6))})`;
+                  g.beginPath();
+                  g.arc(p.x, p.y, p.r, 0, TAU);
+                  g.fill();
+                }
+              g.globalCompositeOperation = "lighter";
+              for (const p of ps)
+                if (p.T > 0.15) {
+                  const T = p.T,
+                    c = T > 0.75 ? "255,240,190" : T > 0.45 ? "255,170,70" : "220,80,40";
+                  g.fillStyle = `rgba(${c},${0.22 * T})`;
+                  g.beginPath();
+                  g.arc(p.x, p.y, p.r * (0.6 + 0.4 * T), 0, TAU);
+                  g.fill();
+                }
+              g.globalCompositeOperation = "source-over";
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

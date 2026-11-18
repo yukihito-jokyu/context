@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>浮かび上がる数字（Floating damage numbers） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-floating-damage-numbers" style="position: relative; width: 220px; height: 150px">
+        <span class="sb-thumb sb-grad-sky ac-floating-damage-numbers-t"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-floating-damage-numbers .ac-floating-damage-numbers-t {
+        position: absolute;
+        left: 86px;
+        top: 70px;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+      }
+      .ac-floating-damage-numbers .ac-floating-damage-numbers-n {
+        position: absolute;
+        font: 800 18px var(--font-sans);
+        color: var(--blue);
+        text-shadow:
+          0 1px 0 #fff,
+          0 0 6px #fff;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "floating-damage-numbers",
+        name: "浮かび上がる数字",
+        en: "Floating damage numbers",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "何かに当たった・何かを得た瞬間に、その場所から「+10」のような数字が飛び出し、ふわっと上へ浮かびながら消えていく動きです。結果がどこで・どれだけ起きたかが一瞬で分かります。",
+        use: "ゲームのダメージ・得点、ポイントの獲得、いいね数の増加、ショッピングのカート追加。",
+        params: [{ key: "dur", label: "浮かぶ時間", value: 1000, min: 400, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          ["出る", "発生した位置に数字を置き、<code>scale(.5 → 1.2 → 1)</code>｜spring"],
+          [
+            "浮かぶ",
+            "<code>translateY(0 → -40px)</code> と <code>opacity 1 → 0</code>｜out｜少し横にずらす（ランダム）と重ならない",
+          ],
+          ["強弱", "大きい値ほど大きく・長く。会心の一撃は色を変える"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://github.com/reeboolabs/sprite-juice-kit-lite" target="_blank" rel="noopener">Sprite Juice Kit</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const t0 = stage.querySelector(".ac-floating-damage-numbers-t"),
+              root = stage.firstElementChild;
+            const pop = () => {
+              if (!rm)
+                t0.animate(
+                  [
+                    { transform: "none", filter: "none" },
+                    { transform: "scale(.9) rotate(-4deg)", filter: "brightness(1.4)", offset: 0.4 },
+                    { transform: "none", filter: "none" },
+                  ],
+                  { duration: 160, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+                );
+              const n = document.createElement("span"),
+                big = Math.random() < 0.3,
+                val = big ? 50 + Math.floor(Math.random() * 50) : 5 + Math.floor(Math.random() * 20);
+              n.className = "ac-floating-damage-numbers-n";
+              n.textContent = `+${val}`;
+              n.style.left = `${96 + (Math.random() - 0.5) * 40}px`;
+              n.style.top = "52px";
+              if (big) {
+                n.style.fontSize = "24px";
+                n.style.color = "var(--cobalt)";
+              }
+              root.appendChild(n);
+              n.animate(
+                rm
+                  ? [{ opacity: 1 }, { opacity: 0 }]
+                  : [
+                      { transform: "translateY(0) scale(.5)", opacity: 0 },
+                      { transform: "translateY(-10px) scale(1.2)", opacity: 1, offset: 0.15 },
+                      { transform: "translateY(-18px) scale(1)", opacity: 1, offset: 0.35 },
+                      { transform: "translateY(-46px) scale(1)", opacity: 0 },
+                    ],
+                { duration: v.dur, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+              ).onfinish = () => n.remove();
+            };
+            return seq(1800, [
+              [200, pop],
+              [700, pop],
+              [1100, pop],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

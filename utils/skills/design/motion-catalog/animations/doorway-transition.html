@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>扉が開く切り替え（Doorway transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-doorway-transition"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-doorway-transition-s ac-doorway-transition-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+        <div class="ac-doorway-transition-p">
+          <i
+            class="ac-doorway-transition-l"
+            style="
+              background:
+                radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                linear-gradient(160deg, var(--ice), var(--sky));
+              background-size: 220px 150px;
+            "
+          ></i
+          ><i
+            class="ac-doorway-transition-r"
+            style="
+              background:
+                radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                linear-gradient(160deg, var(--ice), var(--sky));
+              background-size: 220px 150px;
+              background-position: -110px 0;
+            "
+          ></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-doorway-transition .ac-doorway-transition-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-doorway-transition .ac-doorway-transition-p {
+        position: absolute;
+        inset: 0;
+        perspective: 500px;
+      }
+      .ac-doorway-transition .ac-doorway-transition-p i {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 110px;
+        animation: ac-doorway-transition-d var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      .ac-doorway-transition .ac-doorway-transition-l {
+        left: 0;
+        transform-origin: 0 50%;
+        --s: -1;
+      }
+      .ac-doorway-transition .ac-doorway-transition-r {
+        right: 0;
+        transform-origin: 100% 50%;
+        --s: 1;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-doorway-transition .ac-doorway-transition-b {
+          animation: ac-doorway-transition-z var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-doorway-transition-d {
+        0%,
+        25% {
+          transform: rotateY(0);
+          filter: brightness(1);
+        }
+        75%,
+        100% {
+          transform: rotateY(calc(var(--s) * 100deg));
+          filter: brightness(0.6);
+        }
+      }
+      @keyframes ac-doorway-transition-z {
+        0%,
+        25% {
+          transform: scale(0.8);
+        }
+        75%,
+        100% {
+          transform: scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-doorway-transition .ac-doorway-transition-p i {
+          animation: ac-doorway-transition-rf3 var(--dur, 2600ms) infinite alternate;
+        }
+      }
+      @keyframes ac-doorway-transition-rf3 {
+        0%,
+        45% {
+          opacity: 1;
+        }
+        55%,
+        100% {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "doorway-transition",
+        name: "扉が開く切り替え",
+        en: "Doorway transition",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "前のショットが真ん中から左右2枚の扉に分かれ、手前に開いていくと、奥から次のショットが近づいてくる切り替えです。新しい場所へ入っていく感じを作れます。",
+        use: "新しいコーナーやステージへ入る演出、ゲームのステージ開始、イベントの入場、ウェルカム画面。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "A を左右の半分に分け、<code>transform-origin</code> を外側の縁にして <code>rotateY(0 → ±100deg)</code>｜in。親に <code>perspective</code>",
+          ],
+          ["奥", "B は <code>scale(0.8 → 1)</code> で少し近づける"],
+          ["暗がり", "扉の内側に影（暗いグラデーション）を足すと立体感が出る"],
+          ["動きを減らす設定", "扉の回転をやめ、クロスフェードにする"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/CommandPost/CommandPost/develop/src/extensions/cp/apple/finalcutpro/plugins.lua" target="_blank" rel="noopener">Final Cut Pro の内蔵トランジション一覧（CommandPost）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

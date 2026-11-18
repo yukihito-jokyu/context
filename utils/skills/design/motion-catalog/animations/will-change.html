@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>will-change（will-change） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-will-change"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div style="position: relative; width: 200px; height: 48px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 23px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span class="ac-will-change-t"
+            ><span
+              class="sb-thumb sb-grad-sky"
+              style="width: 40px; height: 40px; border-radius: 12px; display: block"
+            ></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-will-change .ac-will-change-t {
+        position: absolute;
+        left: 0;
+        top: 0;
+        padding: 4px;
+        border-radius: 16px;
+        transform: translateX(152px);
+        box-shadow:
+          0 0 0 2px var(--blue),
+          0 0 0 6px var(--blue-soft);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-will-change .ac-will-change-t {
+          box-shadow: inset 0 0 0 2px transparent;
+          animation:
+            ac-will-change-promote 2400ms steps(1) both,
+            ac-will-change-m 900ms cubic-bezier(0.65, 0, 0.35, 1) 700ms both;
+        }
+      }
+      @keyframes ac-will-change-promote {
+        0% {
+          box-shadow: inset 0 0 0 2px transparent;
+        }
+        15% {
+          box-shadow:
+            0 0 0 2px var(--blue),
+            0 0 0 6px var(--blue-soft);
+        }
+        80% {
+          box-shadow: inset 0 0 0 2px transparent;
+        }
+      }
+      @keyframes ac-will-change-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(152px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "will-change",
+        name: "will-change",
+        en: "will-change",
+        cat: "パフォーマンス",
+        kind: "concept",
+        description:
+          "これから動く要素をブラウザに前もって知らせる CSS のヒントです。動き出す前に専用の層へ移しておけるので、動き始めの引っかかりを防げます。点線の枠が「層に移された」状態を表しています。",
+        use: "ホバーやドラッグで動き出す要素、動き始めに一瞬カクつく要素。",
+        params: [],
+        spec: [
+          ["書き方", "<code>will-change: transform</code>（または <code>opacity</code>）"],
+          ["付けるタイミング", "動く直前（ホバーやドラッグ開始）に付け、動き終わったら外す"],
+          ["注意", "何にでも付けると層が増えてメモリを使い、かえって重くなる。カクつきを確かめてから使う"],
+          ["動きを減らす設定", "最終位置と枠を静止表示"],
+          ["出典", "Animation Vocabulary（Performance）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動くレンズフレア（Dynamic lens flare） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-lens-flare"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "lens-flare",
+        name: "動くレンズフレア",
+        en: "Dynamic lens flare",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画面に強い光源が入ったとき、レンズの中の反射で、光源から画面の中心を通る線の上に丸や六角形の光の像が並ぶ現象です。光源やカメラが動くと像も線に沿って滑り、光源が物に隠れたり画面の端に出たりすると薄れて消えます。",
+        use: "宇宙・SF・ゲームの演出、夕日や車のライトのシーン、映画風のヒーロー、製品のきらめき。",
+        params: [{ key: "amt", label: "フレアの強さ", value: 1, min: 0, max: 1.5, step: 0.05, unit: "" }],
+        spec: [
+          [
+            "並べ方",
+            "光源の位置 L と画面の中心 C から、<code>C + (C − L) × k</code>（k = −0.3, 0.2, 0.5, 1.0 など）の位置に、大きさ・色の違う像を描く",
+          ],
+          ["消え方", "光源が物に隠れた割合（または画面の端からの距離）で、全体の明るさを下げる。加算合成で描く"],
+          ["本格的に", "three.js の Lensflare、Unity・Unreal のレンズフレアのアセット。隠れたかどうかは深度で調べる"],
+          ["動きを減らす設定", "光源の動きを止め、フレアの静止画にする"],
+          [
+            "出典",
+            '<a href="https://doc.babylonjs.com/features/featuresDeepDive/environment/lenseFlare/" target="_blank" rel="noopener">doc.babylonjs.com（lenseFlare）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const G0 = [
+              [-0.25, 6, "180,210,255"],
+              [0.25, 10, "120,170,255"],
+              [0.55, 5, "255,210,160"],
+              [0.85, 16, "140,190,255"],
+              [1.25, 8, "200,170,255"],
+            ];
+            const hex = (x, y, r) => {
+              g.beginPath();
+              for (let i = 0; i < 6; i++) {
+                const a = (i / 6) * TAU + 0.3;
+                i ? g.lineTo(x + cos(a) * r, y + sin(a) * r) : g.moveTo(x + cos(a) * r, y + sin(a) * r);
+              }
+              g.closePath();
+              g.fill();
+            };
+            return raf((t) => {
+              const T = rm ? 1.2 : t,
+                lx = 110 + 95 * cos(T * 0.5),
+                ly = 50 + 30 * sin(T * 0.7),
+                bx = 30 + ((T * 30) % 200),
+                occ = Math.max(0, 1 - Math.abs(lx - bx) / 14) * (ly > 60 ? 1 : 0),
+                edge = Math.min(1, Math.min(lx, W - lx, ly, H - ly) / 20),
+                k = Math.max(0, edge) * (1 - occ) * v.amt;
+              g.globalCompositeOperation = "source-over";
+              g.fillStyle = col("navy");
+              g.fillRect(0, 0, W, H);
+              g.fillStyle = "#0b1a44";
+              g.fillRect(bx - 12, 60, 24, 90);
+              g.globalCompositeOperation = "lighter";
+              const sg = g.createRadialGradient(lx, ly, 0, lx, ly, 34);
+              sg.addColorStop(0, `rgba(255,255,255,${0.95 * (1 - occ)})`);
+              sg.addColorStop(1, "rgba(120,170,255,0)");
+              g.fillStyle = sg;
+              g.fillRect(0, 0, W, H);
+              for (const [s, r, c] of G0) {
+                const x = 110 + (110 - lx) * s,
+                  y = 75 + (75 - ly) * s;
+                g.fillStyle = `rgba(${c},${0.28 * k})`;
+                hex(x, y, r);
+              }
+              g.strokeStyle = `rgba(200,220,255,${0.25 * k})`;
+              g.lineWidth = 1;
+              g.beginPath();
+              g.moveTo(lx - 60, ly);
+              g.lineTo(lx + 60, ly);
+              g.stroke();
+              g.globalCompositeOperation = "source-over";
+              g.fillStyle = "#0b1a44";
+              g.fillRect(bx - 12, 60, 24, 90);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

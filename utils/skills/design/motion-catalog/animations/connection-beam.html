@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>つながりを流れる光（Connection beam） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-connection-beam" style="position: relative; width: 220px; height: 150px">
+        <svg width="220" height="150" style="position: absolute; inset: 0">
+          <path d="M50,100 C90,20 130,20 170,60" fill="none" stroke="var(--line)" stroke-width="3" />
+          <path
+            class="ac-connection-beam-p"
+            d="M50,100 C90,20 130,20 170,60"
+            fill="none"
+            stroke="var(--blue)"
+            stroke-width="3"
+            stroke-linecap="round"
+            pathLength="100"
+          /></svg
+        ><span class="sb-icon-btn ac-connection-beam-n" style="left: 28px; top: 78px"
+          ><span class="sb-shape sb-shape--sm sb-shape--round sb-shape--on"></span></span
+        ><span class="sb-icon-btn ac-connection-beam-n" style="left: 148px; top: 38px"
+          ><span class="sb-shape sb-shape--sm"></span
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-connection-beam .ac-connection-beam-n {
+        position: absolute;
+        box-shadow: var(--shadow-card);
+      }
+      .ac-connection-beam .ac-connection-beam-p {
+        stroke-dasharray: 18 82;
+        stroke-dashoffset: 18;
+        filter: drop-shadow(0 0 3px var(--sky));
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-connection-beam .ac-connection-beam-p {
+          animation: ac-connection-beam-f var(--dur, 1600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      @keyframes ac-connection-beam-f {
+        from {
+          stroke-dashoffset: 18;
+        }
+        to {
+          stroke-dashoffset: -100;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-connection-beam .ac-connection-beam-p {
+          stroke-dasharray: none;
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "connection-beam",
+        name: "つながりを流れる光",
+        en: "Connection beam",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "2つのアイコンを結ぶ曲線の上を、光の粒が片方からもう片方へくり返し流れる動きです。データが送られている、サービスどうしが連携している、ということを目に見える形で伝えます。",
+        use: "連携・インテグレーションの紹介、データの流れの図、API・システム構成の説明。",
+        params: [{ key: "dur", label: "1回の時間", value: 1600, min: 600, max: 4000, step: 100, unit: "ms" }],
+        spec: [
+          ["線", "2つの要素の中心を結ぶ SVG の曲線（薄い色）"],
+          [
+            "光",
+            "同じ曲線に <code>linearGradient</code> の光を重ね、グラデーションの位置（<code>x1 / x2</code>）を始点から終点へ動かす。または短い <code>stroke-dasharray</code> を流す｜in-out｜くり返し",
+          ],
+          ["位置", "要素の位置が変わったら（リサイズ）線を引き直す"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/animated-beam" target="_blank" rel="noopener">Magic UI</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

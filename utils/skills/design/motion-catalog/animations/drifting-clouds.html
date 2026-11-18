@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れる雲（Drifting procedural clouds） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-drifting-clouds"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "drifting-clouds",
+        name: "流れる雲",
+        en: "Drifting procedural clouds",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "ノイズで作った雲を、空の上でゆっくり流し、形も少しずつ変えていく背景です。写真や動画を使わずに、軽く穏やかな空の動きが作れます。プレビューは canvas で近い形にしています（元の作例は WebGL のシェーダー）。",
+        use: "天気・旅行・アウトドアのサービス、落ち着いたヒーローの背景、ログイン画面。",
+        params: [{ key: "speed", label: "流れる速さ", value: 1, min: 0, max: 4, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "作り方",
+            "fBm（何段かのノイズを重ねたもの）で雲の濃さを作り、しきい値で空と雲を分ける。座標を時間で横にずらして流し、別のノイズで座標をゆがめて形を変える",
+          ],
+          ["軽くする", "小さな解像度で計算して拡大して描く。画面外では止める"],
+          [
+            "本格的に",
+            "WebGL のフラグメントシェーダーで fBm を計算する。立体的な雲はレイマーチングで光の通り方を計算する",
+          ],
+          ["動きを減らす設定", "雲の流れを止め、1コマの空にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components" target="_blank" rel="noopener">Aceternity UI: Components</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const w = 88,
+              h = 60,
+              off = document.createElement("canvas");
+            off.width = w;
+            off.height = h;
+            const o = off.getContext("2d"),
+              img = o.createImageData(w, h);
+            const hs = (x, y) => {
+              const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+              return s - Math.floor(s);
+            };
+            const vn = (x, y) => {
+              const xi = Math.floor(x),
+                yi = Math.floor(y),
+                xf = x - xi,
+                yf = y - yi,
+                u = xf * xf * (3 - 2 * xf),
+                q = yf * yf * (3 - 2 * yf),
+                a = hs(xi, yi),
+                b = hs(xi + 1, yi),
+                c = hs(xi, yi + 1),
+                d = hs(xi + 1, yi + 1);
+              return a + (b - a) * u + (c - a) * q + (a - b - c + d) * u * q;
+            };
+            const fbm = (x, y, n) => {
+              let s = 0,
+                a = 0.5;
+              for (let i = 0; i < n; i++) {
+                s += a * vn(x, y);
+                x *= 2.03;
+                y *= 2.03;
+                a *= 0.5;
+              }
+              return s;
+            };
+            g.imageSmoothingEnabled = true;
+            return raf((t) => {
+              const T = rm ? 0 : t * v.speed;
+              for (let j = 0; j < h; j++)
+                for (let i = 0; i < w; i++) {
+                  const x = i / 20 + T * 0.12,
+                    y = j / 20,
+                    n = fbm(x + fbm(x * 0.5 + T * 0.04, y * 0.5, 3) * 0.7, y, 5),
+                    c = Math.min(1, Math.max(0, (n - 0.42) * 3.2)),
+                    s = j / h,
+                    k = (j * w + i) * 4;
+                  const r = 70 + 80 * s,
+                    gg = 140 + 60 * s,
+                    bb = 235 + 15 * s,
+                    sh = 1 - 0.07 * c * c;
+                  img.data[k] = (r + (255 - r) * c) * sh;
+                  img.data[k + 1] = (gg + (255 - gg) * c) * sh;
+                  img.data[k + 2] = (bb + (255 - bb) * c) * sh;
+                  img.data[k + 3] = 255;
+                }
+              o.putImageData(img, 0, 0);
+              g.drawImage(off, 0, 0, W, H);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

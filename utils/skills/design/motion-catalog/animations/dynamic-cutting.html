@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>速いテンポの編集（Dynamic cutting） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-dynamic-cutting"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-dynamic-cutting-s ac-dynamic-cutting-m"></div>
+        <span class="ac-dynamic-cutting-beat"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-dynamic-cutting .ac-dynamic-cutting-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-dynamic-cutting .ac-dynamic-cutting-m {
+        animation: ac-dynamic-cutting-t calc(var(--dur, 2600ms) * 1.2) step-end infinite;
+      }
+      @keyframes ac-dynamic-cutting-t {
+        0% {
+          background:
+            radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+            radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+            radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+            linear-gradient(160deg, var(--ice), var(--sky));
+          transform: none;
+        }
+        12.5% {
+          background:
+            radial-gradient(ellipse at 50% 120%, var(--aqua) 0 45%, transparent 46%),
+            repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 28px),
+            linear-gradient(180deg, #e6efff, var(--ice));
+          transform: scale(1.4);
+        }
+        25% {
+          background:
+            radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+            radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+            radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+            radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+            linear-gradient(200deg, #2a3f8f, var(--navy));
+          transform: none;
+        }
+        37.5% {
+          background:
+            radial-gradient(circle at 50% 45%, var(--blue) 0 26px, transparent 27px),
+            linear-gradient(135deg, #f2f5fa, #dfe8f7);
+          transform: scale(1.8);
+        }
+        50% {
+          background:
+            radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+            radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+            radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+            linear-gradient(160deg, var(--ice), var(--sky));
+          transform: scale(2.2);
+          transform-origin: 72% 30%;
+        }
+        62.5% {
+          background:
+            radial-gradient(ellipse at 50% 120%, var(--aqua) 0 45%, transparent 46%),
+            repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 28px),
+            linear-gradient(180deg, #e6efff, var(--ice));
+          transform: none;
+        }
+        75% {
+          background:
+            radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+            radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+            radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+            radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+            linear-gradient(200deg, #2a3f8f, var(--navy));
+          transform: scale(1.6);
+          transform-origin: 30% 32%;
+        }
+        87.5% {
+          background:
+            radial-gradient(circle at 50% 45%, var(--blue) 0 26px, transparent 27px),
+            linear-gradient(135deg, #f2f5fa, #dfe8f7);
+          transform: none;
+        }
+      }
+      .ac-dynamic-cutting .ac-dynamic-cutting-beat {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #fff;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-dynamic-cutting .ac-dynamic-cutting-beat {
+          animation: ac-dynamic-cutting-b calc(var(--dur, 2600ms) * 1.2 / 8) ease-out infinite;
+        }
+      }
+      @keyframes ac-dynamic-cutting-b {
+        from {
+          transform: scale(1.6);
+          opacity: 1;
+        }
+        to {
+          transform: scale(1);
+          opacity: 0.4;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-dynamic-cutting .ac-dynamic-cutting-m {
+          animation-duration: calc(var(--dur, 2600ms) * 4);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dynamic-cutting",
+        name: "速いテンポの編集",
+        en: "Dynamic cutting",
+        cat: "映像の切り替え",
+        kind: "concept",
+        description:
+          "短いショットを、音楽の拍などに合わせて次々と切り替えていく編集です。勢い・高揚感・情報の多さを、短い時間で一気に伝えられます。",
+        use: "プロモーション動画、スポーツやイベントのハイライト、ローンチの告知、ショート動画の冒頭。",
+        params: [
+          { key: "dur", label: "8ショットの長さ ÷1.2", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          ["書き方", "ショットを 1 拍（例：120BPM なら 500ms）か半拍ごとに <code>step-end</code> で切り替える"],
+          ["変化", "寄り・引き・向きを毎回変えると、速くても単調にならない"],
+          ["注意", "1秒に3回以上の強い明滅は避ける（光過敏への配慮）"],
+          ["動きを減らす設定", "切り替えの間隔を大きく延ばし、明滅を減らす"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ピンチで拡大（Pinch to zoom） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-pinch-to-zoom" style="position: relative; width: 200px; height: 150px">
+        <div class="ac-pinch-to-zoom-fr">
+          <span class="ac-pinch-to-zoom-img sb-grad-hero"><i></i></span>
+        </div>
+        <span class="ac-pinch-to-zoom-f"><i class="ac-cursor"></i><i class="ac-cursor"></i></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-pinch-to-zoom .ac-pinch-to-zoom-fr {
+        position: absolute;
+        left: 30px;
+        top: 15px;
+        width: 140px;
+        height: 120px;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: var(--shadow-card);
+      }
+      .ac-pinch-to-zoom .ac-pinch-to-zoom-img {
+        position: absolute;
+        inset: 0;
+        animation: ac-pinch-to-zoom-z 3000ms both;
+      }
+      .ac-pinch-to-zoom .ac-pinch-to-zoom-img i {
+        position: absolute;
+        left: 58px;
+        top: 46px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .ac-pinch-to-zoom .ac-pinch-to-zoom-f {
+        position: absolute;
+        left: 100px;
+        top: 75px;
+      }
+      .ac-pinch-to-zoom .ac-pinch-to-zoom-f i {
+        left: 0;
+        top: 0;
+        animation: ac-pinch-to-zoom-a 3000ms both;
+      }
+      .ac-pinch-to-zoom .ac-pinch-to-zoom-f i + i {
+        animation-name: ac-pinch-to-zoom-b;
+      }
+      @keyframes ac-pinch-to-zoom-z {
+        0%,
+        12% {
+          transform: scale(1);
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        50% {
+          transform: scale(calc(var(--max, 1.6) + 0.25));
+          animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        62%,
+        100% {
+          transform: scale(var(--max, 1.6));
+        }
+      }
+      @keyframes ac-pinch-to-zoom-a {
+        0%,
+        12% {
+          opacity: 0;
+          transform: translate(-14px, 10px);
+        }
+        14% {
+          opacity: 1;
+          transform: translate(-14px, 10px);
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        50% {
+          opacity: 1;
+          transform: translate(-48px, 36px);
+        }
+        56%,
+        100% {
+          opacity: 0;
+          transform: translate(-48px, 36px);
+        }
+      }
+      @keyframes ac-pinch-to-zoom-b {
+        0%,
+        12% {
+          opacity: 0;
+          transform: translate(14px, -10px);
+        }
+        14% {
+          opacity: 1;
+          transform: translate(14px, -10px);
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        50% {
+          opacity: 1;
+          transform: translate(48px, -36px);
+        }
+        56%,
+        100% {
+          opacity: 0;
+          transform: translate(48px, -36px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-pinch-to-zoom-z {
+          0%,
+          12% {
+            transform: scale(1);
+          }
+          50%,
+          100% {
+            transform: scale(var(--max, 1.6));
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "pinch-to-zoom",
+        name: "ピンチで拡大",
+        en: "Pinch to zoom",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "2本の指の間を広げると画像が拡大し、狭めると縮小する動きです。上限を超えて広げると少しだけ抵抗しながら伸び、指を離すと上限の大きさまで戻ります。",
+        use: "写真ビューア、地図、PDF・図面、商品画像の拡大。",
+        params: [
+          { key: "max", label: "上限の倍率", value: 1.6, min: 1.2, max: 3, step: 0.1, unit: "" },
+          { key: "back", label: "戻る時間", value: 300, min: 100, max: 700, step: 10, unit: "ms" },
+        ],
+        spec: [
+          ["拡大", "倍率 = 指の間の距離 ÷ 最初の距離。指に付いてくる（イージングなし）。中心は2本の指の中点"],
+          ["上限を超えたら", "超えた分を小さくして伸ばす（ラバーバンド）、離したら上限まで戻す｜spring"],
+          ["ダブルタップ", "ダブルタップで 1 ↔ 2 倍（片手用）。拡大・縮小ボタンも置く（キーボード用）"],
+          ["動きを減らす設定", "戻る動きをなくし、すぐ上限の大きさにする"],
+          ["出典", '<a href="https://motion.dev/examples" target="_blank" rel="noopener">Motion examples</a>'],
+        ],
+        loop: 3400,
+      });
+    </script>
+  </body>
+</html>

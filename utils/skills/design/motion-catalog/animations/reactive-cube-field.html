@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>反応する立方体（Reactive cube field） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-reactive-cube-field" style="position: relative; width: 220px; height: 130px">
+        <div class="ac-reactive-cube-field-g">
+          <span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span
+          ><span class="ac-reactive-cube-field-k"></span><span class="ac-reactive-cube-field-k"></span>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-reactive-cube-field .ac-reactive-cube-field-g {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(7, 24px);
+        gap: 8px;
+        justify-content: center;
+        align-content: center;
+        perspective: 400px;
+      }
+      .ac-reactive-cube-field .ac-reactive-cube-field-k {
+        --f: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: color-mix(in oklab, var(--blue) calc(var(--f) * 100%), var(--shape-idle));
+        box-shadow: 0 3px 0 color-mix(in oklab, var(--navy) calc(var(--f) * 60%), var(--bar));
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "reactive-cube-field",
+        name: "反応する立方体",
+        en: "Reactive cube field",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "格子状に並んだ立方体の面が、ポインターのほうへ向きを変える動きです。ポインターに近いものほど大きく傾いて色づくので、波のような広がりが生まれます。",
+        use: "ヒーローの背景、技術系のランディングページ、操作に反応する装飾。",
+        params: [
+          { key: "radius", label: "反応する範囲", value: 90, min: 30, max: 160, step: 5, unit: "px" },
+          { key: "angle", label: "最大の傾き", value: 55, min: 10, max: 80, step: 5, unit: "deg" },
+        ],
+        spec: [
+          ["計算", "各マスの中心からポインターまでの距離 d で強さ <code>f = max(0, 1 - d / 範囲)</code>"],
+          [
+            "動き",
+            "<code>rotateX(-dy/d × f × 最大の傾き) rotateY(dx/d × f × 最大の傾き)</code>｜親に <code>perspective</code>",
+          ],
+          ["色", "強さ f に応じて <code>shape-idle → blue</code> に寄せる（<code>color-mix</code>）"],
+          ["動きを減らす設定", "傾けず、ポインターに近いマスの色だけを変える"],
+          ["出典", '<a href="https://reactbits.dev/animations/cubes" target="_blank" rel="noopener">React Bits</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const ks = [...stage.querySelectorAll(".ac-reactive-cube-field-k")],
+              box = stage.firstElementChild.getBoundingClientRect();
+            const cs = ks.map((k) => {
+              const r = k.getBoundingClientRect();
+              return [r.left - box.left + 12, r.top - box.top + 12];
+            });
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const px = 110 + 100 * Math.sin(t * 0.9),
+                py = 65 + 50 * Math.sin(t * 1.7);
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              ks.forEach((k, i) => {
+                const dx = px - cs[i][0],
+                  dy = py - cs[i][1],
+                  d = Math.hypot(dx, dy) || 1,
+                  f = Math.max(0, 1 - d / v.radius);
+                k.style.setProperty("--f", f.toFixed(3));
+                k.style.transform = rm
+                  ? ""
+                  : `rotateX(${((-dy / d) * f * v.angle).toFixed(1)}deg) rotateY(${((dx / d) * f * v.angle).toFixed(1)}deg)`;
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

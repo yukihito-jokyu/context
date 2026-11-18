@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>水滴の波紋（Rain ripples (drizzle)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rain-ripples"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+          background: linear-gradient(180deg, #2a3f8f, var(--navy));
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rain-ripples",
+        name: "水滴の波紋",
+        en: "Rain ripples (drizzle)",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "水面にぽつぽつと落ちる滴が、輪になって広がりながら薄れていく表現です。いくつもの輪が重なり合い、静かで落ち着いた雰囲気を作ります。",
+        use: "雨の日の背景、瞑想・リラックス系のアプリ、水を扱うブランド、押した場所から広がる反応の演出。",
+        params: [{ key: "gap", label: "滴の間隔", value: 300, min: 80, max: 1000, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "輪",
+            "落ちた点から楕円（水平の水面なら横長）を 1〜1.5 秒で広げ、<code>opacity 1 → 0</code>。1つの滴から 2〜3 重の輪を少し遅らせて出す",
+          ],
+          ["間隔", "ランダムな位置・間隔（150〜600ms）で落とす"],
+          ["ツールでは", "After Effects の CC Drizzle。押した位置から広げれば、操作への反応にもなる"],
+          ["動きを減らす設定", "波紋を止め、静かな水面にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Simulation）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const rs = [];
+            let next = 0;
+            return raf((t) => {
+              if (!rm && t > next) {
+                next = t + (v.gap / 1000) * (0.5 + rnd());
+                rs.push({ x: 20 + rnd() * 180, y: 20 + rnd() * 110, t0: t });
+              }
+              g.clearRect(0, 0, W, H);
+              for (let i = rs.length - 1; i >= 0; i--) {
+                const r = rs[i],
+                  a = t - r.t0;
+                if (a > 1.8) {
+                  rs.splice(i, 1);
+                  continue;
+                }
+                for (let k = 0; k < 3; k++) {
+                  const b = a - k * 0.18;
+                  if (b < 0) continue;
+                  const s = b / 1.4;
+                  if (s > 1) continue;
+                  g.strokeStyle = `rgba(201,230,255,${(1 - s) * (0.9 - k * 0.25)})`;
+                  g.lineWidth = 1.4;
+                  g.beginPath();
+                  g.ellipse(r.x, r.y, 4 + s * 40, (4 + s * 40) * 0.42, 0, 0, TAU);
+                  g.stroke();
+                }
+                if (a < 0.12) dot(r.x, r.y, 2, "#fff");
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

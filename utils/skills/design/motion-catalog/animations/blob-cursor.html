@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>液滴のカーソル（Blob cursor） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-blob-cursor" style="position: relative; width: 220px; height: 150px">
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-bc-goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+            <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10" />
+          </filter>
+        </svg>
+        <div class="ac-blob-cursor-g">
+          <span class="ac-blob-cursor-b" style="width: 34px; height: 34px; margin: -17px 0 0 -17px"></span
+          ><span class="ac-blob-cursor-b" style="width: 26px; height: 26px; margin: -13px 0 0 -13px"></span
+          ><span class="ac-blob-cursor-b" style="width: 20px; height: 20px; margin: -10px 0 0 -10px"></span
+          ><span class="ac-blob-cursor-b" style="width: 14px; height: 14px; margin: -7px 0 0 -7px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-blob-cursor .ac-blob-cursor-g {
+        position: absolute;
+        inset: 0;
+        filter: url(#ac-bc-goo);
+      }
+      .ac-blob-cursor .ac-blob-cursor-b {
+        position: absolute;
+        left: 0;
+        top: 0;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "blob-cursor",
+        name: "液滴のカーソル",
+        en: "Blob cursor",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "ポインターのあとを、いくつかの丸が少しずつ遅れて追いかけ、くっついたり伸びたりして、粘りのある液滴のように見えるカーソルです。",
+        use: "アート・クリエイティブ系のサイト、ポートフォリオ、遊び心のあるヒーロー。",
+        params: [],
+        spec: [
+          ["丸", "大きさの違う丸を3–5個。1つ目はポインターに速く、後ろほどゆっくり追いかける（lerp か spring）"],
+          [
+            "くっつき",
+            "SVG フィルター（<code>feGaussianBlur</code> でぼかし → <code>feColorMatrix</code> でアルファを強調）で丸を液体のように融合させる（gooey）",
+          ],
+          [
+            "色",
+            "<code>mix-blend-mode: difference</code> で下の色を反転させる型もある（重なる色で文字が読めるか確かめる）",
+          ],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/blob-cursor" target="_blank" rel="noopener">React Bits: Blob Cursor</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const bs = [...stage.querySelectorAll(".ac-blob-cursor-b")],
+              ps = bs.map(() => [110, 75]);
+            return raf((t) => {
+              const tgt = loop8(t * 1.2);
+              ps.forEach((p, i) => {
+                const s = rm ? 1 : [0.35, 0.2, 0.12, 0.08][i],
+                  q = i ? ps[i - 1] : tgt;
+                p[0] += (q[0] - p[0]) * s;
+                p[1] += (q[1] - p[1]) * s;
+                bs[i].style.transform = `translate(${p[0]}px, ${p[1]}px)`;
+                bs[i].style.display = rm ? "none" : "";
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

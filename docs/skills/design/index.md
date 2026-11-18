@@ -14,5 +14,6 @@ title: 画面要件・図
 | [generate-domain-model](generate-domain-model.md) | 業務の概念と関係をMermaid・PNG・HTMLカタログにする |
 | [generate-domain-model-from-code](generate-domain-model-from-code.md) | コードの根拠を辿れる業務モデル図とHTMLカタログを作る |
 | [generate-usecase-diagram](generate-usecase-diagram.md) | ユースケース図をPNGにしてHTMLカタログで見る |
+| [motion-catalog](motion-catalog.md) | カタログからUIアニメーションを選び、プロジェクトに実装する |
 
 組み合わせて使う場合は[ワークフロー](../workflows.md)を参照してください。各ページには入力と成果物の例を掲載しています。

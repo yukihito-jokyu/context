@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>揺れる光の筋（Animated light rays） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-animated-light-rays"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+          background: linear-gradient(180deg, var(--sky), var(--ice));
+        "
+      >
+        <span class="ac-animated-light-rays-r"></span
+        ><span class="ac-animated-light-rays-r ac-animated-light-rays-r2"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-animated-light-rays .ac-animated-light-rays-r {
+        position: absolute;
+        left: -50%;
+        top: -60%;
+        width: 200%;
+        height: 200%;
+        background: repeating-conic-gradient(
+          from 160deg at 50% 30%,
+          rgba(255, 255, 255, 0.55) 0 3deg,
+          transparent 3deg 9deg
+        );
+        -webkit-mask: radial-gradient(ellipse at 50% 30%, #000 10%, transparent 60%);
+        mask: radial-gradient(ellipse at 50% 30%, #000 10%, transparent 60%);
+        transform-origin: 50% 30%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-animated-light-rays .ac-animated-light-rays-r {
+          animation: ac-animated-light-rays-sw var(--dur, 7000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-animated-light-rays .ac-animated-light-rays-r2 {
+        opacity: 0.6;
+        animation-duration: calc(var(--dur, 7000ms) * 1.4);
+        animation-direction: alternate-reverse;
+      }
+      @keyframes ac-animated-light-rays-sw {
+        from {
+          transform: rotate(calc(var(--swing, 6deg) * -1));
+          opacity: 0.7;
+        }
+        to {
+          transform: rotate(var(--swing, 6deg));
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "animated-light-rays",
+        name: "揺れる光の筋",
+        en: "Animated light rays",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "画面の上から差し込む何本もの光の筋（光芒）が、ゆっくり首を振るように揺れ、明るさも少しずつ変わる背景です。雲間から光が差すような、明るく希望のある雰囲気になります。",
+        use: "ヒーローの背景、新機能の発表、ブランドのビジョン、プレミアム感のあるセクション。",
+        params: [
+          { key: "dur", label: "揺れの周期", value: 7000, min: 2000, max: 15000, step: 500, unit: "ms" },
+          { key: "swing", label: "揺れの角度", value: 6, min: 0, max: 15, step: 1, unit: "deg" },
+        ],
+        spec: [
+          [
+            "光",
+            "上の中央を中心にした <code>repeating-conic-gradient</code>（白い筋と透明を交互）を、下へ向かってマスクで消す",
+          ],
+          ["動き", "<code>rotate(-6deg ↔ 6deg)</code>｜in-out｜往復。別の層を逆向き・違う周期で重ねると自然"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/light-rays" target="_blank" rel="noopener">Magic UI: Light Rays</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

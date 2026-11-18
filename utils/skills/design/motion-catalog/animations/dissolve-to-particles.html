@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>粒になって消える（Surface-linked particle dissolve） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-dissolve-to-particles"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dissolve-to-particles",
+        name: "粒になって消える",
+        en: "Surface-linked particle dissolve",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "キャラクターや物の表面が、ノイズの模様に沿って少しずつ消えていき、消えていく境目の場所から光る粒が生まれて舞い上がる表現です。物が灰や光の粒になって散っていくように見えます。",
+        use: "ゲームの敵が倒れたとき、ワープ・転送の演出、アイテムの消去、削除のアニメーション。",
+        params: [{ key: "dur", label: "消える時間", value: 2000, min: 800, max: 5000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "消し方",
+            "ノイズの値がしきい値より小さい所を消し、しきい値を 0 → 1 へ動かす。しきい値のすぐ近く（境目）を明るい色で光らせる",
+          ],
+          ["粒", "境目にあたる表面の点から粒を出し、上向きにゆっくり漂わせて消す。粒の色は境目の色に合わせる"],
+          [
+            "各環境では",
+            "シェーダーのディゾルブ（ノイズのしきい値）と、VFX Graph・Niagara でメッシュの表面から粒を出す",
+          ],
+          ["動きを減らす設定", "消える動きと粒をやめ、フェードで消す"],
+          [
+            "出典",
+            '<a href="https://heyyocg.link/en/ue5-screenspace-dissolve-overview/" target="_blank" rel="noopener">heyyocg.link（ue5-screenspace-dissolve-ove）</a>、<a href="https://forums.unrealengine.com/t/community-tutorial-unreal-niagara-dissolve-disintegrate-reintegrate/2253288" target="_blank" rel="noopener">forums.unrealengine.com（2253288）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const cs = 3,
+              nx = 34,
+              ny = 40,
+              ox = 110 - (nx * cs) / 2,
+              oy = 14,
+              M0 = [],
+              N0 = [],
+              PS = [];
+            let last = 0;
+            for (let j = 0; j < ny; j++)
+              for (let i = 0; i < nx; i++) {
+                const x = (i - nx / 2) / (nx / 2),
+                  y = (j - ny / 2) / (ny / 2),
+                  inn = (x * x) / 0.55 + (y + 0.3) ** 2 / 0.6 < 1 || x * x + (y + 0.72) ** 2 < 0.12;
+                M0.push(inn);
+                N0.push(0.5 + 0.25 * sin(i * 0.9 + j * 0.4) + 0.25 * sin(i * 0.35 - j * 0.8 + 2) * cos(j * 0.3));
+              }
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              const D = v.dur / 1000,
+                T = t % (D + 1.6),
+                th = T < 0.4 ? -0.1 : T < 0.4 + D ? ((T - 0.4) / D) * 1.1 - 0.05 : 1.1;
+              g.fillStyle = col("navy");
+              g.fillRect(0, 0, W, H);
+              if (rm) {
+                g.globalAlpha = Math.max(0, 1 - Math.max(0, th));
+                for (let k = 0; k < M0.length; k++)
+                  if (M0[k]) {
+                    g.fillStyle = col("blue");
+                    g.fillRect(ox + (k % nx) * cs, oy + Math.floor(k / nx) * cs, cs, cs);
+                  }
+                g.globalAlpha = 1;
+                return;
+              }
+              for (let k = 0; k < M0.length; k++) {
+                if (!M0[k]) continue;
+                const n = N0[k],
+                  x = ox + (k % nx) * cs,
+                  y = oy + Math.floor(k / nx) * cs;
+                if (n < th) continue;
+                if (n < th + 0.05) {
+                  g.fillStyle = "#ffd27a";
+                  if (rnd() < 0.05 * dt * 60) PS.push({ x, y, vx: (rnd() - 0.5) * 10, vy: -15 - rnd() * 20, l: 1 });
+                } else g.fillStyle = col("blue");
+                g.fillRect(x, y, cs, cs);
+              }
+              for (let i = PS.length - 1; i >= 0; i--) {
+                const p = PS[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vx += sin(p.y * 0.1) * 0.3 * dt * 60;
+                p.l -= dt * 0.8;
+                if (p.l <= 0) {
+                  PS.splice(i, 1);
+                  continue;
+                }
+                dot(p.x, p.y, 1.3, `rgba(255,210,122,${p.l})`);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

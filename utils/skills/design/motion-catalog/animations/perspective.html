@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>パースペクティブ（Perspective） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-perspective"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          place-items: center;
+          perspective: var(--persp, 400px);
+        "
+      >
+        <div
+          class="sb-card ac-perspective-t"
+          style="width: 120px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 44px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 66px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 42px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-perspective .ac-perspective-t {
+          animation: ac-perspective-m var(--dur, 1200ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-perspective-m {
+        from {
+          transform: rotateY(-35deg);
+        }
+        to {
+          transform: rotateY(35deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "perspective",
+        name: "パースペクティブ",
+        en: "Perspective",
+        cat: "移動・変形",
+        kind: "concept",
+        description:
+          "3D の動きをどれだけ強く見せるかの設定で、見る人とのあいだの距離にあたります。値が小さいほど近くから見たように遠近感が強くなり、大きいほど平らに見えます。",
+        use: "3D フリップ、傾けるホバー、奥行きのあるカルーセル。",
+        params: [
+          { key: "persp", label: "パースペクティブ", value: 400, min: 150, max: 1500, step: 50, unit: "px" },
+          { key: "dur", label: "片道の時間", value: 1200, min: 400, max: 3000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "動き",
+            "カードを <code>rotateY(-35deg ↔ 35deg)</code> で往復させ、親の <code>perspective</code> を変えて比べる",
+          ],
+          ["目安", "400–800px が自然。200px 以下はゆがみが強い"],
+          ["動きを減らす設定", "回転をやめる"],
+          ["出典", "Animation Vocabulary（Movement & Transforms）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

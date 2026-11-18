@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ブラウン管のちらつき（CRT flicker） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-crt-flicker"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+          background: #0b1530;
+        "
+      >
+        <div class="ac-crt-flicker-scr">
+          <span style="width: 120px"></span><span style="width: 90px"></span><span style="width: 150px"></span
+          ><span style="width: 70px"></span><span style="width: 110px"></span><b class="ac-crt-flicker-cur"></b>
+        </div>
+        <span class="ac-crt-flicker-sl"></span><span class="ac-crt-flicker-band"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-crt-flicker .ac-crt-flicker-scr {
+        position: absolute;
+        inset: 0;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-crt-flicker .ac-crt-flicker-scr {
+          animation: ac-crt-flicker-fl 160ms steps(2) infinite;
+        }
+      }
+      .ac-crt-flicker .ac-crt-flicker-scr span {
+        height: 7px;
+        border-radius: 2px;
+        background: var(--aqua);
+        box-shadow: 0 0 6px var(--aqua);
+        opacity: 0.85;
+      }
+      .ac-crt-flicker .ac-crt-flicker-cur {
+        width: 9px;
+        height: 12px;
+        background: var(--aqua);
+        box-shadow: 0 0 6px var(--aqua);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-crt-flicker .ac-crt-flicker-cur {
+          animation: ac-crt-flicker-bl 1s steps(1) infinite;
+        }
+      }
+      .ac-crt-flicker .ac-crt-flicker-sl {
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(transparent 0 2px, rgba(0, 0, 0, 0.35) 2px 3px),
+          radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55));
+        pointer-events: none;
+      }
+      .ac-crt-flicker .ac-crt-flicker-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -40px;
+        height: 40px;
+        background: linear-gradient(transparent, rgba(160, 240, 255, 0.12), transparent);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-crt-flicker .ac-crt-flicker-band {
+          animation: ac-crt-flicker-band var(--dur, 4000ms) linear infinite;
+        }
+      }
+      @keyframes ac-crt-flicker-fl {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.93;
+        }
+      }
+      @keyframes ac-crt-flicker-bl {
+        50% {
+          opacity: 0;
+        }
+      }
+      @keyframes ac-crt-flicker-band {
+        to {
+          transform: translateY(200px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "crt-flicker",
+        name: "ブラウン管のちらつき",
+        en: "CRT flicker",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "古いブラウン管の画面のように、細い走査線が並び、画面全体がわずかにちらつき、明るい帯がゆっくり下へ流れていく背景です。レトロなターミナルやゲーム機の雰囲気になります。",
+        use: "レトロ・ハッカー風のサイト、ゲーム、ターミナル風の UI、エラー画面の演出。",
+        params: [{ key: "dur", label: "帯の周期", value: 4000, min: 1500, max: 10000, step: 100, unit: "ms" }],
+        spec: [
+          ["走査線", "<code>repeating-linear-gradient</code>（1px の暗い線と 2px の透明）を全面に重ねる"],
+          [
+            "ちらつき",
+            "画面全体の <code>opacity</code> を .92–1 の間で不規則に（<code>steps()</code> で）変える。明るい帯を上から下へ <code>translateY</code>｜linear",
+          ],
+          ["光", "文字は <code>text-shadow</code> で滲ませ、四隅を暗くする（<code>radial-gradient</code>）"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/backgrounds/faulty-terminal" target="_blank" rel="noopener">React Bits: Faulty Terminal</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>カードワイプ（Card wipe） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-card-wipe"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-card-wipe-g">
+          <i class="ac-card-wipe-c" style="left: 0px; top: 0px; --k: 0"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: 0px 0px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: 0px 0px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 44px; top: 0px; --k: 0.167"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -44px 0px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -44px 0px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 88px; top: 0px; --k: 0.333"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -88px 0px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -88px 0px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 132px; top: 0px; --k: 0.5"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -132px 0px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -132px 0px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 176px; top: 0px; --k: 0.667"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -176px 0px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -176px 0px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 0px; top: 50px; --k: 0.167"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: 0px -50px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: 0px -50px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 44px; top: 50px; --k: 0.333"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -44px -50px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -44px -50px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 88px; top: 50px; --k: 0.5"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -88px -50px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -88px -50px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 132px; top: 50px; --k: 0.667"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -132px -50px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -132px -50px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 176px; top: 50px; --k: 0.833"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -176px -50px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -176px -50px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 0px; top: 100px; --k: 0.333"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: 0px -100px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: 0px -100px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 44px; top: 100px; --k: 0.5"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -44px -100px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -44px -100px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 88px; top: 100px; --k: 0.667"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -88px -100px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -88px -100px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 132px; top: 100px; --k: 0.833"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -132px -100px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -132px -100px;
+              "
+            ></b></i
+          ><i class="ac-card-wipe-c" style="left: 176px; top: 100px; --k: 1"
+            ><b
+              style="
+                background:
+                  radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                  radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                  radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                  linear-gradient(160deg, var(--ice), var(--sky));
+                background-size: 220px 150px;
+                background-position: -176px -100px;
+              "
+            ></b
+            ><b
+              class="ac-card-wipe-bk"
+              style="
+                background:
+                  radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                  radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                  radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                  linear-gradient(200deg, #2a3f8f, var(--navy));
+                background-size: 220px 150px;
+                background-position: -176px -100px;
+              "
+            ></b
+          ></i>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-card-wipe .ac-card-wipe-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-card-wipe .ac-card-wipe-g {
+        position: absolute;
+        inset: 0;
+        perspective: 600px;
+      }
+      .ac-card-wipe .ac-card-wipe-c {
+        position: absolute;
+        width: 44px;
+        height: 50px;
+        transform-style: preserve-3d;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-card-wipe .ac-card-wipe-c {
+          animation: ac-card-wipe-t var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+          animation-delay: calc(var(--k) * 500ms);
+        }
+      }
+      .ac-card-wipe .ac-card-wipe-c b {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+      }
+      .ac-card-wipe .ac-card-wipe-c .ac-card-wipe-bk {
+        transform: rotateY(180deg);
+      }
+      @keyframes ac-card-wipe-t {
+        0%,
+        25% {
+          transform: rotateY(0);
+        }
+        65%,
+        100% {
+          transform: rotateY(180deg);
+        }
+      }
+      @keyframes ac-card-wipe-rf {
+        0%,
+        45% {
+          opacity: 0;
+        }
+        55%,
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-card-wipe .ac-card-wipe-c .ac-card-wipe-bk {
+          transform: none;
+          animation: ac-card-wipe-rf var(--dur, 2600ms) linear infinite alternate;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "card-wipe",
+        name: "カードワイプ",
+        en: "Card wipe",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "画面をトランプのような小さなカードに分け、表に前のショット、裏に次のショットを貼って、端から順にくるりと裏返していく切り替えです。",
+        use: "写真ギャラリーの切り替え、ゲームの場面転換、イベントの告知、カードを集める演出。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "格子のカードごとに表（A の一部）と裏（B の一部）を重ね、<code>rotateY(0 → 180deg)</code>。<code>backface-visibility: hidden</code>",
+          ],
+          ["順番", "列ごとに <code>animation-delay</code> を 40〜80ms ずらす（斜めにすると波のよう）"],
+          ["奥行き", "親に <code>perspective: 600px</code>"],
+          ["動きを減らす設定", "裏返しをやめ、短いクロスフェードにする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Transition）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

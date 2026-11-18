@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>稲妻（Lightning） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-lightning"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "lightning",
+        name: "稲妻",
+        en: "Lightning",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "暗い空に、枝分かれした稲妻が一瞬走って消え、空全体がぱっと明るくなる背景です。力強さ・電気・エネルギーを、劇的に表します。",
+        use: "ゲーム・エンタメのタイトル、エネルギー・電力系のサービス、パワフルな発表の演出。",
+        params: [{ key: "gap", label: "光る間隔", value: 1600, min: 600, max: 4000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "形",
+            "上から下へ、少しずつ横にぶれながら線を伸ばす（中点をずらす分割をくり返す）。ところどころで短い枝を分ける",
+          ],
+          ["光り方", "一瞬（50–100ms）明るく描き、空全体も明るくしてから、200–400ms で消す。間隔はランダムに"],
+          ["注意", "強い明滅は光過敏の人の負担になる。1秒に3回以上光らせない"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "稲妻を光らせず、暗い空の静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/backgrounds/lightning" target="_blank" rel="noopener">React Bits: Lightning</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            let bolt = [],
+              life = 0,
+              last = 0,
+              next = 0.3;
+            const make = (x1, y1, x2, y2, d, out) => {
+              if (d <= 0) {
+                out.push([x1, y1, x2, y2]);
+                return;
+              }
+              const mx = (x1 + x2) / 2 + ((Math.random() - 0.5) * 30 * d) / 4,
+                my = (y1 + y2) / 2;
+              make(x1, y1, mx, my, d - 1, out);
+              make(mx, my, x2, y2, d - 1, out);
+              if (Math.random() < 0.18 && d > 1) make(mx, my, mx + (Math.random() - 0.5) * 80, my + 40, d - 2, out);
+            };
+            const draw = () => {
+              g.clearRect(0, 0, W, H);
+              if (life <= 0) return;
+              g.fillStyle = `rgba(160,200,255,${0.25 * life})`;
+              g.fillRect(0, 0, W, H);
+              g.strokeStyle = `rgba(235,245,255,${life})`;
+              g.shadowColor = col("sky") || "#7ab8ff";
+              g.shadowBlur = 12;
+              g.lineWidth = 2;
+              g.beginPath();
+              for (const [a, b, c2, d] of bolt) {
+                g.moveTo(a, b);
+                g.lineTo(c2, d);
+              }
+              g.stroke();
+              g.shadowBlur = 0;
+            };
+            if (rm) return null;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              if (t > next) {
+                bolt = [];
+                const x = 40 + Math.random() * 140;
+                make(x, -5, x + (Math.random() - 0.5) * 60, H, 5, bolt);
+                life = 1;
+                next = t + (v.gap / 1000) * (0.7 + Math.random() * 0.6);
+              }
+              life = Math.max(0, life - dt * 3);
+              draw();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マテリアルフェード（Material fade transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-material-fade"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-dialog ac-material-fade-d"
+          style="width: 150px; padding: 16px; display: grid; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 110px"></span>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 30px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 30px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-material-fade .ac-material-fade-d {
+        animation:
+          ac-material-fade-sc var(--in, 150ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-material-fade-op calc(var(--in, 150ms) * 0.3) linear both,
+          ac-material-fade-out var(--out, 75ms) linear calc(var(--in, 150ms) + 1200ms) forwards;
+      }
+      @keyframes ac-material-fade-sc {
+        from {
+          transform: scale(var(--from, 0.8));
+        }
+        to {
+          transform: none;
+        }
+      }
+      @keyframes ac-material-fade-op {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-material-fade-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-material-fade-sc {
+          from {
+            transform: none;
+          }
+          to {
+            transform: none;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "material-fade",
+        name: "マテリアルフェード",
+        en: "Material fade transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "ダイアログやメニューなど、画面の中に現れる部品のためのフェードです。現れるときは透明度に加えてわずかに広がり、消えるときは広がらずに短く消えます。出るより消えるほうを速くするのがポイントです。",
+        use: "ダイアログ、メニュー、スナックバー、FAB の出し入れなど、画面の範囲内に出入りする部品。",
+        params: [
+          { key: "in", label: "現れる時間", value: 150, min: 80, max: 400, step: 10, unit: "ms" },
+          { key: "out", label: "消える時間", value: 75, min: 40, max: 300, step: 5, unit: "ms" },
+          { key: "from", label: "出だしの大きさ", value: 0.8, min: 0.6, max: 1, step: 0.02, unit: "" },
+        ],
+        total: (p) => p["in"] + 1200 + p["out"],
+        spec: [
+          [
+            "現れる",
+            "<code>opacity 0 → 1</code>（linear、前半 30% で）と <code>scale(出だしの大きさ → 1)</code>（out、全体で）",
+          ],
+          ["消える", "<code>opacity 1 → 0</code>｜linear｜拡大は戻さない"],
+          ["使い分け", "画面の外から来る部品（ボトムシートなど）はスライドを使う"],
+          ["動きを減らす設定", "拡大をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://m2.material.io/design/motion/the-motion-system.html" target="_blank" rel="noopener">Material Design: motion system</a>',
+          ],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フィルムに直接描く（Direct-on-film (drawn on film)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-direct-on-film"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "direct-on-film",
+        name: "フィルムに直接描く",
+        en: "Direct-on-film (drawn on film)",
+        cat: "表現スタイル",
+        kind: "motion",
+        description:
+          "カメラを使わず、フィルムに直接ひっかいたり描いたりして作るアニメーションの表現です。コマごとに線や点が変わり、ちらつきや傷と一緒に荒々しいリズムが生まれます。",
+        use: "音楽・アート系の実験的なブランド、ロゴの登場、レトロな映像の雰囲気づくり。",
+        params: [{ key: "fps", label: "1秒あたりのコマ数", value: 12, min: 6, max: 24, step: 1, unit: "" }],
+        spec: [
+          ["表現形式", "黒地に白っぽいひっかき線・にじんだ色の点・手描きの形。フィルムの縁と送り穴"],
+          ["演出", "コマごとに図形を少しずつ（または大きく）変える。明るさのちらつき、縦の傷、ゴミの点を足す"],
+          ["時間", "12〜24 コマ/秒の <code>steps()</code>。音の拍に合わせて形を大きく変えると音楽的になる"],
+          ["Web では", "canvas でコマごとにランダムな線を描くか、SVG を数枚 <code>steps()</code> で切り替える"],
+          ["動きを減らす設定", "コマの切り替えとちらつきを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://eclass.aegean.gr/modules/document/file.php/511154/NFBstopmotion_studio/08_AnimationResources.pdf" target="_blank" rel="noopener">NFB: Glossary of Animation Terms & Techniques</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let lastF = -1;
+            return raf((t) => {
+              const f = rm ? 0 : Math.floor(t * v.fps);
+              if (f === lastF) return;
+              lastF = f;
+              sd = 11 + f * 97;
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = `rgba(10,16,40,${0.9 + rnd() * 0.1})`;
+              g.fillRect(0, 0, W, H);
+              g.fillStyle = "#1c2650";
+              g.fillRect(0, 0, 16, H);
+              g.fillRect(W - 16, 0, 16, H);
+              const off = (f * 9) % 22;
+              for (let y = -22 + off; y < H; y += 22) {
+                g.fillStyle = "#0a1028";
+                g.beginPath();
+                g.roundRect(4, y, 8, 12, 2);
+                g.roundRect(W - 12, y, 8, 12, 2);
+                g.fill();
+              }
+              const beat = f % 6 === 0,
+                cx = 110 + (rnd() - 0.5) * 30,
+                cy = 75 + (rnd() - 0.5) * 24,
+                r = beat ? 34 : 18 + rnd() * 10;
+              g.strokeStyle = "rgba(240,245,255,.9)";
+              g.lineWidth = 2 + rnd() * 2;
+              g.beginPath();
+              for (let k = 0; k <= 24; k++) {
+                const a = (k / 24) * TAU,
+                  rr = r + (rnd() - 0.5) * 8;
+                k ? g.lineTo(cx + cos(a) * rr, cy + sin(a) * rr) : g.moveTo(cx + cos(a) * rr, cy + sin(a) * rr);
+              }
+              g.stroke();
+              g.fillStyle = `rgba(124,196,255,${0.4 + rnd() * 0.4})`;
+              for (let k = 0; k < 5; k++) dot(30 + rnd() * 160, 15 + rnd() * 120, 2 + rnd() * 6, g.fillStyle);
+              g.strokeStyle = "rgba(255,255,255,.7)";
+              g.lineWidth = 1;
+              for (let k = 0; k < 3; k++) {
+                const x = 20 + rnd() * 180;
+                g.beginPath();
+                g.moveTo(x, 0);
+                g.lineTo(x + (rnd() - 0.5) * 6, H);
+                g.stroke();
+              }
+              g.strokeStyle = "rgba(255,210,120,.8)";
+              g.lineWidth = 2;
+              g.beginPath();
+              let x = 30,
+                y = 30 + rnd() * 90;
+              g.moveTo(x, y);
+              while (x < 190) {
+                x += 10 + rnd() * 14;
+                y += (rnd() - 0.5) * 26;
+                g.lineTo(x, y);
+              }
+              g.stroke();
+              for (let k = 0; k < 14; k++) dot(16 + rnd() * 188, rnd() * H, rnd() * 1.4, "rgba(255,255,255,.8)");
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

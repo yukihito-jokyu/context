@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>直角のスワイプで選ぶ（Cross-slide selection and drag） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-cross-slide-select"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-cross-slide-select-st">
+          <div class="ac-cross-slide-select-t">
+            <span class="ac-cross-slide-select-ck"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg
+            ></span>
+          </div>
+          <div class="ac-cross-slide-select-t">
+            <span class="ac-cross-slide-select-ck"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg
+            ></span>
+          </div>
+          <div class="ac-cross-slide-select-t">
+            <span class="ac-cross-slide-select-ck"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg
+            ></span>
+          </div>
+          <div class="ac-cross-slide-select-t">
+            <span class="ac-cross-slide-select-ck"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg
+            ></span>
+          </div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-cross-slide-select .ac-cross-slide-select-st {
+        position: absolute;
+        left: 14px;
+        top: 34px;
+        display: flex;
+        gap: 10px;
+      }
+      .ac-cross-slide-select .ac-cross-slide-select-t {
+        position: relative;
+        width: 40px;
+        height: 56px;
+        border-radius: 10px;
+        background: linear-gradient(150deg, var(--ice), var(--sky));
+        box-shadow: 0 1px 3px rgba(27, 58, 138, 0.12);
+        transition: box-shadow 200ms;
+      }
+      .ac-cross-slide-select .ac-cross-slide-select-t.is-sel {
+        box-shadow: 0 0 0 3px var(--blue);
+      }
+      .ac-cross-slide-select .ac-cross-slide-select-t.is-drag {
+        box-shadow: 0 14px 24px rgba(27, 58, 138, 0.3);
+        z-index: 3;
+      }
+      .ac-cross-slide-select .ac-cross-slide-select-ck {
+        position: absolute;
+        right: -6px;
+        top: -6px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--blue);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        transform: scale(0);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-cross-slide-select .ac-cross-slide-select-ck {
+          transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      }
+      .ac-cross-slide-select .ac-cross-slide-select-ck svg {
+        width: 12px;
+        height: 12px;
+      }
+      .ac-cross-slide-select .ac-cross-slide-select-t.is-sel .ac-cross-slide-select-ck {
+        transform: scale(1);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "cross-slide-select",
+        name: "直角のスワイプで選ぶ",
+        en: "Cross-slide selection and drag",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "横に流れるリストの項目を、スクロールと直角（下）へ少しスワイプすると選択、大きく引くとリストから外れてドラッグになる操作です。短いスワイプでは引っぱられて戻り、チェックが付きます。",
+        use: "横スクロールの一覧での選択、タイルの並べ替え、タッチのカード操作。",
+        params: [],
+        spec: [
+          [
+            "段階",
+            "スクロールと直角に、しきい値 1（10〜20px）を超えて離すと選択、しきい値 2（30〜40px）を超えるとドラッグにする。ボタンでも同じ操作をできるようにする",
+          ],
+          [
+            "見せ方",
+            "しきい値 1 までは抵抗をつけて付いてこさせ、離すとばねで戻してチェックを付ける。ドラッグになったら持ち上げる",
+          ],
+          ["Windows では", "cross-slide（Windows 8 のタッチ操作）。今はスワイプ選択や長押しドラッグとして使われる"],
+          ["動きを減らす設定", "引っぱりと戻りの動きをやめ、選択とドラッグの状態だけを切り替える"],
+          [
+            "出典",
+            '<a href="https://learn.microsoft.com/en-us/windows/apps/develop/input/guidelines-for-cross-slide" target="_blank" rel="noopener">learn.microsoft.com（guidelines-for-cross-slide）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const keyAt = (K, T) => {
+              let i = 0;
+              while (i < K.length - 2 && T >= K[i + 1][0]) i++;
+              const a = K[i],
+                b = K[i + 1],
+                f = Math.min(1, Math.max(0, (T - a[0]) / Math.max(1e-6, b[0] - a[0]))),
+                e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+              return [a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e];
+            };
+            const ts = [...stage.querySelectorAll(".ac-cross-slide-select-t")];
+            const K = [
+              [0, 85, 62],
+              [0.4, 85, 62],
+              [1, 85, 80],
+              [1.3, 85, 80],
+              [1.5, 135, 62],
+              [1.9, 135, 62],
+              [2.7, 140, 112],
+              [3.4, 165, 118],
+              [3.8, 165, 118],
+              [4.6, 135, 62],
+              [5.6, 135, 62],
+            ];
+            show(1);
+            cur.style.transition = "none";
+            let sel = false,
+              back = 0,
+              last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              const T = t % 5.6,
+                [px, py] = keyAt(K, T);
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              if (T < 0.05) {
+                sel = false;
+                ts.forEach((e) => e.classList.remove("is-sel", "is-drag"));
+              }
+              const a = ts[1],
+                b = ts[2];
+              let ay = 0,
+                bx = 0,
+                by = 0;
+              if (T >= 0.4 && T < 1.3) ay = rm ? 0 : (py - 62) * 0.7;
+              if (T >= 1.3 && !sel) {
+                sel = true;
+                a.classList.add("is-sel");
+              }
+              if (T >= 1.3 && T < 1.8) {
+                const f = (T - 1.3) / 0.5;
+                ay = rm ? 0 : 12.6 * Math.exp(-f * 5) * Math.cos(f * 12);
+              }
+              if (T >= 1.9 && T < 4.6) {
+                const d = py - 62;
+                if (d > 32) {
+                  b.classList.add("is-drag");
+                  bx = px - 135;
+                  by = py - 62;
+                } else by = rm ? 0 : d * 0.7;
+              } else b.classList.remove("is-drag");
+              a.style.transform = `translateY(${ay}px)`;
+              b.style.transform = `translate(${bx}px, ${by}px)${b.classList.contains("is-drag") && !rm ? " scale(1.08)" : ""}`;
+              b.style.transition = !rm && T > 4.4 && T < 4.7 ? "transform 300ms" : "none";
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

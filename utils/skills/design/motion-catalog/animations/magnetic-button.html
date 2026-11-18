@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マグネティックボタン（Magnetic Button） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-magnetic-button" style="position: relative; width: 220px; height: 160px">
+        <span class="sb-fab ac-magnetic-button-b" style="position: absolute; left: 82px; top: 52px"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" /></svg></span
+        ><span class="ac-cursor" style="left: 0; top: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-magnetic-button .ac-magnetic-button-b {
+        transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-magnetic-button .ac-magnetic-button-b.is-free {
+        transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "magnetic-button",
+        name: "マグネティックボタン",
+        en: "Magnetic Button",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "カーソルが近づくと、ボタンが磁石に引かれるようにカーソルの方へ少し寄っていく動きです。離れるとばねのように元の位置へ戻ります。遊び心と「押せる」予感を出します。",
+        use: "ヒーローの CTA、ポートフォリオサイトのボタンやアイコン（PC のみ）。",
+        params: [
+          { key: "strength", label: "引かれる強さ", value: 0.35, min: 0, max: 0.6, step: 0.05, unit: "" },
+          { key: "radius", label: "反応する距離", value: 80, min: 40, max: 140, step: 10, unit: "px" },
+        ],
+        spec: [
+          [
+            "動き",
+            "カーソルが反応する距離に入ったら、<code>translate((カーソル - ボタンの中心) × 引かれる強さ)</code>。追従は 150ms 程度の out でならす",
+          ],
+          ["戻り", "距離の外に出たら spring で <code>translate(0)</code> へ"],
+          ["きっかけ", "<code>pointermove</code>（<code>@media (hover: hover)</code> の環境だけ）"],
+          ["動きを減らす設定", "寄る動きをやめる"],
+          ["出典", "ChatGPT との会話の分類表（操作への反応）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const b = stage.querySelector(".ac-magnetic-button-b"),
+            cur = stage.querySelector(".ac-cursor");
+          const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const cx = 110,
+            cy = 80;
+          let raf,
+            t0 = null;
+          const tick = (now) => {
+            if (t0 === null) t0 = now;
+            const a = ((now - t0) / 3200) * Math.PI * 2;
+            const x = cx + Math.cos(a) * 95,
+              y = cy + Math.sin(a * 2) * 45;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            const dx = x - cx,
+              dy = y - cy,
+              near = Math.hypot(dx, dy) < v.radius + 28 && !rm;
+            b.classList.toggle("is-free", !near);
+            b.style.transform = near ? `translate(${dx * v.strength}px, ${dy * v.strength}px)` : "";
+            raf = requestAnimationFrame(tick);
+          };
+          raf = requestAnimationFrame(tick);
+          return () => cancelAnimationFrame(raf);
+        },
+      });
+    </script>
+  </body>
+</html>

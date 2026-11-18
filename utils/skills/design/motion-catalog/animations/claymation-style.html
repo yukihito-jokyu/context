@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>粘土アニメ風（Claymation style） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-claymation-style" style="position: relative; width: 200px; height: 150px">
+        <span class="ac-claymation-style-b"><i></i><i></i></span><span class="ac-claymation-style-fl"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-claymation-style .ac-claymation-style-fl {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 30%, #e7e2d6, #d5cfbf);
+      }
+      .ac-claymation-style .ac-claymation-style-b {
+        position: absolute;
+        left: 66px;
+        bottom: 24px;
+        width: 68px;
+        height: 60px;
+        background: radial-gradient(circle at 35% 30%, #a9cdfa, var(--sky) 45%, #3f73d6);
+        box-shadow:
+          inset -6px -8px 14px rgba(20, 40, 110, 0.3),
+          0 6px 8px rgba(18, 26, 43, 0.18);
+        border-radius: 52% 48% 44% 56% / 60% 58% 42% 40%;
+      }
+      .ac-claymation-style .ac-claymation-style-b i {
+        position: absolute;
+        top: 20px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #1d2433;
+        box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.6);
+        left: 18px;
+      }
+      .ac-claymation-style .ac-claymation-style-b i + i {
+        left: auto;
+        right: 18px;
+      }
+      /* コマ送りは run（Web Animations API）で、ループ全体の進み具合に steps() をかける */
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "claymation-style",
+        name: "粘土アニメ風",
+        en: "Claymation style",
+        cat: "表現スタイル",
+        kind: "style",
+        description:
+          "粘土の人形を少しずつ動かして撮影したような表現です。丸く柔らかい形と、コマごとのわずかなゆがみが、素朴で温かな手作り感を生みます。",
+        use: "子ども向けのサービス、食べ物・暮らし系のブランド。",
+        params: [{ key: "fps", label: "1秒あたりのコマ数", value: 12, min: 6, max: 24, step: 1, unit: "" }],
+        spec: [
+          ["表現形式", "丸く厚みのある形と、柔らかい陰影（光沢の少ないグラデーション）"],
+          ["演出", "物がむにゅっと形を変えながら動く。コマごとに形がわずかに揺らぐ"],
+          ["個別の動き", "形の変化（<code>border-radius</code> の8つの値、SVG パスの補間）"],
+          ["時間・質感", "12コマ/秒前後の <code>steps()</code>。動きの合間も、輪郭を少しずつ揺らし続ける"],
+          ["カタログの関連", "stop-motion-style / morph / squash-stretch / line-boil"],
+          ["動きを減らす設定", "形の揺らぎと移動を止め、静止した形にする"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/stop-motion-animation.html" target="_blank" rel="noopener">Adobe: stop motion animation</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          const b = stage.querySelector(".ac-claymation-style-b"),
+            A = "52% 48% 44% 56% / 60% 58% 42% 40%";
+          /* CSS の steps() はキーフレームの区間ごとにかかる。1/fps 秒ごとに送るため、全体の easing に渡す */
+          const a = b.animate(
+            [
+              { borderRadius: A, transform: "translateX(0) scale(1)" },
+              { borderRadius: "46% 54% 50% 50% / 52% 62% 38% 48%", transform: "translateX(-10px) scale(1.06, .94)" },
+              {
+                borderRadius: "56% 44% 52% 48% / 64% 50% 50% 36%",
+                transform: "translateX(0) translateY(-10px) scale(.95, 1.06)",
+              },
+              { borderRadius: "50% 50% 46% 54% / 56% 60% 40% 44%", transform: "translateX(10px) scale(1.05, .95)" },
+              { borderRadius: A, transform: "translateX(0) scale(1)" },
+            ],
+            { duration: 2400, iterations: Infinity, easing: `steps(${Math.round(v.fps * 2.4)}, jump-none)` },
+          );
+          return () => a.cancel();
+        },
+      });
+    </script>
+  </body>
+</html>

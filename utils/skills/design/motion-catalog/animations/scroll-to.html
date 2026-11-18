@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>目的地までのスクロール（Animated scroll-to） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-scroll-to"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-scroll-to-vp">
+          <div class="ac-scroll-to-ct">
+            <section class="ac-scroll-to-s0"><b></b><i></i><i></i><i></i></section>
+            <section class="ac-scroll-to-s1"><b></b><i></i><i></i><i></i></section>
+            <section class="ac-scroll-to-s2"><b></b><i></i><i></i><i></i></section>
+          </div>
+        </div>
+        <div class="ac-scroll-to-nav"><i>概要</i><i>機能</i><i>料金</i></div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-to .ac-scroll-to-nav {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 38px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface);
+        box-shadow: 0 1px 0 var(--line);
+        z-index: 2;
+      }
+      .ac-scroll-to .ac-scroll-to-nav i {
+        font: 600 11px/1 var(--font-sans);
+        font-style: normal;
+        color: var(--ink-muted);
+        padding: 6px 10px;
+        border-radius: 999px;
+        transition:
+          background-color 200ms,
+          color 200ms;
+      }
+      .ac-scroll-to .ac-scroll-to-nav i.is-on {
+        background: var(--ice);
+        color: var(--blue);
+      }
+      .ac-scroll-to .ac-scroll-to-vp {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 38px;
+        bottom: 0;
+        overflow: hidden;
+      }
+      .ac-scroll-to .ac-scroll-to-ct section {
+        height: 120px;
+        padding: 14px 20px;
+        box-sizing: border-box;
+        display: grid;
+        align-content: start;
+        gap: 8px;
+      }
+      .ac-scroll-to .ac-scroll-to-ct b {
+        display: block;
+        width: 70px;
+        height: 12px;
+        border-radius: 6px;
+        background: var(--sky);
+      }
+      .ac-scroll-to .ac-scroll-to-s1 b {
+        background: var(--blue);
+      }
+      .ac-scroll-to .ac-scroll-to-s2 b {
+        background: var(--cobalt);
+      }
+      .ac-scroll-to .ac-scroll-to-ct i {
+        display: block;
+        height: 7px;
+        border-radius: 4px;
+        background: var(--bar);
+        width: 170px;
+      }
+      .ac-scroll-to .ac-scroll-to-ct i:last-child {
+        width: 110px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-to",
+        name: "目的地までのスクロール",
+        en: "Animated scroll-to",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "目次やナビのボタンを押したとき、ページを一瞬で飛ばさず、目的の位置までなめらかにスクロールさせる動きです。今どこからどこへ移ったのかが分かり、迷いにくくなります。",
+        use: "ページ内リンク・目次、「トップへ戻る」ボタン、ステップの多いフォームで次の項目へ送るとき。",
+        params: [{ key: "dur", label: "スクロールの時間", value: 700, min: 200, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            '<code>element.scrollTo({ top, behavior: "smooth" })</code>、またはリンクだけなら <code>html { scroll-behavior: smooth; }</code>',
+          ],
+          [
+            "時間を決めたいとき",
+            "rAF で <code>scrollTop</code> を in-out で補間する。距離に合わせて 300〜900ms にし、長すぎないよう上限を決める。途中でホイール・タッチの操作があれば中断する",
+          ],
+          [
+            "止まる位置",
+            "固定ヘッダーの分は <code>scroll-margin-top</code> で空ける。着いたら目的の見出しにフォーカスを移す",
+          ],
+          ["動きを減らす設定", "なめらかなスクロールをやめ、目的の位置へすぐ移る"],
+          [
+            "出典",
+            '<a href="https://gsap.com/docs/v3/Plugins/" target="_blank" rel="noopener">GSAP: Plugins</a>、<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-behavior" target="_blank" rel="noopener">MDN: scroll-behavior</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const ct = stage.querySelector(".ac-scroll-to-ct"),
+              ps = [...stage.querySelectorAll(".ac-scroll-to-nav i")];
+            let y = 0,
+              id = 0,
+              tm = [];
+            const go = (k) => {
+              ps.forEach((p, i) => p.classList.toggle("is-on", i === k));
+              const y0 = y,
+                y1 = k * 120,
+                t0 = performance.now();
+              cancelAnimationFrame(id);
+              if (rm) {
+                y = y1;
+                ct.style.transform = `translateY(${-y}px)`;
+                return;
+              }
+              const f = (now) => {
+                const p = Math.min(1, (now - t0) / v.dur),
+                  e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+                y = y0 + (y1 - y0) * e;
+                ct.style.transform = `translateY(${-y}px)`;
+                if (p < 1) id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+            };
+            const tap = (k) => {
+              const r = ps[k];
+              move(r.offsetLeft + r.offsetWidth / 2, 22, 450);
+              tm.push(
+                setTimeout(() => {
+                  cur.animate([{ scale: 1 }, { scale: 0.85 }, { scale: 1 }], { duration: 200 });
+                  go(k);
+                }, 480),
+              );
+            };
+            const stop = seq(5600, [
+              [
+                0,
+                () => {
+                  show(1);
+                  move(110, 130, 0);
+                },
+              ],
+              [200, () => tap(1)],
+              [2000, () => tap(2)],
+              [3800, () => tap(0)],
+              [5200, () => show(0)],
+            ]);
+            return () => {
+              stop();
+              tm.forEach(clearTimeout);
+              cancelAnimationFrame(id);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

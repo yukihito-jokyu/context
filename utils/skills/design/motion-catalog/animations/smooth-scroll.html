@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>なめらかなスクロール（Smooth scrolling (inertial page scroll)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-smooth-scroll" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-smooth-scroll-p">
+          <div class="ac-smooth-scroll-ct">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+        <div class="ac-smooth-scroll-p ac-smooth-scroll-q">
+          <div class="ac-smooth-scroll-ct">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-smooth-scroll .ac-smooth-scroll-p {
+        position: absolute;
+        top: 10px;
+        left: 6px;
+        width: 98px;
+        height: 106px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-smooth-scroll .ac-smooth-scroll-q {
+        left: 116px;
+      }
+      .ac-smooth-scroll .ac-smooth-scroll-ct {
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .ac-smooth-scroll .ac-smooth-scroll-ct i {
+        display: block;
+        height: 18px;
+        border-radius: 6px;
+        background: var(--ice);
+      }
+      .ac-smooth-scroll .ac-smooth-scroll-ct i:nth-child(4n + 1) {
+        background: linear-gradient(150deg, var(--sky), var(--blue));
+      }
+      .ac-smooth-scroll::after {
+        content: "ふつう　　　　　　なめらか";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 10px;
+        text-align: center;
+        white-space: pre;
+        font: 600 11px var(--font-sans);
+        color: var(--ink-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "smooth-scroll",
+        name: "なめらかなスクロール",
+        en: "Smooth scrolling (inertial page scroll)",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "ページのスクロールそのものに慣性をつけ、ホイールの 1 段ごとにカクッと動くのではなく、表示を少し遅れてなめらかに追いかけさせる方法です。左がふつうのスクロール、右がなめらかなスクロールです。",
+        use: "演出の多いブランドサイト、スクロール連動のアニメーションが多いページ、ポートフォリオ。",
+        params: [{ key: "k", label: "追いかける係数", value: 0.1, min: 0.03, max: 0.5, step: 0.01, unit: "" }],
+        spec: [
+          [
+            "仕組み",
+            "ホイール・タッチで決まる本来の位置を目標にし、表示する位置を毎フレーム <code>(目標 − 今) × 係数</code> だけ近づける。中身は固定した入れ物に入れて <code>translateY</code> で動かす",
+          ],
+          [
+            "気をつけること",
+            "ページ内検索・アンカー・キーボード操作を壊さない（Lenis・ScrollSmoother はこれを扱う）。タッチはネイティブのままが多い",
+          ],
+          ["係数", "0.08〜0.15。小さいほどゆったりするが、遅れすぎると操作が重く感じる"],
+          ["動きを減らす設定", "なめらかにするのをやめ、ブラウザのふつうのスクロールにする"],
+          ["出典", '<a href="https://gsap.com/docs/v3/Plugins/" target="_blank" rel="noopener">GSAP: Plugins</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const [a, b] = [...stage.querySelectorAll(".ac-smooth-scroll-ct")];
+            let tgt = 0,
+              now = 0,
+              last = 0,
+              nextAt = 0,
+              dir = 1,
+              n = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              if (t >= nextAt) {
+                tgt = Math.min(170, Math.max(0, tgt + dir * 34));
+                n++;
+                if (tgt >= 170 || tgt <= 0) dir *= -1;
+                nextAt = t + (n % 3 === 0 ? 0.8 : 0.15);
+              }
+              now = rm ? tgt : now + (tgt - now) * (1 - Math.pow(1 - v.k, dt * 60));
+              a.style.transform = `translateY(${-tgt}px)`;
+              b.style.transform = `translateY(${-now}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>崩れて戻る画像（Image decay） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-image-decay"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <div class="ac-image-decay-w"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-image-decay {
+        --ac-pic:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-image-decay .ac-image-decay-w {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "image-decay",
+        name: "崩れて戻る画像",
+        en: "Image decay",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像が横の細い帯に分かれてばらばらにずれ、崩れたようにゆがんだあと、ゆっくり元の形へ戻っていく動きです。デジタルの劣化や、時間が巻き戻るような印象を作ります。プレビューは帯のずれで近い形を作っています（元の作例は WebGL）。",
+        use: "アート寄りのギャラリー、映像・音楽系のサイト、ホバーで反応する写真、トランジション。",
+        params: [
+          { key: "n", label: "帯の数", value: 14, min: 6, max: 30, step: 1, unit: "本" },
+          { key: "amt", label: "ずれの大きさ", value: 50, min: 10, max: 120, step: 5, unit: "px" },
+        ],
+        spec: [
+          [
+            "崩れ",
+            "画像を横の帯（8–20本）に分け、各帯を <code>translateX</code> でランダムにずらす（ポインターに近い帯ほど大きく）",
+          ],
+          ["戻り", "ずれを毎フレーム 0.9 倍ずつ小さくして元に戻す"],
+          ["本格的に", "WebGL のシェーダーで、ゆがみの量を画素ごとに計算して時間で減らす"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/components/decay-card" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const w = stage.querySelector(".ac-image-decay-w"),
+              n = v.n,
+              h = 150 / n,
+              PIC = getComputedStyle(stage).getPropertyValue("--pic");
+            w.innerHTML = Array.from(
+              { length: n },
+              (_, i) =>
+                `<i style="position:absolute;left:0;right:0;top:${i * h}px;height:${h + 0.5}px;overflow:hidden"><b style="position:absolute;left:0;top:${-i * h}px;width:220px;height:150px;background:var(--ac-pic)"></b></i>`,
+            ).join("");
+            const bs = [...w.querySelectorAll("b")],
+              off = bs.map(() => 0);
+            let lt = 0;
+            return raf((t) => {
+              const k = t % 2.6;
+              if (k < 0.03 && !rm)
+                off.forEach((_, i) => {
+                  off[i] = (Math.random() - 0.5) * v.amt * (0.4 + Math.sin((i / n) * Math.PI));
+                });
+              const f = Math.pow(0.93, Math.min(0.05, t - lt) * 60);
+              lt = t;
+              off.forEach((o, i) => {
+                off[i] *= f;
+                /* 1/60 秒あたり 0.93 倍 */ bs[i].style.transform = `translateX(${off[i]}px)`;
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

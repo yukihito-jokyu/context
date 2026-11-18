@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>チケットを切り離す（Ticket tear） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ticket-tear"
+        style="position: relative; width: 220px; height: 160px; display: grid; place-items: center"
+      >
+        <div class="ac-ticket-tear-t">
+          <div class="ac-ticket-tear-main sb-grad-sky">
+            <span style="width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.85)"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 56px"></span>
+          </div>
+          <div class="ac-ticket-tear-stub sb-grad-sky">
+            <span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 26px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-ticket-tear .ac-ticket-tear-t {
+        display: flex;
+        filter: drop-shadow(0 6px 12px rgba(18, 26, 43, 0.15));
+      }
+      .ac-ticket-tear .ac-ticket-tear-main,
+      .ac-ticket-tear .ac-ticket-tear-stub {
+        height: 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        box-sizing: border-box;
+        -webkit-mask:
+          radial-gradient(circle 7px at 100% 0, transparent 98%, #000) top / 100% 51% no-repeat,
+          radial-gradient(circle 7px at 100% 100%, transparent 98%, #000) bottom / 100% 51% no-repeat;
+      }
+      .ac-ticket-tear .ac-ticket-tear-main {
+        width: 110px;
+        border-radius: 14px 0 0 14px;
+      }
+      .ac-ticket-tear .ac-ticket-tear-stub {
+        width: 50px;
+        border-radius: 0 14px 14px 0;
+        border-left: 2px dashed rgba(255, 255, 255, 0.7);
+        align-items: center;
+        -webkit-mask:
+          radial-gradient(circle 7px at 0 0, transparent 98%, #000) top / 100% 51% no-repeat,
+          radial-gradient(circle 7px at 0 100%, transparent 98%, #000) bottom / 100% 51% no-repeat;
+        transform-origin: 0 0;
+        animation:
+          ac-ticket-tear-tear var(--dur, 700ms) cubic-bezier(0.65, 0, 0.35, 1) 600ms forwards,
+          ac-ticket-tear-fall var(--fall, 600ms) cubic-bezier(0.55, 0, 1, 0.45) calc(600ms + var(--dur, 700ms)) forwards;
+      }
+      @keyframes ac-ticket-tear-tear {
+        0% {
+          transform: none;
+        }
+        40% {
+          transform: rotate(4deg);
+        }
+        100% {
+          transform: rotate(12deg) translateX(4px);
+        }
+      }
+      @keyframes ac-ticket-tear-fall {
+        from {
+          transform: rotate(12deg) translateX(4px);
+          opacity: 1;
+        }
+        to {
+          transform: translate(10px, 120px) rotate(30deg);
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-ticket-tear .ac-ticket-tear-stub {
+          animation: ac-ticket-tear-fade 300ms 900ms forwards;
+        }
+        @keyframes ac-ticket-tear-fade {
+          to {
+            opacity: 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ticket-tear",
+        name: "チケットを切り離す",
+        en: "Ticket tear",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "チケットのミシン目に沿って、半券が上から順にちぎれていき、最後に外れて落ちる動きです。「使った」「受け取った」という区切りを、紙の手触りで伝えます。プレビューは回転と移動で近い形を作っています。",
+        use: "チケット・クーポンの使用、入場の確認、くじ・特典の受け取り、レシート。",
+        params: [
+          { key: "dur", label: "ちぎれる時間", value: 700, min: 300, max: 1500, step: 50, unit: "ms" },
+          { key: "fall", label: "落ちる時間", value: 600, min: 300, max: 1200, step: 50, unit: "ms" },
+        ],
+        total: (p) => 600 + p["dur"] + p["fall"],
+        spec: [
+          [
+            "ちぎれる",
+            "半券を、ミシン目の上端を支点に少しずつ回す（<code>rotate 0 → 12deg</code>）｜in-out｜上から下へ破れていく感じ",
+          ],
+          ["落ちる", "<code>translateY(120px) rotate(30deg)</code> と <code>opacity → 0</code>｜in"],
+          ["ミシン目", "点線（<code>border-left: dashed</code>）と、上下の半円の切り欠き（<code>mask</code>）"],
+          ["動きを減らす設定", "ちぎる動きをやめ、半券を透明度で消すだけにする"],
+          ["出典", '<a href="https://reactbits.dev/micro/tear-ticket" target="_blank" rel="noopener">React Bits</a>'],
+        ],
+        loop: 3200,
+      });
+    </script>
+  </body>
+</html>

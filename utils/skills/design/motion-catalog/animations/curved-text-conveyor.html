@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>曲線を流れる文字（Curved text conveyor） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-curved-text-conveyor" style="position: relative; width: 240px; height: 120px">
+        <svg class="ac-curved-text-conveyor-s" viewBox="0 0 240 120" width="240" height="120">
+          <path id="ac-ctc-path" d="M-10,70 C40,20 80,20 120,60 S200,100 250,50" fill="none" />
+          <text style="font: 800 17px var(--font-sans); fill: var(--cobalt); letter-spacing: 1px">
+            <textPath class="ac-curved-text-conveyor-tp" href="#ac-ctc-path" startOffset="0">
+              MOTION ✦ RHYTHM ✦ FLOW ✦ MOTION ✦ RHYTHM ✦ FLOW ✦ MOTION ✦ RHYTHM ✦ FLOW ✦
+            </textPath>
+          </text>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-curved-text-conveyor .ac-curved-text-conveyor-s {
+        display: block;
+        overflow: visible;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "curved-text-conveyor",
+        name: "曲線を流れる文字",
+        en: "Curved text conveyor",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "波のような曲線に沿って文字を並べ、ベルトコンベアのように流し続ける表現です。まっすぐ流れる帯よりも柔らかく、目を引くリズムが生まれます。",
+        use: "ブランドサイトの装飾、キャンペーンのキャッチコピー、セクションの区切り、イベントの告知。",
+        params: [{ key: "dur", label: "一巡の時間", value: 8000, min: 3000, max: 20000, step: 500, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            'SVG の <code>&lt;textPath href="#曲線"&gt;</code> に同じ文をくり返して入れる（ここでは3回）。SVG は <code>aria-hidden</code>、文は別に1回置く',
+          ],
+          [
+            "動き",
+            "<code>startOffset</code> を <code>0 → -文1回分の長さ</code>｜linear｜くり返し（つなぎ目が分からない）",
+          ],
+          ["ドラッグ", "ドラッグで流れを速めたり逆にしたりする型もある"],
+          ["動きを減らす設定", "流れを止める"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/curved-loop" target="_blank" rel="noopener">React Bits: Curved Loop</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const tp = stage.querySelector(".ac-curved-text-conveyor-tp"),
+              L = tp.getComputedTextLength() / 3; // 3回くり返した文の1回分の長さ
+            if (rm) return null;
+            return raf((t) => tp.setAttribute("startOffset", -((((t * 1000) / v.dur) * L) % L)));
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

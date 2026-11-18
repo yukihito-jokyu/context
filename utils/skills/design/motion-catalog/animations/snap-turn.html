@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スナップターン（Snap turning (VR)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-snap-turn"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "snap-turn",
+        name: "スナップターン",
+        en: "Snap turning (VR)",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "VR で向きを変えるとき、なめらかに回さず、決まった角度（30° や 45° など）ずつ一瞬で向きを切り替える方法です。景色が回り続ける様子を見せないので、回転による酔いを大きく減らせます。",
+        use: "VR のゲーム・アプリの向きの変更（座ったままの体験）、酔いやすい人向けの設定。",
+        params: [{ key: "step", label: "1回の角度", value: 30, min: 15, max: 90, step: 5, unit: "°" }],
+        spec: [
+          [
+            "仕組み",
+            "スティックを左右に倒した瞬間に、視点の向きを決まった角度だけ変える。倒したままでも、次の回転までに 0.2〜0.3 秒の間を空ける",
+          ],
+          [
+            "見せ方",
+            "一瞬で切り替えるか、ごく短く暗くする（50〜100ms）。角度は設定で選べるようにし、なめらかな回転と切り替えられるようにする",
+          ],
+          ["各環境では", "Unity XR Interaction Toolkit の Snap Turn Provider、Meta の Locomotion のガイドライン"],
+          ["動きを減らす設定", "回転の切り替えはそのまま（もともと一瞬で切り替わる）、暗くする演出だけをやめる"],
+          [
+            "出典",
+            '<a href="https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit@3.1/manual/snap-turning.html" target="_blank" rel="noopener">docs.unity.cn（snap-turning）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const LM = [
+              [0, 30, "#2563eb"],
+              [25, 14, "#93c5fd"],
+              [50, 22, "#1b3a8a"],
+              [80, 18, "#60a5fa"],
+              [115, 28, "#3b82f6"],
+              [150, 16, "#1e40af"],
+              [185, 24, "#93c5fd"],
+              [215, 20, "#2563eb"],
+              [250, 14, "#1b3a8a"],
+              [285, 26, "#60a5fa"],
+              [320, 18, "#3b82f6"],
+            ];
+            return raf((t) => {
+              const n = Math.floor(t / 1.1),
+                m = n % 12,
+                yaw = (m < 6 ? m : 12 - m) * v.step,
+                since = t % 1.1;
+              g.fillStyle = "#eaf2ff";
+              g.fillRect(0, 0, W, H);
+              g.fillStyle = col("ice");
+              g.fillRect(0, 95, W, 55);
+              for (const [a, h, c] of LM) {
+                let d = ((((a - yaw) % 360) + 540) % 360) - 180;
+                if (Math.abs(d) > 60) continue;
+                const x = 110 + (d * 220) / 90;
+                g.fillStyle = c;
+                g.fillRect(x - 9, 95 - h * 2, 18, h * 2);
+              }
+              g.fillStyle = "rgba(255,255,255,.85)";
+              g.fillRect(40, 8, 140, 14);
+              g.fillStyle = col("navy");
+              for (let a = -180; a < 540; a += 30) {
+                let d = ((((a - yaw) % 360) + 540) % 360) - 180;
+                if (Math.abs(d) > 45) continue;
+                const x = 110 + (d * 140) / 90;
+                g.fillRect(x, a % 90 ? 15 : 11, 1.5, a % 90 ? 4 : 8);
+              }
+              g.fillStyle = col("blue");
+              g.fillRect(109, 22, 2, 5);
+              if (!rm && since < 0.08) {
+                g.fillStyle = `rgba(10,20,50,${0.6 * (1 - since / 0.08)})`;
+                g.fillRect(0, 0, W, H);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

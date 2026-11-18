@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ディレイ（Delay） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-delay"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div class="" style="position: relative; width: 200px; height: 40px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 19px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-aqua ac-delay-t ac-delay-a"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 12px; top: 4px"
+          ></span>
+        </div>
+        <div class="" style="position: relative; width: 200px; height: 40px; margin-top: 16px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 19px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-delay-t ac-delay-b"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 12px; top: 4px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-delay .ac-delay-t {
+          animation: ac-delay-move var(--dur, 400ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+      }
+      .ac-delay .ac-delay-b {
+        animation-delay: var(--delay, 300ms);
+      }
+      @keyframes ac-delay-move {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "delay",
+        name: "ディレイ",
+        en: "Delay",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "動きが始まるまでの待ち時間です。上は待ちなし、下はディレイ付き。同じ動きでも始まりをずらすだけで、順番や因果関係（これが起きてから、あれが起きる）を表せます。",
+        use: "ホバーしてから少し待って出すツールチップ、順番に動かす演出、動きの連鎖。",
+        params: [
+          { key: "delay", label: "待ち時間", value: 300, min: 0, max: 1000, step: 50, unit: "ms" },
+          { key: "dur", label: "動く時間", value: 400, min: 100, max: 1000, step: 10, unit: "ms" },
+        ],
+        total: (p) => p["delay"] + p["dur"],
+        spec: [
+          ["上（比較）", "待ちなし｜<code>translateX(0 → 168px)</code>｜out"],
+          ["下", "<code>animation-delay: 待ち時間</code> のあと同じ動き"],
+          ["目安", "ツールチップは 300–500ms、連鎖は 50–150ms。長すぎると反応が鈍く感じる"],
+          ["動きを減らす設定", "移動をやめる。待ち時間は残してよい"],
+          ["出典", "Animation Vocabulary（Sequencing & Timing）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

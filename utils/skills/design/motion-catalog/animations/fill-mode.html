@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フィルモード（Fill mode） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-fill-mode"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div class="" style="position: relative; width: 200px; height: 40px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 19px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-aqua ac-fill-mode-t ac-fill-mode-a"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 12px; top: 4px"
+          ></span>
+        </div>
+        <div class="" style="position: relative; width: 200px; height: 40px; margin-top: 16px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 19px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-fill-mode-t ac-fill-mode-b"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 12px; top: 4px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-fill-mode .ac-fill-mode-a {
+          animation: ac-fill-mode-move var(--dur, 600ms) cubic-bezier(0.22, 1, 0.36, 1) none;
+        }
+        .ac-fill-mode .ac-fill-mode-b {
+          animation: ac-fill-mode-move var(--dur, 600ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+      }
+      @keyframes ac-fill-mode-move {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-fill-mode .ac-fill-mode-b {
+          transform: translateX(168px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "fill-mode",
+        name: "フィルモード",
+        en: "Fill mode",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "アニメーションの前後で、最初や最後のコマの見た目を保つかどうかの設定です。上は none（終わると元の位置に戻ってしまう）、下は forwards（最後の位置に留まる）。",
+        use: "一度だけ再生して終わった状態を保ちたい登場の動き、遅れて始まる動きの待ち時間中の見た目。",
+        params: [{ key: "dur", label: "時間", value: 600, min: 200, max: 1500, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["none（上）", "終わると元のスタイルに戻る"],
+          ["forwards（下）", "最後のコマ（通常の向きなら 100%）を保つ"],
+          [
+            "backwards / both",
+            "<code>backwards</code> は待ち時間中に最初のコマ（通常の向きなら 0%）を当てる。<code>both</code> は両方。遅れて登場する要素は <code>both</code> にしてチラつきを防ぐ",
+          ],
+          ["動きを減らす設定", "移動をやめる（終わりの状態だけを当てる）"],
+          ["出典", "Animation Vocabulary（Sequencing & Timing）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

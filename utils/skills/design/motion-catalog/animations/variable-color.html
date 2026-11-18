@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>段階的に点灯するアイコン（Variable color (layered symbol)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-variable-color" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-variable-color-row">
+          <svg
+            class="ac-variable-color-ic"
+            viewBox="0 0 48 48"
+            width="64"
+            height="64"
+            fill="none"
+            stroke-linecap="round"
+            stroke-width="4.5"
+          >
+            <circle cx="24" cy="38" r="3.2" class="ac-variable-color-p0" stroke="none" />
+            <path class="ac-variable-color-p1" d="M17 31a10 10 0 0 1 14 0" />
+            <path class="ac-variable-color-p2" d="M11 25a18 18 0 0 1 26 0" />
+            <path class="ac-variable-color-p3" d="M5 19a26 26 0 0 1 38 0" /></svg
+          ><svg
+            class="ac-variable-color-ic ac-variable-color-it"
+            viewBox="0 0 48 48"
+            width="64"
+            height="64"
+            fill="none"
+            stroke-linecap="round"
+            stroke-width="4.5"
+          >
+            <path d="M8 19h7l9-8v26l-9-8H8z" class="ac-variable-color-sp" stroke="none" />
+            <path class="ac-variable-color-p1" d="M30 19a7 7 0 0 1 0 10" />
+            <path class="ac-variable-color-p2" d="M34 14a14 14 0 0 1 0 20" />
+            <path class="ac-variable-color-p3" d="M38 9a21 21 0 0 1 0 30" />
+          </svg>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-variable-color .ac-variable-color-row {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 36px;
+      }
+      .ac-variable-color .ac-variable-color-ic path {
+        stroke: var(--blue);
+      }
+      .ac-variable-color .ac-variable-color-p0,
+      .ac-variable-color .ac-variable-color-sp {
+        fill: var(--blue);
+      }
+      .ac-variable-color .ac-variable-color-ic .ac-variable-color-p1,
+      .ac-variable-color .ac-variable-color-ic .ac-variable-color-p2,
+      .ac-variable-color .ac-variable-color-ic .ac-variable-color-p3 {
+        opacity: 0.25;
+        animation: ac-variable-color-c var(--dur, 1800ms) step-end infinite;
+      }
+      .ac-variable-color .ac-variable-color-ic .ac-variable-color-p2 {
+        animation-name: ac-variable-color-c2;
+      }
+      .ac-variable-color .ac-variable-color-ic .ac-variable-color-p3 {
+        animation-name: ac-variable-color-c3;
+      }
+      @keyframes ac-variable-color-c {
+        0% {
+          opacity: 0.25;
+        }
+        20% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 0.25;
+        }
+      }
+      @keyframes ac-variable-color-c2 {
+        0% {
+          opacity: 0.25;
+        }
+        40% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 0.25;
+        }
+      }
+      @keyframes ac-variable-color-c3 {
+        0% {
+          opacity: 0.25;
+        }
+        60% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 0.25;
+        }
+      }
+      .ac-variable-color .ac-variable-color-it .ac-variable-color-p1 {
+        animation-name: ac-variable-color-i1;
+      }
+      .ac-variable-color .ac-variable-color-it .ac-variable-color-p2 {
+        animation-name: ac-variable-color-i2;
+      }
+      .ac-variable-color .ac-variable-color-it .ac-variable-color-p3 {
+        animation-name: ac-variable-color-i3;
+      }
+      @keyframes ac-variable-color-i1 {
+        0% {
+          opacity: 0.25;
+        }
+        20% {
+          opacity: 1;
+        }
+        40% {
+          opacity: 0.25;
+        }
+      }
+      @keyframes ac-variable-color-i2 {
+        0% {
+          opacity: 0.25;
+        }
+        40% {
+          opacity: 1;
+        }
+        60% {
+          opacity: 0.25;
+        }
+      }
+      @keyframes ac-variable-color-i3 {
+        0% {
+          opacity: 0.25;
+        }
+        60% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 0.25;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-variable-color .ac-variable-color-ic path {
+          animation: none !important;
+          opacity: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "variable-color",
+        name: "段階的に点灯するアイコン",
+        en: "Variable color (layered symbol)",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "Wi-Fi やスピーカーのアイコンのように層に分かれた記号の、各層の色を順番に濃くしていく動きです。全部がたまっていく型（積み重ね）と、1つずつ移っていく型（くり返し）があり、「探している・つながっている・強さ」を伝えます。",
+        use: "接続中・検索中の表示、音量や電波の強さ、読み込み中のアイコン、録音中の表示。",
+        params: [{ key: "dur", label: "ひと回りの時間", value: 1800, min: 800, max: 4000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "層ごとに <code>opacity 0.3 → 1</code> のアニメーションを、内側から順に <code>animation-delay</code> をずらして当てる",
+          ],
+          ["2つの型", "積み重ね（左）：点いた層は残し、全部点いたら一緒に消す。くり返し（右）：1層ずつ点いては消える"],
+          [
+            "値で使う",
+            "電波の強さなど 0〜1 の値に合わせて、点ける層の数を決めることもできる（SF Symbols の Variable Value）",
+          ],
+          ["動きを減らす設定", "点灯の動きを止め、全部の層を点けた状態にする"],
+          [
+            "出典",
+            '<a href="https://developer.apple.com/videos/play/wwdc2023/10258/" target="_blank" rel="noopener">Apple: Animate symbols in your app（WWDC23）</a>、<a href="https://developer.apple.com/documentation/symbols/symboleffect" target="_blank" rel="noopener">Apple Developer: SymbolEffect</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

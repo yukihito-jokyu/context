@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ステージング（見せ場の整理）（Staging） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-staging"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          place-items: center;
+        "
+      >
+        <div class="ac-staging-l">
+          <div class="ac-staging-g ac-staging-all" style="filter: grayscale(1); opacity: 0.55">
+            <span class="sb-thumb sb-grad-sky"></span><span class="sb-thumb sb-grad-aqua"></span
+            ><span class="sb-thumb sb-grad-deep"></span><span class="sb-thumb sb-grad-hero"></span>
+          </div>
+        </div>
+        <div class="ac-staging-r">
+          <div class="ac-staging-g ac-staging-one">
+            <span class="sb-thumb sb-grad-sky"></span><span class="sb-thumb sb-grad-aqua"></span
+            ><span class="sb-thumb sb-grad-deep"></span><span class="sb-thumb sb-grad-hero"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-staging .ac-staging-g {
+        display: grid;
+        grid-template-columns: 34px 34px;
+        gap: 10px;
+      }
+      .ac-staging .ac-staging-g span {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+      }
+      .ac-staging .ac-staging-one span {
+        opacity: 0.4;
+      }
+      .ac-staging .ac-staging-one span:nth-child(3) {
+        opacity: 1;
+        box-shadow: 0 0 0 0 var(--blue-soft);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-staging .ac-staging-all span {
+          animation: ac-staging-wig var(--dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+        .ac-staging .ac-staging-all span:nth-child(2) {
+          animation-delay: -0.2s;
+        }
+        .ac-staging .ac-staging-all span:nth-child(3) {
+          animation-delay: -0.5s;
+        }
+        .ac-staging .ac-staging-all span:nth-child(4) {
+          animation-delay: -0.7s;
+        }
+        .ac-staging .ac-staging-one span:nth-child(3) {
+          animation: ac-staging-pulse var(--dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      @keyframes ac-staging-wig {
+        0%,
+        100% {
+          transform: none;
+        }
+        25% {
+          transform: translateY(-6px) rotate(-8deg);
+        }
+        75% {
+          transform: translateY(4px) rotate(8deg) scale(1.1);
+        }
+      }
+      @keyframes ac-staging-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35);
+        }
+        50% {
+          transform: scale(1.12);
+          box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-staging .ac-staging-one span:nth-child(3) {
+          transform: scale(1.12);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "staging",
+        name: "ステージング（見せ場の整理）",
+        en: "Staging",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "見る人の注意を、いま大事なひとつのことに集める、という原則です。左は画面の中の全部が同時に動いてどこを見ればよいか分かりません。右は大事なボタンだけが動き、まわりは静かに控えるので、視線が自然と集まります。",
+        use: "ダッシュボード、オンボーディング、新機能の案内、エラー時の画面、複数の通知が重なる場面。",
+        params: [{ key: "dur", label: "時間", value: 900, min: 400, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          ["UI での意味", "同時に動かすものは1つに絞る。ほかの要素は止めるか、薄く・ぼかして下げる"],
+          ["順番", "複数を見せたいなら同時ではなく、順番に（Sequential reveal・Orchestration）"],
+          ["比べる", "左（灰色）がこの原則なし、右（青）がこの原則あり"],
+          ["動きを減らす設定", "動きを使わず、色と大きさの差で注目させる"],
+          [
+            "出典",
+            '<a href="https://www.adobe.com/creativecloud/animation/discover/principles-of-animation.html" target="_blank" rel="noopener">Adobe: 12 principles of animation</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

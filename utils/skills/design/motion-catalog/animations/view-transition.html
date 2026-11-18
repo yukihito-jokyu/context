@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ビュートランジション（View transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-view-transition ac-view-transition-root" style="position: relative; width: 200px; height: 160px">
+        <div class="ac-view-transition-grid">
+          <span class="sb-thumb sb-grad-aqua" style="width: 52px; height: 52px; border-radius: 16px"></span
+          ><span class="sb-thumb sb-grad-deep" style="width: 52px; height: 52px; border-radius: 16px"></span
+          ><span class="sb-thumb sb-grad-sky" style="width: 52px; height: 52px; border-radius: 16px"></span
+          ><span class="sb-thumb sb-grad-aqua" style="width: 52px; height: 52px; border-radius: 16px"></span
+          ><span class="sb-thumb sb-grad-deep" style="width: 52px; height: 52px; border-radius: 16px"></span>
+        </div>
+        <span class="sb-thumb sb-grad-sky ac-view-transition-s"></span>
+        <div class="ac-view-transition-detail">
+          <span class="sb-bar sb-bar--md sb-bar--strong" style="width: 110px"></span
+          ><span class="sb-bar sb-bar--sm" style="width: 150px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 120px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-view-transition .ac-view-transition-grid {
+        position: absolute;
+        inset: 20px 6px;
+        display: grid;
+        grid-template-columns: repeat(3, 52px);
+        gap: 12px;
+        justify-content: center;
+        transition: opacity var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-view-transition .ac-view-transition-s {
+        position: absolute;
+        left: 138px;
+        top: 20px;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        transition: all var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-view-transition .ac-view-transition-detail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 98px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        opacity: 0;
+        transition: opacity var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-view-transition.open .ac-view-transition-grid {
+        opacity: 0;
+      }
+      .ac-view-transition.open .ac-view-transition-s {
+        left: 0;
+        top: 0;
+        width: 200px;
+        height: 84px;
+        border-radius: 20px;
+      }
+      .ac-view-transition.open .ac-view-transition-detail {
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-view-transition .ac-view-transition-s {
+          transition: opacity var(--dur, 400ms);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "view-transition",
+        name: "ビュートランジション",
+        en: "View transition",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "ブラウザの View Transitions API で、2つの状態やページのあいだをブラウザ自身がつないでくれる切り替えです。同じ名前を付けた要素（ここではカード）は位置と大きさをつなぎ、それ以外はクロスフェードします。",
+        use: "一覧 → 詳細、タブ切り替え、マルチページのサイトでのページ間遷移。",
+        params: [{ key: "dur", label: "時間", value: 400, min: 150, max: 1000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["書き方", "<code>document.startViewTransition</code> に更新関数を渡す。なければ CSS 遷移で更新する"],
+          ["つなぐ要素", "両方の状態で同じ <code>view-transition-name</code> を付ける"],
+          [
+            "時間",
+            "<code>::view-transition-group(名前) { animation-duration: 時間; animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }</code>",
+          ],
+          ["フォーカス", "消える要素のフォーカスは、新しい見出しへ移す"],
+          [
+            "動きを減らす設定",
+            "<code>::view-transition-group(*)</code> のアニメーションを止め、クロスフェードだけにする",
+          ],
+          ["出典", "Animation Vocabulary（Scroll）"],
+        ],
+        loop: 0,
+        run: (stage) => {
+          const root = stage.firstElementChild;
+          const t = setInterval(() => root.classList.toggle("open"), 1800);
+          return () => clearInterval(t);
+        },
+      });
+    </script>
+  </body>
+</html>

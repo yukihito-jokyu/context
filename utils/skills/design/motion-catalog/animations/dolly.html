@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ドリー（Dolly / Push-in） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-dolly"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-dolly-cam">
+          <div class="ac-dolly-L ac-dolly-sky"><i></i></div>
+          <div class="ac-dolly-L ac-dolly-far"><i></i></div>
+          <div class="ac-dolly-L ac-dolly-gr"><i></i></div>
+          <div class="ac-dolly-L ac-dolly-mid"><i></i></div>
+          <div class="ac-dolly-L ac-dolly-sub"><i></i></div>
+          <div class="ac-dolly-L ac-dolly-near"><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-dolly .ac-dolly-cam,
+      .ac-dolly .ac-dolly-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-dolly .ac-dolly-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-dolly .ac-dolly-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-dolly .ac-dolly-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-dolly .ac-dolly-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-dolly .ac-dolly-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-dolly .ac-dolly-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-dolly .ac-dolly-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-dolly .ac-dolly-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      .ac-dolly .ac-dolly-far {
+        transform: scale(1);
+      }
+      .ac-dolly .ac-dolly-gr {
+        transform: scale(1);
+      }
+      .ac-dolly .ac-dolly-mid {
+        transform: scale(1);
+      }
+      .ac-dolly .ac-dolly-sub {
+        transform: scale(1);
+      }
+      .ac-dolly .ac-dolly-near {
+        transform: scale(1);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-dolly .ac-dolly-far {
+          animation: ac-dolly-k0 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-dolly .ac-dolly-gr {
+          animation: ac-dolly-k1 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-dolly .ac-dolly-mid {
+          animation: ac-dolly-k2 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-dolly .ac-dolly-sub {
+          animation: ac-dolly-k3 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-dolly .ac-dolly-near {
+          animation: ac-dolly-k4 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-dolly-k0 {
+        0%,
+        20% {
+          transform: scale(1);
+        }
+        80%,
+        100% {
+          transform: scale(1.06);
+        }
+      }
+      @keyframes ac-dolly-k1 {
+        0%,
+        20% {
+          transform: scale(1);
+        }
+        80%,
+        100% {
+          transform: scale(1.2);
+        }
+      }
+      @keyframes ac-dolly-k2 {
+        0%,
+        20% {
+          transform: scale(1);
+        }
+        80%,
+        100% {
+          transform: scale(1.3);
+        }
+      }
+      @keyframes ac-dolly-k3 {
+        0%,
+        20% {
+          transform: scale(1);
+        }
+        80%,
+        100% {
+          transform: scale(1.5);
+        }
+      }
+      @keyframes ac-dolly-k4 {
+        0%,
+        20% {
+          transform: scale(1);
+        }
+        80%,
+        100% {
+          transform: scale(2.2);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dolly",
+        name: "ドリー",
+        en: "Dolly / Push-in",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "カメラそのものを前（または後ろ）へ動かして、被写体に近づく（離れる）動きです。手前の物ほど大きく速く広がり、奥の景色はあまり変わらないので、ズームと違って空間に入っていく感じが出ます。",
+        use: "ヒーローから本文への導入、詳細画面へ入る演出、物語の山場に注目を集める場面、スクロールで奥へ進む表現。",
+        params: [{ key: "dur", label: "片道の時間", value: 2400, min: 800, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "奥行きごとのレイヤーを、同じ中心で <code>scale</code>。手前ほど大きく（例：奥 1.05、中 1.3、手前 2）｜in-out",
+          ],
+          ["ズームとの違い", "ズームは全体を同じ倍率で拡大する。ドリーは奥行きで倍率が変わる（視差が出る）"],
+          ["押し込み", "ゆっくり近づく（push-in）は緊張・注目、離れる（pull-out）は孤独・全体像"],
+          ["動きを減らす設定", "カメラの動きをやめ、最初（または最後）の構図で止める"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/camera-shots/camera-movements/" target="_blank" rel="noopener">StudioBinder: Camera Movements</a>、<a href="https://www.masterclass.com/articles/guide-to-camera-moves" target="_blank" rel="noopener">MasterClass: Guide to Camera Moves</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

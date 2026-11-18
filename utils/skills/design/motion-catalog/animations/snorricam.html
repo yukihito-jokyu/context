@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>スノリカム（Snorricam (body-mounted camera)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-snorricam"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-snorricam-cam">
+          <div class="ac-snorricam-L ac-snorricam-sky"><i></i></div>
+          <div class="ac-snorricam-L ac-snorricam-far"><i></i></div>
+          <div class="ac-snorricam-L ac-snorricam-gr"><i></i></div>
+          <div class="ac-snorricam-L ac-snorricam-mid"><i></i></div>
+          <div class="ac-snorricam-L ac-snorricam-sub"><i></i></div>
+          <div class="ac-snorricam-L ac-snorricam-near"><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-snorricam .ac-snorricam-cam,
+      .ac-snorricam .ac-snorricam-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-snorricam .ac-snorricam-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-snorricam .ac-snorricam-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-snorricam .ac-snorricam-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-snorricam .ac-snorricam-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-snorricam .ac-snorricam-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-snorricam .ac-snorricam-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-snorricam .ac-snorricam-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-snorricam .ac-snorricam-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      .ac-snorricam .ac-snorricam-sub i {
+        left: 92px;
+        bottom: 6px;
+        width: 36px;
+        height: 62px;
+        border-radius: 18px 18px 8px 8px;
+      }
+      .ac-snorricam .ac-snorricam-sub i::before {
+        left: 6px;
+        top: -28px;
+        width: 24px;
+        height: 24px;
+      }
+      .ac-snorricam .ac-snorricam-sky,
+      .ac-snorricam .ac-snorricam-far,
+      .ac-snorricam .ac-snorricam-gr,
+      .ac-snorricam .ac-snorricam-mid,
+      .ac-snorricam .ac-snorricam-near {
+        transform-origin: 50% 80%;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-snorricam .ac-snorricam-sky,
+        .ac-snorricam .ac-snorricam-far,
+        .ac-snorricam .ac-snorricam-gr,
+        .ac-snorricam .ac-snorricam-mid,
+        .ac-snorricam .ac-snorricam-near {
+          animation: ac-snorricam-w calc(var(--dur, 2400ms) / 2) ease-in-out infinite;
+        }
+        .ac-snorricam .ac-snorricam-near {
+          animation-name: ac-snorricam-w2;
+        }
+      }
+      @keyframes ac-snorricam-w {
+        0% {
+          transform: translate(-6px, 0) rotate(-3deg);
+        }
+        25% {
+          transform: translate(0, -6px) rotate(0);
+        }
+        50% {
+          transform: translate(6px, 0) rotate(3deg);
+        }
+        75% {
+          transform: translate(0, -6px) rotate(0);
+        }
+        100% {
+          transform: translate(-6px, 0) rotate(-3deg);
+        }
+      }
+      @keyframes ac-snorricam-w2 {
+        0% {
+          transform: translate(-16px, 0) rotate(-4deg);
+        }
+        25% {
+          transform: translate(0, -12px) rotate(0);
+        }
+        50% {
+          transform: translate(16px, 0) rotate(4deg);
+        }
+        75% {
+          transform: translate(0, -12px) rotate(0);
+        }
+        100% {
+          transform: translate(-16px, 0) rotate(-4deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "snorricam",
+        name: "スノリカム",
+        en: "Snorricam (body-mounted camera)",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "カメラを人の体に固定して撮る方法です。人物は画面の真ん中に止まったまま、まわりの世界だけが歩みに合わせて揺れ動くので、主人公の動揺・酔い・高揚感を体の内側から感じさせます。",
+        use: "ミュージックビデオ風の演出、主人公の気持ちを強く見せる物語、ゲームの一人称の酔いや混乱の表現。",
+        params: [{ key: "dur", label: "2歩の時間", value: 2400, min: 1000, max: 4000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "人物のレイヤーは固定し、背景のレイヤーだけを歩みの周期で <code>translate</code>（上下・左右）と <code>rotate(±3deg)</code>",
+          ],
+          ["周期", "歩き 1 歩＝400〜600ms。上下は 1 歩ごと、左右とかたむきは 2 歩で 1 往復"],
+          ["注意", "酔いやすいので短く使う。動きを減らす設定では止める"],
+          ["動きを減らす設定", "揺れをやめ、止まった構図にする"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/camera-shots/camera-movements/" target="_blank" rel="noopener">StudioBinder: Camera Movements</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

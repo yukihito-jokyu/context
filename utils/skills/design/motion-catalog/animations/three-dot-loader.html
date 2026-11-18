@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3つの点の待機表示（Three-dot loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-three-dot-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-three-dot-loader-w"><i style="--k: 0"></i><i style="--k: 1"></i><i style="--k: 2"></i></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-three-dot-loader .ac-three-dot-loader-w {
+        display: flex;
+        gap: 8px;
+        padding: 14px 18px;
+        border-radius: 22px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-three-dot-loader .ac-three-dot-loader-w i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        animation: ac-three-dot-loader-b var(--dur, 1400ms) cubic-bezier(0.65, 0, 0.35, 1)
+          calc(var(--k) * var(--dur, 1400ms) / 9) infinite both;
+      }
+      @keyframes ac-three-dot-loader-b {
+        0%,
+        80%,
+        100% {
+          transform: scale(0.55);
+          opacity: 0.35;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-three-dot-loader .ac-three-dot-loader-w i {
+          animation: ac-three-dot-loader-f 1400ms ease-in-out calc(var(--k) * 150ms) infinite;
+        }
+        @keyframes ac-three-dot-loader-f {
+          50% {
+            opacity: 0.35;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "three-dot-loader",
+        name: "3つの点の待機表示",
+        en: "Three-dot loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "横に並んだ3つの点が、左から順に膨らんでは縮む待機表示です。チャットの「入力中…」でおなじみの、軽く穏やかな「待っています」の合図です。",
+        use: "チャットの「入力中」、AI の応答待ち、送信中のボタン。",
+        params: [{ key: "dur", label: "周期", value: 1400, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          ["動き", "各点を <code>scale(.55 → 1 → .55)</code> と明るさ（0 / 40 / 80%）、残りは休み｜in-out｜くり返し"],
+          ["ずらし", "i 個目を周期の 1/9 × i だけ遅らせる。縮めずに上下に跳ねさせる型もある"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          ["動きを減らす設定", "拡大をやめ、点の明るさだけをゆっくり変える"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/tobiasahlin/SpinKit/master/spinkit.css" target="_blank" rel="noopener">SpinKit</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

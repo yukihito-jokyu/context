@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>レア度つきの開封（Loot reveal (rarity)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-loot-reveal" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-loot-reveal-gl"></div>
+        <div class="ac-loot-reveal-bx"><i></i></div>
+        <div class="ac-loot-reveal-it"></div>
+        <span class="ac-loot-reveal-lb"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-loot-reveal {
+        --rc: var(--blue);
+      }
+      .ac-loot-reveal .ac-loot-reveal-gl {
+        position: absolute;
+        left: 110px;
+        top: 76px;
+        width: 200px;
+        height: 200px;
+        margin: -100px;
+        border-radius: 50%;
+        background: repeating-conic-gradient(
+          from 0deg,
+          color-mix(in oklch, var(--rc) 55%, transparent) 0 10deg,
+          transparent 10deg 30deg
+        );
+        -webkit-mask: radial-gradient(circle, #000 10%, transparent 65%);
+        mask: radial-gradient(circle, #000 10%, transparent 65%);
+        opacity: 0;
+      }
+      .ac-loot-reveal .ac-loot-reveal-bx {
+        position: absolute;
+        left: 82px;
+        top: 74px;
+        width: 56px;
+        height: 42px;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #c58a3e, #8d5a24);
+        box-shadow: inset 0 0 0 3px #e7b866;
+      }
+      .ac-loot-reveal .ac-loot-reveal-bx i {
+        position: absolute;
+        left: -3px;
+        right: -3px;
+        top: -14px;
+        height: 16px;
+        border-radius: 8px 8px 3px 3px;
+        background: linear-gradient(180deg, #d99a48, #a86d2c);
+        box-shadow: inset 0 0 0 3px #e7b866;
+        transform-origin: 8% 100%;
+      }
+      .ac-loot-reveal .ac-loot-reveal-it {
+        position: absolute;
+        left: 96px;
+        top: 66px;
+        width: 28px;
+        height: 28px;
+        border-radius: 9px;
+        background: var(--rc);
+        box-shadow: 0 0 18px var(--rc);
+        opacity: 0;
+        transform: rotate(45deg) scale(0.4);
+      }
+      .ac-loot-reveal .ac-loot-reveal-lb {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 124px;
+        text-align: center;
+        font: 800 12px var(--font-sans);
+        color: var(--rc);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "loot-reveal",
+        name: "レア度つきの開封",
+        en: "Loot reveal (rarity)",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "宝箱やカードを開けるとき、ためるように揺れてから光があふれ、中身のレア度に合わせた色（青・紫・金など）の光と粒が広がって、アイテムが飛び出す演出です。レア度が高いほど、ためを長く、光を強くして期待を高めます。",
+        use: "ゲームのガチャ・宝箱・報酬、キャンペーンの抽選、ポイント交換、実績のバッジ獲得。",
+        params: [{ key: "charge", label: "ための長さ（基本）", value: 500, min: 200, max: 1200, step: 20, unit: "ms" }],
+        spec: [
+          [
+            "流れ",
+            "揺れ（ため 400〜1200ms、レア度が高いほど長く）→ 光が強まる → はじける（粒・光線）→ アイテムが少し跳ねて登場 → 名前とレア度",
+          ],
+          ["色", "レア度ごとに決めた色で光・粒・枠をそろえる（例：コモン 灰青、レア 青、エピック 紫、レジェンド 金）"],
+          ["注意", "強い明滅は短く、どの1秒間も3回まで。レア度の色だけでなく、文字でも伝える"],
+          ["動きを減らす設定", "揺れと光をやめ、アイテムとレア度をフェードで出す"],
+          [
+            "出典",
+            '<a href="https://strategicsloth.com/services/game-ui/" target="_blank" rel="noopener">Strategic Sloth: Game UI（Health bar / Ghost drain / Loot reveal）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const root = stage.firstElementChild,
+              gl = root.querySelector(".ac-loot-reveal-gl"),
+              bx = root.querySelector(".ac-loot-reveal-bx"),
+              lid = bx.querySelector("i"),
+              it = root.querySelector(".ac-loot-reveal-it"),
+              lb = root.querySelector(".ac-loot-reveal-lb");
+            const R = [
+              ["レア", "#2563eb", 1],
+              ["エピック", "#8b5cf6", 1.5],
+              ["レジェンド", "#e8a317", 2.2],
+            ];
+            let k = 0,
+              ts = [];
+            const run = () => {
+              const [name, c, lv] = R[k++ % 3],
+                ch = v.charge * lv;
+              root.style.setProperty("--rc", c);
+              [gl, it, lb].forEach((e) => e.getAnimations().forEach((a) => a.cancel()));
+              lid.style.transform = "";
+              it.style.opacity = 0;
+              lb.style.opacity = 0;
+              if (!rm)
+                bx.animate(
+                  [
+                    { transform: "none" },
+                    { transform: "rotate(-4deg)" },
+                    { transform: "rotate(4deg)" },
+                    { transform: "none" },
+                  ],
+                  { duration: 160, iterations: Math.round(ch / 160) },
+                );
+              ts.push(
+                setTimeout(
+                  () => {
+                    lid.style.transition = rm ? "none" : "transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+                    lid.style.transform = "rotate(-60deg) translateY(-4px)";
+                    if (!rm)
+                      gl.animate(
+                        [
+                          { opacity: 0, transform: "scale(.4) rotate(0)" },
+                          { opacity: 1, transform: "scale(1) rotate(30deg)", offset: 0.3 },
+                          { opacity: 0.7, transform: "scale(1.05) rotate(80deg)" },
+                        ],
+                        { duration: 1600, fill: "forwards" },
+                      );
+                    if (rm)
+                      it.style.transform =
+                        "translateY(-30px) rotate(45deg)"; /* 動きを減らす設定：完成位置に置き、透明度だけで出す */
+                    it.animate(
+                      rm
+                        ? [{ opacity: 0 }, { opacity: 1 }]
+                        : [
+                            { opacity: 0, transform: "translateY(0) rotate(45deg) scale(.4)" },
+                            { opacity: 1, transform: "translateY(-40px) rotate(45deg) scale(1.15)", offset: 0.6 },
+                            { opacity: 1, transform: "translateY(-30px) rotate(45deg) scale(1)" },
+                          ],
+                      { duration: 600, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" },
+                    );
+                    lb.textContent = name;
+                    lb.animate(
+                      rm
+                        ? [{ opacity: 0 }, { opacity: 1 }]
+                        : [
+                            { opacity: 0, transform: "translateY(6px)" },
+                            { opacity: 1, transform: "none" },
+                          ],
+                      { duration: 300, delay: 350, fill: "forwards" },
+                    );
+                  },
+                  rm ? 0 : ch,
+                ),
+              );
+            };
+            const stop = seq(3600, [[200, run]]);
+            return () => {
+              stop();
+              ts.forEach(clearTimeout);
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

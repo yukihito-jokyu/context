@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>キーフレーム（Keyframes） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-keyframes" style="position: relative; width: 220px; height: 140px">
+        <span class="sb-ring" style="position: absolute; left: 12px; top: 92px"></span
+        ><span class="sb-ring" style="position: absolute; left: 102px; top: 52px"></span
+        ><span class="sb-ring" style="position: absolute; left: 192px; top: 92px"></span
+        ><span
+          class="sb-thumb sb-grad-sky ac-keyframes-t"
+          style="position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 12px; top: 80px"
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-keyframes .ac-keyframes-t {
+        animation: ac-keyframes-path var(--dur, 1200ms) both;
+      }
+      @keyframes ac-keyframes-path {
+        0% {
+          transform: translate(0, 0);
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        50% {
+          transform: translate(90px, -40px);
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        100% {
+          transform: translate(180px, 0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @keyframes ac-keyframes-path {
+          from {
+            opacity: 0;
+            transform: translate(180px, 0);
+          }
+          to {
+            opacity: 1;
+            transform: translate(180px, 0);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "keyframes",
+        name: "キーフレーム",
+        en: "Keyframes",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "動きの途中の要所（0%・50%・100% など）だけを決め、そのあいだはブラウザに埋めてもらう考え方です。要所を増やすほど、まっすぐではない複雑な道すじを描けます。",
+        use: "一直線ではない動き（弧を描く、寄り道する）、複数の段階がある動き。",
+        params: [{ key: "dur", label: "時間", value: 1200, min: 400, max: 3000, step: 100, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "要所",
+            "0%: <code>translate(0, 0)</code>／50%: <code>translate(90px, -40px)</code>／100%: <code>translate(180px, 0)</code>",
+          ],
+          [
+            "区間ごと",
+            "各区間に in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code> を当てる（<code>animation-timing-function</code> を要所に書く）",
+          ],
+          ["書き方", "CSS の <code>@keyframes</code>、JS の <code>element.animate([...])</code>"],
+          ["動きを減らす設定", "道すじをたどらず、最後の位置に透明度で切り替える"],
+          ["出典", "Animation Vocabulary（Sequencing & Timing）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

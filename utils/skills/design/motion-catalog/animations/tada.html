@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ジャーン（Tada） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-tada" style="position: relative; width: 200px; height: 130px; display: grid; place-items: center">
+        <span class="sb-fab ac-tada-c" style="width: 64px; height: 64px"
+          ><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z" /></svg
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-tada .ac-tada-c {
+          animation: ac-tada-a var(--dur, 1000ms) both;
+        }
+      }
+      @keyframes ac-tada-a {
+        0% {
+          transform: scale(1);
+        }
+        10%,
+        20% {
+          transform: scale(0.9) rotate(-3deg);
+        }
+        30%,
+        50%,
+        70%,
+        90% {
+          transform: scale(1.1) rotate(3deg);
+        }
+        40%,
+        60%,
+        80% {
+          transform: scale(1.1) rotate(-3deg);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "tada",
+        name: "ジャーン",
+        en: "Tada",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "一度小さく縮んでから、大きくなって左右に小刻みに揺れ、元に戻る動きです。「ジャーン！」とお披露目するような、うれしい知らせに合います。",
+        use: "実績の解除、ご褒美、レベルアップ、新機能の紹介、正解の表示。",
+        params: [{ key: "dur", label: "時間", value: 1000, min: 300, max: 2500, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "10–20%：<code>scale(.9) rotate(-3deg)</code>、30–90%：<code>scale(1.1)</code> のまま <code>rotate ±3deg</code> を交互、100%：元へ",
+          ],
+          ["使い方", "1回だけ再生する。くり返すとうるさくなる"],
+          ["動きを減らす設定", "動きをやめ、色や記号の変化だけで知らせる"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

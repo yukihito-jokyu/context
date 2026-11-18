@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画像生成のスキャン（Image scan loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-image-scan-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-image-scan-loader-f">
+          <span class="ac-image-scan-loader-pic ac-image-scan-loader-lo"></span
+          ><span class="ac-image-scan-loader-pic ac-image-scan-loader-hi"></span
+          ><span class="ac-image-scan-loader-band"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-image-scan-loader .ac-image-scan-loader-f {
+        position: relative;
+        width: 150px;
+        height: 112px;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .ac-image-scan-loader .ac-image-scan-loader-pic {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 70% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 48%, transparent 49%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-image-scan-loader .ac-image-scan-loader-lo {
+        filter: blur(8px) saturate(0.4);
+        transform: scale(1.08);
+      }
+      .ac-image-scan-loader .ac-image-scan-loader-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 26px;
+        margin-top: -13px;
+        background: linear-gradient(transparent, rgba(255, 255, 255, 0.75), transparent);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-image-scan-loader .ac-image-scan-loader-hi {
+          animation: ac-image-scan-loader-clip var(--dur, 1800ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+        .ac-image-scan-loader .ac-image-scan-loader-band {
+          animation: ac-image-scan-loader-band var(--dur, 1800ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      @keyframes ac-image-scan-loader-clip {
+        from {
+          clip-path: inset(0 0 100% 0);
+        }
+        to {
+          clip-path: inset(0 0 0 0);
+        }
+      }
+      @keyframes ac-image-scan-loader-band {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(112px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-image-scan-loader .ac-image-scan-loader-band {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "image-scan-loader",
+        name: "画像生成のスキャン",
+        en: "Image scan loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "画像を生成している間、ぼんやりした画面の上を光の帯が上から下へ走査し、通ったところから少しずつ鮮明になっていく表現です。AI が絵を描いている途中のような、期待感のある待ち時間になります。",
+        use: "AI 画像生成、画像の加工・変換、アップロード後の処理中、スキャン・解析の演出。",
+        params: [{ key: "dur", label: "走査の時間", value: 1800, min: 800, max: 4000, step: 100, unit: "ms" }],
+        spec: [
+          ["帯", "明るい横の帯（グラデーション）を <code>translateY(上 → 下)</code>｜in-out｜くり返し"],
+          [
+            "鮮明に",
+            "本画像に <code>clip-path: inset(0 0 (100% - 帯の位置) 0)</code> をかけ、帯が通った部分だけ見せる。下はぼかした状態か、粗い格子（ピクセル）",
+          ],
+          ["完了", "最後の走査が終わったら帯を消し、全体をはっきり見せる"],
+          ["動きを減らす設定", "走査をやめ、ぼかしから本画像へのフェードにする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/image-generation-loader" target="_blank" rel="noopener">Aceternity UI: Image Generation Loader</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

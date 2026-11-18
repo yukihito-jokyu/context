@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>立体文字の視差（Extruded text parallax） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-extruded-text-parallax" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-extruded-text-parallax-w"></div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-extruded-text-parallax .ac-extruded-text-parallax-w {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
+      .ac-extruded-text-parallax .ac-extruded-text-parallax-l {
+        grid-area: 1 / 1;
+        font-size: 24px;
+        line-height: 32px;
+        font-weight: 800;
+        color: var(--ink);
+        letter-spacing: 0.02em;
+        font-size: 40px;
+        line-height: 52px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "extruded-text-parallax",
+        name: "立体文字の視差",
+        en: "Extruded text parallax",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "同じ文字を少しずつずらして何枚も重ね、厚みのある立体文字にし、ポインターの位置に合わせて厚みの向きが変わる表現です。文字を斜めからのぞき込んでいるような奥行きが出ます。",
+        use: "ヒーローの大見出し、ブランドロゴ、ゲーム・エンタメ系のタイトル、404 ページ。",
+        params: [
+          { key: "depth", label: "厚み", value: 8, min: 2, max: 16, step: 1, unit: "層" },
+          { key: "amount", label: "ずれの大きさ", value: 1.2, min: 0.4, max: 2.5, step: 0.1, unit: "px" },
+        ],
+        spec: [
+          [
+            "重ね方",
+            "同じ文字を「厚み」の数だけ重ね、i 枚目を <code>translate(dx × i, dy × i)</code>、奥ほど暗い色にする",
+          ],
+          ["向き", "dx, dy はポインターの位置（中心からのずれ ÷ 幅）× ずれの大きさ。spring で追いかける"],
+          ["負荷", "層は <code>aria-hidden</code> にし、読み上げは手前の1枚だけにする"],
+          ["動きを減らす設定", "ポインターへの追従をやめ、斜めに固定した厚みにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/depth-text" target="_blank" rel="noopener">React Bits: Depth Text</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const w = stage.querySelector(".ac-extruded-text-parallax-w"),
+              n = v.depth;
+            w.innerHTML = Array.from(
+              { length: n + 1 },
+              (_, i) =>
+                `<span class="ac-extruded-text-parallax-l" ${i < n ? 'aria-hidden="true"' : ""} style="color:${i === n ? "var(--blue)" : `color-mix(in srgb, var(--navy) ${30 + (50 * i) / n}%, var(--sky))`}">DEPTH</span>`,
+            ).join("");
+            const ls = [...w.children];
+            let dx = rm ? -1 : 1,
+              dy = rm ? -1 : 1;
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const px = 110 + 90 * Math.sin(t * 0.9),
+                py = 75 + 50 * Math.sin(t * 1.3);
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              const tx = rm ? -1 : -(px - 110) / 90,
+                ty = rm ? -1 : -(py - 75) / 50;
+              dx += (tx - dx) * 0.1;
+              dy += (ty - dy) * 0.1;
+              ls.forEach((l, i) => {
+                const k = (n - i) * v.amount;
+                l.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

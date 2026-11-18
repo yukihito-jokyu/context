@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>群れの動き（Flocking） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-flocking"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "flocking",
+        name: "群れの動き",
+        en: "Flocking",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "たくさんの小さな形が、近くの仲間とぶつからないように離れ、同じ向きにそろえ、群れの中心へ寄る、という3つの単純な決まりだけで、鳥や魚の群れのように動く背景です（Boids）。",
+        use: "自然・生き物をテーマにしたページ、コミュニティ・ネットワークの表現、遊び心のある背景。",
+        params: [
+          { key: "n", label: "数", value: 36, min: 10, max: 80, step: 1, unit: "羽" },
+          { key: "maxv", label: "最高速度", value: 60, min: 20, max: 140, step: 5, unit: "px/s" },
+        ],
+        spec: [
+          [
+            "3つの決まり",
+            "分離（近すぎる仲間から離れる）・整列（近くの仲間の向きに合わせる）・結合（近くの仲間の中心へ寄る）。それぞれの力を速度に足す",
+          ],
+          ["制限", "速さに上限と下限を設け、画面の端では反対側へ回り込ませる（または押し戻す）"],
+          ["数", "数十〜数百。多いときは近所探しを格子で区切って速くする"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.red3d.com/cwr/boids/index.html" target="_blank" rel="noopener">Craig Reynolds: Boids</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const bs = Array.from({ length: v.n }, () => ({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                vx: (Math.random() - 0.5) * 40,
+                vy: (Math.random() - 0.5) * 40,
+              })),
+              c = col("cobalt") || "#2b59c3";
+            const draw = () => {
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = c;
+              for (const b of bs) {
+                const a = Math.atan2(b.vy, b.vx);
+                g.save();
+                g.translate(b.x, b.y);
+                g.rotate(a);
+                g.beginPath();
+                g.moveTo(5, 0);
+                g.lineTo(-4, 3);
+                g.lineTo(-4, -3);
+                g.fill();
+                g.restore();
+              }
+            };
+            if (rm) {
+              draw();
+              return null;
+            }
+            let last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              for (const b of bs) {
+                let sx = 0,
+                  sy = 0,
+                  ax = 0,
+                  ay = 0,
+                  cx = 0,
+                  cy = 0,
+                  n = 0;
+                for (const o of bs) {
+                  if (o === b) continue;
+                  const dx = o.x - b.x,
+                    dy = o.y - b.y,
+                    d = Math.hypot(dx, dy);
+                  if (d < 30) {
+                    n++;
+                    ax += o.vx;
+                    ay += o.vy;
+                    cx += o.x;
+                    cy += o.y;
+                    if (d < 12 && d > 0) {
+                      sx -= dx / d;
+                      sy -= dy / d;
+                    }
+                  }
+                }
+                if (n) {
+                  b.vx += (ax / n - b.vx) * 0.05 + (cx / n - b.x) * 0.02;
+                  b.vy += (ay / n - b.vy) * 0.05 + (cy / n - b.y) * 0.02;
+                }
+                b.vx += sx * 6;
+                b.vy += sy * 6;
+                const s = Math.hypot(b.vx, b.vy);
+                if (s === 0) {
+                  b.vx = 20;
+                  b.vy = 0;
+                } else {
+                  const k = s > v.maxv ? v.maxv / s : s < 20 ? 20 / s : 1;
+                  b.vx *= k;
+                  b.vy *= k;
+                } /* 止まったら向きを決め直す */
+                b.x = (b.x + b.vx * dt + W) % W;
+                b.y = (b.y + b.vy * dt + H) % H;
+              }
+              draw();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

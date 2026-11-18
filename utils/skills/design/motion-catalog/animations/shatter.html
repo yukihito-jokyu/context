@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>破片に割れる（Shatter / Fracture） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-shatter"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "shatter",
+        name: "破片に割れる",
+        en: "Shatter / Fracture",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像やカードがガラスのように細かい破片に割れ、破片がそれぞれ回りながら飛び散って落ちていく表現です。逆に再生すると、破片が集まって1枚に戻ります。",
+        use: "削除や破棄の演出、ゲームでブロックや敵を壊す瞬間、ドラマチックな場面転換、ロゴの登場。",
+        params: [{ key: "dur", label: "ひと回りの時間", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["破片", "画像を三角形やボロノイの多角形に分け、破片ごとに外向きの速さ・回転の速さを持たせる。重力で落とす"],
+          [
+            "描き方",
+            "canvas で破片の形に <code>clip</code> して元の画像を描き、破片ごとに <code>translate / rotate</code>。DOM なら <code>clip-path: polygon()</code> の要素に分ける",
+          ],
+          [
+            "本格的に",
+            "3D では剛体の物理で割る（three.js の物理の例 <code>physics_ammo_break</code>、After Effects の Shatter）",
+          ],
+          ["動きを減らす設定", "割れる動きをやめ、フェードで消す"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Simulation）</a>、<a href="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/files.json" target="_blank" rel="noopener">three.js examples（一覧）</a>、<a href="https://github.com/grapefrukt/juicy-breakout/blob/master/src/com/grapefrukt/games/juicy/Settings.as" target="_blank" rel="noopener">Juicy Breakout（Jonasson & Purho）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const x0 = 50,
+              y0 = 30,
+              w = 120,
+              h = 90,
+              nx = 5,
+              ny = 4,
+              pts = [];
+            for (let j = 0; j <= ny; j++) {
+              pts.push([]);
+              for (let i = 0; i <= nx; i++) {
+                const ed = i === 0 || j === 0 || i === nx || j === ny;
+                pts[j].push([
+                  x0 + (w * i) / nx + (ed ? 0 : (rnd() - 0.5) * 14),
+                  y0 + (h * j) / ny + (ed ? 0 : (rnd() - 0.5) * 12),
+                ]);
+              }
+            }
+            const tri = [];
+            for (let j = 0; j < ny; j++)
+              for (let i = 0; i < nx; i++) {
+                const a = pts[j][i],
+                  b = pts[j][i + 1],
+                  c = pts[j + 1][i],
+                  d = pts[j + 1][i + 1];
+                tri.push([a, b, d], [a, d, c]);
+              }
+            const sh = tri.map((p) => {
+              const cx = (p[0][0] + p[1][0] + p[2][0]) / 3,
+                cy = (p[0][1] + p[1][1] + p[2][1]) / 3,
+                a = Math.atan2(cy - 75, cx - 110 + (rnd() - 0.5) * 20);
+              return {
+                p,
+                cx,
+                cy,
+                vx: cos(a) * (40 + rnd() * 80),
+                vy: sin(a) * (30 + rnd() * 60) - 60,
+                w: (rnd() - 0.5) * 8,
+                d: Math.hypot(cx - 110, cy - 75) / 400,
+              };
+            });
+            const tex = (gg) => {
+              const gr = gg.createLinearGradient(x0, y0, x0 + w, y0 + h);
+              gr.addColorStop(0, col("sky"));
+              gr.addColorStop(1, col("cobalt"));
+              gg.fillStyle = gr;
+              gg.fillRect(x0, y0, w, h);
+              gg.fillStyle = "rgba(255,255,255,.85)";
+              gg.fillRect(x0 + 16, y0 + 30, 70, 8);
+              gg.fillRect(x0 + 16, y0 + 46, 46, 8);
+            };
+            return raf((t) => {
+              const T = v.dur / 1000,
+                c = (t % T) / T;
+              let k = c < 0.25 ? 0 : c < 0.75 ? ((c - 0.25) / 0.5) * 1.2 : Math.max(0, 1 - (c - 0.75) / 0.25) * 1.2;
+              if (rm) k = 0;
+              g.clearRect(0, 0, W, H);
+              sh.forEach((s) => {
+                const tt = Math.max(0, k - s.d);
+                g.save();
+                g.translate(s.cx + s.vx * tt, s.cy + s.vy * tt + 300 * tt * tt);
+                g.rotate(s.w * tt);
+                g.translate(-s.cx, -s.cy);
+                g.beginPath();
+                g.moveTo(...s.p[0]);
+                g.lineTo(...s.p[1]);
+                g.lineTo(...s.p[2]);
+                g.closePath();
+                g.clip();
+                tex(g);
+                g.restore();
+                if (tt > 0) {
+                  g.save();
+                  g.translate(s.cx + s.vx * tt, s.cy + s.vy * tt + 300 * tt * tt);
+                  g.rotate(s.w * tt);
+                  g.translate(-s.cx, -s.cy);
+                  g.strokeStyle = "rgba(255,255,255,.7)";
+                  g.lineWidth = 0.8;
+                  g.beginPath();
+                  g.moveTo(...s.p[0]);
+                  g.lineTo(...s.p[1]);
+                  g.lineTo(...s.p[2]);
+                  g.closePath();
+                  g.stroke();
+                  g.restore();
+                }
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

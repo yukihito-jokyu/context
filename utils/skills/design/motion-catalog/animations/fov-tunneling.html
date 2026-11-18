@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>視野を絞る酔い対策（Dynamic field-of-view restriction (tunneling)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-fov-tunneling"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "fov-tunneling",
+        name: "視野を絞る酔い対策",
+        en: "Dynamic field-of-view restriction (tunneling)",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "VR でスティックなどで移動したり回ったりしている間だけ、視界の周り（周辺視野）を暗くぼかして狭め、止まると元の広さに戻す方法です。酔いの原因になりやすい、視界の端を流れる景色を隠します。",
+        use: "VR の移動・回転・乗り物の場面、酔いやすい人向けの快適さの設定。",
+        params: [{ key: "amt", label: "絞る強さ", value: 1, min: 0, max: 1.5, step: 0.05, unit: "" }],
+        spec: [
+          [
+            "仕組み",
+            "移動の速さ（と回転の速さ）に合わせて、画面の周りに丸い暗がり（ビネット）をかぶせる。速いほど穴を小さくする",
+          ],
+          ["時間", "絞るときは 0.1〜0.2 秒で速く、戻すときは 0.3〜0.5 秒でゆっくり。強さは設定で選べるようにする"],
+          ["各環境では", "Unity XR Interaction Toolkit の Tunneling Vignette、Meta の Comfort の設定"],
+          ["動きを減らす設定", "絞り具合を固定し、移動の間だけ一定の強さで絞る"],
+          [
+            "出典",
+            '<a href="https://forums.oculusvr.com/t5/s/hucou38897/attachments/hucou38897/dev-unity/14178/4/fernandes2016.pdf" target="_blank" rel="noopener">forums.oculusvr.com（fernandes2016）</a>、<a href="https://developer.apple.com/videos/play/wwdc2025/296/?time=84" target="_blank" rel="noopener">developer.apple.com（296）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const floor = (zoff, hz = 52) => {
+              g.fillStyle = "#eaf2ff";
+              g.fillRect(0, 0, W, hz);
+              g.fillStyle = col("ice");
+              g.fillRect(0, hz, W, H - hz);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 1;
+              for (let k = 0; k < 18; k++) {
+                const z = 0.5 + k * 1.2 - (zoff % 1.2);
+                if (z <= 0.3) continue;
+                const y = hz + 90 / z;
+                if (y > H) continue;
+                g.globalAlpha = Math.min(1, 3 / z);
+                g.beginPath();
+                g.moveTo(0, y);
+                g.lineTo(W, y);
+                g.stroke();
+              }
+              g.globalAlpha = 1;
+              for (let X = -10; X <= 10; X++) {
+                const x = X * 1.2;
+                g.beginPath();
+                g.moveTo(110 + (x * 90) / 20, hz + 90 / 20);
+                g.lineTo(110 + (x * 90) / 0.55, hz + 90 / 0.55);
+                g.stroke();
+              }
+            };
+            let z = 0,
+              last = 0,
+              k = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              const T = t % 5,
+                sp = T < 0.6 ? 0 : T < 1.2 ? (T - 0.6) / 0.6 : T < 3.2 ? 1 : T < 3.8 ? 1 - (T - 3.2) / 0.6 : 0;
+              z += sp * dt * 3;
+              const tg = sp * v.amt;
+              k += rm
+                ? tg > 0
+                  ? 0.6 * v.amt - k
+                  : -k
+                : (tg - k) * (1 - Math.pow(1 - (tg > k ? 0.25 : 0.08), dt * 60));
+              /* 係数は 60fps で1フレームあたり */ floor(z);
+              const r0 = Math.max(44, 140 - k * 70),
+                gr = g.createRadialGradient(110, 75, r0 * 0.55, 110, 75, r0);
+              gr.addColorStop(0, "rgba(10,20,50,0)");
+              gr.addColorStop(1, `rgba(10,20,50,${Math.min(0.92, k * 0.9)})`);
+              g.fillStyle = gr;
+              g.fillRect(0, 0, W, H);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>前後の音につられる口の形（Speech coarticulation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-coarticulation"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "coarticulation",
+        name: "前後の音につられる口の形",
+        en: "Speech coarticulation",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "口の形（口形素）を音 1 つずつにパッと切り替えるのではなく、前後の音の口の形を先取りしたり引きずったりして、なめらかに重ねる方法です。たとえば「う」が続く言葉では、手前の音から唇が少しすぼまります。上が切り替えるだけ、下が前後の音を重ねた場合です。",
+        use: "キャラクターの口パク（リップシンク）、アバター・VTuber の口、音声に合わせたマスコット。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "音ごとの口の形に、時間の前後へ広がる重み（山の形）を持たせ、重なった所は重みで混ぜる。唇を閉じる音（ま・ぱ・ば）は必ず閉じる",
+          ],
+          ["強さ", "舌や顎の動きは早めに、唇の丸め（う・お）はより早くから先取りしやすい"],
+          ["ツールでは", "JALI、Oculus Lipsync・Audio2Face などの自動の口パク、手付けなら口の形を 1〜2 コマ早める"],
+          ["動きを減らす設定", "動きを止め、代表的なポーズの静止画にする"],
+          [
+            "出典",
+            '<a href="https://dgp.toronto.edu/~elf/JALISIG16.pdf" target="_blank" rel="noopener">dgp.toronto.edu（JALISIG16）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            const seg = (x, y, a, l) => [x + sin(a) * l, y + cos(a) * l];
+            const line = (pts, w, c) => {
+              g.lineCap = "round";
+              g.lineJoin = "round";
+              g.lineWidth = w;
+              g.strokeStyle = c;
+              g.beginPath();
+              g.moveTo(pts[0][0], pts[0][1]);
+              for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+              g.stroke();
+            };
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const limb = (x, y, a1, l1, a2, l2, w, c) => {
+              const k = seg(x, y, a1, l1),
+                f = seg(k[0], k[1], a1 + a2, l2);
+              line([[x, y], k, f], w, c);
+              return [k, f];
+            };
+            // 人：hip（腰）の位置と pose（lean 体の傾き, t1/s1 手前の脚, t2/s2 奥の脚, u1/f1 手前の腕, u2/f2 奥の腕）
+            const figure = (x, y, p, L = { t: 18, s: 18, b: 30, u: 14, f: 13, h: 9 }) => {
+              const near = col("blue"),
+                far = col("sky"),
+                nx = x + sin(p.lean || 0) * L.b,
+                ny = y - cos(p.lean || 0) * L.b;
+              limb(x, y, p.t2, L.t, p.s2, L.s, 7, far);
+              limb(nx, ny + 3, p.u2, L.u, p.f2, L.f, 6, far);
+              line(
+                [
+                  [x, y],
+                  [nx, ny],
+                ],
+                11,
+                near,
+              );
+              dot(nx + sin(p.lean || 0) * (L.h + 3), ny - cos(p.lean || 0) * (L.h + 3), L.h, near);
+              limb(x, y, p.t1, L.t, p.s1, L.s, 7, near);
+              limb(nx, ny + 3, p.u1, L.u, p.f1, L.f, 6, near);
+            };
+            const ground = (y, off, gap = 22) => {
+              g.fillStyle = col("ice");
+              g.fillRect(0, y, W, H - y);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 2;
+              for (let x = -((off % gap) + gap) % gap; x < W; x += gap) {
+                g.beginPath();
+                g.moveTo(x, y + 8);
+                g.lineTo(x + 8, y + 8);
+                g.stroke();
+              }
+            };
+            // 2本の骨の IK：根元 (x, y) から長さ a, b で目標 (tx, ty) へ。bend = ±1 で曲がる向き。関節の位置を返す
+            const ik2 = (x, y, tx, ty, a, b, bend = 1) => {
+              let dx = tx - x,
+                dy = ty - y,
+                d = Math.hypot(dx, dy);
+              const dd = Math.max(Math.abs(a - b) + 0.01, Math.min(d, a + b - 0.01)),
+                base = d ? Math.atan2(dy, dx) : -Math.PI / 2,
+                c = Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd))),
+                th = base - bend * Math.acos(c);
+              return [x + cos(th) * a, y + sin(th) * a, x + cos(base) * dd, y + sin(base) * dd];
+            };
+            const lp = (a, b, k) => {
+              const o = {};
+              for (const key in a) o[key] = a[key] + (b[key] - a[key]) * k;
+              return o;
+            };
+            const ez = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2),
+              cl = (u) => Math.min(1, Math.max(0, u));
+            const txt = (s, x, y, c = col("ink-muted"), al = "left") => {
+              g.fillStyle = c;
+              g.font = "600 10px sans-serif";
+              g.textAlign = al;
+              g.fillText(s, x, y);
+            };
+            const GUARD = { lean: 0.05, t1: 0.35, s1: -0.3, t2: -0.3, s2: -0.1, u1: 2.2, f1: 1.6, u2: 2.4, f2: 1.7 };
+            const PH = [
+              ["お", 0.9, 0.6],
+              ["は", 0.7, 0.2],
+              ["よ", 0.5, 0.7],
+              ["う", 0.3, 0.9],
+              ["ま", 0, 0.3],
+            ];
+            const mouth = (y, open, round) => {
+              const w = 22 - round * 10,
+                h = 2 + open * 14;
+              g.fillStyle = col("navy");
+              g.beginPath();
+              g.ellipse(70, y, w, h, 0, 0, TAU);
+              g.fill();
+            };
+            return raf((t) => {
+              const T = rm ? 1.2 : (t * 1.2) % 5,
+                i = Math.min(4, Math.floor(T)),
+                f = T - i;
+              g.clearRect(0, 0, W, H);
+              const hard = PH[i];
+              let o = 0,
+                r = 0,
+                ws = 0;
+              PH.forEach((p, j) => {
+                const d = j + 0.5 - T,
+                  w = Math.exp((-d * d) / 0.35) * (p[0] === "ま" ? 2 : 1);
+                o += p[1] * w;
+                r += p[2] * w;
+                ws += w;
+              });
+              o /= ws;
+              r /= ws;
+              if (Math.abs(T - 4.5) < 0.25) o = 0;
+              g.fillStyle = col("ice");
+              g.fillRect(30, 10, 80, 60);
+              g.fillRect(30, 80, 80, 60);
+              mouth(40, hard[1], hard[2]);
+              mouth(110, o, r);
+              PH.forEach((p, j) => {
+                txt(p[0], 130 + j * 16, 40, j === i ? col("blue") : col("ink-muted"), "center");
+                txt(p[0], 130 + j * 16, 112, j === i ? col("blue") : col("ink-muted"), "center");
+              });
+              g.fillStyle = "#e5484d";
+              g.fillRect(122 + T * 16, 48, 2, 8);
+              g.fillRect(122 + T * 16, 120, 2, 8);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

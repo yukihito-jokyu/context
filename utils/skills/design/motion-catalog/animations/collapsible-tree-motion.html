@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ツリーの枝の展開（Collapsible tree motion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-collapsible-tree-motion" style="position: relative; width: 220px; height: 150px">
+        <svg
+          class="ac-collapsible-tree-motion-s"
+          width="220"
+          height="150"
+          viewBox="0 0 220 150"
+          style="position: absolute; inset: 0; overflow: visible"
+        ></svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "collapsible-tree-motion",
+        name: "ツリーの枝の展開",
+        en: "Collapsible tree motion",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "階層のある木の図で、親の節を押すと、子の節が親の位置から枝を伸ばしながら広がって現れ、もう一度押すと親の位置へ吸い込まれて閉じる動きです。どこから生えた枝なのかが、動きで分かります。",
+        use: "組織図、フォルダ・カテゴリーの階層、マインドマップ、サイトマップ。",
+        params: [{ key: "dur", label: "時間", value: 600, min: 200, max: 1500, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "開く",
+            "子の節を親の位置から本来の位置へ（<code>translate</code>）、線も親から伸ばす。同時に <code>opacity 0 → 1</code>｜in-out",
+          ],
+          ["閉じる", "子の節を親の位置へ戻しながら消す。孫も一緒に親へ"],
+          ["ずれ", "まわりの節も新しい配置へ同じ時間で動かす（全体の配置を計算し直して補間する）"],
+          ["動きを減らす設定", "補間をやめ、新しい状態の図をすぐ表示する（またはフェードで切り替える）"],
+          [
+            "出典",
+            '<a href="https://observablehq.com/@d3/collapsible-tree" target="_blank" rel="noopener">D3 example</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const svg = stage.querySelector(".ac-collapsible-tree-motion-s");
+            const NS = "http://www.w3.org/2000/svg",
+              el = (n, a = {}, p) => {
+                const e = document.createElementNS(NS, n);
+                for (const k in a) e.setAttribute(k, a[k]);
+                (p || svg).appendChild(e);
+                return e;
+              };
+            const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+            const tween = (ms, fn) => {
+              const t0 = performance.now();
+              let id;
+              const f = (now) => {
+                const k = Math.min(1, (now - t0) / ms);
+                fn(rm ? 1 : ease(k));
+                if (k < 1) id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => cancelAnimationFrame(id);
+            };
+            const root = [24, 75],
+              kids = [
+                [94, 30],
+                [94, 75],
+                [94, 120],
+              ],
+              gk = [
+                [170, 18],
+                [170, 42],
+                [170, 108],
+                [170, 132],
+              ],
+              gp = [0, 0, 2, 2];
+            const L = el("g"),
+              Nd = el("g");
+            const node = (r, c) => el("circle", { r, fill: c, stroke: "#fff", "stroke-width": 2 }, Nd);
+            const line = () => el("path", { fill: "none", stroke: "var(--bar-strong)", "stroke-width": 1.5 }, L);
+            const rn = node(9, "var(--blue)");
+            rn.setAttribute("cx", root[0]);
+            rn.setAttribute("cy", root[1]);
+            const K = kids.map(() => ({ n: node(7, "var(--sky)"), l: line() })),
+              G = gk.map(() => ({ n: node(5, "var(--aqua)"), l: line() }));
+            const curve = (a, b) =>
+              `M${a[0]},${a[1]} C${(a[0] + b[0]) / 2},${a[1]} ${(a[0] + b[0]) / 2},${b[1]} ${b[0]},${b[1]}`;
+            const draw = (k1, k2) => {
+              K.forEach((o, i) => {
+                const p = [root[0] + (kids[i][0] - root[0]) * k1, root[1] + (kids[i][1] - root[1]) * k1];
+                o.n.setAttribute("cx", p[0]);
+                o.n.setAttribute("cy", p[1]);
+                o.n.setAttribute("opacity", k1);
+                o.l.setAttribute("d", curve(root, p));
+                o.l.setAttribute("opacity", k1);
+                o.p = p;
+              });
+              G.forEach((o, i) => {
+                const par = K[gp[i]].p,
+                  p = [par[0] + (gk[i][0] - par[0]) * k2, par[1] + (gk[i][1] - par[1]) * k2];
+                o.n.setAttribute("cx", p[0]);
+                o.n.setAttribute("cy", p[1]);
+                o.n.setAttribute("opacity", k2);
+                o.l.setAttribute("d", curve(par, p));
+                o.l.setAttribute("opacity", k2);
+              });
+            };
+            draw(0, 0);
+            let a = 0,
+              b = 0,
+              stopT = null;
+            const to = (A, B) => () => {
+              const a0 = a,
+                b0 = b;
+              stopT && stopT();
+              stopT = tween(v.dur, (k) => {
+                a = a0 + (A - a0) * k;
+                b = b0 + (B - b0) * k;
+                draw(a, b);
+              });
+            };
+            const stop = seq(5200, [
+              [500, to(1, 0)],
+              [1500, to(1, 1)],
+              [3300, to(0, 0)],
+            ]);
+            return () => {
+              stop();
+              stopT && stopT();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>重なり順の変化（Draw order animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-draw-order" style="position: relative; width: 220px; height: 150px">
+        <span class="ac-draw-order-pl"></span><span class="ac-draw-order-m"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-draw-order .ac-draw-order-pl {
+        position: absolute;
+        left: 70px;
+        top: 35px;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(150deg, var(--sky), var(--cobalt));
+        z-index: 2;
+      }
+      .ac-draw-order .ac-draw-order-m {
+        position: absolute;
+        left: 100px;
+        top: 65px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--navy);
+        box-shadow: 0 0 0 3px #fff;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-draw-order .ac-draw-order-m {
+          animation:
+            ac-draw-order-x calc(var(--dur, 2400ms) / 2) ease-in-out calc(var(--dur, 2400ms) / -4) infinite alternate,
+            ac-draw-order-y calc(var(--dur, 2400ms) / 2) ease-in-out infinite alternate,
+            ac-draw-order-z var(--dur, 2400ms) step-end infinite,
+            ac-draw-order-s var(--dur, 2400ms) ease-in-out infinite;
+        }
+      }
+      @keyframes ac-draw-order-x {
+        from {
+          translate: -80px 0;
+        }
+        to {
+          translate: 80px 0;
+        }
+      }
+      @keyframes ac-draw-order-y {
+        from {
+          margin-top: -14px;
+        }
+        to {
+          margin-top: 14px;
+        }
+      }
+      @keyframes ac-draw-order-z {
+        0% {
+          z-index: 1;
+        }
+        25% {
+          z-index: 3;
+        }
+        75% {
+          z-index: 1;
+        }
+      }
+      @keyframes ac-draw-order-s {
+        0%,
+        100% {
+          scale: 0.75;
+          filter: brightness(0.75);
+        }
+        50% {
+          scale: 1.25;
+          filter: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-draw-order .ac-draw-order-m {
+          translate: 60px 0;
+          margin-top: 10px;
+          z-index: 3;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "draw-order",
+        name: "重なり順の変化",
+        en: "Draw order animation",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "部品どうしの前後の重なり（どちらが手前に描かれるか）を、動きの途中で入れ替える方法です。腕が体の後ろから前へ回る、衛星が星の裏側から表へ出てくる、といった奥行きを、平面の絵のまま表せます。",
+        use: "2D キャラクターの腕・脚の前後、回転するカルーセルの前後、周回するアイコン、カードを重ね直す演出。",
+        params: [{ key: "dur", label: "1周の時間", value: 2400, min: 1000, max: 5000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "円を回る動きの奥側に来た瞬間に <code>z-index</code> を下げ、手前側に来た瞬間に上げる（<code>step-end</code> で切り替え）",
+          ],
+          ["奥行きの補助", "奥にいる間は少し小さく・暗くすると、入れ替えが自然に見える"],
+          ["ツールでは", "Spine・Rive の Draw Order キー、Live2D の描画順のアニメーション"],
+          ["動きを減らす設定", "動きを止め、代表的なポーズ（または最初の形）の静止画にする"],
+          [
+            "出典",
+            '<a href="https://rive.app/features" target="_blank" rel="noopener">Rive Features</a>、<a href="https://esotericsoftware.com/spine-in-depth" target="_blank" rel="noopener">Spine: In Depth（Features）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

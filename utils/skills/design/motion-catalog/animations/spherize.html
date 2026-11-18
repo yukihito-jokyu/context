@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>球面化（Spherize / Bulge） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-spherize"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "spherize",
+        name: "球面化",
+        en: "Spherize / Bulge",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像の一部を、ボールの表面に貼ったように丸くふくらませる（または内側へへこませる）変形です。中心ほど大きく、まわりほど縮んで見え、レンズや水滴をのぞいたような表現になります。",
+        use: "拡大鏡やレンズの演出、ホバーでふくらむ画像、地球儀や球体の表現、ゆがみを使ったモーショングラフィックス。",
+        params: [{ key: "amt", label: "ふくらみの強さ", value: 1, min: -1, max: 2, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "仕組み",
+            "中心からの距離 r（半径 R で割った 0〜1）に対し、半径 <code>r' = r^(1 + 0.8 × 強さ)</code> の位置の画素を読む（指数は常に正。正でふくらみ、負でへこむ）",
+          ],
+          [
+            "Web では",
+            "SVG の <code>feDisplacementMap</code> に放射状のグラデーションの変位マップを渡す、または WebGL のシェーダー",
+          ],
+          ["ツールでは", "After Effects の Spherize / Bulge、CC Lens"],
+          ["動きを減らす設定", "ふくらみの動きを止め、少しふくらんだ形にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/apply-effects-and-animation-presets/effects-and-animation-presets/effect-list.html" target="_blank" rel="noopener">Adobe After Effects: Effect list（Distort）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            return raf((t) => {
+              const s = (rm ? 0.6 : 0.5 + 0.5 * sin(t * 1.5)) * v.amt,
+                cx = 110,
+                cy = 75,
+                R = 62;
+              g.clearRect(0, 0, W, H);
+              const map = (x, y) => {
+                const dx = x - cx,
+                  dy = y - cy,
+                  d = Math.hypot(dx, dy);
+                if (d >= R || d === 0) return [x, y];
+                const r = d / R,
+                  r2 = Math.pow(r, 1 + s * 0.8);
+                return [cx + (dx / d) * r2 * R, cy + (dy / d) * r2 * R];
+              };
+              g.fillStyle = "#f2f8ff";
+              g.fillRect(0, 0, W, H);
+              for (let gy = 0; gy <= 150; gy += 12)
+                for (let gx = 0; gx <= 220; gx += 12) {
+                  const p = map(gx, gy);
+                  const ins = Math.hypot(gx - cx, gy - cy) < R;
+                  dot(p[0], p[1], ins ? 2.6 : 1.8, ins ? col("blue") : col("sky"));
+                }
+              g.strokeStyle = col("cobalt");
+              g.lineWidth = 1.4;
+              for (let gy = 6; gy <= 150; gy += 24) {
+                g.beginPath();
+                for (let gx = 0; gx <= 220; gx += 4) g.lineTo(...map(gx, gy));
+                g.stroke();
+              }
+              g.strokeStyle = "rgba(37,99,235,.25)";
+              g.lineWidth = 2;
+              g.beginPath();
+              g.arc(cx, cy, R, 0, TAU);
+              g.stroke();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

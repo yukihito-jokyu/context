@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>関節（ジョイント）（Physical joints / chains） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-physical-joints"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "physical-joints",
+        name: "関節（ジョイント）",
+        en: "Physical joints / chains",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "いくつもの部品を、回転できる関節（ジョイント）やひもでつなぎ、物理の計算で揺らす方法です。くさりや振り子、ぶら下がった看板、つり橋などが、引っぱられたり揺れたりして自然に動きます。",
+        use: "ぶら下がるタグや看板、ひもでつながったキーホルダー、ゲームのロープ・橋、ドラッグで揺れる UI。",
+        params: [{ key: "n", label: "つなぐ数", value: 9, min: 3, max: 16, step: 1, unit: "個" }],
+        spec: [
+          [
+            "仕組み",
+            "部品の端どうしの距離を一定に保つ（距離の制約）。回転の関節なら、つないだ点の位置を合わせ、角度の範囲を制限する",
+          ],
+          ["計算", "位置で動かす方法（ベルレ積分）＋ 制約をくり返し満たす、が簡単で安定する"],
+          [
+            "本格的に",
+            "物理エンジン（Rapier・Ammo.js・Matter.js・Box2D）を使う。three.js の物理の例（<code>physics_*</code>）が参考になる",
+          ],
+          ["動きを減らす設定", "揺れを止め、真下に垂れた形にする"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/files.json" target="_blank" rel="noopener">three.js examples（一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let P = [],
+              nPrev = 0,
+              last = 0;
+            const build = () => {
+              const L0 = 108 / v.n;
+              P = Array.from({ length: v.n + 1 }, (_, i) =>
+                rm
+                  ? { x: 110, y: 18 + i * L0, px: 110, py: 18 + i * L0 }
+                  : { x: 110 + i * 9, y: 18, px: 110 + i * 9, py: 18 },
+              );
+              nPrev = v.n;
+            }; /* 動きを減らす設定では支点の真下に垂らす */
+            const frame = (t) => {
+              if (nPrev !== v.n) build();
+              const dt = Math.min(0.03, t - last);
+              last = t;
+              g.clearRect(0, 0, W, H);
+              const L = 108 / v.n;
+              const ax = rm ? 110 : 110 + 60 * sin(t * 1.4);
+              P[0].x = ax;
+              P[0].y = 18;
+              P.forEach((p, i) => {
+                if (i === 0) return;
+                const vx = (p.x - p.px) * 0.995,
+                  vy = (p.y - p.py) * 0.995;
+                p.px = p.x;
+                p.py = p.y;
+                p.x += vx;
+                p.y += vy + 600 * dt * dt;
+              });
+              for (let it = 0; it < 12; it++)
+                for (let i = 0; i < v.n; i++) {
+                  const A = P[i],
+                    B = P[i + 1],
+                    dx = B.x - A.x,
+                    dy = B.y - A.y,
+                    d = Math.hypot(dx, dy) || 1,
+                    f = (d - L) / d;
+                  if (i === 0) {
+                    B.x -= dx * f;
+                    B.y -= dy * f;
+                  } else {
+                    A.x += (dx * f) / 2;
+                    A.y += (dy * f) / 2;
+                    B.x -= (dx * f) / 2;
+                    B.y -= (dy * f) / 2;
+                  }
+                }
+              g.fillStyle = col("navy");
+              g.fillRect(20, 12, 180, 4);
+              for (let i = 0; i < v.n; i++) {
+                const A = P[i],
+                  B = P[i + 1];
+                g.strokeStyle = i % 2 ? col("sky") : col("cobalt");
+                g.lineWidth = 6;
+                g.lineCap = "round";
+                g.beginPath();
+                g.moveTo(A.x, A.y);
+                g.lineTo(B.x, B.y);
+                g.stroke();
+              }
+              P.forEach((p, i) => dot(p.x, p.y, i === v.n ? 0 : 2.2, "#fff"));
+              const e = P[v.n];
+              dot(e.x, e.y, 11, col("blue"));
+            };
+            if (rm) {
+              frame(0);
+              return null;
+            } // 動きを減らす設定：止まった形を一度だけ描く
+            return raf(frame);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

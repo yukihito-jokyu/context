@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動きを足し合わせる（Additive animation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-additive-animation"
+        style="position: relative; width: 200px; height: 130px; display: grid; align-items: center"
+      >
+        <div style="display: grid; gap: 30px">
+          <div style="position: relative; width: 200px; height: 36px">
+            <span style="position: absolute; left: 0; right: 0; top: 17px; height: 2px; background: var(--bar)"></span
+            ><span
+              class="sb-thumb sb-grad-sky ac-additive-animation-a"
+              style="width: 30px; height: 30px; border-radius: 10px; position: absolute; left: 0; top: 3px"
+            ></span>
+          </div>
+          <div style="position: relative; width: 200px; height: 36px">
+            <span style="position: absolute; left: 0; right: 0; top: 17px; height: 2px; background: var(--bar)"></span
+            ><span
+              class="sb-thumb sb-grad-sky ac-additive-animation-b"
+              style="width: 30px; height: 30px; border-radius: 10px; position: absolute; left: 0; top: 3px"
+            ></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-additive-animation .ac-additive-animation-a,
+        .ac-additive-animation .ac-additive-animation-b {
+          animation:
+            ac-additive-animation-mv var(--dur, 1800ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate,
+            ac-additive-animation-bob 450ms cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      .ac-additive-animation .ac-additive-animation-a {
+        animation-composition: replace, add;
+      }
+      .ac-additive-animation .ac-additive-animation-b {
+        animation-composition: replace, replace;
+        filter: grayscale(1);
+        opacity: 0.6;
+      }
+      @keyframes ac-additive-animation-mv {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(170px);
+        }
+      }
+      @keyframes ac-additive-animation-bob {
+        from {
+          transform: translateY(calc(var(--bob, 10px) * -1));
+        }
+        to {
+          transform: translateY(var(--bob, 10px));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "additive-animation",
+        name: "動きを足し合わせる",
+        en: "Additive animation",
+        cat: "状態の遷移",
+        kind: "concept",
+        description:
+          "2つの動きを、上書きではなく足し算で重ねる考え方です。上は「左右に移動する動き」に「上下に揺れる動き」を足しているので、揺れながら進みます。下は後から書いた揺れが移動を上書きしてしまい、その場で揺れるだけになります。",
+        use: "移動中の要素に揺れ・脈打ちを重ねる、ホバーの動きを既存の動きに足す、キャラクターの体と顔の動きを分ける。",
+        params: [
+          { key: "dur", label: "移動の周期", value: 1800, min: 800, max: 4000, step: 100, unit: "ms" },
+          { key: "bob", label: "揺れの大きさ", value: 10, min: 2, max: 24, step: 1, unit: "px" },
+        ],
+        spec: [
+          [
+            "書き方",
+            'CSS の <code>animation-composition: add</code>、Web Animations の <code>composite: "add"</code>。Rive ではレイヤーを重ねる',
+          ],
+          [
+            "比べる",
+            "下は <code>replace</code>（初期値）。同じ <code>transform</code> を動かす2つ目の動きが1つ目を上書きする",
+          ],
+          [
+            "別の方法",
+            "<code>translate</code> と <code>transform</code> のように、別のプロパティに分けても重ねられる（変形を別々に動かす）",
+          ],
+          ["動きを減らす設定", "揺れをやめ、移動だけにする"],
+          [
+            "出典",
+            '<a href="https://rive.app/docs/editor/state-machine/states" target="_blank" rel="noopener">Rive: blend states</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>マズルフラッシュ（Muzzle flash） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-muzzle-flash"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-muzzle-flash-g"></div>
+        <span class="ac-muzzle-flash-fl"><i></i></span><b class="ac-muzzle-flash-b" style="--i: 0"></b
+        ><b class="ac-muzzle-flash-b" style="--i: 1"></b><b class="ac-muzzle-flash-b" style="--i: 2"></b>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-muzzle-flash .ac-muzzle-flash-g {
+        position: absolute;
+        left: 30px;
+        top: 76px;
+        width: 70px;
+        height: 20px;
+        border-radius: 5px 3px 3px 5px;
+        background: var(--navy);
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-g::after {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 16px;
+        width: 16px;
+        height: 26px;
+        border-radius: 4px;
+        background: var(--navy);
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-fl {
+        position: absolute;
+        left: 100px;
+        top: 86px;
+        width: 0;
+        height: 0;
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-fl::before,
+      .ac-muzzle-flash .ac-muzzle-flash-fl i {
+        content: "";
+        position: absolute;
+        opacity: 0;
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-fl::before {
+        left: -14px;
+        top: -14px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff 0 45%, #ffe7a3 60%, transparent 72%);
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-fl i {
+        left: -4px;
+        top: -16px;
+        width: 40px;
+        height: 32px;
+        background: radial-gradient(circle at 20% 50%, #fff 0 18%, #ffd36e 34%, transparent 60%);
+        clip-path: polygon(0 50%, 30% 30%, 45% 0, 52% 34%, 100% 50%, 52% 66%, 45% 100%, 30% 70%);
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-fl.is-on::before {
+        animation: ac-muzzle-flash-a 70ms steps(1) both;
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-fl.is-on i {
+        animation: ac-muzzle-flash-b 70ms steps(1) both;
+      }
+      @keyframes ac-muzzle-flash-a {
+        0% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes ac-muzzle-flash-b {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      .ac-muzzle-flash .ac-muzzle-flash-b {
+        position: absolute;
+        left: 104px;
+        top: 83px;
+        width: 14px;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--blue);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "muzzle-flash",
+        name: "マズルフラッシュ",
+        en: "Muzzle flash",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "ゲームで弾を撃った瞬間、銃口に 1〜2 コマだけ明るい光の花を出す表現です。最初のコマを大きな丸にするのがこつで、一瞬で強く光って消えるので、撃った手応えがはっきり伝わります。",
+        use: "シューティングなどのゲーム、発射・打ち上げの演出、強い操作（送信）の一瞬の光。",
+        params: [{ key: "gap", label: "連射の間隔", value: 220, min: 80, max: 600, step: 10, unit: "ms" }],
+        spec: [
+          ["形", "1コマ目は大きな白い丸、2コマ目に星形（とがった光）を小さく、そのあと消す（合わせて 30〜60ms）"],
+          ["組み合わせ", "撃つ向きと逆のカメラのキック、薬莢、煙、画面の小さな揺れと一緒に"],
+          ["色", "中心は白、外側は黄〜オレンジ。周りを一瞬明るくすると（光の当たり）さらに強くなる"],
+          ["動きを減らす設定", "光の点滅をやめ、弾が飛ぶだけにする"],
+          [
+            "出典",
+            '<a href="https://medienwissenschaft.uni-bayreuth.de/wp-content/uploads/GxD-10-Game-Feel.pdf#page=7" target="_blank" rel="noopener">The Art of Screenshake の解説（Bayreuth 大学）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const fl = stage.querySelector(".ac-muzzle-flash-fl"),
+              bs = [...stage.querySelectorAll(".ac-muzzle-flash-b")];
+            let n = 0;
+            const shoot = () => {
+              if (!rm) {
+                fl.classList.remove("is-on");
+                void fl.offsetWidth;
+                fl.classList.add("is-on");
+              }
+              const b = bs[n++ % 3];
+              b.animate(
+                [
+                  { opacity: 1, transform: "translateX(0)" },
+                  { opacity: 1, transform: "translateX(130px)" },
+                ],
+                { duration: 260, easing: "linear" },
+              );
+            };
+            return seq(2000, [
+              [300, shoot],
+              [300 + v.gap, shoot],
+              [300 + v.gap * 2, shoot],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

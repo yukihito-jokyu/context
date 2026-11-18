@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>交互に膨らむ二重の円（Double-bounce loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-double-bounce-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-double-bounce-loader-w"><i></i><i></i></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-double-bounce-loader .ac-double-bounce-loader-w {
+        position: relative;
+        width: 48px;
+        height: 48px;
+      }
+      .ac-double-bounce-loader .ac-double-bounce-loader-w i {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: var(--blue);
+        opacity: 0.55;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-double-bounce-loader .ac-double-bounce-loader-w i {
+          animation: ac-double-bounce-loader-b var(--dur, 2000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      .ac-double-bounce-loader .ac-double-bounce-loader-w i + i {
+        animation-delay: calc(var(--dur, 2000ms) / -2);
+      }
+      @keyframes ac-double-bounce-loader-b {
+        0%,
+        100% {
+          transform: scale(0);
+        }
+        50% {
+          transform: scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-double-bounce-loader .ac-double-bounce-loader-w i {
+          transform: scale(0.7);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "double-bounce-loader",
+        name: "交互に膨らむ二重の円",
+        en: "Double-bounce loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "半透明の2つの円が重なり、片方が膨らむともう片方が縮む、を交互にくり返すローダーです。呼吸するような柔らかい動きで、落ち着いて待てます。",
+        use: "ボタン・カード・画面の読み込み中、待ち時間の短い処理。",
+        params: [{ key: "dur", label: "周期", value: 2000, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          ["動き", "2つの円をそれぞれ <code>scale(0 → 1 → 0)</code>｜in-out｜くり返し"],
+          [
+            "ずらし",
+            "2つ目を周期の半分だけずらす（片方が大きいとき、もう片方は小さい）。円は半透明にして重なりを見せる",
+          ],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/tobiasahlin/SpinKit/master/spinkit.css" target="_blank" rel="noopener">SpinKit</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

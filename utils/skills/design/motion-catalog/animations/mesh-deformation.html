@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>メッシュ変形（Mesh deformation (FFD / mesh warp)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-mesh-deformation"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "mesh-deformation",
+        name: "メッシュ変形",
+        en: "Mesh deformation (FFD / mesh warp)",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "画像や形を網目（メッシュ）や制御点の格子（ラティス）に乗せ、点を動かして絵そのものを曲げ・ふくらませる方法です。1枚の絵のまま、体のしなりや布のたわみを作れます。",
+        use: "2D キャラクターの体や顔の変形（Live2D・Spine・Rive）、ぐにゃっと伸びるロゴ、旗や布のゆれ、モーショングラフィックス。",
+        params: [{ key: "amt", label: "変形の強さ", value: 22, min: 0, max: 40, step: 1, unit: "px" }],
+        spec: [
+          [
+            "仕組み",
+            "3×3 の制御点の格子に絵を乗せ、各点を格子の中の位置（u, v）で表す。制御点を動かすと、ベジェ曲面の式で絵も動く（自由形状変形）",
+          ],
+          [
+            "種類",
+            "メッシュワープ、ラティス（少ない点で大きく曲げる）、ベジェワープ（輪郭を曲げる）、リキッド（筆でゆがめる）",
+          ],
+          ["Web では", "Spine・Rive・Live2D のメッシュ、SVG なら点の座標を計算し直して描き直す"],
+          ["動きを減らす設定", "変形を止め、元の形にする"],
+          [
+            "出典",
+            '<a href="https://esotericsoftware.com/spine-in-depth" target="_blank" rel="noopener">Spine: In Depth（Features）</a>、<a href="https://esotericsoftware.com/spine-demos" target="_blank" rel="noopener">Spine Demos</a>、<a href="https://docs.blender.org/manual/en/latest/animation/" target="_blank" rel="noopener">Blender マニュアル: Animation & Rigging</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            const seg = (x, y, a, l) => [x + sin(a) * l, y + cos(a) * l];
+            const line = (pts, w, c) => {
+              g.lineCap = "round";
+              g.lineJoin = "round";
+              g.lineWidth = w;
+              g.strokeStyle = c;
+              g.beginPath();
+              g.moveTo(pts[0][0], pts[0][1]);
+              for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+              g.stroke();
+            };
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const limb = (x, y, a1, l1, a2, l2, w, c) => {
+              const k = seg(x, y, a1, l1),
+                f = seg(k[0], k[1], a1 + a2, l2);
+              line([[x, y], k, f], w, c);
+              return [k, f];
+            };
+            // 人：hip（腰）の位置と pose（lean 体の傾き, t1/s1 手前の脚, t2/s2 奥の脚, u1/f1 手前の腕, u2/f2 奥の腕）
+            const figure = (x, y, p, L = { t: 18, s: 18, b: 30, u: 14, f: 13, h: 9 }) => {
+              const near = col("blue"),
+                far = col("sky"),
+                nx = x + sin(p.lean || 0) * L.b,
+                ny = y - cos(p.lean || 0) * L.b;
+              limb(x, y, p.t2, L.t, p.s2, L.s, 7, far);
+              limb(nx, ny + 3, p.u2, L.u, p.f2, L.f, 6, far);
+              line(
+                [
+                  [x, y],
+                  [nx, ny],
+                ],
+                11,
+                near,
+              );
+              dot(nx + sin(p.lean || 0) * (L.h + 3), ny - cos(p.lean || 0) * (L.h + 3), L.h, near);
+              limb(x, y, p.t1, L.t, p.s1, L.s, 7, near);
+              limb(nx, ny + 3, p.u1, L.u, p.f1, L.f, 6, near);
+            };
+            const ground = (y, off, gap = 22) => {
+              g.fillStyle = col("ice");
+              g.fillRect(0, y, W, H - y);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 2;
+              for (let x = -((off % gap) + gap) % gap; x < W; x += gap) {
+                g.beginPath();
+                g.moveTo(x, y + 8);
+                g.lineTo(x + 8, y + 8);
+                g.stroke();
+              }
+            };
+            // 2本の骨の IK：根元 (x, y) から長さ a, b で目標 (tx, ty) へ。bend = ±1 で曲がる向き。関節の位置を返す
+            const ik2 = (x, y, tx, ty, a, b, bend = 1) => {
+              let dx = tx - x,
+                dy = ty - y,
+                d = Math.hypot(dx, dy);
+              const dd = Math.max(Math.abs(a - b) + 0.01, Math.min(d, a + b - 0.01)),
+                base = d ? Math.atan2(dy, dx) : -Math.PI / 2,
+                c = Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd))),
+                th = base - bend * Math.acos(c);
+              return [x + cos(th) * a, y + sin(th) * a, x + cos(base) * dd, y + sin(base) * dd];
+            };
+            const x0 = 55,
+              y0 = 25,
+              w = 110,
+              h = 100;
+            const B = (k, u) => (k === 0 ? (1 - u) * (1 - u) : k === 1 ? 2 * u * (1 - u) : u * u);
+            return raf((t) => {
+              const a = rm ? 0 : v.amt;
+              g.clearRect(0, 0, W, H);
+              const P = [];
+              for (let j = 0; j < 3; j++) {
+                P.push([]);
+                for (let i = 0; i < 3; i++) P[j].push([x0 + (w * i) / 2, y0 + (h * j) / 2]);
+              }
+              P[0][1][1] -= a * sin(t * 2);
+              P[1][2][0] += a * sin(t * 2 + 1);
+              P[1][0][0] -= a * 0.6 * sin(t * 2 + 1);
+              P[2][1][1] += a * 0.5 * sin(t * 2.6);
+              P[1][1][0] += a * 0.5 * sin(t * 1.7);
+              P[1][1][1] += a * 0.4 * cos(t * 1.7);
+              const map = (u, vv) => {
+                let x = 0,
+                  y = 0;
+                for (let j = 0; j < 3; j++)
+                  for (let i = 0; i < 3; i++) {
+                    const b = B(i, u) * B(j, vv);
+                    x += b * P[j][i][0];
+                    y += b * P[j][i][1];
+                  }
+                return [x, y];
+              };
+              const path = (f, n, close) => {
+                g.beginPath();
+                for (let k = 0; k <= n; k++) {
+                  const p = map(...f(k / n));
+                  k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]);
+                }
+                if (close) g.closePath();
+              };
+              path(
+                (s) =>
+                  s < 0.25
+                    ? [s * 4, 0]
+                    : s < 0.5
+                      ? [1, (s - 0.25) * 4]
+                      : s < 0.75
+                        ? [1 - (s - 0.5) * 4, 1]
+                        : [0, 1 - (s - 0.75) * 4],
+                160,
+                true,
+              );
+              g.fillStyle = col("sky");
+              g.fill();
+              path((s) => [0.5 + 0.28 * cos(s * TAU), 0.42 + 0.28 * sin(s * TAU)], 60, true);
+              g.fillStyle = col("ice");
+              g.fill();
+              [
+                [0.4, 0.38],
+                [0.6, 0.38],
+              ].forEach(([u, vv]) => {
+                const p = map(u, vv);
+                dot(p[0], p[1], 4, col("navy"));
+              });
+              path((s) => [0.38 + 0.24 * s, 0.5 + 0.08 * sin(s * Math.PI)], 20, false);
+              g.strokeStyle = col("navy");
+              g.lineWidth = 3;
+              g.lineCap = "round";
+              g.stroke();
+              g.strokeStyle = col("blue");
+              g.lineWidth = 1;
+              g.setLineDash([3, 3]);
+              for (let j = 0; j < 3; j++) {
+                g.beginPath();
+                P[j].forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
+                g.stroke();
+                g.beginPath();
+                P.forEach((r, i) => (i ? g.lineTo(r[j][0], r[j][1]) : g.moveTo(r[j][0], r[j][1])));
+                g.stroke();
+              }
+              g.setLineDash([]);
+              P.flat().forEach((p) => {
+                g.fillStyle = "#fff";
+                g.strokeStyle = col("blue");
+                g.lineWidth = 1.5;
+                g.beginPath();
+                g.rect(p[0] - 3.5, p[1] - 3.5, 7, 7);
+                g.fill();
+                g.stroke();
+              });
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

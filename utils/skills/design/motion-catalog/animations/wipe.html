@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ワイプ（Wipe） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-wipe"
+        style="
+          position: relative;
+          width: 200px;
+          height: 150px;
+          overflow: hidden;
+          border-radius: 20px;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-wipe-a"
+          style="position: absolute; inset: 0; padding: 16px; display: flex; flex-direction: column; gap: 10px"
+        >
+          <span class="sb-bar sb-bar--md sb-bar--strong" style="width: 120px"></span
+          ><span class="sb-bar sb-bar--sm" style="width: 170px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--soft" style="width: 140px"></span
+          ><span class="sb-bar sb-bar--sm" style="width: 160px"></span>
+        </div>
+        <div
+          class="ac-wipe-b"
+          style="position: absolute; inset: 0; padding: 14px; display: flex; flex-direction: column; gap: 10px"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 80px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 120px"></span>
+        </div>
+        <span class="sb-grad-deep ac-wipe-w"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-wipe .ac-wipe-w {
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        animation:
+          ac-wipe-cover var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1) 300ms forwards,
+          ac-wipe-leave var(--dur, 400ms) cubic-bezier(0.65, 0, 0.35, 1) calc(300ms + var(--dur, 400ms)) forwards;
+      }
+      .ac-wipe .ac-wipe-b {
+        opacity: 0;
+        animation: ac-wipe-swap 1ms linear calc(300ms + var(--dur, 400ms)) forwards;
+      }
+      .ac-wipe .ac-wipe-a {
+        animation: ac-wipe-hide 1ms linear calc(300ms + var(--dur, 400ms)) forwards;
+      }
+      @keyframes ac-wipe-cover {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @keyframes ac-wipe-leave {
+        from {
+          transform: none;
+        }
+        to {
+          transform: translateX(100%);
+        }
+      }
+      @keyframes ac-wipe-swap {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-wipe-hide {
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-wipe .ac-wipe-w {
+          display: none;
+        }
+        .ac-wipe .ac-wipe-a,
+        .ac-wipe .ac-wipe-b {
+          animation-duration: 300ms;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "wipe",
+        name: "ワイプ",
+        en: "Wipe",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "幕のような面が画面を横切って前の画面を覆い、通り過ぎると次の画面が現れる切り替えです。区切りがはっきりするので、場面が変わったことを強く伝えられます。",
+        use: "ページ遷移、スライドの切り替え、ブランド感を出したい場面の転換。",
+        params: [{ key: "dur", label: "幕が通る時間（片側）", value: 400, min: 200, max: 1000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"] * 2,
+        spec: [
+          [
+            "幕",
+            "<code>translateX(-100% → 0)</code> で覆い、<code>translateX(0 → 100%)</code> で抜ける｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>",
+          ],
+          ["画面の入れ替え", "幕が覆いきった瞬間に、下の画面を入れ替える"],
+          ["色", "幕はブランドの濃い色（ここでは cobalt → navy）"],
+          ["動きを減らす設定", "幕をやめ、クロスフェードで切り替える"],
+          ["出典", "ChatGPT との会話の分類表（画面・ページ）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

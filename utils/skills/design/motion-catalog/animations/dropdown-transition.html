@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ドロップダウンの開閉（Dropdown transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-dropdown-transition" style="position: relative; width: 220px; height: 160px">
+        <span
+          class="sb-btn ac-dropdown-transition-btn"
+          style="
+            position: absolute;
+            left: 40px;
+            top: 12px;
+            width: 140px;
+            justify-content: space-between;
+            padding: 0 14px;
+            background: var(--surface);
+            box-shadow: var(--shadow-card);
+          "
+          ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 56px"></span
+          ><svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--ink-muted)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" /></svg
+        ></span>
+        <div class="ac-dropdown-transition-m">
+          <span class="ac-dropdown-transition-o"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span></span
+          ><span class="ac-dropdown-transition-o"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 50px"></span></span
+          ><span class="ac-dropdown-transition-o"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+          ></span>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-dropdown-transition .ac-dropdown-transition-m {
+        position: absolute;
+        left: 40px;
+        top: 58px;
+        width: 140px;
+        padding: 6px;
+        box-sizing: border-box;
+        display: grid;
+        gap: 2px;
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: var(--shadow-float);
+        transform-origin: top;
+        opacity: 0;
+        transform: scale(var(--from, 0.96));
+        transition:
+          opacity var(--out, 120ms) cubic-bezier(0.55, 0, 1, 0.45),
+          transform 0ms var(--out, 120ms);
+        pointer-events: none;
+      }
+      .ac-dropdown-transition .ac-dropdown-transition-m.is-open {
+        opacity: 1;
+        transform: none;
+        transition:
+          opacity var(--in, 180ms) cubic-bezier(0.22, 1, 0.36, 1),
+          transform var(--in, 180ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-dropdown-transition .ac-dropdown-transition-o {
+        display: flex;
+        align-items: center;
+        height: 24px;
+        padding: 0 10px;
+        border-radius: 8px;
+        transition: background-color 120ms;
+      }
+      .ac-dropdown-transition .ac-dropdown-transition-o.is-hl {
+        background: var(--blue-soft);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-dropdown-transition .ac-dropdown-transition-m {
+          transform: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dropdown-transition",
+        name: "ドロップダウンの開閉",
+        en: "Dropdown transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "選択ボタンを押すと、すぐ下に選択肢の面が上端から小さく広がって現れ、選ぶと素早く閉じる動きです。面がボタンから出てくるので、どこから開いたのかが分かります。",
+        use: "セレクトボックス、メニュー、コンボボックス、ユーザーメニュー。",
+        params: [
+          { key: "in", label: "開く時間", value: 180, min: 80, max: 400, step: 10, unit: "ms" },
+          { key: "out", label: "閉じる時間", value: 120, min: 50, max: 300, step: 10, unit: "ms" },
+          { key: "from", label: "開き始めの大きさ", value: 0.96, min: 0.8, max: 1, step: 0.01, unit: "" },
+        ],
+        spec: [
+          [
+            "開く",
+            "<code>scale(開き始めの大きさ) → 1</code> と <code>opacity 0 → 1</code>｜<code>transform-origin: top</code>（ボタン側）｜out",
+          ],
+          ["閉じる", "<code>opacity → 0</code>（拡大は戻さなくてよい）｜in｜開くより短く"],
+          ["選んだとき", "選んだ項目を一瞬強調してから閉じ、ボタンの表示を切り替える"],
+          ["動きを減らす設定", "拡大をやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://headlessui.com/v1/react/listbox" target="_blank" rel="noopener">Headless UI: Listbox</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const m = stage.querySelector(".ac-dropdown-transition-m"),
+              o = stage.querySelectorAll(".ac-dropdown-transition-o")[1];
+            move(200, 150, 0);
+            return seq(3600, [
+              [
+                100,
+                () => {
+                  show(1);
+                  move(150, 32, 500);
+                },
+              ],
+              [700, () => m.classList.add("is-open")],
+              [1100, () => move(110, 98, 400)],
+              [1500, () => o.classList.add("is-hl")],
+              [
+                1900,
+                () => {
+                  m.classList.remove("is-open");
+                },
+              ],
+              [
+                2200,
+                () => {
+                  o.classList.remove("is-hl");
+                  move(200, 150, 500);
+                },
+              ],
+              [2700, () => show(0)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

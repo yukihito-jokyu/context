@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>シュレッダーで削除（Shredder deletion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-shredder-delete" style="position: relative; width: 200px; height: 160px">
+        <div class="ac-shredder-delete-top"></div>
+        <div class="ac-shredder-delete-slot"></div>
+        <div class="ac-shredder-delete-bot"></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-shredder-delete .ac-shredder-delete-top {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 86px;
+        overflow: hidden;
+      }
+      .ac-shredder-delete .ac-shredder-delete-bot {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 92px;
+        height: 68px;
+        overflow: hidden;
+      }
+      .ac-shredder-delete .ac-shredder-delete-slot {
+        position: absolute;
+        left: 30px;
+        right: 30px;
+        top: 84px;
+        height: 10px;
+        border-radius: 5px;
+        background: var(--toast);
+        z-index: 2;
+      }
+      .ac-shredder-delete .ac-shredder-delete-cd {
+        position: absolute;
+        left: 50px;
+        top: 8px;
+        width: 100px;
+        height: 72px;
+        padding: 10px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        border-radius: 12px;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "shredder-delete",
+        name: "シュレッダーで削除",
+        en: "Shredder deletion",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "削除するカードが、シュレッダーの口に吸い込まれて細い短冊に切られ、ばらばらに落ちていく動きです。「完全に消えた」ことを、印象に残る形で伝えます。",
+        use: "完全な削除、個人情報の破棄、ゴミ箱を空にする操作、遊びのある削除。",
+        params: [
+          { key: "dur", label: "落ちる時間", value: 900, min: 400, max: 2000, step: 50, unit: "ms" },
+          { key: "n", label: "短冊の数", value: 8, min: 4, max: 14, step: 1, unit: "本" },
+        ],
+        spec: [
+          [
+            "分け方",
+            "カードの複製を n 個重ね、それぞれ <code>clip-path: inset(0 右 0 左)</code> で縦の短冊にする（複製は <code>aria-hidden</code>）",
+          ],
+          [
+            "動き",
+            "全体を口へ下げ（<code>translateY</code>｜in-out）、口を過ぎた部分の短冊を、少しずつ違う角度・遅れで落とす（<code>rotate</code>・<code>translateY</code>｜in）",
+          ],
+          [
+            "口",
+            "口から上だけを見せるため、短冊を口の位置で切り抜く（<code>overflow: hidden</code> の枠を2つに分ける）",
+          ],
+          ["動きを減らす設定", "切る動きをやめ、透明度で消すだけにする"],
+          ["出典", '<a href="https://reactbits.dev/micro/shredder" target="_blank" rel="noopener">React Bits</a>'],
+        ],
+        loop: 3400,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const top = stage.querySelector(".ac-shredder-delete-top"),
+              bot = stage.querySelector(".ac-shredder-delete-bot");
+            const inner =
+              '<span class="sb-hero sb-grad-sky" style="display:block;height:26px;border-radius:7px"></span><span class="sb-bar sb-bar--xs sb-bar--strong" style="width:60px"></span>';
+            const n = v.n,
+              w = 100 / n,
+              H = 72 + 20;
+            top.innerHTML = `<div class="ac-shredder-delete-cd">${inner}</div>`;
+            const c = top.firstElementChild;
+            bot.innerHTML = Array.from(
+              { length: n },
+              (_, i) =>
+                `<div class="ac-shredder-delete-cd" aria-hidden="true" style="top:-84px;clip-path:inset(0 ${100 - (i + 1) * w}% 0 ${i * w}%)">${inner}</div>`,
+            ).join("");
+            const strips = [...bot.children];
+            if (rm) {
+              c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, delay: 800, fill: "forwards" });
+              strips.forEach((s) => s.remove());
+              return null;
+            }
+            c.animate([{ transform: "none" }, { transform: `translateY(${H}px)` }], {
+              duration: v.dur,
+              delay: 500,
+              easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+              fill: "forwards",
+            });
+            strips.forEach((s, i) => {
+              s.animate([{ transform: "none" }, { transform: `translateY(${H}px)` }], {
+                duration: v.dur,
+                delay: 500,
+                easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+                fill: "forwards",
+              });
+              s.animate(
+                [
+                  { transform: "none" },
+                  { transform: `translateY(80px) rotate(${(i % 2 ? 1 : -1) * (6 + ((i * 37) % 14))}deg)` },
+                ], // 下がる動きに足し合わせるので、落ち始めで位置が飛ばない
+                {
+                  duration: 700,
+                  delay: 500 + v.dur * 0.75 + ((i * 53) % 160),
+                  easing: "cubic-bezier(0.55, 0, 1, 0.45)",
+                  fill: "forwards",
+                  composite: "add",
+                },
+              );
+            });
+            return null;
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

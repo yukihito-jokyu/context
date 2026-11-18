@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フォロースルー（Follow-through） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-follow-through"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-follow-through-c"
+          style="width: 150px; padding: 14px; display: flex; flex-direction: column; gap: 10px"
+        >
+          <span
+            class="sb-hero sb-grad-hero ac-follow-through-in"
+            style="height: 48px; border-radius: 12px; --k: 1"
+          ></span
+          ><span class="ac-follow-through-in" style="--k: 2"
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 90px"></span></span
+          ><span class="ac-follow-through-in" style="--k: 3"
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 60px"></span
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-follow-through .ac-follow-through-in {
+        display: block;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-follow-through .ac-follow-through-c {
+          animation: ac-follow-through-m var(--dur, 500ms) cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+        }
+        .ac-follow-through .ac-follow-through-in {
+          animation: ac-follow-through-m var(--dur, 500ms) cubic-bezier(0.34, 1.56, 0.64, 1)
+            calc(200ms + var(--lag, 60ms) * var(--k)) both;
+        }
+      }
+      @keyframes ac-follow-through-m {
+        from {
+          transform: translateX(-40px);
+        }
+        to {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "follow-through",
+        name: "フォロースルー",
+        en: "Follow-through",
+        cat: "原則",
+        kind: "motion",
+        description:
+          "主な動きが止まったあとも、要素の一部が少し遅れて動き続け、ゆっくり落ち着く動きです。カードが止まったあと、中の画像やバーが少し行き過ぎてから戻るので、重さと柔らかさが出ます。",
+        use: "パネルやカードの移動、ドロワーの開閉、キャラクターの髪や服のような付属物。",
+        params: [
+          { key: "lag", label: "遅れ", value: 60, min: 0, max: 200, step: 10, unit: "ms" },
+          { key: "dur", label: "時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" },
+        ],
+        spec: [
+          ["本体", "<code>translateX(-40px → 0)</code>｜out｜時間"],
+          [
+            "付属の要素",
+            "同じ動きを「遅れ」だけ遅らせ、spring <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code> で少し行き過ぎて戻す",
+          ],
+          ["関連", "オーバーラッピングアクション（部分ごとに少しずつずれて動く）とセットで使われる"],
+          ["動きを減らす設定", "本体と付属要素を最終位置に表示する"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

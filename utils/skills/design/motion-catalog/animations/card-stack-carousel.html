@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>カードの束を送る（Card-stack carousel） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-card-stack-carousel" style="position: relative; width: 220px; height: 160px">
+        <div class="ac-card-stack-carousel-w">
+          <div
+            class="sb-card ac-card-stack-carousel-c"
+            style="padding: 10px; display: flex; flex-direction: column; gap: 8px"
+          >
+            <span
+              class="sb-grad-aqua"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 120px;
+                height: 60px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span>
+          </div>
+          <div
+            class="sb-card ac-card-stack-carousel-c"
+            style="padding: 10px; display: flex; flex-direction: column; gap: 8px"
+          >
+            <span
+              class="sb-grad-sky"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 120px;
+                height: 60px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span>
+          </div>
+          <div
+            class="sb-card ac-card-stack-carousel-c"
+            style="padding: 10px; display: flex; flex-direction: column; gap: 8px"
+          >
+            <span
+              class="sb-grad-deep"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 120px;
+                height: 60px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span>
+          </div>
+          <div
+            class="sb-card ac-card-stack-carousel-c"
+            style="padding: 10px; display: flex; flex-direction: column; gap: 8px"
+          >
+            <span
+              class="sb-grad-hero"
+              style="
+                position: relative;
+                display: block;
+                flex: none;
+                width: 120px;
+                height: 60px;
+                border-radius: 16px;
+                overflow: hidden;
+              "
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 14px;
+                  width: 22px;
+                  height: 22px;
+                  border-radius: 50%;
+                  background: rgba(255, 255, 255, 0.85);
+                "
+              ></i
+              ><i
+                style="
+                  position: absolute;
+                  left: 14px;
+                  bottom: 14px;
+                  width: 60px;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: rgba(255, 255, 255, 0.7);
+                "
+              ></i></span
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 70px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-card-stack-carousel .ac-card-stack-carousel-w {
+        position: absolute;
+        left: 50px;
+        top: 18px;
+        width: 140px;
+        height: 110px;
+      }
+      .ac-card-stack-carousel .ac-card-stack-carousel-c {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 140px;
+        box-sizing: border-box;
+        border-radius: 18px;
+        transform-origin: 50% 100%;
+        transition:
+          transform var(--dur, 450ms) cubic-bezier(0.34, 1.3, 0.64, 1),
+          opacity var(--dur, 450ms);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-card-stack-carousel .ac-card-stack-carousel-c {
+          transition: opacity var(--dur, 450ms);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "card-stack-carousel",
+        name: "カードの束を送る",
+        en: "Card-stack carousel",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "重なったカードの束から、いちばん上のカードを横へ払うと飛んでいき、下のカードが前へ出てきて大きくなる動きです。払ったカードは束のいちばん後ろへ回ります。",
+        use: "写真やおすすめのスワイプ、オンボーディング、マッチング系のカード、フラッシュカード。",
+        params: [
+          { key: "dur", label: "時間", value: 450, min: 200, max: 900, step: 10, unit: "ms" },
+          { key: "depth", label: "奥のずれ", value: 10, min: 4, max: 20, step: 1, unit: "px" },
+        ],
+        spec: [
+          ["払う", "いちばん上のカードを <code>translateX(-150%) rotate(-12deg)</code>｜in → 束の後ろへ回す"],
+          [
+            "繰り上がる",
+            "残りのカードを i 番目の位置 <code>translateY(i × 奥のずれ) scale(1 - i × .06)</code> へ｜spring",
+          ],
+          ["操作", "ドラッグの距離と速さで、払うか戻すかを決める。「次へ」ボタンからも同じ処理を呼ぶ"],
+          ["動きを減らす設定", "払う動きをやめ、カードの入れ替えをフェードにする"],
+          ["出典", '<a href="https://swiperjs.com/demos" target="_blank" rel="noopener">Swiper demos</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cs = [...stage.querySelectorAll(".ac-card-stack-carousel-c")];
+            const lay = () =>
+              cs.forEach((c, i) => {
+                c.style.zIndex = 10 - i;
+                c.style.opacity = i > 2 ? 0 : 1;
+                c.style.transform = `translateY(${i * v.depth}px) scale(${1 - i * 0.06})`;
+              });
+            lay();
+            const send = () => {
+              const top = cs[0];
+              const a = top.animate(
+                [
+                  { transform: "none", opacity: 1 },
+                  { transform: rm ? "none" : "translateX(-150%) rotate(-12deg)", opacity: 0 },
+                ],
+                { duration: v.dur, easing: "cubic-bezier(0.55, 0, 1, 0.45)" },
+              );
+              a.onfinish = () => {
+                cs.push(cs.shift());
+                top.style.transition = "none";
+                lay();
+                void top.offsetWidth;
+                top.style.transition = "";
+              };
+              setTimeout(() => {
+                const rest = cs.slice(1);
+                rest.forEach((c, i) => {
+                  c.style.transform = `translateY(${i * v.depth}px) scale(${1 - i * 0.06})`;
+                  c.style.opacity = i > 2 ? 0 : 1;
+                });
+              }, 60);
+            };
+            return seq(1600, [[600, send]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

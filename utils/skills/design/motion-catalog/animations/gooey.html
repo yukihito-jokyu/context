@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>グーイー（Gooey） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-gooey" style="position: relative; width: 220px; height: 150px; display: grid; place-items: center">
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-gooey-f">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
+            <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" />
+          </filter>
+        </svg>
+        <div class="ac-gooey-g">
+          <span class="ac-gooey-b"></span><span class="ac-gooey-b ac-gooey-l"></span
+          ><span class="ac-gooey-b ac-gooey-r"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-gooey .ac-gooey-g {
+        position: relative;
+        width: 200px;
+        height: 90px;
+        filter: url(#ac-gooey-f);
+      }
+      .ac-gooey .ac-gooey-b {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 56px;
+        height: 56px;
+        margin: -28px;
+        border-radius: 50%;
+        background: var(--cobalt);
+      }
+      .ac-gooey .ac-gooey-l,
+      .ac-gooey .ac-gooey-r {
+        width: 40px;
+        height: 40px;
+        margin: -20px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-gooey .ac-gooey-l {
+          animation: ac-gooey-l var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-gooey .ac-gooey-r {
+          animation: ac-gooey-r var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-gooey-l {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-72px);
+        }
+      }
+      @keyframes ac-gooey-r {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(72px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "gooey",
+        name: "グーイー",
+        en: "Gooey",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "丸い形どうしが近づくと、液体のようにくっついて融合し、離れるとちぎれる表現です。ぼかしと色のしきい値を組み合わせたフィルターで作ります。",
+        use: "メニューの展開、ローディング、遊び心のあるボタン、リキッドな背景。",
+        params: [{ key: "dur", label: "くっつく周期", value: 2400, min: 1200, max: 5000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "フィルター",
+            'SVG フィルター：<code>feGaussianBlur stdDeviation="8"</code> → <code>feColorMatrix</code> でアルファを強調（<code>0 0 0 20 -9</code>）',
+          ],
+          ["動き", "丸を <code>translateX</code> で離したり重ねたり｜in-out｜<code>alternate infinite</code>"],
+          ["注意", "フィルターをかけた親の中身すべてがにじむ。文字は外に置く"],
+          ["動きを減らす設定", "動きをやめ、丸を重ねて止める"],
+          ["出典", "ChatGPT との会話の分類表（テキスト・視覚効果）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

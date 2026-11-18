@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ボタンの処理と完了（Button loading-to-success） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-button-loading-success"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="ac-button-loading-success-b"
+          ><span class="ac-button-loading-success-l"
+            ><span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 60px"></span></span
+          ><span class="ac-button-loading-success-sp"></span
+          ><span class="ac-button-loading-success-ok"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-button-loading-success .ac-button-loading-success-b {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 150px;
+        height: 48px;
+        border-radius: 999px;
+        background: var(--blue);
+        box-shadow: var(--shadow-glow);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-button-loading-success .ac-button-loading-success-b {
+          transition: width var(--dur, 300ms) cubic-bezier(0.65, 0, 0.35, 1);
+        }
+      }
+      .ac-button-loading-success .ac-button-loading-success-b > * {
+        grid-area: 1 / 1;
+        transition: opacity 150ms;
+      }
+      .ac-button-loading-success .ac-button-loading-success-sp {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.35);
+        border-top-color: #fff;
+        box-sizing: border-box;
+        opacity: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-button-loading-success .ac-button-loading-success-sp {
+          animation: ac-button-loading-success-r 700ms linear infinite;
+        }
+      }
+      .ac-button-loading-success .ac-button-loading-success-ok {
+        color: var(--on-blue);
+        opacity: 0;
+      }
+      .ac-button-loading-success .ac-button-loading-success-ok svg {
+        width: 22px;
+        height: 22px;
+      }
+      .ac-button-loading-success .ac-button-loading-success-ok path {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      .ac-button-loading-success .ac-button-loading-success-b.is-busy,
+      .ac-button-loading-success .ac-button-loading-success-b.is-done {
+        width: 48px;
+      }
+      .ac-button-loading-success .ac-button-loading-success-b.is-busy .ac-button-loading-success-l,
+      .ac-button-loading-success .ac-button-loading-success-b.is-done .ac-button-loading-success-l {
+        opacity: 0;
+      }
+      .ac-button-loading-success .ac-button-loading-success-b.is-busy .ac-button-loading-success-sp {
+        opacity: 1;
+      }
+      .ac-button-loading-success .ac-button-loading-success-b.is-done .ac-button-loading-success-ok {
+        opacity: 1;
+      }
+      .ac-button-loading-success .ac-button-loading-success-b.is-done .ac-button-loading-success-ok path {
+        stroke-dashoffset: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-button-loading-success .ac-button-loading-success-b.is-done .ac-button-loading-success-ok path {
+          transition: stroke-dashoffset 260ms cubic-bezier(0.22, 1, 0.36, 1) 80ms;
+        }
+      }
+      @keyframes ac-button-loading-success-r {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-button-loading-success .ac-button-loading-success-b.is-busy,
+        .ac-button-loading-success .ac-button-loading-success-b.is-done {
+          width: 150px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "button-loading-success",
+        name: "ボタンの処理と完了",
+        en: "Button loading-to-success",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "押したボタンが丸く縮んで回る輪になり、処理が終わるとチェックを描いて完了を知らせ、また元のボタンに戻る動きです。押した場所で結果まで見届けられるので、別の場所に完了の表示を出す必要がありません。",
+        use: "送信・保存・購入・ログインのボタン、時間のかかる非同期処理。",
+        params: [
+          { key: "dur", label: "形の変化の時間", value: 300, min: 150, max: 600, step: 10, unit: "ms" },
+          { key: "wait", label: "処理中の時間", value: 1200, min: 400, max: 3000, step: 100, unit: "ms" },
+        ],
+        total: (p) => p["dur"] * 2 + p["wait"],
+        spec: [
+          ["押したとき", "幅を高さと同じまで縮めて丸にする｜in-out｜文字は先に消す"],
+          ["処理中", "丸の縁を回る輪にする（<code>rotate</code>｜linear｜くり返し）"],
+          [
+            "完了",
+            'チェックを線で描く（<code>stroke-dashoffset</code>）→ 少し待って元の幅へ戻す。失敗なら左右に揺らす。結果は文字（<code>role="status"</code>）でも伝える',
+          ],
+          ["動きを減らす設定", "形の変化をやめ、文字と記号の入れ替えだけにする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components/stateful-button" target="_blank" rel="noopener">Aceternity UI: Stateful Button</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-button-loading-success-b"),
+              c = (k, on) => () => b.classList.toggle(k, on);
+            move(200, 150, 0);
+            return seq(2600 + v.wait + v.dur * 2, [
+              [
+                100,
+                () => {
+                  show(1);
+                  move(110, 76, 500);
+                },
+              ],
+              [
+                700,
+                () => {
+                  cur.animate([{ scale: 1 }, { scale: 0.8 }, { scale: 1 }], 200);
+                },
+              ],
+              [800, c("is-busy", true)],
+              [900, () => move(200, 150, 500)],
+              [1300, () => show(0)],
+              [
+                800 + v.dur + v.wait,
+                () => {
+                  b.classList.remove("is-busy");
+                  b.classList.add("is-done");
+                },
+              ],
+              [800 + v.dur + v.wait + 1100, c("is-done", false)],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

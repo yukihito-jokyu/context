@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れる線の影（Moving line-shadow text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-moving-text-shadow"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="ac-moving-text-shadow-t"
+          data-t="Shadow"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 40px;
+            line-height: 52px;
+          "
+        >
+          Shadow
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-moving-text-shadow .ac-moving-text-shadow-t {
+        position: relative;
+        color: var(--ink);
+      }
+      .ac-moving-text-shadow .ac-moving-text-shadow-t::after {
+        content: attr(data-t);
+        content: attr(data-t) / "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: -1;
+        transform: translate(var(--off, 5px), var(--off, 5px));
+        background: repeating-linear-gradient(45deg, var(--blue) 0 1.2px, transparent 1.2px 4px);
+        background-size: 5.66px 5.66px;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent !important;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-moving-text-shadow .ac-moving-text-shadow-t::after {
+          animation: ac-moving-text-shadow-m var(--dur, 1500ms) linear infinite;
+        }
+      }
+      .ac-moving-text-shadow .ac-moving-text-shadow-t {
+        isolation: isolate;
+      }
+      @keyframes ac-moving-text-shadow-m {
+        to {
+          background-position: 5.66px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "moving-text-shadow",
+        name: "流れる線の影",
+        en: "Moving line-shadow text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字の斜め後ろに、細い斜線の模様でできた影を付け、その模様がゆっくり流れ続ける表現です。影が線でできているので軽く、印刷物のようなグラフィカルな厚みが出ます。",
+        use: "ヒーローの見出し、ポスター風のビジュアル、ブランドのタイトル、イベントのロゴ。",
+        params: [
+          { key: "off", label: "影のずれ", value: 5, min: 2, max: 10, step: 1, unit: "px" },
+          { key: "dur", label: "流れる周期", value: 1500, min: 500, max: 5000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          ["影", "擬似要素に同じ文字を入れ、<code>translate(ずれ, ずれ)</code> で後ろに置く"],
+          [
+            "模様",
+            "影の塗りを <code>repeating-linear-gradient(45deg, 色 0 1px, 透明 1px 4px)</code> にして <code>background-clip: text</code>",
+          ],
+          ["動き", "<code>background-position</code> を模様1周期ぶん動かす｜linear｜くり返し"],
+          ["動きを減らす設定", "模様の流れを止める"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/line-shadow-text" target="_blank" rel="noopener">Magic UI: Line Shadow Text</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

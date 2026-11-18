@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>磁性流体（Ferrofluid motion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ferrofluid"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ferrofluid",
+        name: "磁性流体",
+        en: "Ferrofluid motion",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "黒く艶のある液体のかたまりが、磁石に引かれるように表面からとげを伸ばし、ポインターが近づいた側ほど高く盛り上がる表現です。不思議で有機的な動きが目を引きます。プレビューは 2D の輪郭で近い形を作っています。",
+        use: "アート寄りのヒーロー、オーディオ・音楽のビジュアライザー、実験的なブランドサイト。",
+        params: [
+          { key: "spikes", label: "とげの数", value: 12, min: 6, max: 24, step: 1, unit: "本" },
+          { key: "h", label: "とげの高さ", value: 18, min: 4, max: 36, step: 1, unit: "px" },
+        ],
+        spec: [
+          [
+            "輪郭",
+            "角度 θ ごとの半径 = 基本の半径 + とげの高さ × max(0, cos(とげの数 × θ + 時間))^強さ × ポインターへの近さ",
+          ],
+          [
+            "質感",
+            "黒に近い色＋白いハイライト（<code>radial-gradient</code>）で艶を出す。本格的には WebGL で表面の法線から反射を計算する",
+          ],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/backgrounds/ferrofluid" target="_blank" rel="noopener">React Bits: Ferrofluid</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            cur.style.transition = "none";
+            show(1);
+            const cx = W / 2,
+              cy = H / 2;
+            const draw = (t, px, py) => {
+              g.clearRect(0, 0, W, H);
+              const a0 = Math.atan2(py - cy, px - cx),
+                near = Math.max(0, 1 - Math.hypot(px - cx, py - cy) / 160);
+              g.beginPath();
+              for (let i = 0; i <= 240; i++) {
+                const th = (i / 240) * Math.PI * 2,
+                  face = Math.max(0, Math.cos(th - a0)),
+                  sp = Math.pow(Math.max(0, Math.cos(v.spikes * th + t * 2)), 6);
+                const r = 34 + v.h * sp * (0.3 + near * face * 1.4) + 4 * Math.sin(th * 3 + t);
+                const x = cx + Math.cos(th) * r,
+                  y = cy + Math.sin(th) * r;
+                i ? g.lineTo(x, y) : g.moveTo(x, y);
+              }
+              const gr = g.createRadialGradient(cx - 14, cy - 16, 2, cx, cy, 70);
+              gr.addColorStop(0, "#5a6788");
+              gr.addColorStop(0.25, "#151b2b");
+              gr.addColorStop(1, "#05070d");
+              g.fillStyle = gr;
+              g.fill();
+            };
+            if (rm) {
+              show(0);
+              draw(0, cx + 80, cy);
+              return null;
+            }
+            return raf((t) => {
+              const px = cx + 90 * Math.cos(t * 0.7),
+                py = cy + 55 * Math.sin(t * 1.1);
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              draw(t, px, py);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

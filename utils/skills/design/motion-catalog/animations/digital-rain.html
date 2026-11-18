@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>文字の雨（Digital rain） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-digital-rain"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "digital-rain",
+        name: "文字の雨",
+        en: "Digital rain",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "暗い画面の中を、文字や記号の列が雨のように上から下へ流れ落ちていく背景です。先頭の文字が明るく、後ろへいくほど暗く消えていき、デジタルな世界の奥行きを感じさせます。",
+        use: "サイバーセキュリティ・開発者向けのサイト、ハッカー風の演出、SF・ゲームのタイトル。",
+        params: [
+          { key: "fps", label: "1秒あたりのコマ数", value: 18, min: 6, max: 30, step: 1, unit: "" },
+          { key: "size", label: "文字の大きさ", value: 12, min: 8, max: 18, step: 1, unit: "px" },
+        ],
+        spec: [
+          [
+            "仕組み",
+            "列ごとに先頭の位置を持ち、毎コマ1文字ずつ下へ進めてランダムな文字を描く。画面全体を半透明の背景色で塗ってから描くと、尾が残る",
+          ],
+          ["速さ", "列ごとに速さを変え、画面の下を越えたら上からやり直す（タイミングもばらばらに）"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://github.com/tidwall/digitalrain" target="_blank" rel="noopener">tidwall/digitalrain</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const cs = "アイウエオカキクケコサシスセソ0123456789ABCDEF",
+              n = Math.floor(W / v.size),
+              ys = Array.from({ length: n }, () => Math.random() * -20);
+            const navy = col("navy") || "#14245a",
+              aqua = col("aqua") || "#5ad1e6";
+            g.fillStyle = navy;
+            g.fillRect(0, 0, W, H);
+            g.font = `700 ${v.size}px ui-monospace, monospace`;
+            const step = () => {
+              g.fillStyle = navy + "33";
+              g.globalAlpha = 1;
+              g.fillStyle = "rgba(20,36,90,.18)";
+              g.fillRect(0, 0, W, H);
+              ys.forEach((y, i) => {
+                const ch = cs[Math.floor(Math.random() * cs.length)];
+                g.fillStyle = "#e8fbff";
+                g.fillText(ch, i * v.size, y * v.size);
+                g.fillStyle = aqua;
+                g.fillText(cs[Math.floor(Math.random() * cs.length)], i * v.size, (y - 1) * v.size);
+                ys[i] = y * v.size > H + 40 && Math.random() > 0.95 ? 0 : y + (i % 3 === 0 ? 0.6 : 1);
+              });
+            };
+            if (rm) {
+              for (let i = 0; i < 40; i++) step();
+              return null;
+            }
+            const iv = setInterval(step, 1000 / v.fps);
+            return () => clearInterval(iv);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

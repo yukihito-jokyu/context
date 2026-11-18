@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>イージング（Easing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-easing"
+        style="
+          position: relative;
+          width: 200px;
+          height: 130px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 10px;
+        "
+      >
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-aqua ac-easing-t ac-easing-a"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-easing-t ac-easing-b"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-deep ac-easing-t ac-easing-c"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-easing .ac-easing-t {
+        animation: ac-easing-m var(--dur, 1000ms) linear both;
+      }
+      .ac-easing .ac-easing-b {
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-easing .ac-easing-c {
+        animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      @keyframes ac-easing-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-easing-fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-easing .ac-easing-t {
+          transform: translateX(168px);
+          animation-name: ac-easing-fade;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "easing",
+        name: "イージング",
+        en: "Easing",
+        cat: "イージング",
+        kind: "concept",
+        description:
+          "動きの途中で速さをどう変えるか（加速・減速のしかた）のことです。同じ時間・同じ距離でも、イージングが変わると印象がまったく変わります。上から linear（等速）、ease-out、ease-in-out。",
+        use: "すべての動き。迷ったら「現れる・止まる」は ease-out、「A から B へ移る」は ease-in-out。",
+        params: [{ key: "dur", label: "時間", value: 1000, min: 200, max: 2000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["上", "<code>linear</code>"],
+          ["中", "ease-out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>"],
+          ["下", "ease-in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>"],
+          ["Soft Blue", "out / in-out / spring / in の4種類を使い分ける"],
+          ["動きを減らす設定", "終点に固定し、透明度だけを変える"],
+          ["出典", "Animation Vocabulary（Easing）"],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

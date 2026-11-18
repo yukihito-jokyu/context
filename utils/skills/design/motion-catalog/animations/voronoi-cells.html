@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動くボロノイ（Animated Voronoi cells） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-voronoi-cells"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "voronoi-cells",
+        name: "動くボロノイ",
+        en: "Animated Voronoi cells",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "画面に散らばった点がゆっくり動き、それぞれの点にいちばん近い場所を 1 つの区画にして塗り分けます。点が動くたびに、区画の境目がなめらかに押し合いながら形を変えます。",
+        use: "テック・データ系のヒーローの背景、細胞やネットワークの比喩、ジェネラティブなロゴの背景。",
+        params: [{ key: "n", label: "点の数", value: 14, min: 4, max: 30, step: 1, unit: "個" }],
+        spec: [
+          [
+            "仕組み",
+            "画面の各点で、いちばん近い種の点と 2 番目に近い点を探す。いちばん近い点で色を決め、2 つの距離の差が小さい所を境目の線にする",
+          ],
+          ["動き", "種の点はゆっくり漂わせる（ノイズや円運動）。速いと区画がちらつく"],
+          [
+            "Web では",
+            "数が少なければ canvas で低い解像度で計算して拡大。多いときや滑らかな線は WebGL か d3-delaunay で多角形を求めて描く",
+          ],
+          ["動きを減らす設定", "点の動きを止め、区画の静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.shader-learn.com/examples/voronoi" target="_blank" rel="noopener">shader-learn.com（voronoi）</a>、<a href="https://thebookofshaders.com/12/" target="_blank" rel="noopener">thebookofshaders.com（12）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lw = 110,
+              lh = 75,
+              off = document.createElement("canvas");
+            off.width = lw;
+            off.height = lh;
+            const og = off.getContext("2d"),
+              img = og.createImageData(lw, lh),
+              px = img.data;
+            const blit = () => {
+              og.putImageData(img, 0, 0);
+              g.imageSmoothingEnabled = false;
+              g.drawImage(off, 0, 0, W, H);
+            };
+            const put = (i, r, gg, b) => {
+              px[i * 4] = r;
+              px[i * 4 + 1] = gg;
+              px[i * 4 + 2] = b;
+              px[i * 4 + 3] = 255;
+            };
+            const S0 = Array.from({ length: 30 }, () => [rnd() * lw, rnd() * lh, 0.3 + rnd() * 0.6, rnd() * TAU]),
+              pal = [
+                [214, 232, 255],
+                [189, 217, 255],
+                [235, 243, 255],
+                [160, 199, 255],
+              ];
+            return raf((t) => {
+              const T = rm ? 0 : t,
+                n = v.n,
+                P0 = S0.slice(0, n).map(([x, y, s, p]) => [x + 12 * sin(T * s + p), y + 9 * cos(T * s * 0.8 + p)]);
+              for (let y = 0; y < lh; y++)
+                for (let x = 0; x < lw; x++) {
+                  let d1 = 1e9,
+                    d2 = 1e9,
+                    k = 0;
+                  for (let j = 0; j < n; j++) {
+                    const dx = x - P0[j][0],
+                      dy = y - P0[j][1],
+                      d = dx * dx + dy * dy;
+                    if (d < d1) {
+                      d2 = d1;
+                      d1 = d;
+                      k = j;
+                    } else if (d < d2) d2 = d;
+                  }
+                  const e = Math.sqrt(d2) - Math.sqrt(d1),
+                    i = y * lw + x,
+                    c = pal[k % 4];
+                  if (e < 0.9) put(i, 59, 130, 246);
+                  else put(i, c[0], c[1], c[2]);
+                }
+              blit();
+              for (const [x, y] of P0) dot(x * 2, y * 2, 2.2, col("navy"));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

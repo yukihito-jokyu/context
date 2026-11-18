@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>入ってきた辺から出るホバー（Direction-aware hover） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-direction-aware-hover" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-direction-aware-hover-c">
+          <div class="ac-direction-aware-hover-o"><i></i><i></i></div>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-direction-aware-hover .ac-direction-aware-hover-c {
+        position: absolute;
+        left: 50px;
+        top: 33px;
+        width: 120px;
+        height: 84px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: linear-gradient(150deg, var(--ice), var(--sky));
+        box-shadow: var(--shadow-card);
+      }
+      .ac-direction-aware-hover .ac-direction-aware-hover-o {
+        position: absolute;
+        inset: 0;
+        background: rgba(27, 58, 138, 0.85);
+        display: grid;
+        align-content: end;
+        gap: 6px;
+        padding: 12px;
+        transform: translate(-100%, 0);
+        transition: transform var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .ac-direction-aware-hover .ac-direction-aware-hover-o i {
+        display: block;
+        width: 60%;
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .ac-direction-aware-hover .ac-direction-aware-hover-o i + i {
+        width: 40%;
+        opacity: 0.7;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-direction-aware-hover .ac-direction-aware-hover-o {
+          transform: none !important;
+          opacity: 0;
+          transition: opacity 150ms !important;
+        }
+        .ac-direction-aware-hover .ac-direction-aware-hover-o.is-on {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "direction-aware-hover",
+        name: "入ってきた辺から出るホバー",
+        en: "Direction-aware hover",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "ポインターがカードに入ってきた辺から覆い（説明の帯）が滑り込み、出ていった辺の方へ抜けていくホバーです。手の動きに合わせて覆いが動くので、触っている感覚が強くなります。",
+        use: "画像のグリッド、作品の一覧、チームメンバーのカード、商品のサムネイル。",
+        params: [{ key: "dur", label: "滑る時間", value: 300, min: 120, max: 800, step: 20, unit: "ms" }],
+        spec: [
+          [
+            "向きの決め方",
+            "入った・出た瞬間のポインターの位置を、カードの中心からの差を幅・高さの半分で割って <code>(dx, dy)</code> にし、<code>|dx| &gt; |dy|</code> なら左右、そうでなければ上下の辺とする",
+          ],
+          [
+            "入るとき",
+            "覆いを transition なしでその辺の外（<code>translate(±100%, 0)</code> など）へ置き、次のフレームで <code>translate(0, 0)</code> へ｜out 300ms",
+          ],
+          [
+            "出るとき",
+            "出ていった辺の外へ <code>translate</code>｜out 300ms。<code>pointerenter</code> / <code>pointerleave</code> で判定する",
+          ],
+          ["動きを減らす設定", "滑る動きをやめ、覆いをフェードで出し入れする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components" target="_blank" rel="noopener">Aceternity UI: Components</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const o = stage.querySelector(".ac-direction-aware-hover-o"),
+              X0 = 50,
+              Y0 = 33,
+              Wc = 120,
+              Hc = 84;
+            let inside = false;
+            const edge = (x, y) => {
+              const dx = (x - X0 - Wc / 2) / (Wc / 2),
+                dy = (y - Y0 - Hc / 2) / (Hc / 2);
+              return Math.abs(dx) > Math.abs(dy) ? [dx > 0 ? 100 : -100, 0] : [0, dy > 0 ? 100 : -100];
+            };
+            const way = mkway(
+              [
+                [8, 75],
+                [110, 75],
+                [110, 146],
+                [110, 75],
+                [212, 55],
+                [110, 72],
+                [110, 4],
+                [110, 75],
+                [214, 110],
+              ],
+              0.9,
+              0.35,
+            );
+            show(1);
+            cur.style.transition = "none";
+            return raf((t) => {
+              const [x, y] = way(t);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              const now = x > X0 && x < X0 + Wc && y > Y0 && y < Y0 + Hc;
+              if (now === inside) return;
+              inside = now;
+              const [ex, ey] = edge(x, y);
+              o.classList.toggle("is-on", now);
+              if (now) {
+                o.style.transition = "none";
+                o.style.transform = `translate(${ex}%, ${ey}%)`;
+                void o.offsetWidth;
+                o.style.transition = "";
+                o.style.transform = "translate(0, 0)";
+              } else o.style.transform = `translate(${ex}%, ${ey}%)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

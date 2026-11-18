@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>変形を別々に動かす（Independent transforms） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-independent-transforms"
+        style="position: relative; width: 220px; height: 120px; display: grid; place-items: center"
+      >
+        <span
+          class="sb-thumb sb-grad-sky ac-independent-transforms-t"
+          style="width: 48px; height: 48px; border-radius: 14px"
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-independent-transforms .ac-independent-transforms-t {
+          animation:
+            ac-independent-transforms-tr var(--dt, 1600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate,
+            ac-independent-transforms-ro var(--dr, 2400ms) linear infinite,
+            ac-independent-transforms-sc var(--ds, 700ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-independent-transforms-tr {
+        from {
+          translate: -70px 0;
+        }
+        to {
+          translate: 70px 0;
+        }
+      }
+      @keyframes ac-independent-transforms-ro {
+        to {
+          rotate: 360deg;
+        }
+      }
+      @keyframes ac-independent-transforms-sc {
+        from {
+          scale: 1;
+        }
+        to {
+          scale: 1.25;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "independent-transforms",
+        name: "変形を別々に動かす",
+        en: "Independent transforms",
+        cat: "移動・変形",
+        kind: "concept",
+        description:
+          "移動（translate）・回転（rotate）・拡大（scale）を、別々のプロパティとして別々の時間で動かす考え方です。ひとつの transform にまとめると、どれか1つを変えるたびに全部を書き直す必要がありますが、分けておけば重ねて動かせます。",
+        use: "ホバーで拡大しつつ常に回るアイコン、移動中に別の動き（揺れ・脈打ち）を足したいとき。",
+        params: [
+          { key: "dt", label: "移動の周期", value: 1600, min: 600, max: 4000, step: 100, unit: "ms" },
+          { key: "dr", label: "回転の周期", value: 2400, min: 600, max: 6000, step: 100, unit: "ms" },
+          { key: "ds", label: "拡大の周期", value: 700, min: 300, max: 2000, step: 50, unit: "ms" },
+        ],
+        spec: [
+          [
+            "書き方",
+            "CSS の個別プロパティ <code>translate</code> / <code>rotate</code> / <code>scale</code> を、それぞれ別のキーフレームで動かす",
+          ],
+          [
+            "このデモ",
+            "移動：左右に往復（in-out・alternate）、回転：一定の速さで回り続ける（linear）、拡大：脈打つ（alternate）",
+          ],
+          ["重なる順番", "個別プロパティは translate → rotate → scale の順に重なる（書く順番に関係しない）"],
+          ["動きを減らす設定", "回転と拡大をやめ、移動だけをゆっくりにする（または止める）"],
+          [
+            "出典",
+            '<a href="https://www.w3.org/TR/css-transforms-2/" target="_blank" rel="noopener">W3C CSS Transforms Level 2</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>入力中（Typing input） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-typing-input" style="position: relative; width: 220px; height: 60px">
+        <div class="sb-field sb-field--focus" style="width: 220px">
+          <span class="sb-bar sb-bar--sm sb-bar--strong ac-typing-input-b"></span
+          ><span class="sb-caret ac-typing-input-c"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-typing-input .ac-typing-input-b {
+        width: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-typing-input .ac-typing-input-b {
+          animation: ac-typing-input-type var(--dur, 1600ms) steps(var(--chars, 8), end) 300ms forwards;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-typing-input .ac-typing-input-c {
+          animation: ac-typing-input-blink var(--blink, 1000ms) steps(1) infinite;
+        }
+      }
+      @keyframes ac-typing-input-type {
+        to {
+          width: 140px;
+        }
+      }
+      @keyframes ac-typing-input-blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-typing-input .ac-typing-input-b {
+          width: 140px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "typing-input",
+        name: "入力中",
+        en: "Typing input",
+        cat: "Soft Blue の部品",
+        kind: "motion",
+        description:
+          "入力欄に文字を打っている様子を表す動きです。キャレットが点滅し、文字の代わりのバーが左から少しずつ伸びていきます。",
+        use: "入力欄の説明、検索の打ち込みのデモ、チャットの入力。",
+        params: [
+          { key: "dur", label: "打ち終わるまでの時間", value: 1600, min: 600, max: 3000, step: 100, unit: "ms" },
+          { key: "chars", label: "文字数（段数）", value: 8, min: 3, max: 16, step: 1, unit: "" },
+          { key: "blink", label: "点滅の周期", value: 1000, min: 400, max: 1600, step: 100, unit: "ms" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["バー", "<code>width 0 → 140px</code>｜<code>steps(文字数)</code> で1文字ずつ伸ばす"],
+          ["キャレット", "<code>opacity 1 ↔ 0</code>｜<code>steps(1)</code>｜点滅の周期でくり返す"],
+          ["フォーカス", "入力欄は <code>blue</code> の枠と <code>blue-soft</code> の外光"],
+          ["動きを減らす設定", "バーは最終の幅で表示し、キャレットは点滅させずに表示する"],
+          ["出典", "Soft Blue「モーション」の入力"],
+        ],
+        loop: 3000,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>狭い出口で並ぶ（Bottleneck queuing） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-bottleneck-queue"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "bottleneck-queue",
+        name: "狭い出口で並ぶ",
+        en: "Bottleneck queuing",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "大勢が狭い出口へ向かうとき、すぐ前に詰まっている仲間がいれば減速して待ち、空いたら進む、をそれぞれが行うことで、出口の前に自然な列ができる動きです。押し合って重なったり、すり抜けたりしません。",
+        use: "避難・改札・レジの群衆のシミュレーション、ゲームの人の流れ、行列の可視化。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "出口へ向かう力 ＋ 仲間から離れる力に加えて、進む向きのすぐ前に仲間がいれば、その近さに合わせてブレーキをかける",
+          ],
+          ["見せ方", "出口に近いほど詰まり、通り抜けた者は速さを戻す。待つ者は少し横へずれながら順番を待つ"],
+          ["組み合わせ", "大勢で道を進む、予測してすれ違う"],
+          ["動きを減らす設定", "エージェントの動きを止め、向きと目標の静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.red3d.com/cwr/steer/" target="_blank" rel="noopener">red3d.com（steer）</a>、<a href="https://red3d.com/cwr/steer/Doorway.html" target="_blank" rel="noopener">red3d.com（Doorway）</a>、<a href="https://www.red3d.com/cwr/steer/gdc99/" target="_blank" rel="noopener">Craig Reynolds: Steering Behaviors For Autonomous Characters</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lim = (x, y, m) => {
+              const l = Math.hypot(x, y);
+              return l > m && l > 0 ? [(x / l) * m, (y / l) * m] : [x, y];
+            };
+            const ag = (x, y, a = 0, s = 1) => ({ x, y, vx: cos(a) * s, vy: sin(a) * s, w: rnd() * TAU });
+            const seek = (a, tx, ty, ms) => {
+              const dx = tx - a.x,
+                dy = ty - a.y,
+                l = Math.hypot(dx, dy) || 1;
+              return [(dx / l) * ms - a.vx, (dy / l) * ms - a.vy];
+            };
+            const go = (a, f, mf, ms) => {
+              const [fx, fy] = lim(f[0], f[1], mf);
+              a.vx += fx;
+              a.vy += fy;
+              [a.vx, a.vy] = lim(a.vx, a.vy, ms);
+              a.x += a.vx;
+              a.y += a.vy;
+            };
+            const wrap = (a) => {
+              if (a.x < -8) a.x += W + 16;
+              if (a.x > W + 8) a.x -= W + 16;
+              if (a.y < -8) a.y += H + 16;
+              if (a.y > H + 8) a.y -= H + 16;
+            };
+            const sep = (a, all, r) => {
+              let fx = 0,
+                fy = 0;
+              for (const b of all) {
+                if (b === a) continue;
+                const dx = a.x - b.x,
+                  dy = a.y - b.y,
+                  d = Math.hypot(dx, dy);
+                if (d > 0 && d < r) {
+                  fx += ((dx / d) * (r - d)) / r;
+                  fy += ((dy / d) * (r - d)) / r;
+                }
+              }
+              return [fx, fy];
+            };
+            const tri = (a, c, s = 1) => {
+              g.save();
+              g.translate(a.x, a.y);
+              g.rotate(Math.atan2(a.vy, a.vx));
+              g.fillStyle = c;
+              g.beginPath();
+              g.moveTo(7 * s, 0);
+              g.lineTo(-5 * s, 4 * s);
+              g.lineTo(-5 * s, -4 * s);
+              g.closePath();
+              g.fill();
+              g.restore();
+            };
+            const bg = () => {
+              g.fillStyle = col("surface");
+              g.fillRect(0, 0, W, H);
+            };
+            const steps = (() => {
+              let acc = 0,
+                last = null,
+                warmed = false;
+              return (t, fn, warm = 90) => {
+                if (rm) {
+                  if (!warmed) {
+                    warmed = true;
+                    for (let i = 0; i < warm; i++) fn();
+                  }
+                  return;
+                }
+                if (last !== null) acc += Math.min(0.1, t - last);
+                last = t;
+                for (let n = 0; acc >= 1 / 60 && n < 6; n++) {
+                  fn();
+                  acc -= 1 / 60;
+                }
+              };
+            })();
+            const D = [150, 75],
+              mk = () =>
+                Array.from({ length: 16 }, (_, i) => ag(20 + (i % 4) * 16, 30 + Math.floor(i / 4) * 26, 0, 0.5));
+            let C = mk(),
+              t0 = 0;
+            return raf((t) => {
+              steps(t, () => {
+                for (const a of C) {
+                  const past = a.x > D[0] + 4,
+                    tg = past ? [W + 30, a.y] : [D[0] + 10, D[1]],
+                    f = seek(a, tg[0], tg[1], 1.2),
+                    s = sep(a, C, 11);
+                  let brake = 0;
+                  const l = Math.hypot(a.vx, a.vy) || 1;
+                  for (const b of C) {
+                    if (b === a) continue;
+                    const dx = b.x - a.x,
+                      dy = b.y - a.y,
+                      al = (dx * a.vx + dy * a.vy) / l,
+                      lt = Math.abs(-dx * a.vy + dy * a.vx) / l;
+                    if (al > 0 && al < 13 && lt < 6) brake = Math.max(brake, 1 - al / 13);
+                  }
+                  go(a, [f[0] + s[0] * 1.2 - a.vx * brake, f[1] + s[1] * 1.2 - a.vy * brake], 0.1, 1.2);
+                  if (!past && a.x > D[0] - 4 && Math.abs(a.y - D[1]) > 7) a.x = D[0] - 4;
+                  if (a.x > W + 8) {
+                    a.x = 6 + rnd() * 30;
+                    a.y = 20 + rnd() * 110;
+                    a.vx = 0.5;
+                    a.vy = 0;
+                  }
+                }
+              });
+              bg();
+              g.fillStyle = col("navy");
+              g.fillRect(D[0], 0, 6, D[1] - 9);
+              g.fillRect(D[0], D[1] + 9, 6, H);
+              C.forEach((a) => tri(a, a.x > D[0] ? col("sky") : col("blue"), 0.8));
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

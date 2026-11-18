@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ネオンの点灯（Neon text flicker） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-neon-text-flicker"
+        style="
+          position: relative;
+          width: 220px;
+          height: 130px;
+          display: grid;
+          place-items: center;
+          border-radius: 20px;
+          background: var(--navy);
+        "
+      >
+        <div
+          class="ac-neon-text-flicker-t"
+          style="
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+            font-size: 32px;
+            line-height: 41px;
+            font-weight: 700;
+          "
+        >
+          OPEN
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-neon-text-flicker .ac-neon-text-flicker-t {
+        color: #eaf4ff;
+        text-shadow:
+          0 0 4px #fff,
+          0 0 12px var(--sky),
+          0 0 28px var(--sky),
+          0 0 46px var(--aqua);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-neon-text-flicker .ac-neon-text-flicker-t {
+          animation: ac-neon-text-flicker-on var(--dur, 1600ms) linear both;
+        }
+      }
+      @keyframes ac-neon-text-flicker-on {
+        0% {
+          opacity: 0.1;
+          text-shadow: none;
+        }
+        10% {
+          opacity: 1;
+          text-shadow:
+            0 0 4px #fff,
+            0 0 12px var(--sky),
+            0 0 28px var(--sky);
+        }
+        12% {
+          opacity: 0.1;
+          text-shadow: none;
+        }
+        20% {
+          opacity: 1;
+          text-shadow:
+            0 0 4px #fff,
+            0 0 12px var(--sky);
+        }
+        23% {
+          opacity: 0.2;
+          text-shadow: none;
+        }
+        45% {
+          opacity: 0.2;
+          text-shadow: none;
+        }
+        48% {
+          opacity: 1;
+          text-shadow:
+            0 0 4px #fff,
+            0 0 12px var(--sky),
+            0 0 28px var(--sky);
+        }
+        52% {
+          opacity: 0.4;
+          text-shadow: none;
+        }
+        56%,
+        100% {
+          opacity: 1;
+          text-shadow:
+            0 0 4px #fff,
+            0 0 12px var(--sky),
+            0 0 28px var(--sky),
+            0 0 46px var(--aqua);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "neon-text-flicker",
+        name: "ネオンの点灯",
+        en: "Neon text flicker",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "暗い中で、ネオン管の文字がジジッと不規則に何度か瞬いてから、明るく光り続ける表現です。看板に電気が入る瞬間のような、夜の雰囲気と期待感が出ます。",
+        use: "夜・バー・音楽・ゲーム系のタイトル、ダークテーマの見出し、イベントの告知。",
+        params: [{ key: "dur", label: "点灯までの時間", value: 1600, min: 600, max: 4000, step: 100, unit: "ms" }],
+        spec: [
+          ["光", "<code>text-shadow</code> を数段重ねる（例 <code>0 0 4px 白, 0 0 12px 色, 0 0 28px 色</code>）"],
+          [
+            "点灯",
+            "<code>opacity</code> と光を不規則な割合のキーフレーム（10%・12%・20%・23%… のように詰めたり空けたり）で 0 と 1 に切り替え、最後は点いたまま",
+          ],
+          ["注意", "どの1秒間でも明滅は3回まで（光過敏への配慮）"],
+          ["動きを減らす設定", "瞬きをやめ、最初から点灯した状態にする"],
+          [
+            "出典",
+            '<a href="https://app.unpkg.com/animista-css-generator@1.0.2/files/animations" target="_blank" rel="noopener">Animista（プリセット一覧）</a>',
+          ],
+        ],
+        loop: 3200,
+      });
+    </script>
+  </body>
+</html>

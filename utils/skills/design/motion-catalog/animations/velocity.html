@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>速度の引き継ぎ（Velocity） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-velocity"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div style="position: relative; width: 200px; height: 32px">
+          <span class="ac-velocity-rail"></span><span class="sb-thumb sb-grad-sky ac-velocity-a"></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px; margin-top: 20px">
+          <span class="ac-velocity-rail"></span><span class="sb-thumb sb-grad-aqua ac-velocity-b"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-velocity .ac-velocity-rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 15px;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--bar);
+      }
+      .ac-velocity .ac-velocity-a,
+      .ac-velocity .ac-velocity-b {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "velocity",
+        name: "速度の引き継ぎ",
+        en: "Velocity",
+        cat: "スプリング",
+        kind: "concept",
+        description:
+          "動いている途中で目標が変わったとき、それまでの速さと向きを引き継いで次の動きにつなぐことです。上はばねで速度を引き継ぐのでなめらかに曲がり、下は毎回ゼロから始め直すのでカクッと向きが変わります。",
+        use: "ドラッグ中の要素、すばやく何度も切り替わるトグルやタブ、追従するカーソル。",
+        params: [
+          { key: "k", label: "硬さ", value: 200, min: 50, max: 500, step: 10, unit: "" },
+          { key: "c", label: "減衰", value: 18, min: 4, max: 40, step: 1, unit: "" },
+        ],
+        spec: [
+          ["上（引き継ぐ）", "毎フレーム、ばねの式で速さと位置を更新する。目標が変わっても速さはそのまま"],
+          ["下（引き継がない）", "目標が変わるたびに新しいアニメーションを最初から始める"],
+          [
+            "実装",
+            "Framer Motion や React Spring は自動で速度を引き継ぐ。CSS の <code>transition</code> は位置だけ引き継ぎ、速度は引き継がない",
+          ],
+          ["動きを減らす設定", "ばねの動きをやめ、目標の位置へ短い ease-out で移る"],
+          ["出典", "Animation Vocabulary（Spring Animations）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const a = stage.querySelector(".ac-velocity-a"),
+            b = stage.querySelector(".ac-velocity-b");
+          const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          let x = 0,
+            vel = 0,
+            target = 0,
+            last = null,
+            raf,
+            anim;
+          const targets = [
+              [0, 168],
+              [450, 0],
+              [1500, 168],
+              [1950, 0],
+            ],
+            period = 3000;
+          let t0 = null,
+            idx = -1;
+          const tick = (now) => {
+            if (t0 === null) {
+              t0 = now;
+              last = now;
+            }
+            const t = (now - t0) % period;
+            const i = targets.reduce((acc, [at], j) => (t >= at ? j : acc), 0);
+            if (i !== idx) {
+              idx = i;
+              target = targets[i][1];
+              const from = b.getBoundingClientRect().left - b.parentElement.getBoundingClientRect().left;
+              anim?.cancel();
+              if (rm) b.style.transform = `translateX(${target}px)`;
+              else
+                anim = b.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${target}px)` }], {
+                  duration: 600,
+                  easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+                  fill: "forwards",
+                });
+            }
+            const dt = Math.min(0.032, (now - last) / 1000);
+            last = now;
+            if (rm) {
+              x = target;
+            } else {
+              const acc = -v.k * (x - target) - v.c * vel;
+              vel += acc * dt;
+              x += vel * dt;
+            }
+            a.style.transform = `translateX(${x}px)`;
+            raf = requestAnimationFrame(tick);
+          };
+          raf = requestAnimationFrame(tick);
+          return () => {
+            cancelAnimationFrame(raf);
+            anim?.cancel();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

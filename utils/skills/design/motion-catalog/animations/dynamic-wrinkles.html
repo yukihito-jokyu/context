@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動きで出るしわ（Dynamic skin wrinkling） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-dynamic-wrinkles"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dynamic-wrinkles",
+        name: "動きで出るしわ",
+        en: "Dynamic skin wrinkling",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "関節を曲げたり表情を作ったりして皮膚や服が縮んだ所に、縮んだ量に合わせてしわを自動で出し、伸びると消す方法です。しわの見え方で、力の入り方や布・皮膚の質感が伝わります。",
+        use: "リアルなキャラクターの顔（眉・目尻）・肘・服、デジタルヒューマン。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "動かしたメッシュと元のメッシュの各部分の縮み具合（辺の長さの比）を求め、縮んだ所ほど強く、しわの法線マップ（またはしわの形）を混ぜる",
+          ],
+          ["見せ方", "しわは縮む向きに直交して並べる。出る・消えるはなめらかに"],
+          ["ツールでは", "Unreal の MetaHuman のしわマップ、Maya・Blender で縮みに応じてマスクを動かすシェーダー"],
+          ["動きを減らす設定", "動きを止め、代表的なポーズの静止画にする"],
+          [
+            "出典",
+            '<a href="https://www.siggraph.org/wp-content/uploads/2024/09/talks.html" target="_blank" rel="noopener">siggraph.org（talks）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            const seg = (x, y, a, l) => [x + sin(a) * l, y + cos(a) * l];
+            const line = (pts, w, c) => {
+              g.lineCap = "round";
+              g.lineJoin = "round";
+              g.lineWidth = w;
+              g.strokeStyle = c;
+              g.beginPath();
+              g.moveTo(pts[0][0], pts[0][1]);
+              for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+              g.stroke();
+            };
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const limb = (x, y, a1, l1, a2, l2, w, c) => {
+              const k = seg(x, y, a1, l1),
+                f = seg(k[0], k[1], a1 + a2, l2);
+              line([[x, y], k, f], w, c);
+              return [k, f];
+            };
+            // 人：hip（腰）の位置と pose（lean 体の傾き, t1/s1 手前の脚, t2/s2 奥の脚, u1/f1 手前の腕, u2/f2 奥の腕）
+            const figure = (x, y, p, L = { t: 18, s: 18, b: 30, u: 14, f: 13, h: 9 }) => {
+              const near = col("blue"),
+                far = col("sky"),
+                nx = x + sin(p.lean || 0) * L.b,
+                ny = y - cos(p.lean || 0) * L.b;
+              limb(x, y, p.t2, L.t, p.s2, L.s, 7, far);
+              limb(nx, ny + 3, p.u2, L.u, p.f2, L.f, 6, far);
+              line(
+                [
+                  [x, y],
+                  [nx, ny],
+                ],
+                11,
+                near,
+              );
+              dot(nx + sin(p.lean || 0) * (L.h + 3), ny - cos(p.lean || 0) * (L.h + 3), L.h, near);
+              limb(x, y, p.t1, L.t, p.s1, L.s, 7, near);
+              limb(nx, ny + 3, p.u1, L.u, p.f1, L.f, 6, near);
+            };
+            const ground = (y, off, gap = 22) => {
+              g.fillStyle = col("ice");
+              g.fillRect(0, y, W, H - y);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 2;
+              for (let x = -((off % gap) + gap) % gap; x < W; x += gap) {
+                g.beginPath();
+                g.moveTo(x, y + 8);
+                g.lineTo(x + 8, y + 8);
+                g.stroke();
+              }
+            };
+            // 2本の骨の IK：根元 (x, y) から長さ a, b で目標 (tx, ty) へ。bend = ±1 で曲がる向き。関節の位置を返す
+            const ik2 = (x, y, tx, ty, a, b, bend = 1) => {
+              let dx = tx - x,
+                dy = ty - y,
+                d = Math.hypot(dx, dy);
+              const dd = Math.max(Math.abs(a - b) + 0.01, Math.min(d, a + b - 0.01)),
+                base = d ? Math.atan2(dy, dx) : -Math.PI / 2,
+                c = Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd))),
+                th = base - bend * Math.acos(c);
+              return [x + cos(th) * a, y + sin(th) * a, x + cos(base) * dd, y + sin(base) * dd];
+            };
+            const lp = (a, b, k) => {
+              const o = {};
+              for (const key in a) o[key] = a[key] + (b[key] - a[key]) * k;
+              return o;
+            };
+            const ez = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2),
+              cl = (u) => Math.min(1, Math.max(0, u));
+            const txt = (s, x, y, c = col("ink-muted"), al = "left") => {
+              g.fillStyle = c;
+              g.font = "600 10px sans-serif";
+              g.textAlign = al;
+              g.fillText(s, x, y);
+            };
+            const GUARD = { lean: 0.05, t1: 0.35, s1: -0.3, t2: -0.3, s2: -0.1, u1: 2.2, f1: 1.6, u2: 2.4, f2: 1.7 };
+            return raf((t) => {
+              const T = rm ? 1 : t,
+                ang = 0.2 + 1.1 * (0.5 - 0.5 * cos(T * 1.4)),
+                cmp = cl((ang - 0.4) / 0.9);
+              g.clearRect(0, 0, W, H);
+              const sx = 30,
+                ex = 110,
+                ey = 92,
+                hx = ex + cos(-ang) * 70,
+                hy = ey + sin(-ang) * 70;
+              line(
+                [
+                  [sx, ey],
+                  [ex, ey],
+                  [hx, hy],
+                ],
+                26,
+                col("sky"),
+              );
+              g.strokeStyle = `rgba(30,64,175,${cmp})`;
+              g.lineWidth = 1.5;
+              for (let i = 0; i < 4; i++) {
+                const a = -ang / 2 - 0.25 + i * 0.17,
+                  r0 = 6,
+                  r1 = 6 + 6 * cmp;
+                g.beginPath();
+                g.moveTo(ex + cos(a - Math.PI / 2) * r0 - 4 + i * 2, ey - 8 - i);
+                g.quadraticCurveTo(ex - 2 + i * 3, ey - 13 - i * 2 - r1 * 0.3, ex + 6 + i * 2, ey - 9 - i * 2);
+                g.stroke();
+              }
+              g.fillStyle = col("ice");
+              g.fillRect(150, 120, 60, 6);
+              g.fillStyle = col("blue");
+              g.fillRect(150, 120, 60 * cmp, 6);
+              txt("縮み", 150, 140);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

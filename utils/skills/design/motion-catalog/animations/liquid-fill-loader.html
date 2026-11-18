@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>液体が満ちるローダー（Liquid-fill loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-liquid-fill-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-liquid-fill-loader-c">
+          <span class="ac-liquid-fill-loader-wv"></span><span class="ac-liquid-fill-loader-wv"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-liquid-fill-loader .ac-liquid-fill-loader-c {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--blue-soft);
+        box-shadow:
+          inset 0 0 0 3px var(--surface),
+          0 0 0 2px var(--blue-soft);
+      }
+      .ac-liquid-fill-loader .ac-liquid-fill-loader-wv {
+        position: absolute;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        top: 0;
+        translate: 0 50%;
+        border-radius: 40%;
+        background: var(--blue);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-liquid-fill-loader .ac-liquid-fill-loader-wv {
+          animation:
+            ac-liquid-fill-loader-sp calc(var(--dur, 3000ms) / 2.5) linear infinite,
+            ac-liquid-fill-loader-up var(--dur, 3000ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+      }
+      .ac-liquid-fill-loader .ac-liquid-fill-loader-wv + .ac-liquid-fill-loader-wv {
+        background: var(--sky);
+        opacity: 0.6;
+        border-radius: 43%;
+        animation-duration: calc(var(--dur, 3000ms) / 1.8), var(--dur, 3000ms);
+        animation-delay:
+          0s,
+          -80ms;
+      }
+      @keyframes ac-liquid-fill-loader-sp {
+        to {
+          rotate: 360deg;
+        }
+      }
+      @keyframes ac-liquid-fill-loader-up {
+        0% {
+          translate: 0 50%;
+        }
+        90%,
+        100% {
+          translate: 0 -30%;
+        }
+      } /* 容器の 100% → -60%（自分の高さ 200% に対する 50% → -30%） */
+      @media (prefers-reduced-motion: reduce) {
+        .ac-liquid-fill-loader .ac-liquid-fill-loader-wv {
+          translate: 0 10%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "liquid-fill-loader",
+        name: "液体が満ちるローダー",
+        en: "Liquid-fill loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "丸い容器の中で、波打つ水面がゆっくり上がっていき、満ちるとまた下から始まるローダーです。たまっていく感覚が、進んでいる手応えになります。",
+        use: "ボタン・カード・画面の読み込み中、待ち時間の短い処理。",
+        params: [{ key: "dur", label: "周期", value: 3000, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "水面",
+            "容器より大きく、角を丸めた四角（<code>border-radius: 40%</code>）をくるくる回すと、上の縁が波打つ水面に見える",
+          ],
+          ["満ちる", "その四角を下から上へ動かす｜in-out。2枚を少しずらして重ねると奥行きが出る"],
+          ["進捗に", "進み具合に合わせて水位を決めれば、確定の進捗表示にもなる"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          ["出典", '<a href="https://css-loaders.com/" target="_blank" rel="noopener">CSS Loaders</a>'],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

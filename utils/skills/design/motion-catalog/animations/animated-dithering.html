@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動くディザ模様（Animated dithering） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-animated-dithering"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "animated-dithering",
+        name: "動くディザ模様",
+        en: "Animated dithering",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "点を打つか打たないかの2色だけで、点の密度の違いによって濃淡を表す「ディザ」の模様を、波のようにゆっくり動かす背景です。レトロなゲームや印刷物のような、粒の立った質感が出ます。",
+        use: "テック系・レトロ系のヒーロー、ローディング画面、アート寄りのセクション背景。",
+        params: [
+          { key: "px", label: "点の大きさ", value: 3, min: 2, max: 6, step: 1, unit: "px" },
+          { key: "speed", label: "速さ", value: 1, min: 0.2, max: 3, step: 0.1, unit: "" },
+        ],
+        spec: [
+          [
+            "仕組み",
+            "各マスの明るさ（ここでは動く波の値）を、4×4 の Bayer 行列のしきい値と比べ、超えたら点を打つ（ordered dithering）",
+          ],
+          ["描画", "canvas（大きな画面は WebGL のシェーダー）。点は 2–4px の四角"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/dither-field" target="_blank" rel="noopener">Magic UI: Dither Field</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5],
+              c = col("cobalt") || "#2b59c3",
+              s = v.px;
+            const draw = (t) => {
+              g.clearRect(0, 0, W, H);
+              g.fillStyle = c;
+              for (let y = 0; y < H / s; y++)
+                for (let x = 0; x < W / s; x++) {
+                  const val =
+                    0.5 + 0.25 * Math.sin(x * 0.12 + t) + 0.25 * Math.sin(y * 0.16 - t * 0.7 + Math.sin(x * 0.05));
+                  if (val * 16 > B[(y % 4) * 4 + (x % 4)] + 0.5) g.fillRect(x * s, y * s, s - 0.5, s - 0.5);
+                }
+            };
+            if (rm) {
+              draw(1);
+              return null;
+            }
+            let last = -1;
+            return raf((t) => {
+              if (t - last < 1 / 30) return;
+              last = t;
+              draw(t * v.speed);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

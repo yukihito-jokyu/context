@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>強制スクロール（Autoscroll camera） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-autoscroll-camera"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "autoscroll-camera",
+        name: "強制スクロール",
+        en: "Autoscroll camera",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "プレイヤーの動きとは関係なく、画面（カメラ）が一定の速さで進み続け、プレイヤーはそれに遅れないよう進む見せ方です。画面の端に押されることで、急がされる緊張感が生まれます。",
+        use: "シューティング、乗り物や追われる場面のステージ、リズムゲーム、横に流れる演出。",
+        params: [],
+        spec: [
+          [
+            "仕組み",
+            "カメラの位置を時間だけで決める（<code>cx = 開始 + 速さ × t</code>）。プレイヤーが画面の左端に押されたら一緒に押す（または失敗）",
+          ],
+          ["速さ", "一定か、区間ごとに決めた速さで。速さが変わる所は事前に見せる"],
+          ["UI では", "自動で流れるマーキー・ティッカー。止めるボタンを必ず用意する"],
+          ["動きを減らす設定", "スクロールを止め、決まった区間ごとに切り替える"],
+          [
+            "出典",
+            '<a href="https://www.gamedeveloper.com/design/scroll-back-the-theory-and-practice-of-cameras-in-side-scrollers" target="_blank" rel="noopener">gamedeveloper.com（scroll-back-the-theory-and-p）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const GY = 112,
+              LV = 900;
+            const world = (cx, cy = 75, z = 1, extra) => {
+              const gr = g.createLinearGradient(0, 0, 0, H);
+              gr.addColorStop(0, "#f2f8ff");
+              gr.addColorStop(1, "#dbeafe");
+              g.fillStyle = gr;
+              g.fillRect(0, 0, W, H);
+              g.fillStyle = "#c7defc";
+              for (let i = -1; i < 6; i++) {
+                const x = ((((i * 90 - cx * 0.3) % 450) + 450) % 450) - 60;
+                g.beginPath();
+                g.ellipse(x, 100 - (cy - 75) * 0.3, 50, 34, 0, Math.PI, 0);
+                g.fill();
+              }
+              g.save();
+              g.translate(110, 75);
+              g.scale(z, z);
+              g.translate(-cx, -cy);
+              g.fillStyle = "#93c5fd";
+              g.fillRect(-200, GY, LV + 400, 60);
+              g.fillStyle = "#7fb3f5";
+              for (let x = -200; x < LV + 200; x += 20) g.fillRect(x, GY, 1.5, 60);
+              g.fillStyle = col("cobalt");
+              for (const [x, y, w] of [
+                [240, 84, 50],
+                [520, 74, 60],
+                [720, 90, 50],
+              ]) {
+                g.beginPath();
+                g.roundRect(x, y, w, 7, 3);
+                g.fill();
+              }
+              if (extra) extra();
+              g.restore();
+            };
+            const hero = (x, y, c = col("blue"), f = 1) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.roundRect(x - 6, y - 18, 12, 18, 4);
+              g.fill();
+              g.fillStyle = "#fff";
+              g.fillRect(x + f * 2 - 1, y - 14, 2, 2);
+            };
+            const walk = (t) => {
+              const T = t % 8;
+              let x, vx;
+              if (T < 3) {
+                x = 40 + T * 120;
+                vx = 120;
+              } else if (T < 4) {
+                x = 400;
+                vx = 0;
+              } else if (T < 6.5) {
+                x = 400 - (T - 4) * 100;
+                vx = -100;
+              } else {
+                x = 150 - ((T - 6.5) / 1.5) * 110;
+                vx = -73;
+              }
+              const jp = (a) => {
+                  const u = (T - a) / 0.6;
+                  return u > 0 && u < 1 ? 40 * 4 * u * (1 - u) : 0;
+                },
+                h = jp(1.2) + jp(5);
+              return { x, y: GY - h, vx, air: h > 0, face: vx >= 0 ? 1 : -1 };
+            };
+            const box = (x, y, w, h, c = "rgba(229,72,77,.8)") => {
+              g.strokeStyle = c;
+              g.lineWidth = 1.5;
+              g.setLineDash([4, 3]);
+              g.strokeRect(x, y, w, h);
+              g.setLineDash([]);
+            };
+            let DT = 1 / 60,
+              LT = null;
+            const clock = (t) => {
+              DT = LT === null ? 1 / 60 : Math.min(0.05, Math.max(0, t - LT));
+              LT = t;
+            };
+            const sm = (a, b, k) =>
+              a +
+              (b - a) *
+                (k >= 1 ? 1 : 1 - Math.pow(1 - k, DT * 60)); /* k は 60Hz のときの1フレームの係数。経過時間に換算する */
+            return raf((t) => {
+              clock(t);
+              const T = rm ? 1 : t % 7,
+                cx = 110 + T * 60,
+                px = cx - 40 + 30 * sin(T * 1.4),
+                u = (T % 1.6) / 0.5,
+                py = GY - (u < 1 ? 36 * 4 * u * (1 - u) : 0);
+              world(cx, 75, 1, () => hero(px, py));
+              g.fillStyle = "rgba(229,72,77,.18)";
+              g.fillRect(0, 0, 6, H);
+              g.fillStyle = col("ink-muted");
+              g.font = "600 10px sans-serif";
+              g.textAlign = "right";
+              g.fillText("→ 一定の速さ", 212, 16);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

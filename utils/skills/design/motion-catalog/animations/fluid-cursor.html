@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>インクのように流れるカーソル（Fluid cursor） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-fluid-cursor"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "fluid-cursor",
+        name: "インクのように流れるカーソル",
+        en: "Fluid cursor",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "ポインターの通ったところに色のインクが流れ出し、にじんで広がって消えていく動きです。プレビューは canvas のぼかしで作った近い形です（元は WebGL の流体計算）。",
+        use: "アート・クリエイティブ系のヒーロー、音楽・イベントのサイト、遊べるトップページ。",
+        params: [],
+        spec: [
+          ["本格的に", "WebGL で流体の速度場と色を毎フレーム計算し、ポインターの速度を流れとして注ぎ込む"],
+          [
+            "近い形",
+            "ポインターの通り道にぼかした色の円を描き、毎フレーム画面全体を少しぼかして薄くする（canvas の <code>filter: blur</code> と半透明の塗り重ね）",
+          ],
+          ["色", "時間で色を少しずつ変えると、インクが混ざるように見える"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/animations/splash-cursor" target="_blank" rel="noopener">React Bits: Splash Cursor</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            let lx = 110,
+              ly = 75;
+            const cs = ["sky", "aqua", "blue", "cobalt"].map((k) => col(k) || "#7ab8ff");
+            cur.style.transition = "none";
+            show(1);
+            return raf((t) => {
+              const [x, y] = loop8(t * 1.1);
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (rm) return;
+              g.save();
+              if (canFilter) {
+                g.filter = "blur(1.2px)";
+                g.globalAlpha = 0.96;
+                g.drawImage(cv, 0, 0, cv.width, cv.height, 0, 0, W, H);
+              } else {
+                g.globalAlpha = 0.24;
+                for (const [ox, oy] of [
+                  [-1, 0],
+                  [1, 0],
+                  [0, -1],
+                  [0, 1],
+                ])
+                  g.drawImage(cv, 0, 0, cv.width, cv.height, ox, oy, W, H);
+              }
+              g.restore();
+              g.fillStyle = "rgba(255,255,255,.035)";
+              g.fillRect(0, 0, W, H);
+              const sp = Math.hypot(x - lx, y - ly),
+                c = cs[Math.floor(t / 1.5) % 4];
+              for (let i = 0; i < 4; i++) {
+                const k = i / 4,
+                  px = lx + (x - lx) * k,
+                  py = ly + (y - ly) * k;
+                const gr = g.createRadialGradient(px, py, 0, px, py, 8 + sp * 0.8);
+                gr.addColorStop(0, c);
+                gr.addColorStop(1, "rgba(255,255,255,0)");
+                g.globalAlpha = 0.35;
+                g.fillStyle = gr;
+                g.beginPath();
+                g.arc(px, py, 8 + sp * 0.8, 0, 7);
+                g.fill();
+              }
+              g.globalAlpha = 1;
+              lx = x;
+              ly = y;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

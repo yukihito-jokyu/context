@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>クレーン（Crane / Boom shot） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-crane-shot"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-crane-shot-cam">
+          <div class="ac-crane-shot-L ac-crane-shot-sky"><i></i></div>
+          <div class="ac-crane-shot-L ac-crane-shot-far"><i></i></div>
+          <div class="ac-crane-shot-L ac-crane-shot-gr"><i></i></div>
+          <div class="ac-crane-shot-L ac-crane-shot-mid"><i></i></div>
+          <div class="ac-crane-shot-L ac-crane-shot-sub"><i></i></div>
+          <div class="ac-crane-shot-L ac-crane-shot-near"><i></i></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-crane-shot .ac-crane-shot-cam,
+      .ac-crane-shot .ac-crane-shot-L {
+        position: absolute;
+        inset: 0;
+      }
+      .ac-crane-shot .ac-crane-shot-L i {
+        position: absolute;
+        display: block;
+      }
+      .ac-crane-shot .ac-crane-shot-sky i {
+        inset: -150px -160px -30px;
+        background:
+          radial-gradient(ellipse 26px 10px at 30% 22%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(ellipse 20px 8px at 72% 12%, #fff 97%, transparent) 0 0 / 220px 100% repeat-x,
+          radial-gradient(circle at 50% 70%, #fff 0 12px, transparent 13px) 0 0 / 220px 100% repeat-x,
+          linear-gradient(180deg, #f2f8ff, var(--ice) 70%, var(--sky));
+      }
+      .ac-crane-shot .ac-crane-shot-far i {
+        left: -330px;
+        right: -330px;
+        bottom: 30px;
+        height: 70px;
+        background: radial-gradient(ellipse 60px 46px at 50% 100%, #a9d0ff 98%, transparent) 0 100% / 120px 70px
+          repeat-x;
+      }
+      .ac-crane-shot .ac-crane-shot-gr i {
+        left: -330px;
+        right: -330px;
+        bottom: -60px;
+        height: 96px;
+        background: linear-gradient(#b6dcff, #8fc2ff);
+      }
+      .ac-crane-shot .ac-crane-shot-mid i {
+        left: -304px;
+        right: -356px;
+        bottom: 26px;
+        height: 64px;
+        background:
+          radial-gradient(circle 15px at 24px 22px, var(--cobalt) 97%, transparent) 0 0 / 52px 64px repeat-x,
+          linear-gradient(90deg, transparent 22px, var(--navy) 22px 26px, transparent 26px) 0 100% / 52px 30px repeat-x;
+      }
+      .ac-crane-shot .ac-crane-shot-sub i {
+        left: 100px;
+        bottom: 26px;
+        width: 20px;
+        height: 34px;
+        border-radius: 10px 10px 5px 5px;
+        background: var(--blue);
+      }
+      .ac-crane-shot .ac-crane-shot-sub i::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: -16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .ac-crane-shot .ac-crane-shot-near i {
+        left: -330px;
+        right: -330px;
+        bottom: -16px;
+        height: 46px;
+        background: radial-gradient(ellipse 34px 26px at 50% 100%, #0f2563 97%, transparent) 0 100% / 110px 46px
+          repeat-x;
+      }
+      .ac-crane-shot .ac-crane-shot-sky {
+        transform: translateY(-20px);
+      }
+      .ac-crane-shot .ac-crane-shot-far {
+        transform: translateY(-30px) scale(1);
+      }
+      .ac-crane-shot .ac-crane-shot-gr {
+        transform: translateY(-50px) scale(1.1);
+      }
+      .ac-crane-shot .ac-crane-shot-mid {
+        transform: translateY(-60px) scale(1.25);
+      }
+      .ac-crane-shot .ac-crane-shot-sub {
+        transform: translateY(-66px) scale(1.3);
+      }
+      .ac-crane-shot .ac-crane-shot-near {
+        transform: translateY(-30px) scale(2);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-crane-shot .ac-crane-shot-sky {
+          animation: ac-crane-shot-k0 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-crane-shot .ac-crane-shot-far {
+          animation: ac-crane-shot-k1 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-crane-shot .ac-crane-shot-gr {
+          animation: ac-crane-shot-k2 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-crane-shot .ac-crane-shot-mid {
+          animation: ac-crane-shot-k3 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-crane-shot .ac-crane-shot-sub {
+          animation: ac-crane-shot-k4 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+        .ac-crane-shot .ac-crane-shot-near {
+          animation: ac-crane-shot-k5 var(--dur, 2400ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-crane-shot-k0 {
+        0%,
+        10% {
+          transform: translateY(-20px);
+        }
+        90%,
+        100% {
+          transform: translateY(30px);
+        }
+      }
+      @keyframes ac-crane-shot-k1 {
+        0%,
+        10% {
+          transform: translateY(-30px) scale(1);
+        }
+        90%,
+        100% {
+          transform: translateY(34px) scale(0.95);
+        }
+      }
+      @keyframes ac-crane-shot-k2 {
+        0%,
+        10% {
+          transform: translateY(-50px) scale(1.1);
+        }
+        90%,
+        100% {
+          transform: translateY(50px) scale(0.95);
+        }
+      }
+      @keyframes ac-crane-shot-k3 {
+        0%,
+        10% {
+          transform: translateY(-60px) scale(1.25);
+        }
+        90%,
+        100% {
+          transform: translateY(56px) scale(0.9);
+        }
+      }
+      @keyframes ac-crane-shot-k4 {
+        0%,
+        10% {
+          transform: translateY(-66px) scale(1.3);
+        }
+        90%,
+        100% {
+          transform: translateY(60px) scale(0.9);
+        }
+      }
+      @keyframes ac-crane-shot-k5 {
+        0%,
+        10% {
+          transform: translateY(-30px) scale(2);
+        }
+        90%,
+        100% {
+          transform: translateY(110px) scale(1.2);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "crane-shot",
+        name: "クレーン",
+        en: "Crane / Boom shot",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "クレーンやドローンでカメラを大きく持ち上げながら、前や横へ動かす動きです。地面の近くから空へ抜けたり、上から場面に降りてきたりして、規模の大きさや物語の始まり・終わりを表せます。",
+        use: "ブランド動画の冒頭や締め、ヒーローの導入、イベントや会場の紹介、ゲームのステージ紹介。",
+        params: [{ key: "dur", label: "片道の時間", value: 3600, min: 1500, max: 8000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "ペデスタル（上へ、手前ほど大きく下へ流れる）とドリー（奥へ、手前ほど拡大）を同時に。奥行きで量を変える",
+          ],
+          ["ブーム", "腕の先でカメラを上下させる短い動き。ドローンは、より高く長く飛ぶ同じ仲間"],
+          ["時間", "長め（3〜6 秒）。始まりと終わりをゆっくりに"],
+          ["動きを減らす設定", "カメラの動きをやめ、最初（または最後）の構図で止める"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/camera-shots/camera-movements/" target="_blank" rel="noopener">StudioBinder: Camera Movements</a>、<a href="https://www.masterclass.com/articles/guide-to-camera-moves" target="_blank" rel="noopener">MasterClass: Guide to Camera Moves</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

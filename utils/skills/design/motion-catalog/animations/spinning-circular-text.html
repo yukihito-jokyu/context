@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>回る円形の文字（Spinning circular text） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-spinning-circular-text"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div style="position: relative; width: 130px; height: 130px">
+          <svg class="ac-spinning-circular-text-s" viewBox="0 0 130 130" width="130" height="130">
+            <path id="ac-sct-c" d="M65,65 m-50,0 a50,50 0 1,1 100,0 a50,50 0 1,1 -100,0" fill="none" />
+            <text style="font: 800 12.5px var(--font-sans); fill: var(--ink); letter-spacing: 2px">
+              <textPath href="#ac-sct-c" textLength="312">SOFT BLUE ✦ MOTION CATALOG ✦</textPath>
+            </text></svg
+          ><span class="sb-fab" style="position: absolute; left: 41px; top: 41px; width: 48px; height: 48px"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" /></svg
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-spinning-circular-text .ac-spinning-circular-text-s {
+          animation: ac-spinning-circular-text-r var(--dur, 10000ms) linear infinite;
+        }
+      }
+      @keyframes ac-spinning-circular-text-r {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "spinning-circular-text",
+        name: "回る円形の文字",
+        en: "Spinning circular text",
+        cat: "文字",
+        kind: "motion",
+        description:
+          "文字を円周に沿って並べ、その円ごとゆっくり回し続ける表現です。スタンプやシールのようなバッジになり、中央のアイコンやボタンを引き立てます。",
+        use: "「スクロール」「お問い合わせ」などの丸いボタン、ブランドのバッジ、ヒーローの装飾。",
+        params: [{ key: "dur", label: "一周の時間", value: 10000, min: 3000, max: 30000, step: 500, unit: "ms" }],
+        spec: [
+          [
+            "並べ方",
+            "SVG の円の <code>&lt;path&gt;</code> に <code>&lt;textPath&gt;</code> で文字を沿わせる。文字の長さを円周に合わせる（<code>textLength</code>）",
+          ],
+          ["動き", "SVG 全体を <code>rotate(0 → 360deg)</code>｜linear｜くり返し。ホバーで速くする型もある"],
+          ["中央", "中央のアイコンは回さない"],
+          ["動きを減らす設定", "回転を止める"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/text-animations/circular-text" target="_blank" rel="noopener">React Bits: Circular Text</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

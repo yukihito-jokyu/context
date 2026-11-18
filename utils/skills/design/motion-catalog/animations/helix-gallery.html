@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>らせんギャラリー（Helix gallery） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-helix-gallery" style="position: relative; width: 220px; height: 160px; perspective: 500px">
+        <div class="ac-helix-gallery-s">
+          <span class="sb-thumb sb-grad-sky ac-helix-gallery-i" style="--i: 0"></span
+          ><span class="sb-thumb sb-grad-aqua ac-helix-gallery-i" style="--i: 1"></span
+          ><span class="sb-thumb sb-grad-deep ac-helix-gallery-i" style="--i: 2"></span
+          ><span class="sb-thumb sb-grad-hero ac-helix-gallery-i" style="--i: 3"></span
+          ><span class="sb-thumb sb-grad-sky ac-helix-gallery-i" style="--i: 4"></span
+          ><span class="sb-thumb sb-grad-aqua ac-helix-gallery-i" style="--i: 5"></span
+          ><span class="sb-thumb sb-grad-deep ac-helix-gallery-i" style="--i: 6"></span
+          ><span class="sb-thumb sb-grad-hero ac-helix-gallery-i" style="--i: 7"></span
+          ><span class="sb-thumb sb-grad-sky ac-helix-gallery-i" style="--i: 8"></span
+          ><span class="sb-thumb sb-grad-aqua ac-helix-gallery-i" style="--i: 9"></span
+          ><span class="sb-thumb sb-grad-deep ac-helix-gallery-i" style="--i: 10"></span
+          ><span class="sb-thumb sb-grad-hero ac-helix-gallery-i" style="--i: 11"></span
+          ><span class="sb-thumb sb-grad-sky ac-helix-gallery-i" style="--i: 12"></span
+          ><span class="sb-thumb sb-grad-aqua ac-helix-gallery-i" style="--i: 13"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-helix-gallery .ac-helix-gallery-s {
+        position: absolute;
+        left: 50%;
+        top: 32px;
+        transform-style: preserve-3d;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-helix-gallery .ac-helix-gallery-s {
+          animation: ac-helix-gallery-spin var(--dur, 12000ms) linear infinite;
+        }
+      }
+      .ac-helix-gallery .ac-helix-gallery-i {
+        position: absolute;
+        width: 40px;
+        height: 30px;
+        margin-left: -20px;
+        border-radius: 8px;
+        transform: translateY(calc(var(--i) * var(--rise, 7px))) rotateY(calc(var(--i) * 30deg))
+          translateZ(var(--r, 80px));
+      }
+      @keyframes ac-helix-gallery-spin {
+        from {
+          transform: rotateY(0);
+        }
+        to {
+          transform: rotateY(-360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "helix-gallery",
+        name: "らせんギャラリー",
+        en: "Helix gallery",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "画像を立体的ならせん階段のように並べ、軸を中心に回し続ける動きです。奥へ回った画像は小さく暗くなり、手前の画像に目が行きます。",
+        use: "作品・商品のショーケース、ランディングページの目玉、ブランドの世界観を見せる場面。",
+        params: [
+          { key: "dur", label: "一周の時間", value: 12000, min: 4000, max: 30000, step: 1000, unit: "ms" },
+          { key: "r", label: "半径", value: 80, min: 50, max: 120, step: 5, unit: "px" },
+          { key: "rise", label: "1枚ごとの高さ", value: 7, min: 0, max: 14, step: 1, unit: "px" },
+        ],
+        spec: [
+          ["配置", "i 枚目に <code>translateY(i × 高さ) rotateY(i × 30deg) translateZ(半径)</code>"],
+          ["動き", "全体を <code>rotateY 0 → 360deg</code>｜linear・くり返し｜親に <code>perspective</code>"],
+          [
+            "奥行き",
+            "裏向きの画像は <code>backface-visibility: hidden</code> で隠す（薄くするなら向きから <code>opacity</code> を決める）",
+          ],
+          ["動きを減らす設定", "回転を止める"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/components/infinite-spiral" target="_blank" rel="noopener">React Bits</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

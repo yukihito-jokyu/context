@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>明るさで浮く走査線（Luminance-driven scanline displacement） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-scanline-displacement"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scanline-displacement",
+        name: "明るさで浮く走査線",
+        en: "Luminance-driven scanline displacement",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像や映像を横線（走査線）だけで描き、元の絵の明るい所ほど線を上へ持ち上げます。平らな線の集まりが、明るさに沿って盛り上がる立体の起伏に見え、絵が動くと起伏も波打ちます。",
+        use: "音楽・映像系のビジュアル、テック系のヒーロー、レトロなアナログ映像の演出（Rutt–Etra 風）。",
+        params: [{ key: "amp", label: "持ち上げる高さ", value: 14, min: 0, max: 30, step: 1, unit: "px" }],
+        spec: [
+          ["仕組み", "元の絵を一定の間隔の横線で読み取り、線上の各点を <code>y − 明るさ × 高さ</code> へずらして結ぶ"],
+          ["見せ方", "暗い背景に明るい線。奥の線（上）ほど細く暗くすると奥行きが出る。元の絵が動くと線も動く"],
+          [
+            "Web では",
+            "canvas で元の絵（動画・canvas）の画素を読み、線を描く。WebGL なら頂点シェーダーで線の頂点をずらす",
+          ],
+          ["動きを減らす設定", "元の絵の動きを止め、起伏の静止画にする"],
+          [
+            "出典",
+            '<a href="https://reillydonovan.com/work/rutt-etra-web-synthesizer/" target="_blank" rel="noopener">reillydonovan.com（rutt-etra-web-synthesizer）</a>、<a href="https://ruttetraweb.com/" target="_blank" rel="noopener">ruttetraweb.com</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lum = (x, y, T) => {
+              const a = Math.exp(-((x - 110 - 40 * sin(T * 0.8)) ** 2 + (y - 75) ** 2) / 900),
+                b = Math.exp(-((x - 70) ** 2 + (y - 60 - 20 * cos(T)) ** 2) / 500);
+              return Math.min(1, a + 0.7 * b + 0.08 * sin(x * 0.15 + T * 2));
+            };
+            return raf((t) => {
+              const T = rm ? 0.7 : t;
+              g.fillStyle = col("navy");
+              g.fillRect(0, 0, W, H);
+              for (let y = 16; y < H - 4; y += 6) {
+                g.beginPath();
+                for (let x = 6; x <= W - 6; x += 3) {
+                  const yy = y - lum(x, y, T) * v.amp;
+                  x === 6 ? g.moveTo(x, yy) : g.lineTo(x, yy);
+                }
+                g.strokeStyle = `rgba(147,197,253,${0.35 + (0.6 * y) / H})`;
+                g.lineWidth = 0.6 + y / H;
+                g.stroke();
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

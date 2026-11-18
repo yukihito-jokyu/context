@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>降る雪（Falling snow） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-falling-snow"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--navy);
+          box-shadow: var(--shadow-card);
+          background: linear-gradient(180deg, var(--navy), var(--cobalt));
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "falling-snow",
+        name: "降る雪",
+        en: "Falling snow",
+        cat: "背景",
+        kind: "motion",
+        description:
+          "大きさと明るさの違う雪片が、左右にふわふわ揺れながらゆっくり降り続ける背景です。手前の雪ほど大きく速く、奥の雪ほど小さく遅いので、奥行きが生まれます。",
+        use: "冬・クリスマスのキャンペーン、季節のバナー、静かで落ち着いたヒーロー。",
+        params: [
+          { key: "n", label: "雪の数", value: 60, min: 10, max: 150, step: 5, unit: "個" },
+          { key: "speed", label: "落ちる速さ", value: 24, min: 5, max: 80, step: 1, unit: "px/s" },
+        ],
+        spec: [
+          ["雪片", "奥行き z（0–1）を持たせ、大きさ・速さ・明るさを z に比例させる"],
+          ["動き", "毎フレーム：下へ（速さ）、横へ <code>sin(時間 + 位相) × 揺れ</code>。下を越えたら上へ戻す"],
+          ["数", "画面の広さに合わせて数を決める（多すぎると重い・うるさい）"],
+          [
+            "控えめに",
+            "背景は主役ではない。コントラストと速さを抑え、前景の文字が読めることを優先する。画面外・非表示のときは止める",
+          ],
+          ["動きを減らす設定", "背景の動きを止め、1コマの静止画にする"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/backgrounds/pixel-snow" target="_blank" rel="noopener">React Bits: Pixel Snow</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const fl = Array.from({ length: v.n }, () => ({
+              x: Math.random() * W,
+              y: Math.random() * H,
+              z: 0.3 + Math.random() * 0.7,
+              p: Math.random() * 6,
+            }));
+            const draw = (t) => {
+              g.clearRect(0, 0, W, H);
+              for (const f of fl) {
+                g.globalAlpha = 0.4 + 0.6 * f.z;
+                g.fillStyle = "#fff";
+                g.beginPath();
+                g.arc(f.x + Math.sin(t * 0.8 + f.p) * 6 * f.z, f.y, 0.8 + 2.2 * f.z, 0, 7);
+                g.fill();
+              }
+              g.globalAlpha = 1;
+            };
+            if (rm) {
+              draw(0);
+              return null;
+            }
+            let last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              for (const f of fl) {
+                f.y += v.speed * f.z * dt;
+                if (f.y > H + 4) {
+                  f.y = -4;
+                  f.x = Math.random() * W;
+                }
+              }
+              draw(t);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

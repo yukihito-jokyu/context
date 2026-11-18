@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>見つめてスクロール（Gaze-driven edge scrolling (Look to Scroll)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-gaze-scroll"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-gaze-scroll-vp">
+          <div class="ac-gaze-scroll-ls">
+            <i></i><i></i><i></i><b></b><i></i><i></i><i></i><b></b><i></i><i></i><i></i><b></b><i></i><i></i><i></i
+            ><b></b><i></i><i></i><i></i><b></b><i></i><i></i><i></i><b></b><i></i><i></i><i></i><b></b><i></i><i></i
+            ><i></i><b></b>
+          </div>
+          <span class="ac-gaze-scroll-z ac-gaze-scroll-zt"></span
+          ><span class="ac-gaze-scroll-z ac-gaze-scroll-zb"></span>
+        </div>
+        <span class="ac-gaze-scroll-eye"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-gaze-scroll .ac-gaze-scroll-vp {
+        position: absolute;
+        left: 24px;
+        top: 10px;
+        width: 172px;
+        height: 130px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-ls {
+        padding: 12px 16px;
+        display: grid;
+        gap: 7px;
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-ls i {
+        display: block;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--bar);
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-ls b {
+        display: block;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(150deg, var(--ice), var(--sky));
+        margin: 2px 0 6px;
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-z {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 22px;
+        opacity: 0;
+        transition: opacity 200ms;
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-z.is-on {
+        opacity: 1;
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-zt {
+        top: 0;
+        background: linear-gradient(rgba(59, 130, 246, 0.22), transparent);
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-zb {
+        bottom: 0;
+        background: linear-gradient(transparent, rgba(59, 130, 246, 0.22));
+      }
+      .ac-gaze-scroll .ac-gaze-scroll-eye {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 22px;
+        height: 22px;
+        margin: -11px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(37, 99, 235, 0.55) 0 30%,
+          rgba(59, 130, 246, 0.18) 60%,
+          transparent 70%
+        );
+        z-index: 3;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "gaze-scroll",
+        name: "見つめてスクロール",
+        en: "Gaze-driven edge scrolling (Look to Scroll)",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "視線（アイトラッキング）が読んでいる枠の上端や下端の近くにしばらくとどまると、ゆっくりスクロールが始まり、続きの内容を目の前へ送ってくる動きです。手を使わずに長い文章を読み進められます。",
+        use: "visionOS など視線で操作する画面、ハンズフリーのリーダー、アクセシビリティのための操作。",
+        params: [{ key: "max", label: "いちばん速いスクロール", value: 70, min: 20, max: 200, step: 5, unit: "px/秒" }],
+        spec: [
+          [
+            "仕組み",
+            "視線が端の帯（高さの 15〜20%）に一定時間（300〜500ms）とどまったら、スクロールを始める。最初はゆっくり、とどまるほど少し速くする",
+          ],
+          [
+            "止まる",
+            "視線が帯を出たら、急に止めずに減速して止める。読んでいる途中で勝手に動かないよう、帯は狭く・始まりは遅くする",
+          ],
+          ["visionOS では", "ScrollView の <code>scrollInputBehavior(.enabled, for: .look)</code>（Look to Scroll）"],
+          ["動きを減らす設定", "なめらかに送らず、端を見ている間は一定の量ずつ送る"],
+          [
+            "出典",
+            '<a href="https://developer.apple.com/videos/play/wwdc2025/303/" target="_blank" rel="noopener">developer.apple.com（303）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const keyAt = (K, T) => {
+              let i = 0;
+              while (i < K.length - 2 && T >= K[i + 1][0]) i++;
+              const a = K[i],
+                b = K[i + 1],
+                f = Math.min(1, Math.max(0, (T - a[0]) / Math.max(1e-6, b[0] - a[0]))),
+                e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+              return [a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e];
+            };
+            const ls = stage.querySelector(".ac-gaze-scroll-ls"),
+              eye = stage.querySelector(".ac-gaze-scroll-eye"),
+              zt = stage.querySelector(".ac-gaze-scroll-zt"),
+              zb = stage.querySelector(".ac-gaze-scroll-zb");
+            const K = [
+              [0, 70, 60],
+              [0.6, 150, 62],
+              [1, 80, 70],
+              [1.4, 110, 130],
+              [3.8, 120, 130],
+              [4.3, 110, 70],
+              [5, 110, 70],
+              [5.4, 100, 18],
+              [7, 100, 18],
+              [7.5, 70, 60],
+            ];
+            let y = 0,
+              sp = 0,
+              dwell = 0,
+              last = 0,
+              wait = 0.5;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              const T = t % 7.5,
+                [ex, ey] = keyAt(K, T),
+                jit = Math.sin(t * 23) * 1.2;
+              eye.style.transform = `translate(${ex + jit}px, ${ey}px)`;
+              const zone = ey > 118 ? 1 : ey < 32 ? -1 : 0;
+              dwell = zone ? dwell + dt : 0;
+              zb.classList.toggle("is-on", zone > 0);
+              zt.classList.toggle("is-on", zone < 0);
+              const tgt = dwell > 0.4 ? zone * Math.min(1, (dwell - 0.4) / 1.2) * v.max : 0;
+              if (rm) {
+                wait = dwell > 0.4 ? wait + dt : 0.5;
+                if (wait >= 0.5) {
+                  wait = 0;
+                  if (dwell > 0.4) y += zone * 24;
+                }
+              } else {
+                sp += (tgt - sp) * (1 - Math.pow(0.92, dt * 60));
+                y += sp * dt;
+              }
+              y = Math.min(250, Math.max(0, y));
+              ls.style.transform = `translateY(${-y}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

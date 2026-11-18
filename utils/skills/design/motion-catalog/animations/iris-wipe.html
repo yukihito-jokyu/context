@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>アイリス（Iris wipe） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-iris-wipe"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-iris-wipe-s ac-iris-wipe-a"
+          style="
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+          "
+        ></div>
+        <div
+          class="ac-iris-wipe-s ac-iris-wipe-b"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-iris-wipe .ac-iris-wipe-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-iris-wipe .ac-iris-wipe-b {
+        animation: ac-iris-wipe-t var(--dur, 2600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+      }
+      @keyframes ac-iris-wipe-t {
+        0%,
+        30% {
+          clip-path: circle(0% at 50% 50%);
+        }
+        70%,
+        100% {
+          clip-path: circle(75% at 50% 50%);
+        }
+      }
+      @keyframes ac-iris-wipe-rf2 {
+        0%,
+        45% {
+          opacity: 0;
+        }
+        55%,
+        100% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-iris-wipe .ac-iris-wipe-b {
+          animation-name: ac-iris-wipe-rf2;
+          clip-path: none;
+          -webkit-mask: none;
+          mask: none;
+          transform: none;
+          filter: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "iris-wipe",
+        name: "アイリス",
+        en: "Iris wipe",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "画面の真ん中などに開いた「形の窓」が広がって次のショットを見せたり、縮んで1点に閉じたりする切り替えです。円が基本で、四角・ひし形・十字・星・ハート・目の形などもあります。昔の映画やアニメの終わり方としても知られます。",
+        use: "ゲームの場面転換、楽しい雰囲気の画面切り替え、主役に視線を集めて終わる演出、フォトスライドショー。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          ["書き方", "次のショットに <code>clip-path: circle(0% at 中心)</code> → <code>circle(75%)</code>｜in-out"],
+          [
+            "形",
+            "四角は <code>inset()</code>、ひし形・十字・星は <code>polygon()</code>、ハートは <code>path()</code> か SVG のマスクを拡大",
+          ],
+          ["アイリスアウト", "逆に、主役の位置へ窓を縮めて閉じると「おしまい」の演出になる"],
+          ["動きを減らす設定", "切り替えを短いクロスフェード（200ms 前後）にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/premiere/desktop/add-video-effects/effects-and-transitions-library/list-of-video-transitions.html" target="_blank" rel="noopener">Adobe Premiere: List of Video transitions</a>、<a href="https://docs.imaster.org/davinci-resolve-21-manual/part-7-editing-effects-and-transitions/ch.-55-using-transitions" target="_blank" rel="noopener">DaVinci Resolve 21 リファレンスマニュアル（写し）: Using Transitions</a>、<a href="https://en.wikipedia.org/wiki/Wipe_(transition)" target="_blank" rel="noopener">Wikipedia: Wipe (transition)</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>時間の割り当て直し（Time remapping） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-time-remapping"
+        style="position: relative; width: 220px; height: 110px; display: flex; align-items: center; gap: 20px"
+      >
+        <div style="display: grid; gap: 18px">
+          <div style="position: relative; width: 130px; height: 34px">
+            <span
+              style="
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 16px;
+                height: 2px;
+                border-radius: 2px;
+                background: var(--bar);
+              "
+            ></span
+            ><span
+              class="sb-thumb sb-grad-shape ac-time-remapping-a"
+              style="position: absolute; left: 0; top: 1px; width: 32px; height: 32px; border-radius: 10px"
+            ></span>
+          </div>
+          <div style="position: relative; width: 130px; height: 34px">
+            <span
+              style="
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 16px;
+                height: 2px;
+                border-radius: 2px;
+                background: var(--bar);
+              "
+            ></span
+            ><span
+              class="sb-thumb sb-grad-sky ac-time-remapping-b"
+              style="position: absolute; left: 0; top: 1px; width: 32px; height: 32px; border-radius: 10px"
+            ></span>
+          </div>
+        </div>
+        <svg class="ac-time-remapping-gr" width="64" height="64" viewBox="0 0 64 64">
+          <path d="M0,64 H64 M0,64 V0" stroke="var(--bar)" stroke-width="2" fill="none" />
+          <path
+            class="ac-time-remapping-cv"
+            d="M0,64 L64,0"
+            stroke="var(--cobalt)"
+            stroke-width="3"
+            fill="none"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-time-remapping {
+        --ease: linear;
+      }
+      .ac-time-remapping .ac-time-remapping-a {
+        background: var(--shape-idle) !important;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-time-remapping .ac-time-remapping-a {
+          animation: ac-time-remapping-go var(--dur, 2400ms) linear both;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-time-remapping .ac-time-remapping-b {
+          animation: ac-time-remapping-go var(--dur, 2400ms) var(--ease) both;
+        }
+      }
+      @keyframes ac-time-remapping-go {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(98px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-time-remapping .ac-time-remapping-a,
+        .ac-time-remapping .ac-time-remapping-b {
+          transform: translateX(98px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "time-remapping",
+        name: "時間の割り当て直し",
+        en: "Time remapping",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "実際の時間と、動きの再生位置との対応を描き直す考え方です。途中だけ再生位置の進みをゆっくりにすると、速い→スロー→速いという「スピードランプ」になります。上が通常、下が割り当て直したもので、右のグラフがその対応です。",
+        use: "決めの瞬間をスローで見せる演出、動画風のヒーロー、スポーツやゲームのハイライト。",
+        params: [
+          { key: "dur", label: "時間", value: 2400, min: 1000, max: 5000, step: 100, unit: "ms" },
+          { key: "slow", label: "スローの間に進む量", value: 0.1, min: 0, max: 0.5, step: 0.02, unit: "" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "書き方",
+            "CSS の <code>linear()</code> で対応を書く：<code>linear(0, 0.5-量/2 35%, 0.5+量/2 65%, 1)</code>。35–65% の時間で「量」だけ進む",
+          ],
+          [
+            "JS の場合",
+            "再生位置 = 関数(実時間) を毎フレーム計算して <code>currentTime</code> に入れる（After Effects のタイムリマップと同じ）",
+          ],
+          ["比べる", "上は <code>linear</code>"],
+          ["動きを減らす設定", "動きを止め、終点の位置で見せる"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/after-effects/desktop/animate-in-after-effects/time-stretching-and-time-remapping/time-stretching-time-remapping.html" target="_blank" rel="noopener">Adobe After Effects: タイムリマップ</a>',
+          ],
+        ],
+        loop: 3200,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const a = 0.5 - v.slow / 2,
+              b = 0.5 + v.slow / 2;
+            stage.firstElementChild.style.setProperty("--ease", `linear(0, ${a} 35%, ${b} 65%, 1)`);
+            stage
+              .querySelector(".ac-time-remapping-cv")
+              .setAttribute("d", `M0,64 L${64 * 0.35},${64 * (1 - a)} L${64 * 0.65},${64 * (1 - b)} L64,0`);
+            return null;
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

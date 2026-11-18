@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>リップル（Ripple） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ripple"
+        style="
+          position: relative;
+          width: 200px;
+          height: 130px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div
+          class="sb-item ac-ripple-r"
+          style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+        >
+          <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+          ><span class="sb-lines" style="gap: 6px"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+          ></span>
+        </div>
+        <div style="height: 12px"></div>
+        <div
+          class="sb-item ac-ripple-r"
+          style="width: 200px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+        >
+          <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+          ><span class="sb-lines" style="gap: 6px"
+            ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+          ></span>
+        </div>
+        <span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-ripple .ac-ripple-r {
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .ac-ripple .ac-ripple-wave {
+        display: none;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-ripple .ac-ripple-wave {
+          display: block;
+          position: absolute;
+          border-radius: 50%;
+          background: rgba(37, 99, 235, 0.18);
+          pointer-events: none;
+          transform: scale(0);
+          animation: ac-ripple-wave var(--dur, 500ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-ripple .ac-ripple-r:active,
+        .ac-ripple .ac-ripple-r.is-down {
+          background-color: var(--blue-soft);
+        }
+      }
+      @keyframes ac-ripple-wave {
+        to {
+          transform: scale(1);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ripple",
+        name: "リップル",
+        en: "Ripple",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "押した場所から円が広がって消える動きです。どこを押したのかがわかり、押したことを確かに受け取ったと伝えます（Material Design の代表的な反応）。",
+        use: "ボタン、リストの行、カード、タブなど、押せる面。",
+        params: [{ key: "dur", label: "広がる時間", value: 500, min: 200, max: 1000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "押した点を中心に円を <code>scale(0 → 1)</code>（要素を覆う大きさ）と <code>opacity 0.35 → 0</code>｜out <code>cubic-bezier(0.22, 1, 0.36, 1)</code>",
+          ],
+          [
+            "実装",
+            "<code>pointerdown</code> で押した座標に円を追加し、アニメーションが終わったら消す。親に <code>overflow: hidden</code>",
+          ],
+          ["色", "面の色に合わせた薄い色（ここでは blue の 18%）。詳細ページのプレビューは実際に押しても広がる"],
+          ["動きを減らす設定", "円の広がりをやめ、押した間だけ面の色を少し濃くする"],
+          ["出典", "Animation Vocabulary（Feedback & Interaction）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const seq = (period, steps) => {
+            let ts = [];
+            const once = () => {
+              ts = steps.map(([at, fn]) => setTimeout(fn, at));
+            };
+            once();
+            const iv = setInterval(once, period);
+            return () => {
+              clearInterval(iv);
+              ts.forEach(clearTimeout);
+            };
+          };
+          const cur = stage.querySelector(".ac-cursor");
+          const move = (x, y, ms = 500) => {
+            cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+            cur.style.transform = `translate(${x}px, ${y}px)`;
+            if (!ms) void cur.offsetWidth;
+          };
+          const show = (on) => {
+            cur.style.opacity = on ? 1 : 0;
+          };
+          const motion = matchMedia("(prefers-reduced-motion: no-preference)");
+          const rows = [...stage.querySelectorAll(".ac-ripple-r")];
+          const wave = (row, x, y) => {
+            if (!motion.matches) return;
+            const r = Math.hypot(Math.max(x, row.clientWidth - x), Math.max(y, row.clientHeight - y));
+            const w = document.createElement("span");
+            w.className = "ac-ripple-wave";
+            Object.assign(w.style, {
+              left: x - r + "px",
+              top: y - r + "px",
+              width: r * 2 + "px",
+              height: r * 2 + "px",
+            });
+            w.addEventListener("animationend", () => w.remove(), { once: true });
+            row.appendChild(w);
+          };
+          const onPointerDown = (e) => {
+            if (!motion.matches) return;
+            const row = e.currentTarget,
+              b = row.getBoundingClientRect();
+            wave(row, e.clientX - b.left, e.clientY - b.top);
+          };
+          const clearWaves = () => stage.querySelectorAll(".ac-ripple-wave").forEach((w) => w.remove());
+          const onMotionChange = () => {
+            if (!motion.matches) clearWaves();
+          };
+          const press = (row, x, y) => {
+            row.classList.add("is-down");
+            wave(row, x, y);
+          };
+          rows.forEach((row) => row.addEventListener("pointerdown", onPointerDown));
+          motion.addEventListener("change", onMotionChange);
+          move(200, 140, 0);
+          const stop = seq(2800, [
+            [
+              100,
+              () => {
+                show(1);
+                move(150, 30, 500);
+              },
+            ],
+            [650, () => press(rows[0], 150, 20)],
+            [800, () => rows[0].classList.remove("is-down")],
+            [1200, () => move(60, 92, 500)],
+            [1750, () => press(rows[1], 60, 20)],
+            [1900, () => rows[1].classList.remove("is-down")],
+            [2200, () => move(200, 140, 400)],
+            [2500, () => show(0)],
+          ]);
+          return () => {
+            stop();
+            clearWaves();
+            rows.forEach((row) => {
+              row.classList.remove("is-down");
+              row.removeEventListener("pointerdown", onPointerDown);
+            });
+            motion.removeEventListener("change", onMotionChange);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

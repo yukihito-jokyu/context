@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ノックバック（Knockback） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-knockback" style="position: relative; width: 220px; height: 150px">
+        <span class="ac-knockback-pl"></span><span class="ac-knockback-en"><i></i><i></i></span
+        ><span class="ac-knockback-fx"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-knockback .ac-knockback-pl {
+        position: absolute;
+        left: 30px;
+        top: 66px;
+        width: 34px;
+        height: 44px;
+        border-radius: 14px;
+        background: var(--blue);
+      }
+      .ac-knockback .ac-knockback-en {
+        position: absolute;
+        left: 120px;
+        top: 62px;
+        width: 46px;
+        height: 48px;
+        border-radius: 18px 18px 12px 12px;
+        background: var(--navy);
+      }
+      .ac-knockback .ac-knockback-en i {
+        position: absolute;
+        top: 14px;
+        width: 7px;
+        height: 9px;
+        border-radius: 3px;
+        background: #fff;
+        left: 10px;
+      }
+      .ac-knockback .ac-knockback-en i + i {
+        left: 24px;
+      }
+      .ac-knockback .ac-knockback-en.is-hit {
+        background: #fff;
+        box-shadow: inset 0 0 0 3px var(--navy);
+      }
+      .ac-knockback .ac-knockback-fx {
+        position: absolute;
+        left: 112px;
+        top: 76px;
+        width: 22px;
+        height: 22px;
+        opacity: 0;
+        background: radial-gradient(circle, #fff 0 30%, var(--sky) 50%, transparent 72%);
+      }
+      .ac-knockback::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 110px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--line);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "knockback",
+        name: "ノックバック",
+        en: "Knockback",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "攻撃を受けた相手が、当たった向きへぐっと押し戻され、すぐに勢いが弱まって止まる動きです。押し戻される距離と速さで、攻撃の重さを伝えられます。プレイヤーが受けたときに使えば、被弾がはっきり分かります。",
+        use: "アクションゲームの攻撃と被弾、強く押した操作の反動、ぶつかる演出、ゲーム風の UI。",
+        params: [{ key: "dist", label: "押し戻す距離", value: 34, min: 0, max: 60, step: 1, unit: "px" }],
+        spec: [
+          [
+            "動き",
+            "当たった瞬間に押す向きへ速さを与え、毎フレーム <code>速さ × 0.85</code> で弱めて止める（または 150〜250ms の out の移動）",
+          ],
+          ["組み合わせ", "当たった瞬間の白い点滅、ヒットストップ（40〜80ms 止める）、小さな画面の揺れと一緒に"],
+          ["戻り", "押されたあと、自分の足で元の位置へゆっくり戻る（400ms 前後）"],
+          ["動きを減らす設定", "押し戻しをやめ、点滅だけにする"],
+          [
+            "出典",
+            '<a href="https://medienwissenschaft.uni-bayreuth.de/wp-content/uploads/GxD-10-Game-Feel.pdf#page=7" target="_blank" rel="noopener">The Art of Screenshake の解説（Bayreuth 大学）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const pl = stage.querySelector(".ac-knockback-pl"),
+              en = stage.querySelector(".ac-knockback-en"),
+              fxe = stage.querySelector(".ac-knockback-fx");
+            const hit = () => {
+              if (!rm)
+                pl.animate(
+                  [
+                    { transform: "none" },
+                    { transform: "translateX(48px) scale(1.08, .94)", offset: 0.35 },
+                    { transform: "none" },
+                  ],
+                  { duration: 360, easing: "ease-out" },
+                );
+              setTimeout(() => {
+                en.classList.add("is-hit");
+                fxe.animate(
+                  rm
+                    ? [{ opacity: 1 }, { opacity: 0 }]
+                    : [
+                        { opacity: 1, transform: "scale(.6)" },
+                        { opacity: 0, transform: "scale(1.8)" },
+                      ],
+                  { duration: 160 },
+                );
+                setTimeout(() => en.classList.remove("is-hit"), 70);
+                if (!rm)
+                  en.animate(
+                    [
+                      { transform: "none", offset: 0 },
+                      { transform: "none", offset: 0.15 },
+                      {
+                        transform: `translateX(${v.dist}px) rotate(8deg) scale(.95, 1.05)`,
+                        offset: 0.45,
+                        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                      },
+                      { transform: `translateX(${v.dist}px) rotate(0)`, offset: 0.6 },
+                      { transform: "none" },
+                    ],
+                    { duration: 1100 },
+                  );
+              }, 120);
+            };
+            return seq(1900, [[300, hit]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

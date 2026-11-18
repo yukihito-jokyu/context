@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>向きを固定するスクロール（Directional scroll locking (panning rails)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-scroll-direction-lock"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-scroll-direction-lock-ct"></div>
+        <span class="ac-scroll-direction-lock-rx"></span><span class="ac-scroll-direction-lock-ry"></span
+        ><span class="ac-cursor" style="left: 0; top: 0; opacity: 0"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-scroll-direction-lock .ac-scroll-direction-lock-ct {
+        position: absolute;
+        left: -20px;
+        top: -20px;
+        width: 460px;
+        height: 340px;
+        background:
+          radial-gradient(circle, var(--sky) 0 7px, transparent 8px) 0 0 / 36px 36px,
+          radial-gradient(circle, var(--blue) 0 4px, transparent 5px) 18px 18px / 72px 72px,
+          var(--ice);
+      }
+      .ac-scroll-direction-lock .ac-scroll-direction-lock-rx,
+      .ac-scroll-direction-lock .ac-scroll-direction-lock-ry {
+        position: absolute;
+        background: var(--blue);
+        border-radius: 3px;
+        opacity: 0;
+        transition: opacity 150ms;
+      }
+      .ac-scroll-direction-lock .ac-scroll-direction-lock-rx {
+        left: 20px;
+        right: 20px;
+        bottom: 8px;
+        height: 4px;
+      }
+      .ac-scroll-direction-lock .ac-scroll-direction-lock-ry {
+        top: 14px;
+        bottom: 14px;
+        right: 8px;
+        width: 4px;
+      }
+      .ac-scroll-direction-lock .ac-scroll-direction-lock-rx.is-on,
+      .ac-scroll-direction-lock .ac-scroll-direction-lock-ry.is-on {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "scroll-direction-lock",
+        name: "向きを固定するスクロール",
+        en: "Directional scroll locking (panning rails)",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "縦にも横にも動かせる画面で、ドラッグの最初の向きが横に近ければ横だけ、縦に近ければ縦だけに動きを固定する仕組みです。指が少しぶれても、行や列がずれません。",
+        use: "大きな表、カレンダーの週表示、縦横に並ぶギャラリー。",
+        params: [],
+        spec: [
+          ["決め方", "最初の 8〜12px の向きが軸から ±25〜30° 以内なら、その軸に固定する（斜めなら固定しない）"],
+          ["固定の間", "指を放すまで、固定した軸の成分だけを動かす。慣性も同じ軸だけにする"],
+          [
+            "Windows では",
+            "panning rails（レール）。Web では、軸を先に決めてよいなら <code>touch-action: pan-x</code> / <code>pan-y</code>。初動で決めるなら JS で軸を判定して片方を 0 にする",
+          ],
+          ["動きを減らす設定", "慣性の滑りをやめ、指の動いた分だけ、固定した軸に動かす"],
+          [
+            "出典",
+            '<a href="https://learn.microsoft.com/en-us/windows/apps/develop/input/guidelines-for-panning" target="_blank" rel="noopener">learn.microsoft.com（guidelines-for-panning）</a>、<a href="https://learn.microsoft.com/en-us/windows/win32/directmanipulation/directmanipulation-viewports-and-content" target="_blank" rel="noopener">learn.microsoft.com（directmanipulation-viewports）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const cur = stage.querySelector(".ac-cursor");
+            const move = (x, y, ms = 500) => {
+              cur.style.transition = `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1), opacity 200ms`;
+              cur.style.transform = `translate(${x}px, ${y}px)`;
+              if (!ms) void cur.offsetWidth;
+            };
+            const show = (on) => {
+              cur.style.opacity = on ? 1 : 0;
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const keyAt = (K, T) => {
+              let i = 0;
+              while (i < K.length - 2 && T >= K[i + 1][0]) i++;
+              const a = K[i],
+                b = K[i + 1],
+                f = Math.min(1, Math.max(0, (T - a[0]) / Math.max(1e-6, b[0] - a[0]))),
+                e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+              return [a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e];
+            };
+            const ct = stage.querySelector(".ac-scroll-direction-lock-ct"),
+              rx = stage.querySelector(".ac-scroll-direction-lock-rx"),
+              ry = stage.querySelector(".ac-scroll-direction-lock-ry");
+            const K = [
+              [0, 170, 78],
+              [0.4, 170, 78],
+              [1.6, 64, 98],
+              [2.2, 64, 98],
+              [2.4, 100, 120],
+              [2.8, 100, 120],
+              [4, 114, 36],
+              [4.6, 114, 36],
+              [6.6, 114, 36],
+            ];
+            show(1);
+            cur.style.transition = "none";
+            return raf((t) => {
+              const T = t % 6.6,
+                [px, py] = keyAt(K, T);
+              cur.style.transform = `translate(${px}px, ${py}px)`;
+              let dx = 0,
+                dy = 0;
+              if (T < 2.2) dx = px - 170;
+              else if (T < 2.8) dx = -106;
+              else if (T < 4.6) {
+                dx = -106;
+                dy = py - 120;
+              } else {
+                const f = Math.min(1, (T - 4.6) / 1.4),
+                  e = 1 - Math.pow(1 - f, 3);
+                dx = -106 * (1 - e);
+                dy = -84 * (1 - e);
+              }
+              rx.classList.toggle("is-on", T > 0.5 && T < 1.8);
+              ry.classList.toggle("is-on", T > 2.9 && T < 4.2);
+              ct.style.transform = `translate(${dx}px, ${dy}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

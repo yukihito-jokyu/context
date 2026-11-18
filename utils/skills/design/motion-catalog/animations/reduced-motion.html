@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>動きを減らす設定（Reduced motion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-reduced-motion" style="position: relative; width: 220px; height: 150px">
+        <div
+          style="
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 104px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+          "
+        >
+          <span class="sb-badge sb-badge--quiet" style="height: 24px; padding: 0 10px; font-size: 12px">通常</span>
+          <div
+            class="sb-card ac-reduced-motion-full"
+            style="
+              width: 96px;
+              padding: 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              box-sizing: border-box;
+              padding: 10px;
+              gap: 8px;
+            "
+          >
+            <span class="sb-hero sb-grad-hero" style="height: 34px; border-radius: 14px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 52px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 33px"></span>
+          </div>
+        </div>
+        <div
+          style="
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 104px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+          "
+        >
+          <span class="sb-badge" style="height: 24px; padding: 0 10px; font-size: 12px">減らす</span>
+          <div
+            class="sb-card ac-reduced-motion-calm"
+            style="
+              width: 96px;
+              padding: 14px;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              box-sizing: border-box;
+              padding: 10px;
+              gap: 8px;
+            "
+          >
+            <span class="sb-hero sb-grad-hero" style="height: 34px; border-radius: 14px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 52px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 33px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-reduced-motion .ac-reduced-motion-full {
+          animation: ac-reduced-motion-full 500ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
+        }
+        .ac-reduced-motion .ac-reduced-motion-calm {
+          animation: ac-reduced-motion-calm 300ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
+        }
+      }
+      @keyframes ac-reduced-motion-full {
+        from {
+          opacity: 0;
+          transform: translateY(30px) scale(0.85) rotate(-6deg);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes ac-reduced-motion-calm {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "reduced-motion",
+        name: "動きを減らす設定",
+        en: "Reduced motion",
+        cat: "原則",
+        kind: "concept",
+        description:
+          "OS の「視差効果を減らす」「アニメーションを減らす」設定を尊重し、動きを弱めたり止めたりすることです。左が通常、右が動きを減らす設定のとき。移動や拡大をやめて、透明度の変化だけで同じ情報を伝えます。",
+        use: "すべての動き。特に大きな移動・拡大・回転・パララックス・自動再生。",
+        params: [],
+        spec: [
+          ["CSS", "<code>@media (prefers-reduced-motion: no-preference)</code> の中でだけアニメーションを有効にする"],
+          [
+            "JS",
+            "<code>matchMedia('(prefers-reduced-motion: reduce)').matches</code>。Framer Motion は <code>useReducedMotion()</code>",
+          ],
+          ["残してよいもの", "情報を伝える最小限の変化（色・透明度・進捗）。すべて消すのではなく、置き換える"],
+          ["動きを減らす設定", "両方のカードを静止表示"],
+          ["出典", "Animation Vocabulary（Principles to Know）"],
+        ],
+        loop: 2400,
+      });
+    </script>
+  </body>
+</html>

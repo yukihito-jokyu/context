@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>角のめくれ（Corner curl） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-corner-curl"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <div class="ac-corner-curl-c sb-grad-sky">
+          <span class="sb-bar sb-bar--sm sb-bar--on-blue" style="width: 70px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 50px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-corner-curl .ac-corner-curl-c {
+        position: relative;
+        width: 150px;
+        height: 100px;
+        padding: 16px;
+        box-sizing: border-box;
+        display: grid;
+        align-content: end;
+        gap: 8px;
+        border-radius: 4px;
+        box-shadow: var(--shadow-card);
+      }
+      .ac-corner-curl .ac-corner-curl-c::before {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        transform: scale(0);
+        transform-origin: 100% 0;
+        background: linear-gradient(225deg, var(--bg) 45%, #dfe5ef 50%, #f6f8fb 56%, #fff 80%);
+        box-shadow: -3px 3px 6px rgba(18, 26, 43, 0.25);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-corner-curl .ac-corner-curl-c::before {
+          transition: transform var(--dur, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+      .ac-corner-curl .ac-corner-curl-c.is-on::before {
+        transform: none;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "corner-curl",
+        name: "角のめくれ",
+        en: "Corner curl",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "カードの角にポインターを乗せると、その角が紙のようにくるっとめくれて、裏側がのぞく動きです。紙の手触りと、「めくると何かある」ような期待感が出ます。",
+        use: "メモ・付箋風のカード、クーポン、ノート・手帳風の UI、ページ送りのヒント。",
+        params: [{ key: "dur", label: "時間", value: 300, min: 100, max: 700, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "めくれ",
+            "角に、裏面の色（白〜灰のグラデーション）と影を持つ三角の疑似要素を置き、<code>scale(0 → 1)</code>（右上が起点）｜out",
+          ],
+          ["影", "めくれた部分の下に柔らかい影（<code>box-shadow</code>）を付けると立体的"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const el = stage.querySelector(".ac-corner-curl-c");
+            return seq(2600, [
+              [600, () => el.classList.add("is-on")],
+              [1900, () => el.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

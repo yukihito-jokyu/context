@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>サンバーストへの潜り込み（Zoomable sunburst） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-zoomable-sunburst" style="position: relative; width: 220px; height: 150px">
+        <svg
+          class="ac-zoomable-sunburst-s"
+          width="220"
+          height="150"
+          viewBox="0 0 220 150"
+          style="position: absolute; inset: 0; overflow: visible"
+        ></svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "zoomable-sunburst",
+        name: "サンバーストへの潜り込み",
+        en: "Zoomable sunburst",
+        cat: "データの可視化",
+        kind: "motion",
+        description:
+          "中心から外へ向かって階層が輪になって広がる円形の図（サンバースト）で、ある扇を選ぶと、その扇が一周ぶんまで広がって、下の階層が大きく見える動きです。戻ると全体の比率へ縮みます。",
+        use: "予算・売上の内訳、ファイル容量の分析、カテゴリーの階層、組織の構成。",
+        params: [{ key: "dur", label: "時間", value: 800, min: 300, max: 1500, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "仕組み",
+            "各扇の開始角と終了角を「選んだ扇の範囲 → 0〜360°」へ写し直す計算を補間する（選んだ範囲の外の扇は幅 0 に縮む）",
+          ],
+          ["輪", "選んだ扇の深さを中心に寄せる（内側の輪は消し、外側の輪を内側へ）"],
+          ["時間", "in-out 750ms 前後。D3 の zoomable sunburst と同じ"],
+          ["動きを減らす設定", "補間をやめ、新しい状態の図をすぐ表示する（またはフェードで切り替える）"],
+          [
+            "出典",
+            '<a href="https://observablehq.com/@d3/zoomable-sunburst" target="_blank" rel="noopener">D3 example</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const svg = stage.querySelector(".ac-zoomable-sunburst-s");
+            const NS = "http://www.w3.org/2000/svg",
+              el = (n, a = {}, p) => {
+                const e = document.createElementNS(NS, n);
+                for (const k in a) e.setAttribute(k, a[k]);
+                (p || svg).appendChild(e);
+                return e;
+              };
+            const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+            const tween = (ms, fn) => {
+              const t0 = performance.now();
+              let id;
+              const f = (now) => {
+                const k = Math.min(1, (now - t0) / ms);
+                fn(rm ? 1 : ease(k));
+                if (k < 1) id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => cancelAnimationFrame(id);
+            };
+            const segs = [
+              [0, 0.5, 1, "var(--blue)"],
+              [0.5, 0.8, 1, "var(--sky)"],
+              [0.8, 1, 1, "var(--aqua)"],
+              [0, 0.2, 2, "var(--cobalt)"],
+              [0.2, 0.35, 2, "var(--blue)"],
+              [0.35, 0.5, 2, "var(--sky)"],
+              [0.5, 0.65, 2, "var(--sky)"],
+              [0.65, 0.8, 2, "var(--aqua)"],
+              [0.8, 1, 2, "var(--ice)"],
+            ];
+            const ps = segs.map((s) => el("path", { fill: s[3], stroke: "#fff", "stroke-width": 1.5 }));
+            const cx = 110,
+              cy = 75;
+            const arc = (a0, a1, r0, r1) => {
+              if (a1 - a0 < 1e-4) return "";
+              const A0 = a0 * 2 * Math.PI - Math.PI / 2,
+                A1 = a1 * 2 * Math.PI - Math.PI / 2,
+                big = a1 - a0 > 0.5 ? 1 : 0,
+                p = (a, r) => `${cx + Math.cos(a) * r},${cy + Math.sin(a) * r}`;
+              if (a1 - a0 > 0.9999) {
+                return `M${p(A0, r1)} A${r1},${r1} 0 1 1 ${p(A0 + Math.PI, r1)} A${r1},${r1} 0 1 1 ${p(A0, r1)} M${p(A0, r0)} A${r0},${r0} 0 1 0 ${p(A0 + Math.PI, r0)} A${r0},${r0} 0 1 0 ${p(A0, r0)}Z`;
+              }
+              return `M${p(A0, r1)} A${r1},${r1} 0 ${big} 1 ${p(A1, r1)} L${p(A1, r0)} A${r0},${r0} 0 ${big} 0 ${p(A0, r0)}Z`;
+            };
+            let lo = 0,
+              hi = 1,
+              d0 = 0,
+              stopT = null;
+            const draw = () =>
+              segs.forEach((s, i) => {
+                const k = (x) => Math.min(1, Math.max(0, (x - lo) / (hi - lo))),
+                  depth = s[2] - d0;
+                const r0 = depth <= 0 ? 0 : Math.max(0, 14 + (depth - 1) * 28),
+                  r1 = depth <= 0 ? 0 : 14 + depth * 28;
+                ps[i].setAttribute("d", depth <= 0 ? "" : arc(k(s[0]), k(s[1]), r0, Math.min(r1, 70)));
+                ps[i].setAttribute("opacity", Math.min(1, Math.max(0, depth)).toFixed(3));
+              }); /* 中心へ消える輪は透明にしていく */
+            draw();
+            const to = (l, h, d) => () => {
+              const l0 = lo,
+                h0 = hi,
+                dd = d0;
+              stopT && stopT();
+              stopT = tween(v.dur, (k) => {
+                lo = l0 + (l - l0) * k;
+                hi = h0 + (h - h0) * k;
+                d0 = dd + (d - dd) * k;
+                draw();
+              });
+            };
+            const stop = seq(4400, [
+              [600, to(0, 0.5, 0.9999)],
+              [2600, to(0, 1, 0)],
+            ]);
+            return () => {
+              stop();
+              stopT && stopT();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

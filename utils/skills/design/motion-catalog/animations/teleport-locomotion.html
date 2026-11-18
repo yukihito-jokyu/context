@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>テレポート移動（Teleport locomotion (VR)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-teleport-locomotion"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "teleport-locomotion",
+        name: "テレポート移動",
+        en: "Teleport locomotion (VR)",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "VR で、コントローラーから放物線を出して床の行き先を指し、決めた瞬間に一瞬だけ暗くして（まばたき）、その場所へ視点を移す移動の方法です。移動中の景色の流れを見せないので、酔いにくくなります。",
+        use: "VR のゲーム・アプリの移動、空間の見学（不動産・美術館）、酔いやすい人向けの移動の設定。",
+        params: [{ key: "blink", label: "暗くする時間", value: 150, min: 0, max: 400, step: 10, unit: "ms" }],
+        spec: [
+          [
+            "指し方",
+            "コントローラーの向きから放物線を描き、床に当たった所に輪（向きの矢印つき）を出す。行けない場所では線を赤くし、輪を出さない",
+          ],
+          [
+            "移る",
+            "決めたら 0.1〜0.2 秒で暗くし、暗い間に位置を変えて、同じ時間で明るくする（ブリンク）。一瞬で移る代わりに、ごく短く滑らせる方法（ダッシュ）もある",
+          ],
+          ["各環境では", "Unity XR Interaction Toolkit の Teleportation、Meta の Locomotion のガイドライン"],
+          ["動きを減らす設定", "暗くする演出を短くし、行き先へすぐ切り替える"],
+          [
+            "出典",
+            '<a href="https://docs.unity.cn/Packages/com.unity.xr.interaction.toolkit@3.1/manual/teleportation.html" target="_blank" rel="noopener">docs.unity.cn（teleportation）</a>、<a href="https://www.frontiersin.org/journals/virtual-reality/articles/10.3389/frvir.2026.1754369/full" target="_blank" rel="noopener">frontiersin.org（full）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const floor = (zoff, hz = 52) => {
+              g.fillStyle = "#eaf2ff";
+              g.fillRect(0, 0, W, hz);
+              g.fillStyle = col("ice");
+              g.fillRect(0, hz, W, H - hz);
+              g.strokeStyle = col("sky");
+              g.lineWidth = 1;
+              for (let k = 0; k < 18; k++) {
+                const z = 0.5 + k * 1.2 - (zoff % 1.2);
+                if (z <= 0.3) continue;
+                const y = hz + 90 / z;
+                if (y > H) continue;
+                g.globalAlpha = Math.min(1, 3 / z);
+                g.beginPath();
+                g.moveTo(0, y);
+                g.lineTo(W, y);
+                g.stroke();
+              }
+              g.globalAlpha = 1;
+              for (let X = -10; X <= 10; X++) {
+                const x = X * 1.2;
+                g.beginPath();
+                g.moveTo(110 + (x * 90) / 20, hz + 90 / 20);
+                g.lineTo(110 + (x * 90) / 0.55, hz + 90 / 0.55);
+                g.stroke();
+              }
+            };
+            let base = 0,
+              cyc = 0,
+              zc = 0;
+            return raf((t) => {
+              const T = t % 3.6,
+                tz = 2.2 + 1.4 * sin(Math.floor(t / 3.6) * 1.7 + 1),
+                tx = 30 * sin(Math.floor(t / 3.6) * 2.3),
+                B = v.blink / 1000;
+              const n = Math.floor(t / 3.6);
+              if (n !== cyc) {
+                base = zc;
+                cyc = n;
+              }
+              zc = T < 2.2 + B ? base : base + tz;
+              const k = B && T >= 2.2 && T < 2.2 + 2 * B ? (T - 2.2) / (2 * B) : -1;
+              floor(zc);
+              if (T < 2.2) {
+                const ty = 52 + 90 / tz,
+                  ex = 110 + tx,
+                  sx = 156,
+                  sy = 146;
+                g.strokeStyle = col("blue");
+                g.lineWidth = 2;
+                g.setLineDash([4, 4]);
+                g.beginPath();
+                g.moveTo(sx, sy);
+                g.quadraticCurveTo((sx + ex) / 2, ty - 50, ex, ty);
+                g.stroke();
+                g.setLineDash([]);
+                g.strokeStyle = col("cobalt");
+                g.lineWidth = 2;
+                g.beginPath();
+                g.ellipse(ex, ty, (16 / tz) * 2, (5 / tz) * 2, 0, 0, TAU);
+                g.stroke();
+                g.fillStyle = col("navy");
+                g.beginPath();
+                g.roundRect(150, 128, 14, 24, 4);
+                g.fill();
+              }
+              if (k >= 0 && k <= 1 && !rm) {
+                g.fillStyle = `rgba(10,20,50,${1 - Math.abs(1 - 2 * k)})`;
+                g.fillRect(0, 0, W, H);
+              }
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

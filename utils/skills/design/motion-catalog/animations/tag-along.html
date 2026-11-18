@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ついてくるパネル（Tag-along (spatial UI follow)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-tag-along"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "tag-along",
+        name: "ついてくるパネル",
+        en: "Tag-along (spatial UI follow)",
+        cat: "画面移動・ナビ",
+        kind: "motion",
+        description:
+          "AR・VR で、パネルを空間に置いたまま、向きを変えて視界の外へ出そうになったときだけ、遅れてゆっくり視界の中へ戻す動きです。頭に貼り付けるより酔いにくく、見失いません。上から見た図で、扇形が視界です。",
+        use: "AR・VR のツールパネル、通知、ガイドの表示。",
+        params: [{ key: "cone", label: "許す角度", value: 25, min: 10, max: 45, step: 1, unit: "°" }],
+        spec: [
+          [
+            "仕組み",
+            "パネルと視線の中心の角度の差が、許す範囲（±20〜30°）を超えたら、パネルを視界の中心へ向けて動かし始める。範囲の中にいる間は動かさない",
+          ],
+          [
+            "動き",
+            "遅れて追う（毎フレーム差の 5〜10% ずつ）か spring。距離も一定の範囲に保つ。急に向きを変えたときに一緒に飛ばない",
+          ],
+          [
+            "各環境では",
+            "MRTK の Follow / RadialView（tag-along）、visionOS のウインドウの再配置、Meta の UI ガイドライン",
+          ],
+          ["動きを減らす設定", "遅れて追う動きをやめ、範囲を出たらすぐ正面へ移す"],
+          [
+            "出典",
+            '<a href="https://learn.microsoft.com/en-us/windows/mixed-reality/design/billboarding-and-tag-along" target="_blank" rel="noopener">learn.microsoft.com（billboarding-and-tag-along）</a>、<a href="https://learn.microsoft.com/en-us/windows/mixed-reality/mrtk-unity/mrtk3-spatialmanipulation/packages/spatialmanipulation/solvers/solver" target="_blank" rel="noopener">learn.microsoft.com（solver）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let pa = 0;
+            const cx = 110,
+              cy = 118,
+              R = 80;
+            return raf((t) => {
+              const h = rm ? 0.3 : 0.95 * sin(t * 0.7) + 0.3 * sin(t * 1.9),
+                cone = (v.cone * Math.PI) / 180,
+                d = h - pa;
+              if (Math.abs(d) > cone) pa += rm ? d : d * 0.06;
+              g.clearRect(0, 0, W, H);
+              const a0 = -Math.PI / 2 + h;
+              g.fillStyle = "rgba(147,197,253,.25)";
+              g.beginPath();
+              g.moveTo(cx, cy);
+              g.arc(cx, cy, 110, a0 - 0.8, a0 + 0.8);
+              g.closePath();
+              g.fill();
+              g.fillStyle = "rgba(59,130,246,.18)";
+              g.beginPath();
+              g.moveTo(cx, cy);
+              g.arc(cx, cy, 110, a0 - cone, a0 + cone);
+              g.closePath();
+              g.fill();
+              const px = cx + sin(pa) * R,
+                py = cy - cos(pa) * R;
+              g.save();
+              g.translate(px, py);
+              g.rotate(pa);
+              g.fillStyle = Math.abs(d) > cone ? col("cobalt") : col("blue");
+              g.beginPath();
+              g.roundRect(-22, -5, 44, 10, 3);
+              g.fill();
+              g.restore();
+              dot(cx, cy, 9, col("navy"));
+              g.strokeStyle = "#fff";
+              g.lineWidth = 2;
+              g.beginPath();
+              g.moveTo(cx, cy);
+              g.lineTo(cx + sin(h) * 9, cy - cos(h) * 9);
+              g.stroke();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

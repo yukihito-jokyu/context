@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ムービングホールド（Moving hold） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-moving-hold" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-moving-hold-c ac-moving-hold-a"><i></i></div>
+        <div class="ac-moving-hold-c ac-moving-hold-b"><i></i></div>
+        <span class="ac-moving-hold-t1">止める</span><span class="ac-moving-hold-t2">ムービングホールド</span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-moving-hold .ac-moving-hold-c {
+        position: absolute;
+        bottom: 34px;
+        width: 48px;
+        height: 60px;
+        border-radius: 24px 24px 14px 14px;
+        background: linear-gradient(160deg, var(--sky), var(--cobalt));
+        transform-origin: 50% 100%;
+      }
+      .ac-moving-hold .ac-moving-hold-c i {
+        position: absolute;
+        left: 34px;
+        top: 14px;
+        width: 30px;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--cobalt);
+        transform-origin: 0 50%;
+      }
+      .ac-moving-hold .ac-moving-hold-a {
+        left: 30px;
+      }
+      .ac-moving-hold .ac-moving-hold-b {
+        left: 130px;
+      }
+      .ac-moving-hold .ac-moving-hold-c i {
+        transform: rotate(-50deg);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-moving-hold .ac-moving-hold-a {
+          animation: ac-moving-hold-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .ac-moving-hold .ac-moving-hold-a i {
+          animation: ac-moving-hold-arm 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .ac-moving-hold .ac-moving-hold-b {
+          animation:
+            ac-moving-hold-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+            ac-moving-hold-hold 2400ms ease-in-out 600ms infinite alternate;
+        }
+        .ac-moving-hold .ac-moving-hold-b i {
+          animation:
+            ac-moving-hold-arm 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+            ac-moving-hold-harm 3100ms ease-in-out 600ms infinite alternate;
+        }
+      }
+      @keyframes ac-moving-hold-in {
+        from {
+          transform: scale(1.1, 0.85);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @keyframes ac-moving-hold-arm {
+        from {
+          transform: rotate(40deg);
+        }
+        to {
+          transform: rotate(-50deg);
+        }
+      }
+      @keyframes ac-moving-hold-hold {
+        from {
+          transform: none;
+        }
+        to {
+          transform: scale(1.02, 0.985) rotate(-1.2deg);
+        }
+      }
+      @keyframes ac-moving-hold-harm {
+        from {
+          transform: rotate(-50deg);
+        }
+        to {
+          transform: rotate(-44deg);
+        }
+      }
+      .ac-moving-hold .ac-moving-hold-t1,
+      .ac-moving-hold .ac-moving-hold-t2 {
+        position: absolute;
+        bottom: 10px;
+        font: 600 11px var(--font-sans);
+        color: var(--ink-muted);
+      }
+      .ac-moving-hold .ac-moving-hold-t1 {
+        left: 36px;
+      }
+      .ac-moving-hold .ac-moving-hold-t2 {
+        left: 104px;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "moving-hold",
+        name: "ムービングホールド",
+        en: "Moving hold",
+        cat: "キャラクター",
+        kind: "motion",
+        description:
+          "キャラクターがポーズを決めて止まる場面でも、完全には止めず、ほんの少しだけ動かし続ける方法です。呼吸のようなわずかな揺れや沈み込みを残すと、止まった瞬間に「絵」になってしまうのを防げます。",
+        use: "決めポーズの後の待ち、マスコットが話を聞いている状態、ゲームの立ち絵、成功画面のキャラクター。",
+        params: [],
+        spec: [
+          [
+            "動かし方",
+            "ポーズに着いたあと、2〜4 秒かけて 1〜2% だけ <code>scale</code> や <code>rotate(±1deg)</code> を続ける｜ease-in-out",
+          ],
+          ["着き方", "ポーズへは少し行きすぎて戻る（オーバーシュート）と、止まりが自然になる"],
+          ["比べると", "左は完全に止める、右はムービングホールド"],
+          ["動きを減らす設定", "動きを止め、代表的なポーズ（または最初の形）の静止画にする"],
+          [
+            "出典",
+            '<a href="https://aplusc.tv/blog/resource/glossary-of-animation-terms/" target="_blank" rel="noopener">A+C Studios: Glossary of Animation Terms</a>、<a href="https://animatorschecklist.com/en/glossary/" target="_blank" rel="noopener">The Animator\'s Checklist: Glossary</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

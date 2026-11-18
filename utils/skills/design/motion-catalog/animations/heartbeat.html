@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>鼓動（Heartbeat） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-heartbeat"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <span
+          class="ac-heartbeat-c"
+          style="display: grid; place-items: center; width: 64px; height: 64px; color: var(--blue)"
+          ><svg width="56" height="56" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"
+            /></svg
+        ></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-heartbeat .ac-heartbeat-c {
+          animation: ac-heartbeat-a var(--dur, 1300ms) both;
+        }
+      }
+      @keyframes ac-heartbeat-a {
+        0% {
+          transform: scale(1);
+        }
+        14% {
+          transform: scale(var(--pop, 1.3));
+        }
+        28% {
+          transform: scale(1);
+        }
+        42% {
+          transform: scale(var(--pop, 1.3));
+        }
+        70% {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "heartbeat",
+        name: "鼓動",
+        en: "Heartbeat",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "心臓の鼓動のように、ドクン・ドクンと2回続けて膨らみ、少し休む動きです。生きている・脈がある感じが出て、やさしく注意を引きます。",
+        use: "いいね・お気に入りのボタン、ライブ配信中の印、健康・医療系のアプリ、寄付のボタン。",
+        params: [
+          { key: "dur", label: "時間", value: 1300, min: 300, max: 2500, step: 50, unit: "ms" },
+          { key: "pop", label: "膨らみ", value: 1.3, min: 1.05, max: 1.6, step: 0.05, unit: "" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["動き", "<code>scale 1 → 膨らみ → 1 → 膨らみ → 1</code>（0 / 14 / 28 / 42 / 70%）。残りの 30% は休み"],
+          ["イージング", "ease-in-out。くり返すときは間を空ける"],
+          ["動きを減らす設定", "動きをやめ、色や記号の変化だけで知らせる"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 2000,
+      });
+    </script>
+  </body>
+</html>

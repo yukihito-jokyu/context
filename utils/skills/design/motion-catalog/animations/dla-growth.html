@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>くっついて育つ結晶（Diffusion-limited aggregation） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-dla-growth"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "dla-growth",
+        name: "くっついて育つ結晶",
+        en: "Diffusion-limited aggregation",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "でたらめに漂う粒が、中心の種や、すでにくっついた粒にふれた瞬間にその場で固まる、をくり返して形を育てる動きです。先へ先へと枝分かれした、雪の結晶やサンゴ、稲妻のような形になります。",
+        use: "科学・結晶・素材のビジュアル、成長や広がりの比喩、ジェネラティブなロゴの演出。",
+        params: [
+          { key: "speed", label: "1フレームの粒の歩数", value: 4000, min: 500, max: 12000, step: 500, unit: "歩" },
+        ],
+        spec: [
+          ["規則", "粒を外側から放ち、1 歩ずつでたらめに動かす。固まった粒に隣り合ったら、そこで固定して次の粒を放つ"],
+          ["速くする", "粒は今の結晶の半径より少し外側の円の上から放つ。遠くへ行きすぎた粒は放ち直す"],
+          ["見せ方", "固まった順に色を変えると、育った順序が見える。大きくなったら少し待ってやり直す"],
+          ["動きを減らす設定", "育つ動きを止め、育ちきった形の静止画にする"],
+          [
+            "出典",
+            '<a href="https://thecodingtrain.com/challenges/34-diffusion-limited-aggregation" target="_blank" rel="noopener">thecodingtrain.com（34-diffusion-limited-aggrega）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            const lw = 110,
+              lh = 75,
+              off = document.createElement("canvas");
+            off.width = lw;
+            off.height = lh;
+            const og = off.getContext("2d"),
+              img = og.createImageData(lw, lh),
+              px = img.data;
+            const blit = () => {
+              og.putImageData(img, 0, 0);
+              g.imageSmoothingEnabled = false;
+              g.drawImage(off, 0, 0, W, H);
+            };
+            const put = (i, r, gg, b) => {
+              px[i * 4] = r;
+              px[i * 4 + 1] = gg;
+              px[i * 4 + 2] = b;
+              px[i * 4 + 3] = 255;
+            };
+            const N = lw * lh,
+              cx = 55,
+              cy = 37;
+            let G = new Int32Array(N),
+              cnt = 0,
+              rmax = 2,
+              wx = 0,
+              wy = 0,
+              t0 = 0;
+            const reset = () => {
+              G.fill(0);
+              G[cy * lw + cx] = 1;
+              cnt = 1;
+              rmax = 2;
+              spawn();
+            };
+            const spawn = () => {
+              const a = rnd() * TAU;
+              wx = Math.round(cx + cos(a) * (rmax + 4));
+              wy = Math.round(cy + sin(a) * (rmax + 4));
+            };
+            const walk = (n) => {
+              for (let k = 0; k < n; k++) {
+                const dd = (rnd() * 4) | 0;
+                wx += [1, -1, 0, 0][dd];
+                wy += [0, 0, 1, -1][dd];
+                const r = Math.hypot(wx - cx, wy - cy);
+                if (r > rmax + 12 || wx < 1 || wy < 1 || wx > lw - 2 || wy > lh - 2) {
+                  spawn();
+                  continue;
+                }
+                const i = wy * lw + wx;
+                if (G[i - 1] || G[i + 1] || G[i - lw] || G[i + lw]) {
+                  G[i] = ++cnt;
+                  rmax = Math.max(rmax, r);
+                  spawn();
+                  if (rmax > 34) return true;
+                }
+              }
+              return false;
+            };
+            reset();
+            if (rm) while (!walk(5000)) {}
+            return raf((t) => {
+              if (!rm) {
+                const full = walk(v.speed);
+                if (full && !t0) t0 = t;
+                if (t0 && t - t0 > 2) {
+                  reset();
+                  t0 = 0;
+                }
+              }
+              for (let i = 0; i < N; i++) {
+                if (!G[i]) {
+                  put(i, 248, 251, 255);
+                  continue;
+                }
+                const f = G[i] / Math.max(1, cnt);
+                put(i, 30 + 130 * f, 70 + 140 * f, 200 + 55 * f);
+              }
+              blit();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

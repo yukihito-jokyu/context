@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>形のねじれ（Path twist） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-path-twist"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <svg viewBox="-60 -60 120 120" width="130" height="130">
+          <path class="ac-path-twist-p" fill="var(--blue)" />
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "path-twist",
+        name: "形のねじれ",
+        en: "Path twist",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "図形の中心はそのままで、外側へいくほど大きく回転させて、渦を巻くようにねじる変形です。After Effects の「ツイスト」のように、形が生き物のようにうねります。",
+        use: "ロゴ・アイコンのアニメーション、抽象的な装飾、ローディング、モーショングラフィックス。",
+        params: [
+          { key: "amt", label: "ねじれの量", value: 1.4, min: 0.2, max: 3, step: 0.1, unit: "" },
+          { key: "dur", label: "周期", value: 3000, min: 1000, max: 8000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          [
+            "仕組み",
+            "図形の輪郭を細かい点に分け、各点を中心からの距離 d に比例した角度（<code>d × ねじれ</code>）だけ中心のまわりに回す",
+          ],
+          ["動き", "ねじれの量を -最大 ↔ +最大 に往復｜in-out"],
+          ["描画", "SVG の <code>path</code> の <code>d</code> を毎フレーム作り直す（または canvas）"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://helpx.adobe.com/be_nl/after-effects/desktop/drawing-painting-and-paths/shapes-and-shape-attributes/shape-attributes-paint-operations-path.html" target="_blank" rel="noopener">Adobe: shape operations</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const p = stage.querySelector(".ac-path-twist-p"),
+              base = [];
+            for (let k = 0; k < 4; k++)
+              for (let i = 0; i < 20; i++) {
+                const f = i / 20,
+                  s = 42;
+                const pts = [
+                  [-s, -s],
+                  [s, -s],
+                  [s, s],
+                  [-s, s],
+                ];
+                const a = pts[k],
+                  b = pts[(k + 1) % 4];
+                base.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+              }
+            const draw = (tw) =>
+              p.setAttribute(
+                "d",
+                "M" +
+                  base
+                    .map(([x, y]) => {
+                      const d = Math.hypot(x, y),
+                        a = (d / 60) * tw,
+                        c = Math.cos(a),
+                        s = Math.sin(a);
+                      return `${(x * c - y * s).toFixed(1)},${(x * s + y * c).toFixed(1)}`;
+                    })
+                    .join(" L") +
+                  "Z",
+              );
+            if (rm) {
+              draw(0.3);
+              return null;
+            }
+            return raf((t) => draw(Math.sin((t * 2 * Math.PI) / (v.dur / 1000)) * v.amt));
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

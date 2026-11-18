@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ぐらぐら（Wobble） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-wobble"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-wobble-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-wobble .ac-wobble-c {
+          animation: ac-wobble-a var(--dur, 1000ms) both;
+        }
+      }
+      @keyframes ac-wobble-a {
+        0%,
+        100% {
+          transform: none;
+        }
+        15% {
+          transform: translateX(-25%) rotate(-5deg);
+        }
+        30% {
+          transform: translateX(20%) rotate(3deg);
+        }
+        45% {
+          transform: translateX(-15%) rotate(-3deg);
+        }
+        60% {
+          transform: translateX(10%) rotate(2deg);
+        }
+        75% {
+          transform: translateX(-5%) rotate(-1deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "wobble",
+        name: "ぐらぐら",
+        en: "Wobble",
+        cat: "操作への反応",
+        kind: "motion",
+        description:
+          "横にずれながら傾き、反対へずれながら傾き…と、ぐらぐら揺れて収まる動きです。不安定さや「あれ？」という違和感を表せます。",
+        use: "入力のエラー（shake より柔らかく）、重さで揺れる物、ゲームの被ダメージ、注意を引くボタン。",
+        params: [{ key: "dur", label: "時間", value: 1000, min: 300, max: 2500, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          [
+            "動き",
+            "<code>translateX</code>（要素の幅の -25% → 20% → -15% → 10% → -5%）と <code>rotate</code>（-5° → 3° → -3° → 2° → -1°）を同時に",
+          ],
+          ["使い分け", "左右だけの小刻みな揺れは shake。wobble は大きく、傾きが付く"],
+          ["動きを減らす設定", "動きをやめ、色や記号の変化だけで知らせる"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 2200,
+      });
+    </script>
+  </body>
+</html>

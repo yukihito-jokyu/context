@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>アイコンの差し替え（Symbol replace） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-symbol-replace"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <button class="ac-symbol-replace-b" tabindex="-1" type="button" aria-label="再生">
+          <svg class="ac-symbol-replace-i ac-symbol-replace-play" viewBox="0 0 24 24" width="30" height="30">
+            <path d="M8 5.5v13l11-6.5z" fill="currentColor" /></svg
+          ><svg class="ac-symbol-replace-i ac-symbol-replace-pause" viewBox="0 0 24 24" width="30" height="30">
+            <rect x="6.5" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+            <rect x="13.5" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-symbol-replace .ac-symbol-replace-b {
+        position: relative;
+        width: 72px;
+        height: 72px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--blue);
+        color: #fff;
+        box-shadow: var(--shadow-glow, 0 8px 20px rgba(37, 99, 235, 0.35));
+      }
+      .ac-symbol-replace .ac-symbol-replace-i {
+        position: absolute;
+        left: 21px;
+        top: 21px;
+        transition:
+          transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          opacity 160ms ease-out;
+      }
+      .ac-symbol-replace .ac-symbol-replace-pause {
+        opacity: 0;
+        transform: scale(0.5) translateY(8px);
+      }
+      .ac-symbol-replace .ac-symbol-replace-b.is-on .ac-symbol-replace-play {
+        opacity: 0;
+        transform: scale(0.5) translateY(8px);
+        transition:
+          transform 140ms cubic-bezier(0.55, 0, 1, 0.45),
+          opacity 120ms ease-in;
+      }
+      .ac-symbol-replace .ac-symbol-replace-b.is-on .ac-symbol-replace-pause {
+        opacity: 1;
+        transform: none;
+        transition-delay: 60ms;
+      }
+      .ac-symbol-replace .ac-symbol-replace-b:not(.is-on) .ac-symbol-replace-pause {
+        transition:
+          transform 140ms cubic-bezier(0.55, 0, 1, 0.45),
+          opacity 120ms ease-in;
+      }
+      .ac-symbol-replace .ac-symbol-replace-b:not(.is-on) .ac-symbol-replace-play {
+        transition-delay: 60ms;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-symbol-replace .ac-symbol-replace-i {
+          transition: opacity 150ms !important;
+          transform: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "symbol-replace",
+        name: "アイコンの差し替え",
+        en: "Symbol replace",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "再生 ↔ 一時停止、ベル ↔ 消音のように、アイコンを別のアイコンへ切り替えるとき、古いアイコンを小さくしながら消し、新しいアイコンを小さな状態から弾むように大きくして出す動きです。同じ場所で状態が変わったことが、一瞬で伝わります。",
+        use: "再生・一時停止のボタン、お気に入りやミュートの切り替え、コピー → チェックのボタン、送信 → 完了。",
+        params: [],
+        spec: [
+          [
+            "書き方",
+            "古い：<code>scale(1 → 0.5)</code> と <code>opacity 1 → 0</code>（120ms, in）。新しい：<code>scale(0.5 → 1)</code> と <code>opacity 0 → 1</code>（250ms, spring）を少し重ねる",
+          ],
+          [
+            "向き",
+            "下へ消えて上から出る（Down-Up）、上へ消えて上から出る（Up-Up）など、意味に合わせて動きの向きを選ぶ",
+          ],
+          [
+            "形がつながるとき",
+            "ベル → 斜線つきのベルのように共通の形がある場合は、共通部分は残して違う部分だけ変える（Magic Replace）",
+          ],
+          ["動きを減らす設定", "大きさの変化をやめ、クロスフェードだけにする"],
+          [
+            "出典",
+            '<a href="https://developer.apple.com/videos/play/wwdc2023/10258/" target="_blank" rel="noopener">Apple: Animate symbols in your app（WWDC23）</a>、<a href="https://developer.apple.com/documentation/symbols/symboleffect" target="_blank" rel="noopener">Apple Developer: SymbolEffect</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-symbol-replace-b");
+            const press = () => {
+              if (!rm) b.animate([{ transform: "scale(.92)" }, { transform: "none" }], { duration: 200 });
+            }; /* 動きを減らす設定ではアイコンのクロスフェードだけ */
+            return seq(2400, [
+              [
+                600,
+                () => {
+                  b.classList.add("is-on");
+                  press();
+                },
+              ],
+              [
+                1800,
+                () => {
+                  b.classList.remove("is-on");
+                  press();
+                },
+              ],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

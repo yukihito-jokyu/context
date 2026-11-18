@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>引いてから登場（Back entrance / exit） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-back-entrance-exit"
+        style="position: relative; width: 200px; height: 150px; display: grid; place-items: center"
+      >
+        <div
+          class="sb-card ac-back-entrance-exit-c"
+          style="width: 140px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"
+        >
+          <span class="sb-hero sb-grad-hero" style="height: 46px; border-radius: 14px"></span
+          ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 77px"></span
+          ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 49px"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-back-entrance-exit .ac-back-entrance-exit-c {
+        animation:
+          ac-back-entrance-exit-in var(--in, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both,
+          ac-back-entrance-exit-out var(--out, 500ms) cubic-bezier(0.55, 0, 1, 0.45) calc(var(--in, 700ms) + 1000ms)
+            forwards;
+      }
+      @keyframes ac-back-entrance-exit-in {
+        0% {
+          opacity: 0.7;
+          transform: translateX(-160px) scale(var(--small, 0.7));
+        }
+        80% {
+          opacity: 0.7;
+          transform: translateX(0) scale(var(--small, 0.7));
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes ac-back-entrance-exit-out {
+        0% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        20% {
+          opacity: 0.7;
+          transform: scale(var(--small, 0.7));
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(160px) scale(var(--small, 0.7));
+        }
+      }
+      @keyframes ac-back-entrance-exit-rf-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ac-back-entrance-exit-rf-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-back-entrance-exit .ac-back-entrance-exit-c {
+          animation-name: ac-back-entrance-exit-rf-in, ac-back-entrance-exit-rf-out;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "back-entrance-exit",
+        name: "引いてから登場",
+        en: "Back entrance / exit",
+        cat: "登場・退出",
+        kind: "motion",
+        description:
+          "要素が少し縮んだまま横から入ってきて、止まってから元の大きさに戻る動きです。退出はその逆で、まず縮んでから横へ去ります。「奥から運ばれてくる」ような、2段階の手応えがあります。",
+        use: "カードやモーダルの登場、オンボーディングの1枚ずつの切り替え。",
+        params: [
+          { key: "in", label: "登場の時間", value: 700, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "out", label: "退出の時間", value: 500, min: 200, max: 2000, step: 50, unit: "ms" },
+          { key: "small", label: "途中の大きさ", value: 0.7, min: 0.4, max: 0.95, step: 0.05, unit: "" },
+        ],
+        total: (p) => p["in"] + 1000 + p["out"],
+        spec: [
+          [
+            "登場",
+            "0–80%：縮んだまま <code>translateX(-160px) → 0</code>、80–100%：<code>scale(途中の大きさ → 1)</code>｜out",
+          ],
+          ["退出", "0–20%：<code>scale(1 → 途中の大きさ)</code>、20–100%：縮んだまま右へ去る｜in"],
+          ["動きを減らす設定", "移動と縮みをやめ、透明度の切り替えだけにする"],
+          ["出典", '<a href="https://animate.style/" target="_blank" rel="noopener">Animate.css</a>'],
+        ],
+        loop: 2600,
+      });
+    </script>
+  </body>
+</html>

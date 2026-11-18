@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>追いかける拡大鏡（Magnifying lens） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-magnifying-lens"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <div class="ac-magnifying-lens-img"></div>
+        <div class="ac-magnifying-lens-lens"><div class="ac-magnifying-lens-img ac-magnifying-lens-in"></div></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-magnifying-lens .ac-magnifying-lens-img {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 220px;
+        height: 150px;
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 10px, transparent 11px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 8px),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-magnifying-lens .ac-magnifying-lens-lens {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow:
+          0 0 0 3px #fff,
+          0 8px 20px rgba(18, 26, 43, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "magnifying-lens",
+        name: "追いかける拡大鏡",
+        en: "Magnifying lens",
+        cat: "カーソル",
+        kind: "motion",
+        description:
+          "ポインターのまわりに丸い窓が付いてきて、窓の中だけ画像や図が拡大されて見える動きです。細かい部分をその場で確かめられます。",
+        use: "商品写真の細部、地図、図面・データの細かい部分、作品のディテール。",
+        params: [{ key: "zoom", label: "倍率", value: 2, min: 1.2, max: 4, step: 0.1, unit: "" }],
+        spec: [
+          ["窓", "丸い窓（<code>overflow: hidden</code>、白い縁と影）をポインターの位置に置く"],
+          [
+            "拡大",
+            "窓の中に同じ内容の複製を置き、<code>transform-origin</code> をポインターの位置にして <code>scale(倍率)</code>（または <code>background-size</code> と <code>background-position</code>）",
+          ],
+          ["出し入れ", "対象に入ったら窓を <code>scale(.6 → 1)</code> と <code>opacity</code> で出す（out 150ms）"],
+          ["タッチ端末", "マウスのない端末（<code>hover: none</code>）では出さない"],
+          ["動きを減らす設定", "ポインターへの追従や軌跡をやめ、通常のカーソルだけにする"],
+          [
+            "出典",
+            '<a href="https://magicui.design/docs/components/lens" target="_blank" rel="noopener">Magic UI: Lens</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const mkway =
+              (pts, seg, hold = 0.3) =>
+              (t) => {
+                const n = pts.length,
+                  k = (t % (n * seg)) / seg,
+                  i = Math.floor(k),
+                  f0 = k - i,
+                  f = Math.max(0, (f0 - hold) / (1 - hold)),
+                  e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2,
+                  a = pts[i],
+                  b = pts[(i + 1) % n];
+                return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+              };
+            const loop8 = (t, cx = 110, cy = 75, rx = 85, ry = 45) => [
+              cx + rx * Math.sin(t * 0.9),
+              cy + ry * Math.sin(t * 1.7),
+            ];
+            const L = stage.querySelector(".ac-magnifying-lens-lens"),
+              I = stage.querySelector(".ac-magnifying-lens-in");
+            L.hidden = rm;
+            if (rm) return null;
+            return raf((t) => {
+              const [x, y] = loop8(t * 0.6, 110, 75, 70, 40);
+              L.style.transform = `translate(${x - 36}px, ${y - 36}px)`;
+              I.style.transformOrigin = `${x}px ${y}px`;
+              I.style.transform = `translate(${-(x - 36)}px, ${-(y - 36)}px) scale(${v.zoom})`;
+            }); // 原点をポインターにし、平行移動 → 拡大 の順
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

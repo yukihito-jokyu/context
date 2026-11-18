@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>共通軸の遷移（Shared-axis transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-shared-axis"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center; overflow: hidden"
+      >
+        <div style="position: relative; width: 150px; height: 120px">
+          <div
+            class="sb-card ac-shared-axis-s"
+            style="
+              position: absolute;
+              inset: 0;
+              padding: 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 9px;
+              box-sizing: border-box;
+            "
+          >
+            <span class="sb-hero sb-grad-hero" style="height: 44px; border-radius: 12px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 96px"></span>
+          </div>
+          <div
+            class="sb-card ac-shared-axis-s"
+            style="
+              position: absolute;
+              inset: 0;
+              padding: 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 9px;
+              box-sizing: border-box;
+            "
+          >
+            <span class="sb-hero sb-grad-deep" style="height: 44px; border-radius: 12px"></span
+            ><span class="sb-bar sb-bar--sm sb-bar--strong" style="width: 110px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 80px"></span
+            ><span class="sb-bar sb-bar--xs sb-bar--soft" style="width: 96px"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-shared-axis .ac-shared-axis-s {
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "shared-axis",
+        name: "共通軸の遷移",
+        en: "Shared-axis transition",
+        cat: "状態の遷移",
+        kind: "motion",
+        description:
+          "前の画面と次の画面が、同じ軸（横・縦・奥行き）に沿って一緒に動く遷移です。前の画面は左へ少し動きながら消え、次の画面は右から少し動きながら現れます。画面どうしが前後の関係にあることが伝わります。",
+        use: "ステップ形式の入力（次へ・戻る）、オンボーディング、タブの左右の移動、階層の上り下り（奥行きの軸）。",
+        params: [
+          { key: "dur", label: "時間", value: 300, min: 150, max: 700, step: 10, unit: "ms" },
+          { key: "dist", label: "ずらす距離", value: 30, min: 10, max: 80, step: 2, unit: "px" },
+        ],
+        total: (p) => p["dur"],
+        spec: [
+          ["前の画面", "<code>translateX(0 → -ずらす距離)</code> と <code>opacity 1 → 0</code>（前半 35% で）"],
+          [
+            "次の画面",
+            "<code>translateX(ずらす距離 → 0)</code> と <code>opacity 0 → 1</code>（後半 65% で）｜どちらも in-out",
+          ],
+          [
+            "軸",
+            "横（X）：前後のステップ、縦（Y）：一覧の上下、奥行き（Z）：<code>scale</code> で親子の階層。戻るときは向きを逆にする",
+          ],
+          ["動きを減らす設定", "ずらしをやめ、透明度の切り替えだけにする"],
+          [
+            "出典",
+            '<a href="https://m2.material.io/design/motion/the-motion-system.html" target="_blank" rel="noopener">Material Design: motion system</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const [a, b] = stage.querySelectorAll(".ac-shared-axis-s");
+            a.style.opacity = 1;
+            let cur = a,
+              dir = 1;
+            const go = () => {
+              const next = cur === a ? b : a,
+                d = rm ? 0 : v.dist * dir,
+                o = { duration: v.dur, easing: "linear", fill: "forwards" },
+                io = "cubic-bezier(0.65, 0, 0.35, 1)"; // 区切り（35%）を実時間どおりにし、イージングは区間ごと
+              cur.animate(
+                [
+                  { opacity: 1, transform: "none", easing: io },
+                  { opacity: 0, transform: `translateX(${-d}px)`, offset: 0.35 },
+                  { opacity: 0, transform: `translateX(${-d}px)` },
+                ],
+                o,
+              );
+              next.animate(
+                [
+                  { opacity: 0, transform: `translateX(${d}px)` },
+                  { opacity: 0, transform: `translateX(${d}px)`, offset: 0.35, easing: io },
+                  { opacity: 1, transform: "none" },
+                ],
+                o,
+              );
+              cur = next;
+              dir = -dir;
+            };
+            return seq(1500, [[700, go]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>シャッターの開閉（Shutter transition） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-shutter-transition"
+        style="position: relative; width: 220px; height: 150px; border-radius: 20px; overflow: hidden"
+      >
+        <span class="ac-shutter-transition-a"></span
+        ><span class="ac-shutter-transition-p ac-shutter-transition-t"></span
+        ><span class="ac-shutter-transition-p ac-shutter-transition-btm"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-shutter-transition .ac-shutter-transition-a {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-shutter-transition .ac-shutter-transition-a.is-b {
+        background:
+          radial-gradient(circle at 28% 34%, #fff 0 10px, transparent 11px),
+          radial-gradient(ellipse at 70% 110%, var(--aqua) 0 50%, transparent 51%),
+          linear-gradient(200deg, #c9b8ff, var(--cobalt));
+      }
+      .ac-shutter-transition .ac-shutter-transition-p {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 51%;
+        background: var(--navy);
+        transition: transform var(--dur, 500ms) cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-shutter-transition .ac-shutter-transition-t {
+        top: 0;
+        transform: translateY(-100%);
+      }
+      .ac-shutter-transition .ac-shutter-transition-btm {
+        bottom: 0;
+        transform: translateY(100%);
+      }
+      .ac-shutter-transition.is-on .ac-shutter-transition-p {
+        transform: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-shutter-transition .ac-shutter-transition-p {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "shutter-transition",
+        name: "シャッターの開閉",
+        en: "Shutter transition",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "上下（または左右）から2枚の板がシャッターのように閉じて画面を隠し、裏で内容が入れ替わってから、また開いて新しい内容を見せる切り替えです。はっきりした区切りと、場面が変わる期待感があります。",
+        use: "ページ・章の切り替え、ゲームの場面転換、画像の切り替え、発表の演出。",
+        params: [{ key: "dur", label: "時間", value: 500, min: 200, max: 1000, step: 10, unit: "ms" }],
+        spec: [
+          ["閉じる", "上の板 <code>translateY(-100% → 0)</code>、下の板 <code>translateY(100% → 0)</code>｜in-out"],
+          ["切り替え", "閉じきったところで内容を入れ替え、少し待ってから開く（逆の動き）"],
+          ["向き", "左右・斜め・中央から広がる型もある"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          ["出典", '<a href="https://ianlunn.github.io/Hover/" target="_blank" rel="noopener">Hover.css</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const r = stage.firstElementChild,
+              a = stage.querySelector(".ac-shutter-transition-a");
+            return seq(3000, [
+              [500, () => r.classList.add("is-on")],
+              [500 + v.dur + 150, () => a.classList.toggle("is-b")],
+              [500 + v.dur + 300, () => r.classList.remove("is-on")],
+            ]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

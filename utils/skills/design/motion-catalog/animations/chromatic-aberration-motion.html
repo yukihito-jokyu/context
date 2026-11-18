@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>色収差の揺れ（Chromatic aberration motion） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-chromatic-aberration-motion" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-chromatic-aberration-motion-w">
+          <span class="ac-chromatic-aberration-motion-l ac-chromatic-aberration-motion-c1"></span
+          ><span class="ac-chromatic-aberration-motion-l ac-chromatic-aberration-motion-c2"></span
+          ><span class="ac-chromatic-aberration-motion-l ac-chromatic-aberration-motion-c0"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-chromatic-aberration-motion .ac-chromatic-aberration-motion-w {
+        position: absolute;
+        left: 70px;
+        top: 30px;
+        width: 80px;
+        height: 90px;
+      }
+      .ac-chromatic-aberration-motion .ac-chromatic-aberration-motion-l {
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+      }
+      .ac-chromatic-aberration-motion .ac-chromatic-aberration-motion-c0 {
+        background:
+          radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+          radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+          radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+          linear-gradient(160deg, var(--ice), var(--sky));
+      }
+      .ac-chromatic-aberration-motion .ac-chromatic-aberration-motion-c1 {
+        background: var(--aqua);
+        mix-blend-mode: multiply;
+        opacity: 0.8;
+      }
+      .ac-chromatic-aberration-motion .ac-chromatic-aberration-motion-c2 {
+        background: #c9b8ff;
+        mix-blend-mode: multiply;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "chromatic-aberration-motion",
+        name: "色収差の揺れ",
+        en: "Chromatic aberration motion",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "画像が素早く動いたとき、色の層（ここでは水色と青）が少しずつずれて縁がにじみ、止まるとぴたりと重なる表現です。レンズの色ずれのように、速さと勢いを感じさせます。",
+        use: "スクロールやドラッグで動くギャラリー、音楽・映像系のサイト、テック系のヒーロー。",
+        params: [{ key: "k", label: "ずれの強さ", value: 1.6, min: 0, max: 4, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "仕組み",
+            "同じ画像を色ごとの層に分け（<code>mix-blend-mode: screen / multiply</code>）、動いている速さに比例して各層を逆向きにずらす",
+          ],
+          ["速さ", "速さ = 前のフレームとの位置の差。ずれは spring で 0 に戻す"],
+          ["本格的に", "WebGL のシェーダーで RGB を別々の位置から読む"],
+          ["動きを減らす設定", "動きをやめ、最後の状態（または色の変化だけ）にする"],
+          [
+            "出典",
+            '<a href="https://ui.aceternity.com/components" target="_blank" rel="noopener">Aceternity components</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const w = stage.querySelector(".ac-chromatic-aberration-motion-w"),
+              c1 = stage.querySelector(".ac-chromatic-aberration-motion-c1"),
+              c2 = stage.querySelector(".ac-chromatic-aberration-motion-c2");
+            let lx = 0,
+              off = 0,
+              lt = 0;
+            if (rm) return null; // 動きを減らす設定：本体も色の層も動かさない
+            return raf((t) => {
+              const dt = Math.max(1 / 240, Math.min(0.05, t - lt));
+              lt = t;
+              const k = (t % 2.4) / 2.4,
+                e = k < 0.5 ? 0.5 - Math.cos(Math.PI * k * 2) / 2 : 0.5 + Math.cos(Math.PI * (k - 0.5) * 2) / 2,
+                x = (e - 0.5) * 120;
+              w.style.transform = `translateX(${x}px)`;
+              const vel = (x - lx) / (dt * 60);
+              lx = x;
+              off += (vel * v.k - off) * (1 - Math.pow(0.7, dt * 60));
+              const o = off; // 速さは 1/60 秒あたりにそろえる
+              c1.style.transform = `translateX(${o}px)`;
+              c2.style.transform = `translateX(${-o}px)`;
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

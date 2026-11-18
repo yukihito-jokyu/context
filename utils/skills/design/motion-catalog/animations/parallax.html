@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>パララックス（Parallax） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-parallax" style="position: relative; width: 200px; height: 160px">
+        <div
+          class="ac-parallax-sc"
+          style="
+            width: 200px;
+            height: 160px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            border-radius: 22px;
+            background: var(--bg);
+            box-shadow: inset 0 0 0 1px var(--line);
+          "
+        >
+          <div style="position: relative; height: 150px; overflow: hidden; border-radius: 22px 22px 0 0">
+            <span class="sb-grad-hero ac-parallax-bg"></span>
+            <div style="position: absolute; left: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px">
+              <span class="sb-bar sb-bar--md sb-bar--on-blue" style="width: 110px"></span
+              ><span class="sb-bar sb-bar--xs sb-bar--on-blue" style="width: 70px"></span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px">
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-aqua" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 100px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-sky" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 80px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+            <div
+              class="sb-item"
+              style="width: 176px; padding: 8px 12px; gap: 10px; box-sizing: border-box; border-radius: 18px"
+            >
+              <span class="sb-thumb sb-grad-deep" style="width: 24px; height: 24px; border-radius: 8px"></span
+              ><span class="sb-lines" style="gap: 6px"
+                ><span class="sb-bar sb-bar--xs sb-bar--strong" style="width: 110px"></span
+                ><span class="sb-bar sb-bar--xxs sb-bar--soft" style="width: 56px"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-parallax .ac-parallax-bg {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -40px;
+        height: 220px;
+        will-change: transform;
+      }
+      .ac-parallax .ac-parallax-bg::after {
+        content: "";
+        position: absolute;
+        width: 90px;
+        height: 90px;
+        right: 20px;
+        top: 60px;
+        border-radius: 50%;
+        background: #fff;
+        opacity: 0.25;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "parallax",
+        name: "パララックス",
+        en: "Parallax",
+        cat: "スクロール",
+        kind: "motion",
+        description:
+          "スクロールしたとき、背景と手前の要素が違う速さで動くことで奥行きを感じさせる動きです。背景の画像が手前の中身よりゆっくり動きます。",
+        use: "ヒーローの背景、ランディングページの区切り、ストーリー性のあるページ。",
+        params: [{ key: "speed", label: "背景の速さ", value: 0.5, min: 0, max: 1, step: 0.05, unit: "" }],
+        spec: [
+          [
+            "動き",
+            "背景を <code>translateY(スクロール量 × (1 - 背景の速さ))</code> だけずらす（速さ 1 で手前と同じ、0 で止まって見える）",
+          ],
+          [
+            "CSS だけで",
+            "<code>animation-timeline: scroll()</code> で <code>translateY</code> を動かす、または <code>perspective</code> と <code>translateZ</code>",
+          ],
+          ["注意", "動かすのは <code>transform</code> だけにする。差は控えめ（0.3–0.7）に"],
+          ["動きを減らす設定", "背景を手前と同じ速さにする（パララックスをやめる）"],
+          ["出典", "Animation Vocabulary（Scroll）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const auto = (sc, ms) => {
+            let raf,
+              start = null;
+            const tick = (now) => {
+              if (start === null) start = now;
+              const t = (now - start) % (ms + 1000),
+                p = Math.min(1, t / ms),
+                max = sc.scrollHeight - sc.clientHeight;
+              sc.scrollTop = max * (0.5 - Math.cos(Math.PI * p) / 2);
+              raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+            return () => cancelAnimationFrame(raf);
+          };
+          const sc = stage.querySelector(".ac-parallax-sc"),
+            bg = stage.querySelector(".ac-parallax-bg");
+          const speed = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : v.speed;
+          const on = () => {
+            bg.style.transform = `translateY(${sc.scrollTop * (1 - speed)}px)`;
+          };
+          sc.addEventListener("scroll", on, { passive: true });
+          const stop = auto(sc, 2600);
+          return () => {
+            stop();
+            sc.removeEventListener("scroll", on);
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

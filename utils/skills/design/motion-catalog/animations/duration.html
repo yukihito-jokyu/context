@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>デュレーション（Duration） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-duration"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div class="" style="position: relative; width: 200px; height: 40px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 19px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-duration-t ac-duration-a"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 12px; top: 4px"
+          ></span>
+        </div>
+        <div class="" style="position: relative; width: 200px; height: 40px; margin-top: 16px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 19px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-aqua ac-duration-t ac-duration-b"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 12px; top: 4px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-duration .ac-duration-a {
+        animation: ac-duration-move var(--dur, 600ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .ac-duration .ac-duration-b {
+        animation: ac-duration-move 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes ac-duration-move {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+      @keyframes ac-duration-fade {
+        from {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-duration .ac-duration-t {
+          animation-name: ac-duration-fade;
+          transform: translateX(168px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "duration",
+        name: "デュレーション",
+        en: "Duration",
+        cat: "順序・タイミング",
+        kind: "concept",
+        description:
+          "動きにかける時間の長さです。上の行の時間を変えて、下の基準（260ms）と比べられます。短すぎると見落とされ、長すぎると待たされている感じになります。",
+        use: "すべての動きの基本。Soft Blue では 100 / 180 / 260 / 400ms の4段を使い分ける。",
+        params: [{ key: "dur", label: "時間", value: 600, min: 100, max: 2000, step: 50, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["上", "時間を変えられる｜<code>translateX(0 → 168px)</code>｜out"],
+          ["下（基準）", "260ms（Soft Blue の base）"],
+          [
+            "目安",
+            "押す・色の切り替え 100ms、トグル 180ms、カードやシート 260ms、画面の切り替え 400ms。移動距離が長いほど長く",
+          ],
+          ["動きを減らす設定", "移動をやめ、透明度で切り替える"],
+          ["出典", "Animation Vocabulary（Sequencing & Timing）"],
+        ],
+        loop: 2800,
+      });
+    </script>
+  </body>
+</html>

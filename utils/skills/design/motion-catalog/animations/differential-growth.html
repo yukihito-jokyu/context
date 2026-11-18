@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>しわになって育つ線（Differential growth） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-differential-growth"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "differential-growth",
+        name: "しわになって育つ線",
+        en: "Differential growth",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "閉じた線の上の点が、隣の点とはつながろうとし、近すぎる点とは離れようとしながら、伸びた所に新しい点を足していく動きです。限られた場所で線が長くなるので、脳やサンゴ、レタスの葉のようにくねくねと折りたたまれていきます。",
+        use: "自然・生命系のビジュアル、ジェネラティブなロゴの背景、アート作品、ローディング。",
+        params: [{ key: "max", label: "点の数の上限", value: 420, min: 100, max: 600, step: 10, unit: "個" }],
+        spec: [
+          [
+            "規則",
+            "各点に「両隣へ引き寄せる力」「近くの点（隣以外）から離れる力」「隣の点との間を整える力」をかけて動かす",
+          ],
+          ["成長", "隣との間が一定より長くなったら、間に新しい点を足す。点が増えるほど線が長くなり、折りたたまれる"],
+          ["Web では", "数百点までは canvas で全部の組を調べる。多いときは格子や四分木で近くの点だけを探す"],
+          ["動きを減らす設定", "育つ動きをやめ、折りたたまれた形の静止画にする"],
+          [
+            "出典",
+            '<a href="https://sagado.gumroad.com/l/lbyfu" target="_blank" rel="noopener">sagado.gumroad.com（lbyfu）</a>、<a href="https://github.com/hsab/GrowthNodes" target="_blank" rel="noopener">github.com（GrowthNodes）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let P0 = [];
+            const init = () => {
+              P0 = [];
+              for (let i = 0; i < 24; i++) {
+                const a = (i / 24) * TAU;
+                P0.push([110 + cos(a) * 12, 75 + sin(a) * 12]);
+              }
+            };
+            const step = () => {
+              const n = P0.length,
+                F = P0.map(() => [(rnd() - 0.5) * 0.1, (rnd() - 0.5) * 0.1]);
+              for (let i = 0; i < n; i++) {
+                const p = P0[i],
+                  a = P0[(i - 1 + n) % n],
+                  b = P0[(i + 1) % n];
+                for (const q of [a, b]) {
+                  const dx = q[0] - p[0],
+                    dy = q[1] - p[1],
+                    d = Math.hypot(dx, dy) || 1,
+                    f = ((d - 5) * 0.12) / d;
+                  F[i][0] += dx * f;
+                  F[i][1] += dy * f;
+                }
+                F[i][0] += ((a[0] + b[0]) / 2 - p[0]) * 0.05;
+                F[i][1] += ((a[1] + b[1]) / 2 - p[1]) * 0.05;
+                for (let j = i + 2; j < n; j++) {
+                  if (i === 0 && j === n - 1) continue;
+                  const q = P0[j],
+                    dx = p[0] - q[0],
+                    dy = p[1] - q[1],
+                    d2 = dx * dx + dy * dy;
+                  if (d2 < 81 && d2 > 0.01) {
+                    const d = Math.sqrt(d2),
+                      f = (((9 - d) / 9) * 0.35) / d;
+                    F[i][0] += dx * f;
+                    F[i][1] += dy * f;
+                    F[j][0] -= dx * f;
+                    F[j][1] -= dy * f;
+                  }
+                }
+              }
+              for (let i = 0; i < n; i++) {
+                P0[i][0] = Math.min(W - 6, Math.max(6, P0[i][0] + F[i][0]));
+                P0[i][1] = Math.min(H - 6, Math.max(6, P0[i][1] + F[i][1]));
+              }
+              for (let i = P0.length - 1; i >= 0 && P0.length < v.max; i--) {
+                const a = P0[i],
+                  b = P0[(i + 1) % P0.length];
+                if (Math.hypot(a[0] - b[0], a[1] - b[1]) > 4.2)
+                  P0.splice(i + 1, 0, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]);
+              }
+            };
+            init();
+            if (rm) for (let i = 0; i < 500; i++) step();
+            let t0 = 0;
+            return raf((t) => {
+              if (!rm) {
+                step();
+                if (t - t0 > 14) {
+                  init();
+                  t0 = t;
+                }
+              }
+              g.clearRect(0, 0, W, H);
+              g.beginPath();
+              P0.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
+              g.closePath();
+              g.fillStyle = col("ice");
+              g.fill();
+              g.strokeStyle = col("blue");
+              g.lineWidth = 1.6;
+              g.stroke();
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

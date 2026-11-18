@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>パズルの切り替え（Puzzle slide） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-puzzle-slide"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div
+          class="ac-puzzle-slide-s"
+          style="
+            background:
+              radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+              radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+              radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+              linear-gradient(200deg, #2a3f8f, var(--navy));
+          "
+        ></div>
+        <i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 0px;
+            top: 0px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: 0px 0px;
+            --k: 0;
+            --dx: -135px;
+            --dy: -110px;
+            --r: -30deg;
+            --k: 0;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 55px;
+            top: 0px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -55px 0px;
+            --k: 0.091;
+            --dx: -45px;
+            --dy: -50px;
+            --r: 7deg;
+            --k: 0.636;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 110px;
+            top: 0px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -110px 0px;
+            --k: 0.182;
+            --dx: 45px;
+            --dy: -110px;
+            --r: -16deg;
+            --k: 0.182;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 165px;
+            top: 0px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -165px 0px;
+            --k: 0.273;
+            --dx: 135px;
+            --dy: -50px;
+            --r: 21deg;
+            --k: 0.818;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 0px;
+            top: 50px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: 0px -50px;
+            --k: 0.364;
+            --dx: -135px;
+            --dy: -30px;
+            --r: -2deg;
+            --k: 0.364;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 55px;
+            top: 50px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -55px -50px;
+            --k: 0.455;
+            --dx: -45px;
+            --dy: 30px;
+            --r: -25deg;
+            --k: 1;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 110px;
+            top: 50px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -110px -50px;
+            --k: 0.545;
+            --dx: 45px;
+            --dy: -30px;
+            --r: 12deg;
+            --k: 0.545;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 165px;
+            top: 50px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -165px -50px;
+            --k: 0.636;
+            --dx: 135px;
+            --dy: 30px;
+            --r: -11deg;
+            --k: 0.091;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 0px;
+            top: 100px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: 0px -100px;
+            --k: 0.727;
+            --dx: -135px;
+            --dy: 50px;
+            --r: 26deg;
+            --k: 0.727;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 55px;
+            top: 100px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -55px -100px;
+            --k: 0.818;
+            --dx: -45px;
+            --dy: 110px;
+            --r: 3deg;
+            --k: 0.273;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 110px;
+            top: 100px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -110px -100px;
+            --k: 0.909;
+            --dx: 45px;
+            --dy: 50px;
+            --r: -20deg;
+            --k: 0.909;
+          "
+        ></i
+        ><i
+          class="ac-puzzle-slide-c"
+          style="
+            left: 165px;
+            top: 100px;
+            width: 55.5px;
+            height: 50.5px;
+            background:
+              radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+              radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+              radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+              linear-gradient(160deg, var(--ice), var(--sky));
+            background-size: 220px 150px;
+            background-position: -165px -100px;
+            --k: 1;
+            --dx: 135px;
+            --dy: 110px;
+            --r: 17deg;
+            --k: 0.455;
+          "
+        ></i>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-puzzle-slide .ac-puzzle-slide-s {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+      }
+      .ac-puzzle-slide .ac-puzzle-slide-c {
+        position: absolute;
+        border-radius: 4px;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+        animation: ac-puzzle-slide-t var(--dur, 2600ms) cubic-bezier(0.55, 0, 1, 0.45) infinite alternate;
+        animation-delay: calc(var(--k) * 300ms);
+      }
+      @keyframes ac-puzzle-slide-t {
+        0%,
+        30% {
+          transform: none;
+          opacity: 1;
+        }
+        75%,
+        100% {
+          transform: translate(var(--dx), var(--dy)) rotate(var(--r));
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-puzzle-slide .ac-puzzle-slide-c {
+          animation: ac-puzzle-slide-rf3 var(--dur, 2600ms) infinite alternate;
+        }
+      }
+      @keyframes ac-puzzle-slide-rf3 {
+        0%,
+        45% {
+          opacity: 1;
+        }
+        55%,
+        100% {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "puzzle-slide",
+        name: "パズルの切り替え",
+        en: "Puzzle slide",
+        cat: "映像の切り替え",
+        kind: "motion",
+        description:
+          "前のショットがいくつものピースに割れ、それぞれが別の方向へすべり出していくと、下から次のショットが現れる切り替えです。プレビューは四角いピースで近い形を見せています。",
+        use: "ゲームや子ども向けの場面転換、謎解き・クイズの画面、楽しい雰囲気のスライドショー。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2600, min: 1200, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "A を格子（例：4×3）のピースに分け、ピースごとに方向 <code>--dx / --dy</code> を決めて <code>translate</code> と <code>rotate</code>｜in。<code>animation-delay</code> を少しずつずらす",
+          ],
+          ["本格的に", "ジグソーの形は SVG の <code>clipPath</code>（凸凹のパス）でピースを切り抜く"],
+          ["戻り", "逆再生でピースが集まって組み上がる"],
+          ["動きを減らす設定", "ピースの移動をやめ、クロスフェードにする"],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/CommandPost/CommandPost/develop/src/extensions/cp/apple/finalcutpro/plugins.lua" target="_blank" rel="noopener">Final Cut Pro の内蔵トランジション一覧（CommandPost）</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

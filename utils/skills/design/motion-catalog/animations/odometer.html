@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>桁が回る数字（Odometer (rolling digits)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-odometer" style="position: relative; width: 220px; height: 150px">
+        <span
+          class="ac-odometer-v"
+          style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)"
+        ></span>
+        <div class="ac-odometer-n" aria-hidden="true">
+          <span class="ac-odometer-d"
+            ><span class="ac-odometer-r"
+              ><b>0</b><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>0</b><b>1</b><b>2</b
+              ><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b></span
+            ></span
+          ><span class="ac-odometer-c">,</span
+          ><span class="ac-odometer-d"
+            ><span class="ac-odometer-r"
+              ><b>0</b><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>0</b><b>1</b><b>2</b
+              ><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b></span
+            ></span
+          ><span class="ac-odometer-d"
+            ><span class="ac-odometer-r"
+              ><b>0</b><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>0</b><b>1</b><b>2</b
+              ><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b></span
+            ></span
+          ><span class="ac-odometer-d"
+            ><span class="ac-odometer-r"
+              ><b>0</b><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>0</b><b>1</b><b>2</b
+              ><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b></span
+            ></span
+          >
+        </div>
+        <span class="ac-odometer-l"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-odometer .ac-odometer-n {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 46px;
+        display: flex;
+        justify-content: center;
+        font: 800 40px/1 var(--font-sans);
+        color: var(--navy);
+        font-variant-numeric: tabular-nums;
+      }
+      .ac-odometer .ac-odometer-d {
+        display: inline-block;
+        height: 1em;
+        overflow: hidden;
+      }
+      .ac-odometer .ac-odometer-r {
+        display: flex;
+        flex-direction: column;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-odometer .ac-odometer-r {
+          transition: transform var(--dur, 900ms) cubic-bezier(0.22, 1, 0.36, 1);
+        }
+      }
+      .ac-odometer .ac-odometer-r b {
+        height: 1em;
+        font-weight: inherit;
+      }
+      .ac-odometer .ac-odometer-c {
+        margin: 0 1px;
+      }
+      .ac-odometer .ac-odometer-l {
+        position: absolute;
+        left: 70px;
+        top: 104px;
+        width: 80px;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--bar);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "odometer",
+        name: "桁が回る数字",
+        en: "Odometer (rolling digits)",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "数字が変わるとき、各桁が車の走行距離計のように縦に回って次の数字へ移る動きです。変わった桁だけが回るので、どこがどれだけ変わったかが目で追えます。",
+        use: "いいね・フォロワーなどの件数、価格や残高の更新、ダッシュボードの数値、カウントダウン。",
+        params: [{ key: "dur", label: "1桁が回る時間", value: 900, min: 200, max: 2000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            "各桁を 0〜9 を縦に並べた帯にして、<code>overflow: hidden</code> の 1 文字分の窓に入れる。値に合わせて帯を <code>translateY(−n em)</code>｜out。帯は <code>aria-hidden</code>、今の値は文字で1つ置く",
+          ],
+          [
+            "順序",
+            "右の桁から 60〜80ms ずつ遅らせると、繰り上がりのように見える。等幅の数字（<code>font-variant-numeric: tabular-nums</code>）にする",
+          ],
+          [
+            "9 → 0 のとき",
+            "帯を 0〜9 を 2 回並べたものにして、常に前へ回す（回り終えたら同じ数字の 1 回目へ瞬時に戻す）",
+          ],
+          ["動きを減らす設定", "桁を回さず、新しい数字にすぐ切り替える"],
+          [
+            "出典",
+            '<a href="https://reactbits.dev/llms.txt" target="_blank" rel="noopener">React Bits（コンポーネント一覧）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const rs = [...stage.querySelectorAll(".ac-odometer-r")],
+              txt = stage.querySelector(".ac-odometer-v"),
+              vals = [1284, 1317, 2046, 1290],
+              now = rs.map(() => 0);
+            let i = 0;
+            const set = (n) => {
+              txt.textContent = n.toLocaleString();
+              String(n)
+                .padStart(4, "0")
+                .split("")
+                .forEach((ch, k) => {
+                  const c = +ch,
+                    r = rs[k];
+                  if (c === now[k]) return;
+                  const pos = c > now[k] ? c : c + 10;
+                  now[k] = c;
+                  r.style.transitionDelay = `${(3 - k) * 70}ms`;
+                  r.style.transform = `translateY(${-pos}em)`; // 小さくなる桁は2組目まで前へ回す
+                  if (pos >= 10)
+                    r.addEventListener(
+                      "transitionend",
+                      () => {
+                        r.style.transition = "none";
+                        r.style.transform = `translateY(${-c}em)`;
+                        void r.offsetWidth;
+                        r.style.transition = "";
+                      },
+                      { once: true },
+                    );
+                });
+            };
+            set(vals[0]);
+            const iv = setInterval(() => set(vals[++i % vals.length]), 2000);
+            return () => clearInterval(iv);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

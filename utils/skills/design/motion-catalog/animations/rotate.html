@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>回転（ローテート）（Rotate） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rotate"
+        style="position: relative; width: 220px; height: 150px; display: grid; place-items: center"
+      >
+        <span class="sb-thumb sb-grad-sky ac-rotate-t" style="width: 72px; height: 72px; border-radius: 20px"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-rotate .ac-rotate-t {
+          animation: ac-rotate-m var(--dur, 600ms) cubic-bezier(0.65, 0, 0.35, 1) infinite alternate;
+        }
+      }
+      @keyframes ac-rotate-m {
+        to {
+          transform: rotate(var(--angle, 90deg));
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-rotate .ac-rotate-t {
+          transform: rotate(var(--angle, 90deg));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rotate",
+        name: "回転（ローテート）",
+        en: "Rotate",
+        cat: "移動・変形",
+        kind: "motion",
+        description:
+          "要素を、ある点を中心に回す動きです。開閉の矢印、更新ボタン、読み込み中の表示など、状態の変化を回転で表します。",
+        use: "アコーディオンの矢印、更新・リロード、読み込み中、カードを傾ける演出。",
+        params: [
+          { key: "angle", label: "角度", value: 90, min: 15, max: 360, step: 15, unit: "deg" },
+          { key: "dur", label: "片道の時間", value: 600, min: 150, max: 1500, step: 50, unit: "ms" },
+        ],
+        spec: [
+          [
+            "動き",
+            "<code>rotate(0 ↔ 角度)</code>｜in-out <code>cubic-bezier(0.65, 0, 0.35, 1)</code>｜<code>alternate</code> で往復",
+          ],
+          ["目安", "矢印の開閉は 90deg / 180deg、180ms 前後"],
+          ["動きを減らす設定", "回転をやめ、最後の角度に切り替える"],
+          ["出典", "Animation Vocabulary（Movement & Transforms）"],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

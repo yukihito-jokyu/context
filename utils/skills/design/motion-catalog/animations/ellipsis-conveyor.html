@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>流れる3つの点（Ellipsis conveyor） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-ellipsis-conveyor"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-ellipsis-conveyor-w"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w {
+        position: relative;
+        width: 80px;
+        height: 14px;
+      }
+      .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i {
+        position: absolute;
+        top: 0;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--blue);
+        animation-duration: var(--dur, 600ms);
+        animation-iteration-count: infinite;
+        animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(1) {
+        left: 8px;
+      }
+      .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(2) {
+        left: 8px;
+      }
+      .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(3) {
+        left: 32px;
+      }
+      .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(4) {
+        left: 56px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(1) {
+          animation-name: ac-ellipsis-conveyor-in;
+        }
+        .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(2),
+        .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(3) {
+          animation-name: ac-ellipsis-conveyor-mv;
+        }
+        .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(4) {
+          animation-name: ac-ellipsis-conveyor-out;
+        }
+      }
+      @keyframes ac-ellipsis-conveyor-in {
+        from {
+          transform: scale(0);
+        }
+        to {
+          transform: scale(1);
+        }
+      }
+      @keyframes ac-ellipsis-conveyor-out {
+        from {
+          transform: scale(1);
+        }
+        to {
+          transform: scale(0);
+        }
+      }
+      @keyframes ac-ellipsis-conveyor-mv {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(24px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-ellipsis-conveyor .ac-ellipsis-conveyor-w i:nth-child(1) {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "ellipsis-conveyor",
+        name: "流れる3つの点",
+        en: "Ellipsis conveyor",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "3つの点が並び、左端で新しい点がふくらんで生まれ、全体が右へ1つずつずれて、右端の点がしぼんで消えていくローダーです。「…」が流れ続けるように見えます。",
+        use: "チャットの「入力中」、送信・接続中、ボタンの中の小さな待機表示。",
+        params: [{ key: "dur", label: "周期", value: 600, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "4つの点：1つ目は <code>scale(0 → 1)</code>、2・3つ目は <code>translateX(点の間隔)</code>、4つ目は <code>scale(1 → 0)</code>｜すべて同じ周期でくり返す",
+          ],
+          ["見え方", "周期の終わりと始まりの姿が同じなので、点が流れ続けているように見える"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          [
+            "出典",
+            '<a href="https://raw.githubusercontent.com/loadingio/css-spinner/master/dist/ellipsis.html" target="_blank" rel="noopener">loading.io css-spinner</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

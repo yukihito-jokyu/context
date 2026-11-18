@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>明るさに目が慣れる（Auto exposure (eye adaptation)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-auto-exposure"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <canvas width="220" height="150" style="position: absolute; left: 0; top: 0"></canvas>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion"></style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "auto-exposure",
+        name: "明るさに目が慣れる",
+        en: "Auto exposure (eye adaptation)",
+        cat: "仕上げ・効果",
+        kind: "motion",
+        description:
+          "暗い部屋から明るい屋外を見ると、最初は真っ白にとび、少しずつ目が慣れて景色が見えてくる、という明るさの順応を、画面の露出を遅れて追わせて表す方法です。",
+        use: "ゲームで建物の中と外を行き来するとき、トンネルを抜ける演出、映画風のカメラ、写真アプリの露出の変化。",
+        params: [{ key: "speed", label: "慣れる速さ", value: 1, min: 0.2, max: 3, step: 0.1, unit: "" }],
+        spec: [
+          [
+            "仕組み",
+            "今の画面の平均の明るさ（輝度）を測り、それが適正になる露出を目標にする。表示に使う露出を、目標へ時間をかけて近づける",
+          ],
+          [
+            "速さ",
+            "明るくなるとき（まぶしい → 慣れる）は 0.5〜1 秒、暗くなるとき（暗い → 慣れる）は 2〜4 秒と、向きで速さを変えると自然になる",
+          ],
+          [
+            "本格的に",
+            "HDR で描いた画面の平均の輝度から、トーンマッピングの露出を決める（Unity・Unreal の Auto Exposure）",
+          ],
+          ["動きを減らす設定", "明るさの変化を追わせず、すぐ適正な明るさにする"],
+          [
+            "出典",
+            '<a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/auto-exposure-in-unreal-engine" target="_blank" rel="noopener">dev.epicgames.com（auto-exposure-in-unreal-engi）</a>',
+          ],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const cv = stage.querySelector("canvas"),
+              W = +cv.getAttribute("width"),
+              H = +cv.getAttribute("height"),
+              dpr = devicePixelRatio || 1;
+            cv.width = W * dpr;
+            cv.height = H * dpr;
+            cv.style.width = W + "px";
+            cv.style.height = H + "px";
+            const g = cv.getContext("2d");
+            g.scale(dpr, dpr);
+            const css = getComputedStyle(stage),
+              col = (k) => css.getPropertyValue("--" + k).trim();
+            g.filter = "blur(1px)";
+            const canFilter = g.filter === "blur(1px)";
+            g.filter = "none"; // canvas の filter が使えないブラウザでは影でにじませる
+            const blur = (px, c = "rgba(150,200,255,.7)") => {
+              if (canFilter) g.filter = px ? `blur(${px}px)` : "none";
+              else {
+                g.shadowBlur = px * 2;
+                g.shadowColor = px ? c : "transparent";
+              }
+            };
+            const TAU = Math.PI * 2,
+              sin = Math.sin,
+              cos = Math.cos;
+            let sd = 7;
+            const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+            const dot = (x, y, r, c) => {
+              g.fillStyle = c;
+              g.beginPath();
+              g.arc(x, y, r, 0, TAU);
+              g.fill();
+            };
+            let ex = 1,
+              last = 0;
+            return raf((t) => {
+              const dt = Math.min(0.05, t - last);
+              last = t;
+              const T = t % 8,
+                pan = rm ? 0 : T < 1 ? 0 : T < 2 ? T - 1 : T < 4.5 ? 1 : T < 5.5 ? 1 - (T - 4.5) : 0,
+                sx = -pan * 120;
+              const avg = 0.12 + 0.75 * pan,
+                tgt = 0.45 / avg;
+              if (rm) ex = tgt;
+              else ex += (tgt - ex) * Math.min(1, dt * v.speed * (tgt < ex ? 2.2 : 0.7));
+              const L = (b) => Math.min(255, Math.round(255 * b * ex));
+              g.fillStyle = `rgb(${L(0.1)},${L(0.12)},${L(0.18)})`;
+              g.fillRect(0, 0, W, H);
+              g.save();
+              g.translate(sx, 0);
+              g.fillStyle = `rgb(${L(0.95)},${L(0.98)},${L(1)})`;
+              g.fillRect(150, 10, 190, 130);
+              g.fillStyle = `rgb(${L(0.55)},${L(0.75)},${L(1)})`;
+              g.fillRect(150, 10, 190, 70);
+              g.fillStyle = `rgb(${L(0.35)},${L(0.6)},${L(0.3)})`;
+              g.fillRect(150, 100, 190, 40);
+              g.fillStyle = `rgb(${L(0.25)},${L(0.3)},${L(0.45)})`;
+              g.fillRect(40, 70, 50, 60);
+              g.fillRect(250, 60, 30, 40);
+              g.restore();
+              g.fillStyle = "rgba(255,255,255,.85)";
+              g.fillRect(10, 136, 70, 6);
+              g.fillStyle = col("blue");
+              g.fillRect(10, 136, Math.min(70, ex * 14), 6);
+            });
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

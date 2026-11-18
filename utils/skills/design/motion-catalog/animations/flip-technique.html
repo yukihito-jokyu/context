@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FLIP 手法（FLIP technique） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div class="ac-flip-technique" style="position: relative; width: 220px; height: 150px">
+        <div class="ac-flip-technique-g">
+          <span class="sb-thumb sb-grad-aqua ac-flip-technique-i"></span
+          ><span class="sb-thumb sb-grad-sky ac-flip-technique-i"></span
+          ><span class="sb-thumb sb-grad-deep ac-flip-technique-i"></span
+          ><span class="sb-thumb sb-grad-hero ac-flip-technique-i"></span
+          ><span class="sb-thumb sb-grad-aqua ac-flip-technique-i"></span
+          ><span class="sb-thumb sb-grad-sky ac-flip-technique-i"></span>
+        </div>
+        <span class="ac-flip-technique-f"></span><span class="ac-flip-technique-l"></span>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-flip-technique .ac-flip-technique-g {
+        position: absolute;
+        left: 25px;
+        top: 20px;
+        display: grid;
+        grid-template-columns: repeat(3, 50px);
+        gap: 10px 20px;
+      }
+      .ac-flip-technique .ac-flip-technique-i {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+      }
+      .ac-flip-technique .ac-flip-technique-f,
+      .ac-flip-technique .ac-flip-technique-l {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        box-sizing: border-box;
+        border: 2px dashed var(--bar-strong);
+        opacity: 0;
+        transition: opacity 200ms;
+        pointer-events: none;
+      }
+      .ac-flip-technique .ac-flip-technique-l {
+        border-color: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "flip-technique",
+        name: "FLIP 手法",
+        en: "FLIP technique",
+        cat: "状態の遷移",
+        kind: "concept",
+        description:
+          "レイアウトが変わる動きを、軽い transform だけで滑らかに見せる手法です。First（前の位置を測る）→ Last（変更後の位置を測る）→ Invert（差の分だけ transform で前の位置へ戻す）→ Play（transform を外して動かす）の4段階で行います。点線の枠が測った前後の位置です。",
+        use: "並べ替え、絞り込みで消える・詰まる一覧、グリッド↔リストの切り替え、要素の移動。",
+        params: [{ key: "dur", label: "時間", value: 400, min: 150, max: 900, step: 10, unit: "ms" }],
+        total: (p) => p["dur"],
+        spec: [
+          ["First / Last", "<code>getBoundingClientRect()</code> で変更前と変更後の位置・大きさを測る"],
+          [
+            "Invert / Play",
+            "<code>transform: translate(差) scale(比)</code> を付けてから外し、out で動かす（<code>element.animate()</code> が簡単）",
+          ],
+          ["ライブラリ", "GSAP の Flip、Motion の <code>layout</code> がこの手法を自動で行う"],
+          ["動きを減らす設定", "動かさず、変更後の位置へすぐ切り替える"],
+          ["出典", '<a href="https://gsap.com/docs/v3/Plugins/Flip/" target="_blank" rel="noopener">GSAP Flip</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const g = stage.querySelector(".ac-flip-technique-g"),
+              F = stage.querySelector(".ac-flip-technique-f"),
+              L = stage.querySelector(".ac-flip-technique-l"),
+              root = stage.firstElementChild;
+            const rel = (r) => {
+              const b = root.getBoundingClientRect();
+              return [r.left - b.left, r.top - b.top];
+            };
+            const flip = () => {
+              const el = g.children[0];
+              const first = el.getBoundingClientRect();
+              g.appendChild(el);
+              const last = el.getBoundingClientRect();
+              [
+                [F, first],
+                [L, last],
+              ].forEach(([m, r]) => {
+                const [x, y] = rel(r);
+                m.style.left = `${x}px`;
+                m.style.top = `${y}px`;
+                m.style.opacity = 1;
+              });
+              if (!rm)
+                el.animate(
+                  [
+                    { transform: `translate(${first.left - last.left}px, ${first.top - last.top}px)` },
+                    { transform: "none" },
+                  ],
+                  { duration: v.dur, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+                );
+              setTimeout(() => {
+                F.style.opacity = 0;
+                L.style.opacity = 0;
+              }, v.dur + 500);
+            };
+            return seq(1800, [[400, flip]]);
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

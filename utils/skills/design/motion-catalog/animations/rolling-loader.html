@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>転がるローダー（Rolling loader） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-rolling-loader"
+        style="position: relative; width: 200px; height: 130px; display: grid; place-items: center"
+      >
+        <div class="ac-rolling-loader-w"><span class="ac-rolling-loader-b"></span></div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-rolling-loader .ac-rolling-loader-w {
+        position: relative;
+        width: 150px;
+        height: 40px;
+        border-bottom: 3px solid var(--bar);
+      }
+      .ac-rolling-loader .ac-rolling-loader-b {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        background: var(--blue);
+        transform-origin: 100% 100%;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-rolling-loader .ac-rolling-loader-b {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "rolling-loader",
+        name: "転がるローダー",
+        en: "Rolling loader",
+        cat: "読み込み・進捗",
+        kind: "motion",
+        description:
+          "四角い形が床の上をパタンパタンと転がって進み、端まで行くとまた戻ってくるローダーです。重さのある物が転がるような、素朴でかわいい動きです。",
+        use: "ボタン・カード・画面の読み込み中、待ち時間の短い処理。",
+        params: [{ key: "dur", label: "周期", value: 2400, min: 300, max: 4000, step: 50, unit: "ms" }],
+        spec: [
+          [
+            "動き",
+            "1回の転がりごとに、進む向きの下の角を支点（<code>transform-origin</code>）にして 90° 回し、辺の長さぶん進める",
+          ],
+          ["イージング", "1回の転がりは in-out（倒れる前にためて、着地で止まる）。端で向きを変える"],
+          [
+            "使いどころ",
+            "1秒以上かかりそうなときに出す。すぐ終わる処理では出さない（ちらつく）。数秒以上なら進捗の分かる表示を使う",
+          ],
+          [
+            "動きを減らす設定",
+            "回転や移動をやめ、ゆっくりした透明度の明滅（または静止した「読み込み中」の表示）にする",
+          ],
+          ["出典", '<a href="https://css-loaders.com/" target="_blank" rel="noopener">CSS Loaders</a>'],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          const mq = matchMedia("(prefers-reduced-motion: reduce)"),
+            html0 = stage.innerHTML;
+          const start = () => {
+            const seq = (period, steps) => {
+              let ts = [];
+              const once = () => {
+                ts = steps.map(([at, fn]) => setTimeout(fn, at));
+              };
+              once();
+              const iv = setInterval(once, period);
+              return () => {
+                clearInterval(iv);
+                ts.forEach(clearTimeout);
+              };
+            };
+            const raf = (fn) => {
+              let id,
+                t0 = performance.now(),
+                seen = true; // 画面外にある間は描画を止める
+              const io = new IntersectionObserver(([e]) => {
+                seen = e.isIntersecting;
+              });
+              io.observe(stage);
+              const f = (now) => {
+                if (seen) fn(Math.max(0, now - t0) / 1000);
+                id = requestAnimationFrame(f);
+              };
+              id = requestAnimationFrame(f);
+              return () => {
+                cancelAnimationFrame(id);
+                io.disconnect();
+              };
+            };
+            const rm = mq.matches;
+            const b = stage.querySelector(".ac-rolling-loader-b");
+            let x = 0,
+              dir = 1,
+              k = 0;
+            const S = 26,
+              N = 4;
+            if (rm) return null;
+            let an = null;
+            const step = () => {
+              const to = `translateX(${x}px) rotate(${dir * 90}deg)`;
+              if (an) an.cancel();
+              b.style.transformOrigin = dir > 0 ? "100% 100%" : "0% 100%";
+              b.style.transform = to;
+              an = b.animate([{ transform: `translateX(${x}px) rotate(0deg)` }, { transform: to }], {
+                duration: v.dur / (N * 2),
+                easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+              }); // 始点と終点をキーフレームで渡す（寸法の読み取りなし）
+              x += dir * S;
+              if (++k % N === 0) dir = -dir;
+            };
+            step();
+            const iv = setInterval(step, v.dur / (N * 2) + 60);
+            return () => {
+              clearInterval(iv);
+              if (an) an.cancel();
+            };
+          };
+          let stop = start();
+          const restart = () => {
+            if (typeof stop === "function") stop();
+            stage.innerHTML = html0;
+            stop = start();
+          };
+          mq.addEventListener("change", restart);
+          return () => {
+            mq.removeEventListener("change", restart);
+            if (typeof stop === "function") stop();
+          };
+        },
+      });
+    </script>
+  </body>
+</html>

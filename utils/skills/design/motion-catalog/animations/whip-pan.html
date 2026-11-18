@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ウィップパン（Whip pan） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-whip-pan"
+        style="
+          position: relative;
+          width: 220px;
+          height: 150px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--surface);
+          box-shadow: var(--shadow-card);
+        "
+      >
+        <div class="ac-whip-pan-st">
+          <i
+            style="
+              background:
+                radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                linear-gradient(160deg, var(--ice), var(--sky));
+            "
+          ></i
+          ><i
+            style="
+              background:
+                radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                linear-gradient(200deg, #2a3f8f, var(--navy));
+            "
+          ></i>
+        </div>
+        <div class="ac-whip-pan-st ac-whip-pan-bl">
+          <i
+            style="
+              background:
+                radial-gradient(circle at 72% 30%, #fff 0 12px, transparent 13px),
+                radial-gradient(ellipse at 25% 115%, var(--cobalt) 0 46%, transparent 47%),
+                radial-gradient(ellipse at 85% 120%, var(--navy) 0 50%, transparent 51%),
+                linear-gradient(160deg, var(--ice), var(--sky));
+            "
+          ></i
+          ><i
+            style="
+              background:
+                radial-gradient(circle at 30% 32%, #eaf2ff 0 11px, transparent 12px),
+                radial-gradient(circle at 62% 22%, #fff 0 1.5px, transparent 2px),
+                radial-gradient(circle at 82% 40%, #fff 0 1.5px, transparent 2px),
+                radial-gradient(ellipse at 70% 118%, #0f2563 0 52%, transparent 53%),
+                linear-gradient(200deg, #2a3f8f, var(--navy));
+            "
+          ></i>
+        </div>
+        <svg width="0" height="0" style="position: absolute">
+          <filter id="ac-whip-pan-mb" x="-20%" y="0" width="140%" height="100%">
+            <feGaussianBlur stdDeviation="14 0" />
+          </filter>
+        </svg>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-whip-pan .ac-whip-pan-st {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 150px;
+        width: 440px;
+        display: flex;
+        animation: ac-whip-pan-t var(--dur, 2400ms) cubic-bezier(0.7, 0, 0.3, 1) infinite alternate;
+      }
+      .ac-whip-pan .ac-whip-pan-st i {
+        flex: none;
+        width: 220px;
+        height: 150px;
+      }
+      .ac-whip-pan .ac-whip-pan-bl {
+        filter: url(#ac-whip-pan-mb);
+        opacity: 0;
+        animation-name: ac-whip-pan-t, ac-whip-pan-o;
+      }
+      @keyframes ac-whip-pan-t {
+        0%,
+        42% {
+          transform: translateX(0);
+        }
+        58%,
+        100% {
+          transform: translateX(-220px);
+        }
+      }
+      @keyframes ac-whip-pan-o {
+        0%,
+        43% {
+          opacity: 0;
+        }
+        47%,
+        53% {
+          opacity: 1;
+        }
+        57%,
+        100% {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ac-whip-pan .ac-whip-pan-st {
+          animation-timing-function: step-end;
+        }
+        .ac-whip-pan .ac-whip-pan-bl {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "whip-pan",
+        name: "ウィップパン",
+        en: "Whip pan",
+        cat: "カメラ",
+        kind: "motion",
+        description:
+          "カメラをとても速く横に振り、景色が流れて見えなくなるほどのぶれの中で、次の場面へつなぐ動きです。勢いと、場所が一気に変わる驚きを作れます。",
+        use: "テンポの速いプロモーション動画、場面転換、スワイプで次のカードへ移る演出、ゲームの画面切り替え。",
+        params: [{ key: "dur", label: "片道の長さ", value: 2400, min: 1000, max: 6000, step: 100, unit: "ms" }],
+        spec: [
+          [
+            "書き方",
+            '2つの場面を横に並べた帯を、200〜300ms で <code>translateX(−1画面)</code>。途中だけ横方向のぼかし（SVG の <code>feGaussianBlur stdDeviation="14 0"</code>）を重ねる',
+          ],
+          ["イージング", "in-out を強めに（<code>cubic-bezier(.7, 0, .3, 1)</code>）"],
+          ["つなぎ", "ぶれている間に別のショットへカットしても気づかれない（見えないカットの一種）"],
+          ["動きを減らす設定", "振る動きとぶれをやめ、カットにする"],
+          [
+            "出典",
+            '<a href="https://www.studiobinder.com/camera-shots/camera-movements/" target="_blank" rel="noopener">StudioBinder: Camera Movements</a>、<a href="https://www.masterclass.com/articles/guide-to-camera-moves" target="_blank" rel="noopener">MasterClass: Guide to Camera Moves</a>、<a href="https://www.studiobinder.com/blog/types-of-editing-transitions-in-film/" target="_blank" rel="noopener">StudioBinder: Types of Editing Transitions</a>',
+          ],
+        ],
+        loop: 0,
+      });
+    </script>
+  </body>
+</html>

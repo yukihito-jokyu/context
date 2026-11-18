@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>フレームレート（Frame rate (FPS)） | Animation Catalog</title>
+    <link rel="stylesheet" href="../shared/catalog.css" />
+
+    <!-- プレビュー（Soft Blue で描いた見本。実装対象ではない） -->
+    <template id="stage">
+      <div
+        class="ac-frame-rate"
+        style="
+          position: relative;
+          width: 200px;
+          height: 100px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        "
+      >
+        <div style="position: relative; width: 200px; height: 32px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-sky ac-frame-rate-t"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+        <div style="position: relative; width: 200px; height: 32px; margin-top: 20px">
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 15px;
+              height: 2px;
+              border-radius: 2px;
+              background: var(--bar);
+            "
+          ></span
+          ><span
+            class="sb-thumb sb-grad-aqua ac-frame-rate-t ac-frame-rate-low"
+            style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px"
+          ></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 動きの本体。params の値は var(--key, 初期値) で受け取る -->
+    <style id="motion">
+      .ac-frame-rate .ac-frame-rate-t {
+        transform: translateX(84px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .ac-frame-rate .ac-frame-rate-t {
+          animation: ac-frame-rate-m var(--dur, 1500ms) linear infinite alternate;
+        }
+        .ac-frame-rate .ac-frame-rate-low {
+          animation-timing-function: steps(var(--n, 18), end);
+        }
+      }
+      @keyframes ac-frame-rate-m {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(168px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../shared/detail.js"></script>
+    <script>
+      CatalogDetail.mount({
+        id: "frame-rate",
+        name: "フレームレート",
+        en: "Frame rate (FPS)",
+        cat: "パフォーマンス",
+        kind: "concept",
+        description:
+          "1秒間に何枚の絵（フレーム）を描くかです。上は画面の更新どおりの 60fps 以上、下はコマ数を落とした状態。コマが少ないほどカクカクして見えます。",
+        use: "動きのなめらかさを判断する基準。60fps（新しい画面は 120fps）を保てているかを DevTools で確かめる。",
+        params: [
+          { key: "fps", label: "下の行のフレームレート", value: 12, min: 4, max: 60, step: 1, unit: "" },
+          { key: "dur", label: "片道の時間", value: 1500, min: 600, max: 3000, step: 100, unit: "ms" },
+        ],
+        spec: [
+          ["目安", "1フレームあたり 60fps なら 16.7ms、120fps なら 8.3ms で描き終える必要がある"],
+          ["デモ", "下の行は <code>steps(時間 × fps)</code> でコマ数を落として再現している"],
+          ["測る", "Chrome DevTools の Performance パネル、Rendering の Frame Rendering Stats"],
+          ["動きを減らす設定", "上下とも中間位置で静止"],
+          ["出典", "Animation Vocabulary（Performance）"],
+        ],
+        loop: 0,
+        run: (stage, v) => {
+          stage.firstElementChild.style.setProperty("--n", Math.max(1, Math.round((v.dur / 1000) * v.fps)));
+        },
+      });
+    </script>
+  </body>
+</html>
