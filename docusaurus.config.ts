@@ -1,6 +1,22 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import fs from 'node:fs';
+import path from 'node:path';
+
+// Serve the skill's own catalog pages from the canonical source without keeping a copy in docs/.
+const motionCatalog = 'utils/skills/design/motion-catalog';
+function motionCatalogPlugin() {
+  return {
+    name: 'motion-catalog-pages',
+    async postBuild({outDir}: {outDir: string}) {
+      const dest = path.join(outDir, 'catalogs/motion-catalog');
+      for (const entry of ['catalog.html', 'shared', 'animations']) {
+        fs.cpSync(path.join(motionCatalog, entry), path.join(dest, entry), {recursive: true});
+      }
+    },
+  };
+}
 
 const config: Config = {
   title: 'Context — Skill・plugin活用ガイド',
@@ -32,7 +48,7 @@ const config: Config = {
     theme: {customCss: './src/css/custom.css'},
   } satisfies Preset.Options]],
   themes: ['@docusaurus/theme-mermaid'],
-  plugins: ['./plugins/site-search'],
+  plugins: ['./plugins/site-search', motionCatalogPlugin],
   themeConfig: {
     colorMode: {respectPrefersColorScheme: true},
     navbar: {

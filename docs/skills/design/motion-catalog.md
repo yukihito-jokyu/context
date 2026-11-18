@@ -17,7 +17,7 @@ hooksを同梱しない単一Skillなので、[`npx skills add`](../../plugins/d
 npx skills add https://github.com/yukihito-jokyu/context/tree/main/utils/skills --skill motion-catalog --agent codex claude-code
 ```
 
-一覧ページ`catalog.html`をブラウザで開くと、全件の動きを見比べられます。各詳細ページで値を変えて、依頼用のプロンプトをコピーすることもできます。
+[一覧ページ（`catalog.html`）](pathname:///catalogs/motion-catalog/catalog.html)を開くと、全件の動きを見比べられます。各詳細ページで値を変えて、依頼用のプロンプトをコピーすることもできます。
 
 ## 渡す情報
 
