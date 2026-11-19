@@ -1,43 +1,15 @@
-# synth --dry-run
-SSML: <work>/git-branch/build/ssml（3シーン、読み上げ 373 文字）
-合成（local-tts）: 3シーン、373文字。voice=既定 engine=既定
+$ node "<motion-deck>/scripts/motion.mjs" synth <work>/git-branch
+SSML: <work>/git-branch/build/ssml（3シーン、読み上げ 344 文字）
+合成（local-tts）: 3シーン、344文字。voice=既定 engine=既定
 目安: 約3分
-  idea（114文字）
-  switch（153文字）
-  merge（106文字）
-
-# synth（目安が1分を超えるため、バックグラウンドで実行）
-SSML: <work>/git-branch/build/ssml（3シーン、読み上げ 373 文字）
-合成（local-tts）: 3シーン、373文字。voice=既定 engine=既定
-目安: 約3分
-[synth] 23:22:04 idea（114文字）
-        18.3秒の音声（84秒かかりました）
-[synth] 23:23:27 switch（153文字）
-        23.0秒の音声（49秒かかりました）
-[synth] 23:24:16 merge（106文字）
-        17.9秒の音声（45秒かかりました）
+[synth] 08:16:44 idea（120文字）
+        20.6秒の音声（77秒かかりました）
+[synth] 08:18:01 switch（122文字）
+        20.0秒の音声（40秒かかりました）
+[synth] 08:18:41 merge（102文字）
+        18.8秒の音声（38秒かかりました）
 合成が終わりました。続けて timeline を実行してください。
-使い終わったらエンジンを止める: uv run --project "<local-tts>/tools" local-tts server stop
-（終了コード 0、実時間 177秒）
+使い終わったらエンジンを止める: uv run --project "<repo>/utils/skills/media/local-tts/tools" local-tts server stop
 
-# 解決された既定の声とエンジン（local-tts の設定とサーバーのログで確認）
-engine = voxcpm2
-voice  = <個人名>
-
-# timeline
-timeline.js: 3シーン、1.08分（1950フレーム @30fps）、音声あり
-narration.m4a: 65.0秒（ffprobe）
-
-# pptx
-  idea: 1スライド、3クリック、絵 17枚
-  switch: 1スライド、4クリック、絵 20枚
-  merge: 2スライド、3クリック、絵 12枚
-PPTX: <work>/git-branch/out/git-branch.pptx（4スライド、絵 53枚。要素のアニメーション 13ステップ、差分の重ね 5ステップ）
-
-# server stop / server status（pptx のあと）
-No server started by this tool is running
-voxcpm2: http://127.0.0.1:3031: listening, started elsewhere
-omnivoice: http://127.0.0.1:3032: listening, started elsewhere
-s2: http://127.0.0.1:3030: not running
-voicevox: http://127.0.0.1:50021: not running
-（voxcpm2 のサーバーはこの実行の前から別のアプリが起動していたもので、合成中も他の利用があった。local-tts の片付け手順に従い、このツール以外が起動したサーバーは止めずに残した）
+$ node "<motion-deck>/scripts/motion.mjs" timeline <work>/git-branch
+timeline.js: 3シーン、1.09分（1956フレーム @30fps）、音声あり

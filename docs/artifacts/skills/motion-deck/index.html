@@ -8,99 +8,94 @@
 <body>
 <main id="composition" data-chapter-bar>
 
-  <!-- 1. ブランチとは：一本の線（main）から枝が分かれ、走者が進む -->
+  <!-- idea：一本の線（main）から枝が分かれ、走者が枝を進む -->
   <section data-scene="idea" data-transition="none">
     <div class="title-bar cyan" data-at="0" data-anim="left">
-      <div><div class="kicker"><span class="mono">Git</span> のブランチ入門</div><div class="h">ブランチ ＝ 作業の<span class="c-cyan">枝分かれ</span></div></div>
+      <div><div class="kicker">Gitのブランチ入門</div><div class="h">作業の流れを<span class="c-cyan">枝分かれ</span>させる</div></div>
     </div>
-    <div class="steps" data-at="0" data-delay="12" data-anim="pop" data-stagger="8"><span class="chip cyan">作る</span><span class="chip yellow">移る</span><span class="chip green">合流する</span></div>
-    <div class="card green bold safe-card" data-at="safe" data-anim="pop"><span class="mono">main</span> は そのまま</div>
     <div class="branch diagram">
-      <svg width="1300" height="340" viewBox="0 0 1300 340">
-        <path id="b-main" d="M0 260 L1300 260" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="main" data-anim="draw" data-dur="40"/>
-        <path id="b-feat" d="M420 260 C 540 260, 520 80, 660 80 L1300 80" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="split" data-anim="draw" data-dur="40"/>
+      <svg width="1240" height="300" viewBox="0 0 1240 300">
+        <path id="b-main" d="M0 220 L1200 220" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="main" data-anim="draw" data-dur="40"/>
+        <g data-at="main" data-stagger="8" data-anim="scale">
+          <circle cx="120" cy="220" r="22" fill="var(--white)" stroke="var(--ink)" stroke-width="6"/>
+          <circle cx="320" cy="220" r="22" fill="var(--white)" stroke="var(--ink)" stroke-width="6"/>
+          <circle cx="520" cy="220" r="22" fill="var(--white)" stroke="var(--ink)" stroke-width="6"/>
+          <circle cx="980" cy="220" r="22" fill="var(--white)" stroke="var(--ink)" stroke-width="6"/>
+        </g>
+        <path id="b-feat" d="M520 220 C 640 220, 620 60, 760 60 L1180 60" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="fork" data-anim="draw" data-dur="40"/>
+        <g data-at="fork" data-delay="30" data-stagger="8" data-anim="scale">
+          <circle cx="860" cy="60" r="22" fill="var(--cyan-soft)" stroke="var(--cyan-deep)" stroke-width="6"/>
+          <circle cx="1060" cy="60" r="22" fill="var(--cyan-soft)" stroke="var(--cyan-deep)" stroke-width="6"/>
+        </g>
       </svg>
-      <div class="at commit" style="left:98px;top:238px" data-at="main" data-delay="8" data-anim="scale"></div>
-      <div class="at commit" style="left:278px;top:238px" data-at="main" data-delay="16" data-anim="scale"></div>
-      <div class="at commit" style="left:398px;top:238px" data-at="main" data-delay="24" data-anim="scale"></div>
-      <div class="at commit cyan" style="left:818px;top:58px" data-at="split" data-delay="30" data-anim="scale"></div>
-      <div class="at commit cyan" style="left:1038px;top:58px" data-at="safe" data-delay="6" data-anim="scale"></div>
-      <div class="runner at" data-size="72" data-color="yellow" data-at="main" data-anim="follow" data-follow="#b-main" data-anchor="bottom" data-dur="40"></div>
-      <div class="runner at" data-size="72" data-color="cyan" data-seed="2" data-at="split" data-anim="follow" data-follow="#b-feat" data-anchor="bottom" data-dur="40"></div>
-      <div class="at" style="left:1330px;top:232px" data-at="main" data-delay="36" data-anim="pop"><span class="chip mono">main</span></div>
-      <div class="at" style="left:1330px;top:52px" data-at="split" data-delay="40" data-anim="pop"><span class="chip mono cyan">feature/login</span></div>
+      <div class="at" style="left:0;top:250px" data-at="main" data-anim="fade"><span class="chip mono">main</span></div>
+      <div class="at" style="left:640px;top:-60px" data-at="fork" data-delay="20" data-anim="pop"><span class="chip mono cyan">feature/login</span></div>
+      <div class="runner at" data-size="76" data-color="cyan" data-seed="3" data-at="fork" data-anim="follow" data-follow="#b-feat" data-anchor="bottom" data-dur="50"></div>
     </div>
+    <div class="card green bold verdict" data-at="safe" data-anim="pop"><span class="mono">main</span> は そのまま</div>
   </section>
 
-  <!-- 2. 作って移る：コマンドの行が文ごとに強調され、走者（今いる枝）が移る。注釈のカードは文ごとに差し替える -->
+  <!-- switch：左にコマンド（文ごとに強調する行が移る）と注釈、右に今いる枝 -->
   <section data-scene="switch" data-transition="slide">
-    <h2 class="h" data-at="0">ブランチを<span class="c-cyan">作って</span>、移る</h2>
-    <div class="switch-row">
-      <pre class="code" data-title="ターミナル" data-lang="sh" data-width="960" data-size="32" data-reveal="create:1-2; list:3-5; back:6-7" data-focus="create:1-2; list:3-5; back:6-7" data-at="0" data-delay="8">
+    <h2 class="h" data-at="0">枝を<span class="c-cyan">作って</span>、<span class="c-cyan">移る</span></h2>
+    <div class="row">
+      <div>
+        <pre class="code" data-title="ターミナル" data-lang="sh" data-width="960" data-size="34" data-focus="create:1; list:2-4; star:3; back:5" data-at="0" data-delay="8">
 $ git switch -c feature/login
-Switched to a new branch 'feature/login'
 $ git branch
 * feature/login
   main
 $ git switch main
-Switched to branch 'main'
 </pre>
-      <div class="switch-side">
-        <div class="mini diagram" data-at="0" data-delay="14" data-anim="scale">
-          <svg width="680" height="230" viewBox="0 0 680 230">
-            <path d="M20 180 L660 180" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/>
-            <path d="M140 180 C 240 180, 220 60, 320 60 L660 60" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="create" data-anim="draw" data-dur="24"/>
-          </svg>
-          <div class="at commit cyan" style="left:418px;top:38px" data-at="stay" data-anim="pop"></div>
-          <div class="at commit cyan" style="left:528px;top:38px" data-at="stay" data-delay="8" data-anim="pop"></div>
-          <div class="runner at" id="s-runner" data-size="64" data-color="yellow"></div>
+        <div class="notes">
+          <div class="card yellow bold" data-at="create" data-anim="right" data-until="list"><span class="kw">-c</span> ＝ 作って、すぐ移る</div>
+          <div class="card yellow bold" data-at="list" data-anim="right" data-until="star">枝の一覧を見る</div>
+          <div class="card yellow bold" data-at="star" data-anim="right" data-until="back"><span class="kw">*</span> ＝ 今いる枝</div>
+          <div class="card cyan bold" data-at="back" data-anim="right"><span class="mono">main</span> に戻る</div>
         </div>
-        <div class="side-cards">
-          <div class="card yellow bold" data-at="create" data-anim="right" data-until="list"><span class="kw">-c</span> で 作って移る</div>
-          <div class="card yellow bold" data-at="list" data-anim="right" data-until="back"><span class="kw">*</span> ＝ 今いる枝</div>
-          <div class="card yellow bold" data-at="back" data-anim="right" data-until="stay"><span class="kw">main</span> に戻る</div>
-          <div class="card green bold" data-at="stay" data-anim="pop">コミットは 枝に残る</div>
-        </div>
+      </div>
+      <div class="where diagram" data-at="0" data-delay="14" data-anim="fade">
+        <svg width="640" height="330" viewBox="0 0 640 330">
+          <path d="M0 260 L620 260" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M90 260 C 190 260, 170 90, 290 90 L620 90" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="create" data-anim="draw" data-dur="30"/>
+        </svg>
+        <div class="at" style="left:20px;top:280px"><span class="chip mono sm">main</span></div>
+        <div class="at" style="left:250px;top:110px" data-at="create" data-delay="16" data-anim="fade"><span class="chip mono sm cyan">feature/login</span></div>
+        <div class="runner at" id="sw-runner" data-size="72" data-color="yellow" style="left:540px;top:188px"></div>
       </div>
     </div>
   </section>
 
-  <!-- 3. 合流とまとめ：枝がメインに戻る線を描き、最後は見出しごとまとめの表に差し替える（PPTXでは別のスライドになる） -->
+  <!-- merge：枝がメインに戻る図と git merge → 見出しごと、まとめに差し替え -->
   <section data-scene="merge" data-transition="iris">
-    <h2 class="h" data-at="0" data-until="sum">終わったら<span class="c-cyan">合流</span>させる</h2>
-    <h2 class="h sum-head" data-at="sum">今日のまとめ</h2>
-    <div class="merge-wrap" data-until="sum">
-      <div class="merge diagram" data-at="0" data-delay="6" data-anim="fade">
-        <svg width="1300" height="240" viewBox="0 0 1300 240">
-          <path d="M0 190 L1300 190" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/>
-          <path d="M200 190 C 320 190, 300 50, 440 50 L800 50" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round"/>
-          <path d="M800 50 C 940 50, 920 190, 1060 190" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="joined" data-anim="draw" data-dur="30"/>
+    <div class="part" data-at="start" data-anim="fade" data-until="recap">
+      <h2 class="h" data-at="0">終わったら <span class="c-cyan">main</span> に<span class="c-cyan">合流</span></h2>
+      <div class="merge-fig diagram">
+        <svg width="1000" height="300" viewBox="0 0 1000 300">
+          <path d="M0 230 L960 230" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="0" data-anim="draw" data-dur="30"/>
+          <path d="M120 230 C 220 230, 200 70, 320 70 L560 70 C 680 70, 660 230, 780 230" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="0" data-anim="draw" data-delay="10" data-dur="40"/>
+          <circle cx="400" cy="70" r="22" fill="var(--cyan-soft)" stroke="var(--cyan-deep)" stroke-width="6" data-at="0" data-delay="30" data-anim="scale"/>
+          <circle cx="780" cy="230" r="30" fill="var(--green-soft)" stroke="var(--green)" stroke-width="8" data-at="run" data-delay="30" data-anim="pop"/>
         </svg>
-        <div class="at commit" style="left:78px;top:168px"></div>
-        <div class="at commit" style="left:628px;top:168px"></div>
-        <div class="at commit cyan" style="left:498px;top:28px"></div>
-        <div class="at commit cyan" style="left:698px;top:28px"></div>
-        <div class="at commit merged" style="left:1032px;top:162px" data-at="joined" data-delay="24" data-anim="pop"></div>
-        <div class="at" style="left:1330px;top:162px"><span class="chip mono">main</span></div>
-        <div class="at" style="left:400px;top:84px"><span class="chip mono cyan">feature/login</span></div>
+        <div class="at" style="left:0;top:250px"><span class="chip mono sm">main</span></div>
+        <div class="at" style="left:300px;top:-10px" data-at="0" data-delay="20" data-anim="fade"><span class="chip mono sm cyan">feature/login</span></div>
+        <div class="at" style="left:700px;top:290px" data-at="run" data-delay="40" data-anim="up"><span class="bubble green">合流した</span></div>
       </div>
-      <div class="merge-row">
-        <div class="terminal" data-show="run" data-at="run" data-command="git merge feature/login" data-width="1080" data-size="30">
-          <div data-at="run" data-delay="34" class="ok">Merge made by the 'ort' strategy.</div>
-        </div>
-        <div class="card yellow bold" data-at="joined" data-anim="right">変更が <span class="kw">main</span> に入る</div>
+      <div class="terminal merge-term" data-show="0" data-at="run" data-command="git merge feature/login" data-width="760" data-size="32">
+        <div data-at="run" data-delay="40" class="ok">Fast-forward</div>
       </div>
     </div>
-    <div class="summary sum-table" data-at="sum" data-stagger="8">
-      <div class="row"><div class="key">switch -c</div><div class="val">枝を作って、そこへ移る</div></div>
-      <div class="row"><div class="key">switch</div><div class="val">枝とメインを行き来する</div></div>
-      <div class="row"><div class="key">merge</div><div class="val">終わった枝をメインに合流する</div></div>
+    <div class="part" data-at="recap">
+      <h2 class="h">今日のまとめ</h2>
+      <div class="summary" style="margin-top:44px;width:1400px" data-at="three" data-stagger="10">
+        <div class="row"><div class="key">switch -c</div><div class="val">作って、すぐ移る</div></div>
+        <div class="row"><div class="key">switch</div><div class="val">枝を行き来する</div></div>
+        <div class="row"><div class="key">merge</div><div class="val">main に合流する</div></div>
+      </div>
     </div>
-    <div class="next-link sum-next" data-at="sum" data-delay="30" data-anim="words" data-dur="24">次は、自分のリポジトリで枝を作ってみる</div>
   </section>
 
 </main>
-<!-- 読み込みはこの1行だけ -->
 <script src="motion/boot.js"></script>
 </body>
 </html>

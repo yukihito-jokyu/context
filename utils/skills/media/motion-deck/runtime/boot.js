@@ -10,7 +10,7 @@
 (function () {
   'use strict';
   // この並びは scripts/motion.mjs（bundle・check）も読む。変えるときは両方で使われることに注意
-  var CSS = ['motion/motion.css', 'motion/kit.css', 'theme.css'];
+  var CSS = ['motion/motion.css', 'motion/player.css', 'motion/kit.css', 'theme.css'];
   var JS = ['timeline.js', 'motion/motion.js', 'motion/kit.js', 'scenes.js'];
 
   var me = document.currentScript;

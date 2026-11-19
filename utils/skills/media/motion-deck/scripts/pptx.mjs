@@ -53,11 +53,11 @@ const SLIDE_W = 12192000, SLIDE_H = 6858000; // 16:9
 
 const rels = (list) => `${HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${list.map(([id, type, target]) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`).join('')}</Relationships>`;
 
-const theme = (name) => `${HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="${name}"><a:themeElements>
+const theme = (name, font) => `${HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="${name}"><a:themeElements>
 <a:clrScheme name="motion-deck"><a:dk1><a:srgbClr val="1C2530"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="151C26"/></a:dk2><a:lt2><a:srgbClr val="F4EFE4"/></a:lt2>
 <a:accent1><a:srgbClr val="00A3CC"/></a:accent1><a:accent2><a:srgbClr val="E0492A"/></a:accent2><a:accent3><a:srgbClr val="EFB02A"/></a:accent3><a:accent4><a:srgbClr val="1F9160"/></a:accent4><a:accent5><a:srgbClr val="006E8C"/></a:accent5><a:accent6><a:srgbClr val="59626F"/></a:accent6>
 <a:hlink><a:srgbClr val="006E8C"/></a:hlink><a:folHlink><a:srgbClr val="59626F"/></a:folHlink></a:clrScheme>
-<a:fontScheme name="motion-deck"><a:majorFont><a:latin typeface="Hiragino Sans"/><a:ea typeface="Hiragino Sans"/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Hiragino Sans"/><a:ea typeface="Hiragino Sans"/><a:cs typeface=""/></a:minorFont></a:fontScheme>
+<a:fontScheme name="motion-deck"><a:majorFont><a:latin typeface="${esc(font)}"/><a:ea typeface="${esc(font)}"/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="${esc(font)}"/><a:ea typeface="${esc(font)}"/><a:cs typeface=""/></a:minorFont></a:fontScheme>
 <a:fmtScheme name="motion-deck"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst>
 <a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst>
 <a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>
@@ -158,7 +158,7 @@ const TRANSITION = {
  *             pictures: [{ png: Buffer, x, y, w, h (px), name, alt }],
  *             steps: [{ auto, effects: [{ pic: index, kind, dur, delay }] }] }]
  */
-export function buildPptx(file, { title, width, height, slides }) {
+export function buildPptx(file, { title, width, height, slides, font = 'Hiragino Sans' }) {
   const emu = SLIDE_W / width;
   const entries = [];
   const media = [];
@@ -207,8 +207,8 @@ export function buildPptx(file, { title, width, height, slides }) {
     { name: 'ppt/slideLayouts/_rels/slideLayout1.xml.rels', data: rels([['rId1', 'slideMaster', '../slideMasters/slideMaster1.xml']]) },
     { name: 'ppt/notesMasters/notesMaster1.xml', data: notesMaster },
     { name: 'ppt/notesMasters/_rels/notesMaster1.xml.rels', data: rels([['rId1', 'theme', '../theme/theme2.xml']]) },
-    { name: 'ppt/theme/theme1.xml', data: theme('motion-deck') },
-    { name: 'ppt/theme/theme2.xml', data: theme('motion-deck notes') },
+    { name: 'ppt/theme/theme1.xml', data: theme('motion-deck', font) },
+    { name: 'ppt/theme/theme2.xml', data: theme('motion-deck notes', font) },
     { name: 'ppt/presProps.xml', data: `${HEAD}<p:presentationPr ${NS}/>` },
     { name: 'ppt/viewProps.xml', data: `${HEAD}<p:viewPr ${NS}><p:normalViewPr><p:restoredLeft sz="15620"/><p:restoredTop sz="80000"/></p:normalViewPr><p:gridSpacing cx="76200" cy="76200"/></p:viewPr>` },
     { name: 'ppt/tableStyles.xml', data: `${HEAD}<a:tblStyleLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>` },

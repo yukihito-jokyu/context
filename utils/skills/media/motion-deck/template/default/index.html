@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>default テンプレートの見本帳</title>
+<!--
+  default テンプレートの見本帳（人が見るためのページ。init では配らない）。
+  - そのまま開く：デザインと構図の一覧（各シーンの完成形を縮小して並べる）
+  - ?play          ：同じシーンをプレイヤーで再生（&scene=<id> でそのシーンから）
+  - ?render=1&frame=N：一覧の縮小画像に使う1フレーム（実行系の書き出しモード）
+  実行系は ../../runtime/、外枠の見た目は ../base/、このテンプレートの見た目は motion/ を直接読む。
+  シーンの説明と字幕は下の CATALOG にだけ書く（一覧もプレイヤーもここから作る）。
+-->
+<style>
+  body.catalog { margin: 0; background: #ebe5d8; color: #1c2530; font: 15px/1.6 "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; }
+  .catalog #composition { display: none; }
+  .cat-head { padding: 40px 48px 8px; }
+  .cat-head h1 { margin: 0; font-size: 30px; font-weight: 800; }
+  .cat-head p { margin: 6px 0 0; color: #59626f; }
+  .cat-head a { color: #006e8c; font-weight: 700; }
+  .cat-sec { padding: 24px 48px 8px; }
+  .cat-sec h2 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
+  .cat-sec > p { margin: 0 0 16px; color: #59626f; }
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 24px; padding-bottom: 24px; }
+  .cat-item { background: #fff; border: 3px solid #1c2530; border-radius: 14px; box-shadow: 5px 5px 0 #1c2530; overflow: hidden; display: flex; flex-direction: column; }
+  .cat-thumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 3px solid #1c2530; background: #f4efe4; display: block; }
+  .cat-thumb iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .cat-body { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .cat-title { display: flex; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 800; }
+  .cat-title code { font: 12px ui-monospace, Menlo, monospace; color: #59626f; font-weight: 400; }
+  .cat-desc { color: #3a4350; font-size: 14px; }
+  .cat-play { margin-top: auto; padding-top: 6px; font-weight: 700; color: #006e8c; text-decoration: none; font-size: 14px; }
+  .cat-play::after { content: " ▶"; font-size: 0.8em; }
+
+  /* 見本帳だけで使う飾り（色の見本） */
+  #composition .sw-row { display: grid; grid-template-columns: 250px repeat(6, 236px); align-items: center; height: 104px; }
+  #composition .sw-row > .kicker { font-size: 28px; }
+  #composition .sw { display: flex; align-items: center; gap: 14px; }
+  #composition .sw i { flex: none; width: 66px; height: 66px; border: 4px solid var(--ink); border-radius: 14px; box-sizing: border-box; }
+  #composition .sw b { display: block; font-family: var(--mono); font-size: 24px; line-height: 1.2; }
+  #composition .sw span { display: block; font-family: var(--mono); font-size: 22px; color: var(--muted); line-height: 1.2; }
+  #composition .spec { font-family: var(--mono); font-size: 26px; color: var(--muted); white-space: nowrap; }
+  #composition .type-grid { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 40px; row-gap: 10px; }
+  #composition .arrow { font-size: 44px; font-weight: 800; color: var(--muted); }
+</style>
+</head>
+<body>
+<main id="composition" data-chapter-bar>
+
+  <!-- ───────── デザイン ───────── -->
+
+  <section data-scene="d-color">
+    <h2 class="h" data-at="0">色は、<span class="c-cyan">意味</span>で使う</h2>
+    <div style="margin-top:24px">
+      <div class="sw-row" data-at="1"><div class="kicker">土台</div>
+        <div class="sw" data-var="--paper"></div><div class="sw" data-var="--paper-deep"></div><div class="sw" data-var="--ink"></div><div class="sw" data-var="--muted"></div><div class="sw" data-var="--line"></div><div class="sw" data-var="--white"></div></div>
+      <div class="sw-row" data-at="2"><div class="kicker c-cyan">主役・強調</div>
+        <div class="sw" data-var="--cyan"></div><div class="sw" data-var="--cyan-deep"></div><div class="sw" data-var="--cyan-soft"></div></div>
+      <div class="sw-row" data-at="2" data-delay="6"><div class="kicker c-coral">問題・注意</div>
+        <div class="sw" data-var="--coral"></div><div class="sw" data-var="--coral-deep"></div><div class="sw" data-var="--coral-soft"></div></div>
+      <div class="sw-row" data-at="2" data-delay="12"><div class="kicker c-yellow">補足</div>
+        <div class="sw" data-var="--yellow"></div><div class="sw" data-var="--yellow-deep"></div><div class="sw" data-var="--yellow-soft"></div></div>
+      <div class="sw-row" data-at="2" data-delay="18"><div class="kicker c-green">解決・良い点</div>
+        <div class="sw" data-var="--green"></div><div class="sw" data-var="--green-deep"></div><div class="sw" data-var="--green-soft"></div></div>
+      <div class="sw-row" data-at="3"><div class="kicker">コード</div>
+        <div class="sw" data-var="--panel"></div><div class="sw" data-var="--panel-line"></div><div class="sw" data-var="--term"></div><div class="sw" data-var="--code-plain"></div></div>
+    </div>
+  </section>
+
+  <section data-scene="d-type">
+    <div class="type-grid">
+      <div class="display" data-at="0">大きな題名</div><div class="spec" data-at="0">.display 130px</div>
+      <h2 class="h" data-at="1">見出しは<span class="c-cyan">左上</span>に置く</h2><div class="spec" data-at="1">.h 68px</div>
+      <div class="title-bar cyan" data-at="1" data-delay="6"><div><div class="kicker">小さなラベル</div><div class="h">色帯つきの見出し</div></div></div><div class="spec" data-at="1" data-delay="6">.title-bar .h 62px</div>
+      <div class="sub" data-at="2">小見出しは色付きで 34px</div><div class="spec" data-at="2">.sub 34px</div>
+      <div style="font-size:42px;font-weight:800" data-at="2" data-delay="6">カードの本文は 40〜52px、<span class="kw">kw</span> はコードの語</div><div class="spec" data-at="2" data-delay="6">.card.bold 42px</div>
+      <div class="mono" style="font-size:40px" data-at="3">ctx.Done() // JetBrains Mono</div><div class="spec" data-at="3">.mono</div>
+      <div class="note" data-at="3" data-delay="6">注記がいちばん小さい。28px より小さい文字は使わない</div><div class="spec" data-at="3" data-delay="6">.note 28px</div>
+    </div>
+  </section>
+
+  <section data-scene="d-box">
+    <h2 class="h" data-at="0">箱は、太い枠と<span class="c-cyan">ずらした影</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:26px;margin-top:40px" data-at="1" data-stagger="6">
+      <div class="card"><h3>card</h3><p>白</p></div>
+      <div class="card cyan"><h3>cyan</h3><p>主役</p></div>
+      <div class="card yellow"><h3>yellow</h3><p>補足</p></div>
+      <div class="card coral"><h3>coral</h3><p>問題</p></div>
+      <div class="card green"><h3>green</h3><p>解決</p></div>
+      <div class="card dark"><h3>dark</h3><p>濃紺</p></div>
+    </div>
+    <div style="display:flex;gap:40px;margin-top:56px;align-items:flex-start">
+      <div class="tile cyan" style="width:400px" data-at="2" data-anim="scale"><div class="label">.tile（数字）</div><div class="value"><span data-at="2" data-anim="count" data-to="58">0</span>万<small>時間</small></div><div class="sub-text">ラベル・値・補足</div></div>
+      <div data-at="2" data-delay="8" data-anim="scale"><div class="counter-label">.counter</div><div class="counter">42</div></div>
+      <div data-at="3" data-anim="pop"><div class="quote">.quote は標語や引用に</div><div class="quote-en">Don't communicate by sharing memory.</div></div>
+    </div>
+  </section>
+
+  <section data-scene="d-parts">
+    <h2 class="h" data-at="0">小さな部品</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px">
+      <div style="display:grid;gap:30px;align-content:start">
+        <div style="display:flex;gap:16px;flex-wrap:wrap" data-at="1" data-stagger="4"><span class="bubble">bubble</span><span class="bubble cyan">cyan</span><span class="bubble coral">coral</span><span class="bubble yellow">yellow</span><span class="bubble green">green</span></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap" data-at="1" data-delay="12" data-stagger="4"><span class="chip">chip</span><span class="chip mono cyan">chip.mono</span><span class="chip coral">coral</span><span class="chip sm green">chip.sm</span></div>
+        <div style="font-size:40px;font-weight:700" data-at="1" data-delay="24">文中の <span class="kw">kw</span> <span class="kw cyan">cyan</span> <span class="kw coral">coral</span> <span class="kw dark">dark</span></div>
+        <div style="display:flex;gap:18px;align-items:center" data-at="2"><span class="num">1</span><span class="num">2</span><span class="num">3</span><span class="next-link" style="margin-left:24px">.next-link 次へ</span></div>
+      </div>
+      <div style="display:grid;gap:36px;align-content:start">
+        <div class="points" data-at="2" data-stagger="6"><div class="point good">.point.good 良い点</div><div class="point bad">.point.bad 注意点</div><div class="point note">.point.note 補足</div></div>
+        <div class="title-bar coral" data-at="3" data-anim="left"><div><div class="kicker">.title-bar.coral</div><div class="h">色帯つきの見出し</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="d-runner">
+    <h2 class="h" data-at="0">動く部品：<span class="c-cyan">キャラクター</span>と飾り</h2>
+    <div style="display:flex;gap:70px;align-items:flex-end;margin-top:50px" data-at="1" data-stagger="6">
+      <div style="text-align:center"><div class="runner" data-size="120"></div><div class="spec">.runner</div></div>
+      <div style="text-align:center"><div class="runner" data-size="120" data-color="cyan" data-seed="2"></div><div class="spec">cyan</div></div>
+      <div style="text-align:center"><div class="runner" data-size="120" data-color="coral" data-seed="4"></div><div class="spec">coral</div></div>
+      <div style="text-align:center"><div class="runner" data-size="120" data-color="yellow" data-hat data-seed="6"></div><div class="spec">data-hat</div></div>
+      <div style="text-align:center"><div class="runner" data-size="120" data-color="green" data-sleepy data-seed="8"></div><div class="spec">data-sleepy</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:60px;margin-top:70px;align-items:end">
+      <div data-at="2"><div class="spec" style="margin-bottom:12px">.wave</div><div class="wave" data-bars="36" data-height="110" data-color="cyan"></div></div>
+      <div class="gauge" data-label="メモリ" data-value="9.6" data-max="16" data-unit="GB" data-color="green" data-at="2" data-delay="8"></div>
+      <div data-at="3"><div class="spec" style="margin-bottom:12px">.tiles</div><div class="tiles" data-count="48" data-cols="12" data-color="coral" data-fill="3"></div></div>
+    </div>
+  </section>
+
+  <section data-scene="d-code">
+    <h2 class="h" data-at="0">動く部品：<span class="c-cyan">コード</span>とターミナル</h2>
+    <div style="display:flex;gap:44px;margin-top:34px;align-items:flex-start">
+      <pre class="code" data-title="main.go" data-lang="go" data-width="1040" data-size="30" data-focus="1:1-3; 2:5-7" data-at="0" data-delay="8">
+func main() {
+	ch := make(chan int)
+	go worker(ch)
+	// 結果を待つ
+	for v := range ch {
+		fmt.Println(v)
+	}
+}
+</pre>
+      <div class="terminal" data-show="0" data-at="3" data-command="go run main.go" data-width="620" data-size="30">
+        <div data-at="3" data-delay="24" class="dim">1</div>
+        <div data-at="3" data-delay="32" class="dim">2</div>
+        <div data-at="3" data-delay="40" class="ok">done</div>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="d-chart">
+    <h2 class="h" data-at="0">動く部品：<span class="c-cyan">時間の帯</span>と横棒</h2>
+    <div class="gantt" data-max="12" data-ticks="0,4,8,12" data-unit="分" data-width="1720" data-label-width="220" data-row-height="80" style="margin-top:40px" data-at="0" data-delay="8" data-anim="fade">
+      <div data-label="順番"><div class="bar" data-color="cyan" data-start="0" data-end="4" data-at="1" data-anim="wipe">A</div><div class="bar" data-color="yellow" data-hatch data-start="4" data-end="8" data-at="1" data-delay="10" data-anim="wipe"><span>待つ</span></div><div class="bar" data-color="cyan" data-start="8" data-end="12" data-at="1" data-delay="20" data-anim="wipe">B</div></div>
+      <div data-label="同時"><div class="bar" data-color="green" data-start="0" data-end="4" data-at="2" data-anim="wipe">A</div></div>
+    </div>
+    <div class="hbars" data-max="1.8" data-width="1100" data-label-width="280" style="margin-top:40px">
+      <div data-label="VoxCPM2" data-value="0.33" data-color="cyan" data-at="3">0.33秒</div>
+      <div data-label="S2 Pro" data-value="1.7" data-color="coral" data-hatch data-at="3" data-delay="8">1.7秒</div>
+    </div>
+  </section>
+
+  <!-- ───────── 構図（style.md の「シーンの型」） ───────── -->
+
+  <section data-scene="c-cover" data-chrome="none" data-transition="slide">
+    <div style="position:absolute;left:0;right:0;top:170px;text-align:center">
+      <div class="sub" style="font-size:40px" data-at="start" data-anim="fade">小見出しを上に</div>
+      <div class="display" data-at="start" data-delay="6">大きな題名 <span class="mono">title</span></div>
+    </div>
+    <div class="diagram" style="position:absolute;left:230px;top:470px;width:1460px;height:300px">
+      <svg width="1460" height="300" viewBox="0 0 1460 300">
+        <path id="cv-main" d="M0 150 L560 150" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="0" data-anim="draw" data-dur="40"/>
+        <path id="cv-up" d="M560 150 C 680 150, 660 50, 800 50 L1400 50" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="1" data-anim="draw" data-dur="40"/>
+        <path id="cv-down" d="M560 150 C 680 150, 660 250, 800 250 L1400 250" fill="none" stroke="var(--coral)" stroke-width="8" stroke-linecap="round" data-at="1" data-anim="draw" data-dur="40"/>
+      </svg>
+      <div class="runner at" data-size="84" data-at="0" data-anim="follow" data-follow="#cv-main" data-anchor="bottom" data-dur="40" data-until="1"></div>
+      <div class="runner at" data-size="84" data-color="cyan" data-seed="2" data-at="1" data-anim="follow" data-follow="#cv-up" data-anchor="bottom" data-dur="40"></div>
+      <div class="runner at" data-size="84" data-color="coral" data-seed="4" data-at="1" data-anim="follow" data-follow="#cv-down" data-anchor="bottom" data-dur="40"></div>
+    </div>
+  </section>
+
+  <section data-scene="c-roadmap">
+    <h2 class="h" data-at="0">今日の道のり</h2>
+    <div class="sub muted" data-at="0" data-delay="8">進むステップは 3つ</div>
+    <div class="roadmap" style="margin-top:56px;width:1560px">
+      <div class="stop" data-at="1"><div class="num">1</div><div class="card cyan"><h3>知る</h3><p>まず全体をつかむ</p></div></div>
+      <div class="stop" data-at="2"><div class="num">2</div><div class="card yellow"><h3>試す</h3><p>手を動かして確かめる</p></div></div>
+      <div class="stop" data-at="3"><div class="num">3</div><div class="card green"><h3>使う</h3><p>自分の仕事に当てはめる</p></div></div>
+    </div>
+  </section>
+
+  <section data-scene="c-gantt">
+    <h2 class="h" data-at="0">順番にやると、<span class="c-coral">待ち時間</span>が長い</h2>
+    <div class="gantt" data-max="12" data-ticks="0,3,6,9,12" data-unit="分" data-width="1720" data-label-width="220" style="margin-top:60px" data-at="0" data-delay="8" data-anim="fade">
+      <div data-label="順番"><div class="bar" data-color="cyan" data-start="0" data-end="4" data-at="1" data-anim="wipe">炊く</div><div class="bar" data-color="yellow" data-hatch data-start="4" data-end="8" data-at="1" data-delay="10" data-anim="wipe"><span>待つ</span></div><div class="bar" data-color="cyan" data-start="8" data-end="12" data-at="1" data-delay="20" data-anim="wipe">焼く</div></div>
+      <div data-label="同時"><div class="bar" data-color="green" data-start="0" data-end="4" data-at="2" data-anim="wipe">炊く</div></div>
+      <div data-label=""><div class="bar" data-color="green" data-start="0" data-end="4" data-at="2" data-delay="8" data-anim="wipe">焼く</div></div>
+    </div>
+    <div class="card yellow bold" style="position:absolute;right:var(--safe-x);bottom:calc(var(--safe-bottom) + 20px)" data-at="3" data-anim="pop">同時なら 4分で終わる</div>
+  </section>
+
+  <section data-scene="c-persona">
+    <h2 class="h" data-at="0">一人ひとりが、<span class="c-cyan">別の仕事</span>をする</h2>
+    <div style="display:flex;gap:110px;align-items:flex-end;margin-top:90px;padding-left:60px">
+      <div style="text-align:center" data-at="1"><div class="runner" data-size="150" data-color="cyan" data-hat data-seed="1"></div><div style="margin-top:20px"><span class="bubble cyan">料理する</span></div></div>
+      <div style="text-align:center" data-at="1" data-delay="8"><div class="runner" data-size="150" data-color="green" data-hat data-seed="3"></div><div style="margin-top:20px"><span class="bubble green">盛り付ける</span></div></div>
+      <div style="text-align:center" data-at="2"><div class="runner" data-size="150" data-color="coral" data-sleepy data-seed="5"></div><div style="margin-top:20px"><span class="bubble coral">待っている</span></div></div>
+    </div>
+    <div class="card yellow bold" style="position:absolute;right:var(--safe-x);top:300px;width:460px" data-at="3" data-anim="right">寝ている人は、<br>呼ばれたら起きる</div>
+  </section>
+
+  <section data-scene="c-contrast">
+    <h2 class="h" data-at="0"><span class="c-cyan">こうする</span>と、<span class="c-coral">こうしない</span></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:50px">
+      <div class="card cyan" style="min-height:420px" data-at="1" data-anim="left"><h3>こうする</h3><p>終わったら、合図で知らせる</p><div style="margin-top:40px;display:flex;gap:30px"><div class="runner" data-size="110" data-color="cyan"></div><span class="bubble green" style="align-self:center">すぐ気づく</span></div></div>
+      <div class="card coral" style="min-height:420px" data-at="2" data-anim="right"><h3>こうしない</h3><p>時間を決めて、待ち続ける</p><div style="margin-top:40px;display:flex;gap:30px"><div class="runner" data-size="110" data-color="coral" data-sleepy></div><span class="bubble" style="align-self:center">気づかない</span></div></div>
+    </div>
+  </section>
+
+  <section data-scene="c-code">
+    <h2 class="h" data-at="0">コードは、<span class="c-cyan">今の行</span>だけを見せる</h2>
+    <div style="display:flex;gap:44px;margin-top:34px;align-items:flex-start">
+      <pre class="code" data-title="main.go" data-lang="go" data-width="1040" data-size="30" data-focus="1:2; 2:3; 3:5-7" data-at="0" data-delay="8">
+var wg sync.WaitGroup
+wg.Add(1)
+go func() {
+	defer wg.Done()
+	work()
+}()
+wg.Wait()
+</pre>
+      <div style="position:relative;width:600px">
+        <div class="card yellow" style="position:absolute;left:0;top:0;width:600px" data-at="1" data-until="2" data-anim="right"><h3>数を決める</h3><p><span class="kw">Add</span> で1つ増やす</p></div>
+        <div class="card cyan" style="position:absolute;left:0;top:0;width:600px" data-at="2" data-until="3" data-anim="right"><h3>別の流れで動かす</h3><p><span class="kw">go</span> で分かれる</p></div>
+        <div class="card green" style="position:absolute;left:0;top:0;width:600px" data-at="3" data-anim="right"><h3>終わりを待つ</h3><p><span class="kw">Wait</span> で合流する</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="c-number" data-transition="wipe">
+    <div class="title-bar green" data-at="0" data-anim="left"><div><div class="kicker">数字で見る</div><div class="h">1文字あたりの生成時間</div></div></div>
+    <div style="display:flex;gap:40px;margin-top:60px">
+      <div class="tile cyan" style="width:440px" data-at="1" data-anim="scale"><div class="label">VoxCPM2</div><div class="value">約<span data-at="1" data-anim="count" data-to="0.33">0</span><small>秒</small></div><div class="sub-text">ふだんはこれ</div></div>
+      <div class="tile green" style="width:440px" data-at="1" data-delay="8" data-anim="scale"><div class="label">OmniVoice</div><div class="value">約<span data-at="1" data-delay="8" data-anim="count" data-to="0.30">0</span><small>秒</small></div><div class="sub-text">軽い</div></div>
+      <div class="tile coral" style="width:440px" data-at="2" data-anim="scale"><div class="label">S2 Pro</div><div class="value">約<span data-at="2" data-anim="count" data-to="1.7">0</span><small>秒</small></div><div class="sub-text">遅いが表現が豊か</div></div>
+    </div>
+    <div class="gauge" data-label="メモリ（VoxCPM2）" data-value="14" data-max="24" data-unit="GB" data-color="cyan" data-width="1400" style="margin-top:56px" data-at="3"></div>
+  </section>
+
+  <section data-scene="c-quote">
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:60px">
+      <div class="quote" data-at="0" data-anim="pop">メモリを共有して通信するのではなく、<br>通信してメモリを共有する</div>
+      <div class="quote-en" data-at="1" data-anim="fade">Don't communicate by sharing memory; share memory by communicating.</div>
+    </div>
+  </section>
+
+  <section data-scene="c-chapter" data-transition="slide">
+    <div class="statement" data-at="0" data-anim="scale">つまずきやすい<span class="c-coral">落とし穴</span>を2つ</div>
+  </section>
+
+  <section data-scene="c-pitfall">
+    <h2 class="h" data-at="0">落とし穴：<span class="c-coral">同時に書く</span>と、数が消える</h2>
+    <div style="display:flex;gap:80px;margin-top:60px;align-items:center">
+      <div style="display:grid;gap:34px">
+        <div style="display:flex;gap:18px;align-items:center" data-at="1" data-stagger="6"><span class="bubble cyan">A</span><span class="chip mono">読む 0</span><span class="arrow">→</span><span class="chip mono">足す 1</span><span class="arrow">→</span><span class="chip mono">書く 1</span></div>
+        <div style="display:flex;gap:18px;align-items:center" data-at="2" data-stagger="6"><span class="bubble coral">B</span><span class="chip mono">読む 0</span><span class="arrow">→</span><span class="chip mono">足す 1</span><span class="arrow">→</span><span class="chip mono coral">書く 1</span></div>
+      </div>
+      <div data-at="3" data-anim="scale"><div class="counter-label">count</div><div class="counter"><span data-at="3" data-anim="count" data-from="0" data-to="1">0</span></div></div>
+    </div>
+    <div class="point bad" style="margin-top:56px" data-at="3" data-delay="12">2回足したのに、1しか増えていない</div>
+  </section>
+
+  <section data-scene="c-summary" data-transition="iris">
+    <h2 class="h" data-at="0">今日のまとめ</h2>
+    <div class="summary" style="margin-top:40px;width:1500px">
+      <div class="row" data-at="1"><div class="key">go</div><div class="val">別の流れで動かす</div></div>
+      <div class="row" data-at="2"><div class="key">chan</div><div class="val">流れのあいだで値を渡す</div></div>
+      <div class="row" data-at="3"><div class="key">WaitGroup</div><div class="val">全部が終わるのを待つ</div></div>
+    </div>
+  </section>
+
+  <section data-scene="c-next">
+    <h2 class="h" data-at="0">次の一歩</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:50px" data-at="1" data-stagger="8">
+      <div class="card"><div class="mono-title">select</div><p>複数の合図を待つ</p></div>
+      <div class="card"><div class="mono-title">context</div><p>止める合図を届ける</p></div>
+      <div class="card"><div class="mono-title">errgroup</div><p>エラーをまとめて扱う</p></div>
+    </div>
+    <div class="next-link" style="margin-top:56px" data-at="1" data-delay="30" data-anim="words" data-dur="24">次は、自分のコードで試してみる</div>
+  </section>
+
+</main>
+
+<script>
+// ───────── 見本帳の中身（一覧の説明とプレイヤーの字幕はここだけに書く） ─────────
+const CATALOG = [
+  { id: 'd-color', chapter: 'デザイン', label: '色', desc: '色は変数と意味の組。青＝主役、赤＝問題、黄＝補足、緑＝解決。',
+    lines: ['色は、変数と意味の組で決まっています。', '土台は、紙の色と墨の色です。', '青は主役、赤は問題、黄は補足、緑は解決に使います。', 'コードとターミナルは、濃紺の箱です。'] },
+  { id: 'd-type', chapter: 'デザイン', label: '文字', desc: '題名・見出し・小見出し・本文・注記の大きさ。28px 未満は使わない。',
+    lines: ['題名は、とても大きく置きます。', '見出しは左上に、色帯つきの見出しもあります。', '小見出しと本文は、太い字で読みやすく。', 'コードは等幅の字、注記がいちばん小さい字です。'] },
+  { id: 'd-box', chapter: 'デザイン', label: '箱', desc: 'カード・数字のタイル・カウンター・引用。太い枠とぼかさない影。',
+    lines: ['箱は、太い枠とずらした影で描きます。', 'カードの色は、意味の色と同じです。', '数字は、タイルやカウンターで大きく見せます。', '標語や引用は、中央の箱にします。'] },
+  { id: 'd-parts', chapter: 'デザイン', label: '小さな部品', desc: '吹き出し・タグ・コードの語・番号・良い点と注意点・色帯の見出し。',
+    lines: ['小さな部品を並べます。', '吹き出し、タグ、文中のコードの語です。', '番号と、良い点や注意点の行です。', '色帯の見出しは、色を変えて使えます。'] },
+  { id: 'd-runner', chapter: 'デザイン', label: '動く部品：キャラクターと飾り', desc: '走るキャラクター（色・帽子・寝ている）、波形、ゲージ、升目。',
+    lines: ['動く部品の一つめは、キャラクターです。', '色を変えたり、帽子をかぶせたり、寝かせたりできます。', '波形とゲージは、ゆっくり動く飾りです。', '升目は、文の長さに合わせて埋まります。'] },
+  { id: 'd-code', chapter: 'デザイン', label: '動く部品：コードとターミナル', desc: '文ごとに強調する行が移るコードと、打ち込まれるターミナル。',
+    lines: ['コードは、濃紺の箱に表示します。', '文ごとに、強調する行が移ります。', '強調されていない行は、薄くなります。', 'ターミナルは、文字を打ってから結果を出します。'] },
+  { id: 'd-chart', chapter: 'デザイン', label: '動く部品：時間の帯と横棒', desc: 'ガント（待ち時間は斜線）と横棒グラフ。棒は文に合わせて伸びる。',
+    lines: ['時間の帯は、左から伸びていきます。', '待ち時間は、斜線で表します。', '同時にやると、帯が短くなります。', '横棒グラフは、数の比較に使います。'] },
+
+  { id: 'c-cover', chapter: '構図', label: '表紙', desc: '章バーなし。中央に小見出しと大きな題名、下に分かれる線と走者。',
+    lines: ['表紙は、中央に大きな題名を置きます。', '下の線が分かれて、走者が進みます。'] },
+  { id: 'c-roadmap', chapter: '構図', label: '道のり', desc: '見出しと小見出し、番号つきのカードを文ごとに1つずつ。',
+    lines: ['最初に、今日の道のりを見せます。', '一つめのカードです。', '二つめのカードです。', '三つめのカードです。'] },
+  { id: 'c-gantt', chapter: '構図', label: '時間の比較', desc: 'ガントで「順番」と「同時」を比べ、右下に結論のカード。',
+    lines: ['時間の比較は、帯を並べて見せます。', '順番にやると、待ち時間ができます。', '同時にやると、短く終わります。', '結論は、右下のカードで言い切ります。'] },
+  { id: 'c-persona', chapter: '構図', label: '擬人化', desc: 'キャラクターを並べ、吹き出しで役目を付ける。寝ている＝待っている。',
+    lines: ['処理を、キャラクターにして見せます。', '帽子をかぶった二人が、それぞれ仕事をします。', '寝ている一人は、待っている処理です。', '補足は、右のカードに書きます。'] },
+  { id: 'c-contrast', chapter: '構図', label: '対比', desc: '左右に青と赤のカード。左を文1、右を文2で出す。',
+    lines: ['二つのやり方を、左右に並べて比べます。', '左は、こうする場合です。', '右は、こうしない場合です。'] },
+  { id: 'c-code', chapter: '構図', label: 'コードの解説', desc: '左にコード、右に注釈のカード。注釈は文ごとに差し替える。',
+    lines: ['コードは、今の行だけを強調して見せます。', 'まず、待つ数を決めます。', '次に、別の流れで動かします。', '最後に、終わりを待ちます。'] },
+  { id: 'c-number', chapter: '構図', label: '数字', desc: '色帯つきの見出しと、数字のタイル・ゲージ。数字は数え上げる。',
+    lines: ['数字は、色帯つきの見出しの下に並べます。', 'タイルの数字は、数え上げて出ます。', '比べたい数字は、色を変えます。', '量は、ゲージで見せます。'] },
+  { id: 'c-quote', chapter: '構図', label: '標語', desc: '中央に引用の箱、下に原文。',
+    lines: ['標語は、中央に大きく置きます。', '下に、原文を小さく添えます。'] },
+  { id: 'c-chapter', chapter: '構図', label: '章扉', desc: '画面いっぱいの一文。大事な語に色を付ける。',
+    lines: ['章の変わり目は、一文だけを大きく見せます。'] },
+  { id: 'c-pitfall', chapter: '構図', label: '落とし穴', desc: '見出しに赤の語、手順のタグと矢印、変わる数字のカウンター。',
+    lines: ['落とし穴は、手順を並べて見せます。', '一つめの流れが、読んで、足して、書きます。', '二つめの流れも、同じ値を読んでしまいます。', 'その結果、数が一つ消えます。'] },
+  { id: 'c-summary', chapter: '構図', label: 'まとめ', desc: 'キーと値の表を、文ごとに1行。キーは等幅。',
+    lines: ['最後に、今日の内容をまとめます。', '一行めです。', '二行めです。', '三行めです。'] },
+  { id: 'c-next', chapter: '構図', label: '次の一歩', desc: 'タイトルが等幅のカードを3つ順に出し、次へのリンク。',
+    lines: ['次の一歩を、三つのカードで見せます。', '最後に、次へのリンクを添えます。'] },
+];
+
+(function () {
+  'use strict';
+  const q = new URLSearchParams(location.search);
+  const VIEW = q.has('render') || q.has('play');
+  const RUNTIME = '../../runtime/', BASE = '../base/', OWN = 'motion/';
+
+  // 時間軸：1文 = 2.5秒、シーンの頭 0.6秒・末尾 1秒
+  const FPS = 30, LEAD = 18, CUE = 75, TAIL = 30;
+  let cursor = 0;
+  const scenes = CATALOG.map((c) => {
+    const cues = c.lines.map((text, i) => ({ text, start: LEAD + i * CUE, end: LEAD + i * CUE + CUE - 12 }));
+    const sc = { id: c.id, chapter: c.chapter, start: cursor, duration: LEAD + c.lines.length * CUE + TAIL, cues };
+    cursor += sc.duration;
+    return sc;
+  });
+  const TIMELINE = { version: 1, title: document.title, fps: FPS, width: 1920, height: 1080, totalFrames: cursor, audio: null, estimated: [], scenes };
+
+  if (!VIEW) { buildCatalog(); return; }
+
+  // ───────── 再生・1フレームの書き出し：実行系を読み込んで起動する ─────────
+  window.MOTION_TIMELINE = TIMELINE;
+  const css = [RUNTIME + 'motion.css', BASE + 'player.css', OWN + 'kit.css'];
+  const js = [RUNTIME + 'motion.js', OWN + 'kit.js'];
+  document.documentElement.style.visibility = 'hidden';
+  const load = (tag, attrs) => new Promise((res, rej) => {
+    const el = Object.assign(document.createElement(tag), attrs);
+    el.onload = res; el.onerror = () => rej(new Error('読み込めません: ' + (attrs.href || attrs.src)));
+    (tag === 'link' ? document.head : document.body).appendChild(el);
+  });
+  Promise.all(css.map((href) => load('link', { rel: 'stylesheet', href })))
+    .then(() => js.reduce((p, src) => p.then(() => load('script', { src, async: false })), Promise.resolve()))
+    .then(() => {
+      // 見本帳だけの部品：色の見本（変数の値をその場で読む）
+      Motion.component('.sw', (el) => {
+        const name = el.dataset.var;
+        const value = getComputedStyle(document.getElementById('composition')).getPropertyValue(name).trim();
+        el.innerHTML = `<i style="background:var(${name})"></i><div><b>${name}</b><span>${value}</span></div>`;
+      });
+      Motion.start();
+      document.documentElement.style.visibility = '';
+      const id = q.get('scene');
+      const sc = id && scenes.find((s) => s.id === id);
+      // シーンの切り替え（既定18フレーム）が終わった所から見せる
+      if (sc && window.__motionPlayer) window.__motionPlayer.seek(sc.start + LEAD + 6);
+    })
+    .catch((e) => { document.documentElement.style.visibility = ''; document.body.textContent = e.message; });
+
+  // ───────── 一覧：各シーンの最後のフレームを縮小して並べる ─────────
+  function buildCatalog() {
+    document.body.classList.add('catalog');
+    const h = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text != null) el.textContent = text; return el; };
+    const head = h('header', 'cat-head');
+    head.append(h('h1', null, 'default テンプレートの見本帳'));
+    const p = h('p');
+    p.append('デザイン（色・文字・部品）と構図（style.md の「シーンの型」）。図は各シーンの完成形。動きは ');
+    const all = h('a', null, 'プレイヤーで全部を再生');
+    all.href = '?play';
+    p.append(all, ' で見られます。');
+    head.append(p);
+    document.body.prepend(head);
+
+    const groups = [
+      ['デザイン', '色・文字・箱・部品。kit.css と kit.js にあるもの。'],
+      ['構図', 'style.md の「シーンの型」。手本の動画でよく使う組み立て方。'],
+    ];
+    let before = document.getElementById('composition');
+    groups.forEach(([chapter, note]) => {
+      const sec = h('section', 'cat-sec');
+      sec.append(h('h2', null, chapter), h('p', null, note));
+      const grid = h('div', 'cat-grid');
+      CATALOG.filter((c) => c.chapter === chapter).forEach((c) => {
+        const sc = scenes.find((s) => s.id === c.id);
+        const item = h('article', 'cat-item');
+        const thumb = h('a', 'cat-thumb');
+        thumb.href = '?play&scene=' + c.id;
+        const frame = h('iframe');
+        frame.loading = 'lazy';
+        frame.tabIndex = -1;
+        frame.src = `?render=1&subtitles=0&frame=${sc.start + sc.duration - 1}`;
+        thumb.append(frame);
+        const body = h('div', 'cat-body');
+        const title = h('div', 'cat-title', c.label);
+        title.append(h('code', null, c.id));
+        const play = h('a', 'cat-play', '動きを見る');
+        play.href = '?play&scene=' + c.id;
+        body.append(title, h('div', 'cat-desc', c.desc), play);
+        item.append(thumb, body);
+        grid.append(item);
+      });
+      sec.append(grid);
+      before.before(sec);
+    });
+    // 縮小率は枠の幅に合わせる
+    const fit = () => document.querySelectorAll('.cat-thumb').forEach((t) => { t.firstChild.style.transform = `scale(${t.clientWidth / 1920})`; });
+    window.addEventListener('resize', fit);
+    fit();
+  }
+})();
+</script>
+</body>
+</html>
