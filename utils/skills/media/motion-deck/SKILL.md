@@ -148,4 +148,5 @@ node "<motion-deck>/scripts/motion.mjs" timeline <フォルダ>
 | `template/default/style.md` | 見た目の決まり：骨格、色と文字、部品の一覧、シーンの型、動きの決まり | シーンを書く・直すとき（必ず） |
 | `template/default/motion/` | 今の見た目：kit.css（色・文字・部品・章バー・字幕）、kit.js（部品）、fonts/（JetBrains Mono、OFL） | 見た目・部品を直すとき |
 | `template/default/deck/` | `init`で配る雛形（手本の動画の型の見本） | 雛形を変えるとき |
+| `template/default/index.html` | defaultの見本帳（デザインと構図を一覧で見る。人が見るためのもので、実装では読まない） | 見た目を確かめるとき |
 | `scripts/motion.mjs` | すべてのコマンド | 実行、改修 |
