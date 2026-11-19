@@ -1081,9 +1081,14 @@
     return b;
   }
 
+  // 色の並びは template/base/player.css の --md-chapter-palette
+  let chapterPalette = null;
   function chapterColor(i) {
-    const palette = ['#0B84F3', '#7C5CFF', '#14B8A6', '#F59E0B', '#EF4444', '#22C55E', '#EC4899', '#06B6D4'];
-    return palette[i % palette.length];
+    if (!chapterPalette) {
+      chapterPalette = getComputedStyle(document.documentElement).getPropertyValue('--md-chapter-palette').split(',').map((c) => c.trim()).filter(Boolean);
+      if (!chapterPalette.length) chapterPalette = ['gray'];
+    }
+    return chapterPalette[i % chapterPalette.length];
   }
 
   function chapterList() {
@@ -1810,24 +1815,13 @@
   //
   // about:blank のウィンドウは開いた側と同じオリジンになるので、file:// でも直接DOMを操作できる。
 
-  const NOTES_CSS = `
-    *{box-sizing:border-box} body{margin:0;background:#111418;color:#e6e9ee;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;height:100vh;display:grid;grid-template-rows:auto 1fr auto}
-    header{display:flex;gap:16px;align-items:baseline;padding:12px 20px;border-bottom:1px solid #2b3038}
-    .clock{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums}
-    .meta{color:#8b93a1} .grow{flex:1}
-    main{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;padding:20px;overflow:hidden;min-height:0}
-    .col{overflow:auto;min-height:0}
-    h3{margin:0 0 6px;font-size:13px;color:#8b93a1;font-weight:600;letter-spacing:.05em}
-    .now{font-size:28px;font-weight:700;line-height:1.5;margin-bottom:22px}
-    .next{font-size:22px;color:#9ecbff;line-height:1.5;margin-bottom:22px}
-    .next small{display:block;color:#8b93a1;font-size:13px}
-    .note{background:#1e2228;border-left:4px solid #f59e0b;padding:10px 14px;border-radius:6px;margin-bottom:16px;white-space:pre-wrap}
-    ol{margin:0;padding-left:1.6em} li{margin:0 0 8px;color:#8b93a1} li.done{color:#5c6470} li.cur{color:#fff;font-weight:700} li.nx{color:#9ecbff}
-    footer{display:flex;gap:10px;padding:12px 20px;border-top:1px solid #2b3038;align-items:center}
-    button{background:#1e2228;color:#e6e9ee;border:1px solid #2b3038;border-radius:8px;padding:10px 18px;font:inherit;cursor:pointer}
-    button.primary{background:#0b84f3;border-color:#0b84f3;color:#fff;font-weight:700;flex:1}
-    .badge{color:#fbbf24}
-  `;
+  // 見た目は template/base/player.css の .md-notes。開いた側の player.css を写して当てる
+  // （ふだんは <link>、bundle では data-src の付いた <style>）
+  function copyPlayerCss(d) {
+    const src = document.querySelector('link[rel="stylesheet"][href$="motion/player.css"], style[data-src="motion/player.css"]');
+    if (!src) { report('発表者ビューの見た目（motion/player.css）が読み込まれていません'); return; }
+    d.head.appendChild(src.tagName === 'LINK' ? h('link', { rel: 'stylesheet', href: src.href }, null, d) : h('style', { text: src.textContent }, null, d));
+  }
 
   function openNotes() {
     if (state.notes && !state.notes.closed) { state.notes.focus(); return; }
@@ -1838,7 +1832,8 @@
     d.open();
     d.write('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>発表者ビュー</title></head><body></body></html>');
     d.close();
-    d.head.appendChild(h('style', { text: NOTES_CSS }, null, d));
+    copyPlayerCss(d);
+    d.body.className = 'md-notes';
     const el = (tag, cls, text) => h(tag, Object.assign({}, cls ? { class: cls } : {}, text != null ? { text } : {}), null, d);
     const clock = el('div', 'clock', '0:00');
     const step = el('div', 'meta');

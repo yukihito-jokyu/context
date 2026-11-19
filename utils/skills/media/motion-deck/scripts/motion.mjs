@@ -1149,7 +1149,7 @@ function cmdBundle(pos, opt) {
     if (!href || !isLocal(href[1])) return tag;
     const f = path.resolve(P.root, href[1]);
     if (!exists(f)) fail(`見つかりません: ${href[1]}`);
-    return `<style>\n${inlineCssUrls(fs.readFileSync(f, 'utf8'), path.dirname(f))}\n</style>`;
+    return `<style data-src="${href[1]}">\n${inlineCssUrls(fs.readFileSync(f, 'utf8'), path.dirname(f))}\n</style>`;
   });
   html = html.replace(/<script\s+[^>]*src=["']([^"']+)["'][^>]*><\/script>/g, (tag, src) => {
     if (!isLocal(src)) return tag;
