@@ -187,10 +187,12 @@ function bootLists() {
   return { css: arr('CSS'), js: arr('JS') };
 }
 
-// deck/motion/ に配るもの：実行系＋外枠の機能の見た目（base）
+// deck/motion/ に配るもの：実行系（ロジック）＋外枠の機能の見た目（base）＋テンプレートの見た目（default）
+const TEMPLATE = 'default';
 const MOTION_SOURCES = [
   path.join(SKILL, 'runtime'),
   path.join(SKILL, 'template', 'base'),
+  path.join(SKILL, 'template', TEMPLATE, 'motion'),
 ];
 
 const walkFiles = (dir, rel = '') => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walkFiles(path.join(dir, e.name), rel + e.name + '/') : [rel + e.name]);
@@ -216,7 +218,7 @@ function copyMotion(P) {
   }
 }
 
-/** deck/motion/ がスキルの runtime/ ＋ template/base/ と完全に同じか（版の照合） */
+/** deck/motion/ がスキルの runtime/ ＋ template/base/ ＋ テンプレートの motion/ と完全に同じか（版の照合） */
 function runtimeDrift(P) {
   const out = [];
   for (const [f, a] of motionFiles()) {
@@ -241,11 +243,7 @@ function copyDir(src, dst, overwrite) {
 function cmdInit(pos, opt) {
   const P = deckPaths(pos[0] || fail('作るフォルダを指定してください: init <フォルダ>'));
   if (exists(P.index) || exists(P.script)) fail(`${P.root} には既にデッキがあります（index.html / script.json）`);
-  // 雛形は template/ 直下のファイル（template/base/ は motion/ に配る）
-  fs.mkdirSync(P.root, { recursive: true });
-  for (const e of fs.readdirSync(path.join(SKILL, 'template'), { withFileTypes: true })) {
-    if (e.isFile() && !exists(path.join(P.root, e.name))) fs.copyFileSync(path.join(SKILL, 'template', e.name), path.join(P.root, e.name));
-  }
+  copyDir(path.join(SKILL, 'template', TEMPLATE, 'deck'), P.root, false);
   copyMotion(P);
   if (opt.title) {
     const s = readJSON(P.script);

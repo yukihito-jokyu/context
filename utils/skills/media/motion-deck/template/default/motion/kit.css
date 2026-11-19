@@ -2,6 +2,59 @@
  * 寸法・色・影は元の React 部品（theme.ts / primitives.tsx / Code.tsx / tts-compare/ui.tsx）に合わせてある。
  * 色を変えるときは theme.css で変数だけを上書きする。 */
 
+/* ── 章バー（data-chapter-bar）と字幕：出すのは実行系、見た目はここ ── */
+/* 章バー */
+.md-chapters {
+  position: absolute;
+  left: var(--safe-x);
+  right: var(--safe-x);
+  top: 34px;
+  height: 54px;
+  display: flex;
+  gap: 8px;
+  z-index: 50;
+  pointer-events: none;
+}
+.md-chapter { min-width: 0; }
+.md-chapter-name {
+  font-size: 24px;
+  height: 38px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted, #667);
+  font-weight: 500;
+}
+.md-chapter.is-current .md-chapter-name { color: var(--ink, #111); font-weight: 800; }
+.md-chapter-track { height: 8px; border-radius: 4px; overflow: hidden; background: var(--track, rgba(0, 0, 0, 0.1)); }
+.md-chapter-fill { height: 100%; width: 0; background: var(--accent, #0b84f3); }
+
+/* 字幕 */
+.md-subtitle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 26px;
+  display: flex;
+  justify-content: center;
+  z-index: 60;
+  pointer-events: none;
+}
+.md-subtitle-text {
+  max-width: 1660px;
+  background: var(--sub-bg, rgba(17, 20, 26, 0.92));
+  color: var(--sub-ink, #fff);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.42;
+  padding: 12px 40px;
+  border-radius: 16px;
+  text-align: center;
+  text-wrap: balance;
+  word-break: auto-phrase;
+}
+
+
 @font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: block; src: url("fonts/jetbrains-mono-400.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 700; font-display: block; src: url("fonts/jetbrains-mono-700.woff2") format("woff2"); }
 

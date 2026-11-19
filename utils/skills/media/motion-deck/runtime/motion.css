@@ -1,4 +1,4 @@
-/* motion.css — 実行系の土台（書き出される範囲と、動きの仕組みが使う規則）と章バー・字幕。外枠の機能の見た目は template/base/player.css に書く。 */
+/* motion.css — 実行系の土台（書き出される範囲と、動きの仕組みが使う規則）。外枠の機能の見た目は template/base/player.css、デッキの見た目は kit.css と theme.css に書く。 */
 
 /* ───────── コンポジション（書き出される範囲） ───────── */
 #composition {
@@ -35,57 +35,6 @@
 }
 /* 進捗バー：--p で幅が伸びる */
 #composition [data-anim~="progress"] { width: calc(var(--p, 0) * 100%); }
-
-/* 章バー（data-chapter-bar） */
-.md-chapters {
-  position: absolute;
-  left: var(--safe-x);
-  right: var(--safe-x);
-  top: 34px;
-  height: 54px;
-  display: flex;
-  gap: 8px;
-  z-index: 50;
-  pointer-events: none;
-}
-.md-chapter { min-width: 0; }
-.md-chapter-name {
-  font-size: 24px;
-  height: 38px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--muted, #667);
-  font-weight: 500;
-}
-.md-chapter.is-current .md-chapter-name { color: var(--ink, #111); font-weight: 800; }
-.md-chapter-track { height: 8px; border-radius: 4px; overflow: hidden; background: var(--track, rgba(0, 0, 0, 0.1)); }
-.md-chapter-fill { height: 100%; width: 0; background: var(--accent, #0b84f3); }
-
-/* 字幕 */
-.md-subtitle {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 26px;
-  display: flex;
-  justify-content: center;
-  z-index: 60;
-  pointer-events: none;
-}
-.md-subtitle-text {
-  max-width: 1660px;
-  background: var(--sub-bg, rgba(17, 20, 26, 0.92));
-  color: var(--sub-ink, #fff);
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 1.42;
-  padding: 12px 40px;
-  border-radius: 16px;
-  text-align: center;
-  text-wrap: balance;
-  word-break: auto-phrase;
-}
 
 /* ───────── 書き出しモード（?render=1） ───────── */
 html.md-render, html.md-render body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
