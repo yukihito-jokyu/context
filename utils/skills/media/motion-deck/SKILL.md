@@ -15,7 +15,7 @@ node "<motion-deck>/scripts/motion.mjs" <command> <デッキのフォルダ> [op
 
 ## 最初に守ること
 
-1. **見た目は常に[見た目の決まり](template/default/style.md)に従う。** 「動画」と頼まれても「発表資料」と頼まれても同じ見た目・配置・動きにする。ユーザーはRemotionで作った解説動画の見た目を好んでいて、一般的な箇条書きのスライドは好まない。部品は`motion/kit.css`・`motion/kit.js`のものを使い、新しい見た目を発明しない。
+1. **見た目は常に[見た目の決まり](template/default/style.md)（別のテンプレートを使うデッキはその `template/<名前>/style.md`）に従う。** 「動画」と頼まれても「発表資料」と頼まれても同じ見た目・配置・動きにする。ユーザーはRemotionで作った解説動画の見た目を好んでいて、一般的な箇条書きのスライドは好まない。部品は`motion/kit.css`・`motion/kit.js`のものを使い、新しい見た目を発明しない。
 2. **ナレーションは常にlocal-tts。** 他の音声合成やOSの読み上げは使わない。
 3. **1つのデッキで「動画」と「発表」の両方になる。** 作り分けない。頼まれた用途は、渡し方（下の6）と報告で区別する。
 
@@ -41,12 +41,13 @@ Remotionのコードは使っていない（`runtime/`と`template/`はこのス
 ### 1. 雛形を作る
 
 ```console
-node "<motion-deck>/scripts/motion.mjs" init <フォルダ> --title "題名"
+node "<motion-deck>/scripts/motion.mjs" init <フォルダ> --title "題名"   # 別の見た目なら --template <名前>
 ```
 
 `index.html`・`theme.css`・`scenes.js`・`script.json`・`lexicon.json`と、実行系`motion/`（boot.js・motion.js・kit.js・kit.css・フォント）ができ、仮の`timeline.js`まで作られる。
 `index.html`は`<script src="motion/boot.js"></script>`の1行だけで実行系・部品・テーマ・時間軸を読み込む。この行を消したり、実行系を直接読み込んだりしない。
 雛形の6シーン（表紙・道のり・時間の帯・コード・数字・まとめ）は手本の動画の型の見本。中身は書き換えるが、構図と部品の使い方は流用する。`motion/`は編集しない。
+`--template`を付けると`template/<名前>/`の見た目と雛形で作り、`script.json`に`"template"`が書かれる（書いていなければ default）。以降の`runtime`と`check`はそのテンプレートを基準にする。
 
 ### 2. 原稿を先に書く（script.json）
 
@@ -134,7 +135,7 @@ node "<motion-deck>/scripts/motion.mjs" timeline <フォルダ>
 - 他人の声の扱い、エンジンのライセンス（S2は非商用）はlocal-ttsのSKILL.mdに従う。合成音声を公開するなら、その旨を示すかユーザーに確かめる。
 - 文を挿入・削除すると後ろの文番号がずれる。参照される文には`name`を付け、名前で参照する。直したら`check`。
 - `timeline.js`・`narration/`・`build/`・`out/`・`dist/`は生成物。手で編集しない。
-- 実行系（`runtime/`）・外枠の見た目（`template/base/`）・テンプレートの見た目（`template/default/motion/`）を直したら、各デッキで`runtime`コマンドを実行して`motion/`を配り直す。古い個別の読み込みのデッキも、このコマンドでboot.jsの1行に移る。
+- 実行系（`runtime/`）・外枠の見た目（`template/base/`）・テンプレートの見た目（`template/<名前>/motion/`）を直したら、各デッキで`runtime`コマンドを実行して`motion/`を配り直す。古い個別の読み込みのデッキも、このコマンドでboot.jsの1行に移る。
 
 ## 同梱物
 
@@ -143,10 +144,12 @@ node "<motion-deck>/scripts/motion.mjs" timeline <フォルダ>
 | `references/authoring.md` | data-*属性、アニメーション、`Motion.scene`・`Motion.component`のAPI | シーンを書く・直すとき（必ず） |
 | `references/narration.md` | script.jsonの書式、TTS向けの原稿、合成と時刻の仕組み、不調の対処 | 原稿・音声 |
 | `references/player.md` | 動画・発表モードの操作、発表者ビュー、書き出し・まとめのオプション | 発表・書き出し・プレイヤーについて |
+| `references/template-from-pptx.md` | pptx から見た目の決まりを学んで`template/<名前>/`を作る手順（`extract`、抽象と具体の線引き、元の絵と見比べて直す） | pptx からテンプレートを作るとき（必ず） |
 | `runtime/` | 実行系（ロジック）：boot.js（読み込み口）、motion.js（時間の実行系とプレイヤー）、motion.css（土台） | 実行系を直すとき |
 | `template/base/` | player.css：外枠の機能（プレイヤー・修正の列・ヘルプ・画面を隠す・発表者ビュー）の見た目。どのテンプレートでも常に当たる | 外枠の見た目を直すとき |
 | `template/default/style.md` | 見た目の決まり：骨格、色と文字、部品の一覧、シーンの型、動きの決まり | シーンを書く・直すとき（必ず） |
 | `template/default/motion/` | 今の見た目：kit.css（色・文字・部品・章バー・字幕）、kit.js（部品）、fonts/（JetBrains Mono、OFL） | 見た目・部品を直すとき |
 | `template/default/deck/` | `init`で配る雛形（手本の動画の型の見本） | 雛形を変えるとき |
 | `template/default/index.html` | defaultの見本帳（デザインと構図を一覧で見る。人が見るためのもので、実装では読まない） | 見た目を確かめるとき |
-| `scripts/motion.mjs` | すべてのコマンド | 実行、改修 |
+| `template/<名前>/` | default と同じ形の別のテンプレート（`init --template <名前>`で使う）。pptx から作ったものは元の pptx を`source.pptx`として同封する（人が見るためのもので、git の対象外） | そのテンプレートのデッキを書くとき |
+| `scripts/motion.mjs` | すべてのコマンド（pptx から取り出す`extract`も。元のスライドの絵には LibreOffice を画面なしで使う） | 実行、改修 |
