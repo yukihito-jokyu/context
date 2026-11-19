@@ -2,34 +2,34 @@
   "schema_version": 1,
   "skill": "motion-deck",
   "skill_source": "utils/skills/media/motion-deck/SKILL.md",
-  "skill_sha256": "5b83d7c70e6eaa528255963b7843ae90141da02b7463212c673ce2cbbd5a3ed6",
-  "recorded_at": "2026-11-18T14:27:33.514Z",
+  "skill_sha256": "ef763c2d0b8e5cc6247e1ccf9e5cab337fc5385f6f95db2453f990480bf4360a",
+  "recorded_at": "2026-11-19T23:21:14.708Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "a9b7044c044634aea",
-    "task": "motion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキとしてinit・原稿・シーン・check・still・synth・timeline・still --live・pptx・エンジン停止まで行い、修正の列の画面を撮って、公開できる成果物を伏せ字にして保存する"
+    "agent_id": "adf1cdef434b7a790",
+    "task": "更新後のmotion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキとしてinit・原稿・シーン・check・still・synth・timeline・still --cues/--live・pptxまで行い、修正の列の画面を撮って、公開できる成果物を伏せ字にして保存する"
   },
   "input": "input.md",
-  "summary": "「Gitのブランチ入門」を3シーン・13文（381文字）のmotion-deckのデッキにし、local-ttsの既定の声とVoxCPM2でナレーションを付けて、1分5秒の動画・13ステップの発表・4スライドのPowerPointにしました。動画モードの修正の列で指示を1件溜めた画面も撮り、声の名前と絶対パスは伏せ字にして、個人の声による音声は載せていません。",
-  "stage": "PPTXの書き出しと修正の列の画面の撮影まで。エンジンのサーバーは別のアプリが起動したもの（started elsewhere）で他の利用もあったため止めずに残した。音声の試聴、MP4の書き出し、bundleは未実施",
+  "summary": "「Gitのブランチ入門」を3シーン・13文（読み上げ344文字）のmotion-deckのデッキにし、local-ttsの既定の声と既定のエンジン（VoxCPM2）でナレーションを付けて、1分5秒の動画・13ステップの発表・4スライドのPowerPointにしました。動画モードの修正の列で指示を1件溜めた画面も撮り、声の名前と絶対パスは伏せ字にして、個人の声による音声は載せていません。",
+  "stage": "PPTXの書き出しと修正の列の画面の撮影まで。エンジンのサーバーは別に起動されていたもの（started elsewhere）なので止めずに残した。音声の試聴、MP4の書き出し、bundleは未実施",
   "checks": [
-    "initで雛形を作り、script.jsonを3シーン・13文・381文字（読み上げ373文字）に書き換えた",
-    "音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）を確認し、still --cuesの一覧（13枚）を見て見た目の決まりにそろっていることを確かめた",
-    "synth --dry-runで3シーン・373文字・目安約3分と出たため、synthをバックグラウンドで実行し、終了コード0・177秒で3シーン（18.3秒・23.0秒・17.9秒）の音声ができた",
-    "既定の声と既定のエンジン（VoxCPM2）が使われたことを、local-ttsの設定とサーバーのログで確認",
-    "timelineで3シーン・1.08分（1950フレーム）・音声ありになり、ffprobeでnarration.m4aが65.0秒であることを確認",
+    "init（既定のテンプレート）で雛形を作り、script.jsonを3シーン・13文に書き換え、index.html・theme.css・scenes.jsを書いた",
+    "音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）。still --cuesの一覧を見て、switchの走者と枝のラベルの重なりを直した",
+    "synth --dry-runで3シーン・344文字・目安約3分と出たため、synthをバックグラウンドで実行し、終了コード0・155秒で3シーン（20.6秒・20.0秒・18.8秒）の音声ができた",
+    "既定の声と既定のエンジン（VoxCPM2）が使われたことを、local-ttsの設定とVoxCPM2サーバーのログで確認",
+    "timelineで3シーン・1.09分（1956フレーム）・音声ありになり、ffprobeでnarration.m4aが65.2秒であることを確認",
     "合成後のcheckでエラー0件・注意0件、発表モード13ステップを確認",
-    "合成後のstill --cues（13枚）とstill --live（13枚、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影のカード、章バーと字幕の帯、色の意味がそろっていることを確認",
-    "pptxで4スライド（mergeは見出しの差し替えで2枚）・絵53枚・要素のアニメーション13ステップ・差分の重ね5ステップのPPTXができ、ノートに台本とメモが入っていることを確認",
-    "local-tts server stopは「No server started by this tool is running」。server statusでvoxcpm2とomnivoiceが別のアプリの起動したサーバー（started elsewhere）として動き続けていることを確認し、片付け手順に従い止めずに残した",
-    "ヘッドレスのChrome（1600×900）で動画モードをシーン2のフレーム958で開き、CDPでI→注釈カードのクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、左のシーンの一覧、右のDOM選択・原稿・対象と指示・溜めた指示（1件）が写り、選択モードが終わっていることを画像で確認",
-    "公開する全ファイル（PPTXのノート・XML・画像のメタデータを含む）に個人名と絶対パスがないことを確認",
+    "合成後のstill --cues（13枚）とstill --live（13枚、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影、章バーと字幕の帯、色の意味がそろっていることを確認",
+    "pptxで4スライド（mergeは見出しの差し替えで2枚）・絵40枚・要素のアニメーション13ステップ・差分の重ね6ステップのPPTXができ、ノートに台本とメモが入っていることを確認",
+    "local-tts server stopは「No server started by this tool is running」。server statusでvoxcpm2とomnivoiceが別に起動されたサーバー（started elsewhere）として動いていることを確認し、止めずに残した",
+    "ヘッドレスのChrome（1600×900）で動画モードをフレーム1146で開き、CDPでI→注釈カードのクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、修正の列（シーン・DOM選択・原稿・対象と指示・溜めた指示1件）が写っていることを画像で確認",
+    "公開する全ファイル（PPTXのノート・XML・docProps・画像のメタデータを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを確認し、synth.logの絶対パスとoutput.mdの声の名前は伏せ字にした",
     "実行者は音声を聞けないため、読みの正しさは未確認。試聴が必要な箇所をoutput.mdにシーンと文番号で記録"
   ],
   "preview": "contact.png",
-  "preview_alt": "紙色の背景に、ブランチの分岐を描いた線と走るキャラクター、ターミナル風のコードと注釈カード、合流の図とまとめの表が、各文の終わりごとに13枚並んだ一覧画像",
-  "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で差し替わる注釈カードは消えかけの薄い状態で写る（発表の各ステップは live-contact.png）",
+  "preview_alt": "紙色の背景に、mainから枝が分かれる図と走るキャラクター、ターミナルのコマンドと注釈カード、合流の図とまとめの表が、各文の終わりごとに13枚並んだ一覧画像",
+  "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で差し替わる注釈カードや前半の図は消えかけの薄い状態で写る（発表の各ステップは live-contact.png）",
   "downloads": [
     {
       "file": "output.md",
@@ -61,7 +61,7 @@
     },
     {
       "file": "synth.log",
-      "label": "synthとtimelineの出力（要点）"
+      "label": "synthとtimelineの出力"
     },
     {
       "file": "index.html",
@@ -76,23 +76,23 @@
   "artifacts": [
     {
       "file": "check.log",
-      "sha256": "624f4243dd4d005be703a99826f732c7e7e9c183e534a8b52be94cc0bd09a016",
+      "sha256": "bb8e1c661226c26b8c87a650ab28c29c3a4d17d102e9415af05466f02b6c94c1",
       "bytes": 98
     },
     {
       "file": "contact.png",
-      "sha256": "e3414285a810a88b21f4b8037027ead752398e2bf55a3aa6b83e6aea60f5698d",
-      "bytes": 403822
+      "sha256": "b07e8fd65180e456a224e4ac4059ab1985400c1a9aa5cebcaa44977561a93a63",
+      "bytes": 381225
     },
     {
       "file": "git-branch.pptx",
-      "sha256": "e46f58ccf1a7bd4f820adb39a2b6bfdb16fceb838dd332abd94946cc74618de6",
-      "bytes": 909953
+      "sha256": "0802ac266e623f84e537f3345339d6e6ed9f3936be02c13ef187decc6af01ca8",
+      "bytes": 831581
     },
     {
       "file": "index.html",
-      "sha256": "9762ca57060e58964f9b1e0198f12968d5681a54aad45301742d9d1deeb7055a",
-      "bytes": 7625
+      "sha256": "f7734b780832fea3308b760a975f505cb752a3b1662e5fbffa35a48b18f07ae1",
+      "bytes": 6919
     },
     {
       "file": "input.md",
@@ -101,48 +101,52 @@
     },
     {
       "file": "live-contact.png",
-      "sha256": "4b586dec9925c8b788e4a51a0a3b3f0375aa302be45d2e3690b545fd8a10b93d",
-      "bytes": 275436
+      "sha256": "4210705c4fbe6e5c7e19f862f257c4550531e57834ee15ad8ef72ff5e97d290e",
+      "bytes": 265259
     },
     {
       "file": "output.md",
-      "sha256": "4e7cf0876446ccc3acbc755dd961193a9264c6bc7bf440b0ef82ffdd7d33c864",
-      "bytes": 7817
+      "sha256": "acd6ab802d44b1645bcd342e28c38bb5191dcf9bf34a6f189422b2b7df226c90",
+      "bytes": 7443
     },
     {
       "file": "player-edit.png",
-      "sha256": "22bad04aff88b72b4734f12cfdedf136ab9117caaf1ebad04ae7a5f35bfa7575",
-      "bytes": 169643
+      "sha256": "e6267a2535edffe43a8122d17894152d74e084a78b6e9b46748f65f7c2b09728",
+      "bytes": 163688
     },
     {
       "file": "scenes.js",
-      "sha256": "e981b82142d27b57e5488bc19f1337ebe5c335198114cc8b727fcc8ab1a7ad88",
-      "bytes": 945
+      "sha256": "a41ff4b6efd093647d7d302fef82bed38f5652681f9ea1dd77f84e4cc88c0f0f",
+      "bytes": 560
     },
     {
       "file": "script.json",
-      "sha256": "769db35ddd274423fcd9efb575293ba566af73641287895ce885532c5408062b",
-      "bytes": 2713
+      "sha256": "b21f1cc2b3651d57dad5d1dbdf13d3b868438709f75cafb080908e0594ca2963",
+      "bytes": 2728
     },
     {
       "file": "synth.log",
-      "sha256": "9e15e565ba81e220dd0c6a05d05d42bc86d264bb55dcf6cd3a730dc57e0c56d5",
-      "bytes": 2152
+      "sha256": "5ef77df9d6fb1302932815d5c6b82961daf22f3475dbe459b1cff37d9fc9a9b6",
+      "bytes": 868
     },
     {
       "file": "theme.css",
-      "sha256": "52d603867df0d3e987f2267cdb00b5796eaa28466d4f86188dd7e6fa6bab4daa",
-      "bytes": 1802
+      "sha256": "49eb72c402ba43786794dc6c2a06cc9007984e0fe1df406f40cd0b0c4e80564a",
+      "bytes": 1159
     }
   ],
   "source_files": [
     {
+      "file": ".gitignore",
+      "sha256": "5aaf202ff5e8a293ea910abb62ba4ecbac3b1f74f3577a0e93fec4daf6ba10aa"
+    },
+    {
       "file": "SKILL.md",
-      "sha256": "5b83d7c70e6eaa528255963b7843ae90141da02b7463212c673ce2cbbd5a3ed6"
+      "sha256": "ef763c2d0b8e5cc6247e1ccf9e5cab337fc5385f6f95db2453f990480bf4360a"
     },
     {
       "file": "references/authoring.md",
-      "sha256": "f7e17ad3da34732783b5608166abc6d8545fdfd66140c866e14d18a2e799d6f7"
+      "sha256": "f08edc3ce45265d959953d25a68caab4c8140b0b7e73231191866bee32b2fdd3"
     },
     {
       "file": "references/narration.md",
@@ -150,72 +154,84 @@
     },
     {
       "file": "references/player.md",
-      "sha256": "ac09dcfdad7bc3649306a80d954f9a75ce059a32f755011ef5411312800ff538"
+      "sha256": "028ec40ff0ff5fe70b3620962a280dedc04bdc3ecf3e69555029c801b713b47a"
     },
     {
-      "file": "references/style.md",
-      "sha256": "ed1c981ea9d0a99e2595ceefea8ad9c23d62f9130384d75782de7c2963c4b6a1"
+      "file": "references/template-from-pptx.md",
+      "sha256": "05bc5358fd1599d4ba08063e05c15cade229332922da7b1947ce4d5c8a77615f"
     },
     {
       "file": "runtime/boot.js",
-      "sha256": "f0d6882a163de550a4f12dc49d94de168b1f02c78d7ef35ac57e23a758b77422"
-    },
-    {
-      "file": "runtime/fonts/OFL.txt",
-      "sha256": "a76abf002c49097d146e86740a3105a5d00450b1592e820a1109a8c5680cd697"
-    },
-    {
-      "file": "runtime/fonts/jetbrains-mono-400.woff2",
-      "sha256": "7c53386f55c866c1b4c9309c4bcf74eda10896aab3a1780b0af5cc4976e27a27"
-    },
-    {
-      "file": "runtime/fonts/jetbrains-mono-700.woff2",
-      "sha256": "ed8b8f71b22bf3b6e1ec1cf9b24dd999785aae33d6256950c1f86c97e423b6ef"
-    },
-    {
-      "file": "runtime/kit.css",
-      "sha256": "01a0edc1d861af95d79e580c2c8ccfd9ef20346c762b4186c0def984994f1fce"
-    },
-    {
-      "file": "runtime/kit.js",
-      "sha256": "4fd6d7900fb97b007b7c975833f6f313b5ebadfdc287f70a2bc7ded63f275a7e"
+      "sha256": "fd12de17df3c801769664653b296578587d7b995574e94fd23abae0c3528e74a"
     },
     {
       "file": "runtime/motion.css",
-      "sha256": "2bde9ac04d6f464a2c7a2fb0cdada606d27599741c7d05adbc56f5ea588a54a8"
+      "sha256": "9bb49ed4fb6b5ae00d55f529966d1362ddea46a1424f8a35e0ddd27cf344f0f9"
     },
     {
       "file": "runtime/motion.js",
-      "sha256": "947e1a5bf9cd36c3995740a03a5ac6eaa21807dd466ff63b3c8594cdf7cd749b"
+      "sha256": "0d1cca646e804b2f544cb2fb1b09211e1a95e43d7f2a273aba7e1ca327069763"
     },
     {
       "file": "scripts/motion.mjs",
-      "sha256": "1d7ea04e81e8f8fe3fd21626e13a7f6ec319514a61d47e932fe8c25e8088c2b9"
+      "sha256": "136472adb8787bbbeec9b1f5135fc7607356176ed79c12014f4da614b8998c3d"
     },
     {
       "file": "scripts/pptx.mjs",
-      "sha256": "e12f1fe5dc1a4590c4dd69fa24394cb6a5d946ad4aca7066953cac42f7948848"
+      "sha256": "1e880795e3970235cba2d7d1ff530d7b919f50ff66199ad5b0ff9ea66527dc37"
     },
     {
-      "file": "template/index.html",
+      "file": "template/base/player.css",
+      "sha256": "8072a2320b91e3b7e0dd3e4d9c3471c477d816dddc72205244d56adc22c455d5"
+    },
+    {
+      "file": "template/default/deck/index.html",
       "sha256": "f1a055cfb4b62240c36e94d96ecaa993e7ffde6c3162a4a4d7c467a97ad373cf"
     },
     {
-      "file": "template/lexicon.json",
+      "file": "template/default/deck/lexicon.json",
       "sha256": "26df614390a9c663bfc2cbf63e59e42c1051b10c939510fcd7b67b9d559cb3e2"
     },
     {
-      "file": "template/scenes.js",
+      "file": "template/default/deck/scenes.js",
       "sha256": "2570ef0509ba7aed8738b83c052170bfafd8892beb0bb1ef5c8839aeb3963172"
     },
     {
-      "file": "template/script.json",
+      "file": "template/default/deck/script.json",
       "sha256": "e14e69acbd809984fd2912271fb5787a16779a6b41489fd618fadf466c7299c8"
     },
     {
-      "file": "template/theme.css",
+      "file": "template/default/deck/theme.css",
       "sha256": "a77bf1998d4d5a896742672845d306560aa60ed154ab22e816c0bc7c2ae5fedc"
+    },
+    {
+      "file": "template/default/index.html",
+      "sha256": "f7c9da75048987ba85e37db065d461c2668a229d468c0b3191b9314812130528"
+    },
+    {
+      "file": "template/default/motion/fonts/OFL.txt",
+      "sha256": "a76abf002c49097d146e86740a3105a5d00450b1592e820a1109a8c5680cd697"
+    },
+    {
+      "file": "template/default/motion/fonts/jetbrains-mono-400.woff2",
+      "sha256": "7c53386f55c866c1b4c9309c4bcf74eda10896aab3a1780b0af5cc4976e27a27"
+    },
+    {
+      "file": "template/default/motion/fonts/jetbrains-mono-700.woff2",
+      "sha256": "ed8b8f71b22bf3b6e1ec1cf9b24dd999785aae33d6256950c1f86c97e423b6ef"
+    },
+    {
+      "file": "template/default/motion/kit.css",
+      "sha256": "c37397ce6e7cb48d9ac4d42951f6cca4bfde9e0b19447bf9d61f1a63697d08c4"
+    },
+    {
+      "file": "template/default/motion/kit.js",
+      "sha256": "4fd6d7900fb97b007b7c975833f6f313b5ebadfdc287f70a2bc7ded63f275a7e"
+    },
+    {
+      "file": "template/default/style.md",
+      "sha256": "ed1c981ea9d0a99e2595ceefea8ad9c23d62f9130384d75782de7c2963c4b6a1"
     }
   ],
-  "source_sha256": "a74dedc1c520df8ff3b6e8f2d4f1ac1fe1545c8401bbc2ba61265ae70108353e"
+  "source_sha256": "9db69629fc63ffa2c112defc364ad56ce94e0910d52c772ad11e726cfca5cbef"
 }

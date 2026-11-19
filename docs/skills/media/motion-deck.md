@@ -62,9 +62,9 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 
 ## 成果物の例
 
-「Gitのブランチ入門」を3シーン・13文（381文字）のmotion-deckのデッキにし、local-ttsの既定の声とVoxCPM2でナレーションを付けて、1分5秒の動画・13ステップの発表・4スライドのPowerPointにしました。動画モードの修正の列で指示を1件溜めた画面も撮り、声の名前と絶対パスは伏せ字にして、個人の声による音声は載せていません。
+「Gitのブランチ入門」を3シーン・13文（読み上げ344文字）のmotion-deckのデッキにし、local-ttsの既定の声と既定のエンジン（VoxCPM2）でナレーションを付けて、1分5秒の動画・13ステップの発表・4スライドのPowerPointにしました。動画モードの修正の列で指示を1件溜めた画面も撮り、声の名前と絶対パスは伏せ字にして、個人の声による音声は載せていません。
 
-**到達点：PPTXの書き出しと修正の列の画面の撮影まで。エンジンのサーバーは別のアプリが起動したもの（started elsewhere）で他の利用もあったため止めずに残した。音声の試聴、MP4の書き出し、bundleは未実施。**
+**到達点：PPTXの書き出しと修正の列の画面の撮影まで。エンジンのサーバーは別に起動されていたもの（started elsewhere）なので止めずに残した。音声の試聴、MP4の書き出し、bundleは未実施。**
 
 ### 実行した依頼
 
@@ -74,11 +74,11 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 
 ### 実際の画面
 
-![紙色の背景に、ブランチの分岐を描いた線と走るキャラクター、ターミナル風のコードと注釈カード、合流の図とまとめの表が、各文の終わりごとに13枚並んだ一覧画像](/skills/motion-deck/contact.png)
+![紙色の背景に、mainから枝が分かれる図と走るキャラクター、ターミナルのコマンドと注釈カード、合流の図とまとめの表が、各文の終わりごとに13枚並んだ一覧画像](/skills/motion-deck/contact.png)
 
 [画像を原寸で開く](pathname:///skills/motion-deck/contact.png)
 
-合成後の still --cues の一覧。次の文の直前を撮るため、data-until で差し替わる注釈カードは消えかけの薄い状態で写る（発表の各ステップは live-contact.png）
+合成後の still --cues の一覧。次の文の直前を撮るため、data-until で差し替わる注釈カードや前半の図は消えかけの薄い状態で写る（発表の各ステップは live-contact.png）
 
 ### 実出力の抜粋
 
@@ -90,15 +90,15 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 | 項目 | 内容 |
 |---|---|
 | 出力 | デッキ `<work>/git-branch/index.html`、PowerPoint `git-branch.pptx` |
-| 全体の長さ（動画） | 1分5秒（1950フレーム、30fps） |
+| 全体の長さ（動画） | 1分5秒（1956フレーム、30fps。narration.m4a は65.2秒） |
 | ステップ数（発表） | 13ステップ（1文＝1ステップ） |
-| シーン数 | 3（ブランチとは／作って移る／合流とまとめ）、原稿381文字・13文 |
-| 声とエンジン | local-tts の既定の声 `<個人名>`、既定のエンジン VoxCPM2 |
-| check | エラー 0 件、注意 0 件（合成と timeline の後に再実行） |
-| PPTX | 4スライド（合流とまとめのシーンは、見出しが「今日のまとめ」に変わる所で2枚に分かれる）、絵53枚。要素のアニメーション13ステップ、差分の重ね5ステップ |
+| シーン数 | 3（ブランチとは／作って移る／合流とまとめ）、13文、読み上げ344文字 |
+| 声とエンジン | local-tts の既定の声 `<声の名前>`、既定のエンジン VoxCPM2 |
+| check | エラー 0 件、注意 0 件（synth と timeline の後に再実行） |
+| PPTX | 4スライド（merge は見出しが「今日のまとめ」に変わる所で2枚に分かれる）、絵40枚。要素のアニメーション13ステップ、差分の重ね6ステップ |
 | 音声の試聴 | 未実施（実行者は音声を聞けない）。試聴してほしい箇所は下に記載 |
 | 仮の尺のシーン | なし（全シーンに音声あり） |
-| 公開しないもの | 音声（個人の声）、timeline.js、個々の静止画、bundle、MP4、lexicon.json |
+| 公開しないもの | 音声（個人の声）、timeline.js、lexicon.json、個々の静止画、motion/（スキルの実行系の写し） |
 
 ## 開き方
 ````
@@ -112,7 +112,7 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 - [原稿（script.json）](pathname:///skills/motion-deck/script.json#download)
 - [シーンのフレームの関数（scenes.js）](pathname:///skills/motion-deck/scenes.js#download)
 - [最終のcheckの出力](pathname:///skills/motion-deck/check.log#download)
-- [synthとtimelineの出力（要点）](pathname:///skills/motion-deck/synth.log#download)
+- [synthとtimelineの出力](pathname:///skills/motion-deck/synth.log#download)
 - [デッキのHTML（シーンの構成）](pathname:///skills/motion-deck/index.html#download)
 - [デッキのテーマ（CSS）](pathname:///skills/motion-deck/theme.css#download)
 - [実行入力の原本](pathname:///skills/motion-deck/input.md#download)
@@ -120,17 +120,17 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 
 ### 確認した結果
 
-- initで雛形を作り、script.jsonを3シーン・13文・381文字（読み上げ373文字）に書き換えた
-- 音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）を確認し、still --cuesの一覧（13枚）を見て見た目の決まりにそろっていることを確かめた
-- synth --dry-runで3シーン・373文字・目安約3分と出たため、synthをバックグラウンドで実行し、終了コード0・177秒で3シーン（18.3秒・23.0秒・17.9秒）の音声ができた
-- 既定の声と既定のエンジン（VoxCPM2）が使われたことを、local-ttsの設定とサーバーのログで確認
-- timelineで3シーン・1.08分（1950フレーム）・音声ありになり、ffprobeでnarration.m4aが65.0秒であることを確認
+- init（既定のテンプレート）で雛形を作り、script.jsonを3シーン・13文に書き換え、index.html・theme.css・scenes.jsを書いた
+- 音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）。still --cuesの一覧を見て、switchの走者と枝のラベルの重なりを直した
+- synth --dry-runで3シーン・344文字・目安約3分と出たため、synthをバックグラウンドで実行し、終了コード0・155秒で3シーン（20.6秒・20.0秒・18.8秒）の音声ができた
+- 既定の声と既定のエンジン（VoxCPM2）が使われたことを、local-ttsの設定とVoxCPM2サーバーのログで確認
+- timelineで3シーン・1.09分（1956フレーム）・音声ありになり、ffprobeでnarration.m4aが65.2秒であることを確認
 - 合成後のcheckでエラー0件・注意0件、発表モード13ステップを確認
-- 合成後のstill --cues（13枚）とstill --live（13枚、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影のカード、章バーと字幕の帯、色の意味がそろっていることを確認
-- pptxで4スライド（mergeは見出しの差し替えで2枚）・絵53枚・要素のアニメーション13ステップ・差分の重ね5ステップのPPTXができ、ノートに台本とメモが入っていることを確認
-- local-tts server stopは「No server started by this tool is running」。server statusでvoxcpm2とomnivoiceが別のアプリの起動したサーバー（started elsewhere）として動き続けていることを確認し、片付け手順に従い止めずに残した
-- ヘッドレスのChrome（1600×900）で動画モードをシーン2のフレーム958で開き、CDPでI→注釈カードのクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、左のシーンの一覧、右のDOM選択・原稿・対象と指示・溜めた指示（1件）が写り、選択モードが終わっていることを画像で確認
-- 公開する全ファイル（PPTXのノート・XML・画像のメタデータを含む）に個人名と絶対パスがないことを確認
+- 合成後のstill --cues（13枚）とstill --live（13枚、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影、章バーと字幕の帯、色の意味がそろっていることを確認
+- pptxで4スライド（mergeは見出しの差し替えで2枚）・絵40枚・要素のアニメーション13ステップ・差分の重ね6ステップのPPTXができ、ノートに台本とメモが入っていることを確認
+- local-tts server stopは「No server started by this tool is running」。server statusでvoxcpm2とomnivoiceが別に起動されたサーバー（started elsewhere）として動いていることを確認し、止めずに残した
+- ヘッドレスのChrome（1600×900）で動画モードをフレーム1146で開き、CDPでI→注釈カードのクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、修正の列（シーン・DOM選択・原稿・対象と指示・溜めた指示1件）が写っていることを画像で確認
+- 公開する全ファイル（PPTXのノート・XML・docProps・画像のメタデータを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを確認し、synth.logの絶対パスとoutput.mdの声の名前は伏せ字にした
 - 実行者は音声を聞けないため、読みの正しさは未確認。試聴が必要な箇所をoutput.mdにシーンと文番号で記録
 
 ## 確認するポイント
