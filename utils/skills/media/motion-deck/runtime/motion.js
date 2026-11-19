@@ -2007,7 +2007,8 @@
       subtitles: !!state.subtitle,
       liveLayout: !!(state.live && state.live.stops.length >= state.scenes.length),
       transitions: TRANSITIONS.length === 8,
-      fonts: !!document.fonts && Array.from(document.fonts).some((ff) => /JetBrains Mono/.test(ff.family) && ff.status === 'loaded'),
+      // テンプレートが同梱するフォント（@font-face）のうち、読み込みに失敗したものがないこと
+      fonts: !!document.fonts && !Array.from(document.fonts).some((ff) => ff.status === 'error'),
     };
     if (state.ui) {
       const ui = state.ui;

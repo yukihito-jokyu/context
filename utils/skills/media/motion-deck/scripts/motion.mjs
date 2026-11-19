@@ -187,20 +187,38 @@ function bootLists() {
   return { css: arr('CSS'), js: arr('JS') };
 }
 
-// deck/motion/ に配るもの：実行系（ロジック）＋外枠の機能の見た目（base）＋テンプレートの見た目（default）
-const TEMPLATE = 'default';
-const MOTION_SOURCES = [
+// deck/motion/ に配るもの：実行系（ロジック）＋外枠の機能の見た目（base）＋テンプレートの見た目（既定は default）
+const DEFAULT_TEMPLATE = 'default';
+
+/** テンプレートの名前を確かめて、そのフォルダを返す */
+function templateDir(name) {
+  const dir = path.join(SKILL, 'template', name);
+  if (name === 'base' || !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(name) || !exists(path.join(dir, 'motion')) || !exists(path.join(dir, 'deck'))) {
+    const names = fs.readdirSync(path.join(SKILL, 'template')).filter((n) => n !== 'base' && exists(path.join(SKILL, 'template', n, 'deck')));
+    fail(`テンプレート「${name}」がありません（使えるもの: ${names.join(', ')}）`);
+  }
+  return dir;
+}
+
+/** デッキが使うテンプレート（script.json の template。書いていなければ default） */
+function deckTemplate(P) {
+  let name = DEFAULT_TEMPLATE;
+  if (exists(P.script)) { try { name = readJSON(P.script).template || DEFAULT_TEMPLATE; } catch { /* 読めない script.json は loadScript が知らせる */ } }
+  return name;
+}
+
+const motionSources = (name) => [
   path.join(SKILL, 'runtime'),
   path.join(SKILL, 'template', 'base'),
-  path.join(SKILL, 'template', TEMPLATE, 'motion'),
+  path.join(templateDir(name), 'motion'),
 ];
 
 const walkFiles = (dir, rel = '') => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walkFiles(path.join(dir, e.name), rel + e.name + '/') : [rel + e.name]);
 
 /** motion/ の中の相対パス → スキル側の元のファイル。同じ名前が2か所にあればエラー */
-function motionFiles() {
+function motionFiles(name) {
   const map = new Map();
-  for (const dir of MOTION_SOURCES) {
+  for (const dir of motionSources(name)) {
     for (const f of walkFiles(dir)) {
       if (map.has(f)) fail(`motion/${f} が2か所にあります: ${map.get(f)} と ${path.join(dir, f)}`);
       map.set(f, path.join(dir, f));
@@ -211,17 +229,17 @@ function motionFiles() {
 
 /** motion/ を配る（既にあるファイルは上書き） */
 function copyMotion(P) {
-  for (const [f, src] of motionFiles()) {
+  for (const [f, src] of motionFiles(deckTemplate(P))) {
     const dst = path.join(P.root, 'motion', f);
     fs.mkdirSync(path.dirname(dst), { recursive: true });
     fs.copyFileSync(src, dst);
   }
 }
 
-/** deck/motion/ がスキルの runtime/ ＋ template/base/ ＋ テンプレートの motion/ と完全に同じか（版の照合） */
+/** deck/motion/ がスキルの runtime/ ＋ template/base/ ＋ デッキのテンプレートの motion/ と完全に同じか（版の照合） */
 function runtimeDrift(P) {
   const out = [];
-  for (const [f, a] of motionFiles()) {
+  for (const [f, a] of motionFiles(deckTemplate(P))) {
     const b = path.join(P.root, 'motion', f);
     if (!exists(b)) out.push(`${f}（ない）`);
     else if (sha(fs.readFileSync(a)) !== sha(fs.readFileSync(b))) out.push(`${f}（違う）`);
@@ -243,7 +261,12 @@ function copyDir(src, dst, overwrite) {
 function cmdInit(pos, opt) {
   const P = deckPaths(pos[0] || fail('作るフォルダを指定してください: init <フォルダ>'));
   if (exists(P.index) || exists(P.script)) fail(`${P.root} には既にデッキがあります（index.html / script.json）`);
-  copyDir(path.join(SKILL, 'template', TEMPLATE, 'deck'), P.root, false);
+  const name = opt.template ? String(opt.template) : DEFAULT_TEMPLATE;
+  copyDir(path.join(templateDir(name), 'deck'), P.root, false);
+  if (name !== DEFAULT_TEMPLATE) {
+    const s = readJSON(P.script);
+    writeJSON(P.script, { title: s.title, template: name, ...s });
+  }
   copyMotion(P);
   if (opt.title) {
     const s = readJSON(P.script);
@@ -1004,6 +1027,7 @@ async function cmdPptx(pos, opt) {
   const browser = await launchBrowser();
   const slides = [];
   let elementSteps = 0, patchSteps = 0;
+  let font = null;
   try {
     const page = await openDeck(browser, P, tl, '&mode=live&static=1&notransition=1&subtitles=0');
     const errs = await page.evaluate('window.__motion.errors.slice()');
@@ -1105,11 +1129,13 @@ async function cmdPptx(pos, opt) {
       for (const s of sceneSlides) slides.push({ background: Buffer.from(s.background, 'base64'), transition: s.transition, notes: s.notes, pictures: s.pictures, steps: s.steps });
       log(`  ${sc.id}: ${sceneSlides.length}スライド、${sceneSlides.reduce((n, s) => n + s.clicks, 0) + sceneSlides.length - 1}クリック、絵 ${sceneSlides.reduce((n, s) => n + s.pictures.length, 0)}枚`);
     }
+    // PPTX のテーマのフォント（発表者ノートの文字）は、テンプレートの本文の書体（kit の --jp）の先頭にそろえる
+    font = await page.evaluate(`getComputedStyle(document.getElementById('composition')).getPropertyValue('--jp').split(',')[0].trim().replace(/^["']|["']$/g, '')`);
     await page.close();
   } finally {
     await browser.close();
   }
-  const r = buildPptx(out, { title: script.title, width: W, height: H, slides });
+  const r = buildPptx(out, { title: script.title, width: W, height: H, slides, font: font || undefined });
   log(`PPTX: ${out}（${r.slides}スライド、絵 ${r.images}枚。要素のアニメーション ${elementSteps}ステップ、差分の重ね ${patchSteps}ステップ）`);
 }
 
@@ -1182,7 +1208,8 @@ function cmdBundle(pos, opt) {
 
 const HELP = `motion-deck — ナレーションで動く HTML プレゼン
 
-  init <フォルダ> [--title 題名]    雛形を作り、仮の timeline まで用意する
+  init <フォルダ> [--title 題名] [--template 名前]
+                                  雛形を作り、仮の timeline まで用意する（テンプレートの既定は default）
   runtime [deck]                    deck/motion/ の実行系をスキルの最新版に置き換える
   check [deck] [--scene id,..] [--no-browser]
                                     原稿・HTML・配置（はみ出し）を検査する
