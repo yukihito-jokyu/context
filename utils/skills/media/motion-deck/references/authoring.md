@@ -11,7 +11,7 @@
 7. シーンの切り替え・章バー・字幕
 8. やってはいけないこと
 
-見た目（どの部品をどう並べるか）は[見た目の決まり](style.md)。ここは仕組みの説明。
+見た目（どの部品をどう並べるか）は[見た目の決まり](../template/default/style.md)。ここは仕組みの説明。
 
 ## 1. 構造
 
@@ -24,7 +24,7 @@
 <script src="motion/boot.js"></script>  <!-- 読み込むのはこの1行だけ -->
 ```
 
-- 読み込みは`motion/boot.js`の1行だけにする。boot.jsが決まった順に読み込んで起動する：CSSは`motion/motion.css`（実行系）→`motion/kit.css`（部品と色）→`theme.css`（このデッキの調整）、JSは`timeline.js`→`motion/motion.js`→`motion/kit.js`→`scenes.js`→`Motion.start()`。
+- 読み込みは`motion/boot.js`の1行だけにする。boot.jsが決まった順に読み込んで起動する：CSSは`motion/motion.css`（実行系）→`motion/player.css`（外枠の機能の見た目）→`motion/kit.css`（部品と色、章バーと字幕）→`theme.css`（このデッキの調整）、JSは`timeline.js`→`motion/motion.js`→`motion/kit.js`→`scenes.js`→`Motion.start()`。
 - `<link>`や`<script src="motion/…">`を直接書かない。`Motion.start()`も書かない（`check`がエラーにする）。
 - どうしても足すCSS・JSは属性で渡す：`<script src="motion/boot.js" data-css="extra.css" data-js="chart.js"></script>`（テーマの後・`scenes.js`の前に読む）。
 - どれかが読めなければ起動せず、理由を画面に出す（`window.__motionBootError`）。

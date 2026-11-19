@@ -168,4 +168,4 @@ motion-deck のデッキを直してください。
 - 各タブは別ウィンドウで開く（`newWindow: true`）。同じウィンドウの裏のタブは描画が止まることがある。
 - 実行系を直したら、各デッキで`runtime`を実行して`motion/`を置き換える（古い個別の読み込みもboot.jsの1行に移す）。
 - 読み込みは`motion/boot.js`だけが担う。並び（CSS・JS）は`scripts/motion.mjs`の`bundle`（インライン化）と`check`も同じものを使う。
-- 機能の保証：`__motion.features()`／`__motionPlayer.features()`がページ自身の機能を申告し、`check`が必須項目（`REQUIRED`と`PLAYER_REQUIRED`）を照合する。さらにプレーヤーとして開いてキーを送り、実際に動くかを確かめる。実行系のファイルはスキルの`runtime/`とハッシュで比べる（`runtimeDrift`）。
+- 機能の保証：`__motion.features()`／`__motionPlayer.features()`がページ自身の機能を申告し、`check`が必須項目（`REQUIRED`と`PLAYER_REQUIRED`）を照合する。さらにプレーヤーとして開いてキーを送り、実際に動くかを確かめる。`motion/`のファイルはスキルの`runtime/`・`template/base/`・`template/default/motion/`とハッシュで比べる（`runtimeDrift`）。
