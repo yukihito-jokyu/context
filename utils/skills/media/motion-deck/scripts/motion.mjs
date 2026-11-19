@@ -5,15 +5,17 @@
 //
 //   node motion.mjs <command> [deck] [options]
 //
-// command: init | runtime | check | ssml | synth | timeline | still | render | bundle
+// command: init | runtime | check | ssml | synth | timeline | still | render | pptx | bundle | extract
+// 外部コマンド（extract のみ）: LibreOffice（元のスライドの絵。画面は出さない）
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { buildPptx, effectFor } from './pptx.mjs';
+import { buildPptx, effectFor, writeZip } from './pptx.mjs';
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SAMPLE_RATE = 48000;
@@ -1204,6 +1206,380 @@ function cmdBundle(pos, opt) {
   if (tl.estimated.length) warn(`仮の尺のシーンが含まれます: ${tl.estimated.join(', ')}`);
 }
 
+// ───────────────────────── extract（pptx から見た目を取り出す） ─────────────────────────
+// テンプレートにするのは「見た目の決まり」だけ。文章は取り出さない（文字数と書式だけを残す）。
+// 写真などの絵も中身なので保存しない（レイアウト・背景の絵と、何度も出る小さい飾りの絵だけを保存する）。
+
+function readZip(file) {
+  const buf = fs.readFileSync(file);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) fail(`${file} は pptx（zip）として読めません`);
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const out = new Map();
+  for (let k = 0; k < count; k++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) fail(`${file} の zip の目次が壊れています`);
+    const method = buf.readUInt16LE(p + 10), size = buf.readUInt32LE(p + 20);
+    const nlen = buf.readUInt16LE(p + 28), xlen = buf.readUInt16LE(p + 30), clen = buf.readUInt16LE(p + 32);
+    const name = buf.toString('utf8', p + 46, p + 46 + nlen);
+    const lh = buf.readUInt32LE(p + 42);
+    const start = lh + 30 + buf.readUInt16LE(lh + 26) + buf.readUInt16LE(lh + 28);
+    const raw = buf.subarray(start, start + size);
+    out.set(name, method === 8 ? zlib.inflateRawSync(raw) : Buffer.from(raw));
+    p += 46 + nlen + xlen + clen;
+  }
+  return out;
+}
+
+/** 小さな XML の木: { n: 名前, a: 属性, c: 子, t: 文字 } */
+function parseXml(src) {
+  const root = { n: '#root', a: {}, c: [], t: '' };
+  const stack = [root];
+  const re = /<(\/?)([A-Za-z_][\w:.-]*)((?:\s+[\w:.-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>|<!\[CDATA\[([\s\S]*?)\]\]>|<[?!][\s\S]*?>|([^<]+)/g;
+  const unesc = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d)).replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&amp;/g, '&');
+  let m;
+  while ((m = re.exec(src))) {
+    if (m[2]) {
+      if (m[1]) { stack.pop(); continue; }
+      const a = {};
+      for (const am of m[3].matchAll(/([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) a[am[1]] = unesc(am[2] ?? am[3]);
+      const el = { n: m[2], a, c: [], t: '' };
+      stack[stack.length - 1].c.push(el);
+      if (!m[4]) stack.push(el);
+    } else if (m[6] != null || m[5] != null) stack[stack.length - 1].t += m[5] != null ? m[5] : unesc(m[6]);
+  }
+  return root;
+}
+const kid = (el, name) => el && el.c.find((x) => x.n === name);
+const kids = (el, name) => (el ? el.c.filter((x) => x.n === name) : []);
+const dig = (el, ...names) => names.reduce((e, n) => kid(e, n), el);
+const findAll = (el, name, acc = []) => { if (!el) return acc; for (const x of el.c) { if (x.n === name) acc.push(x); findAll(x, name, acc); } return acc; };
+
+// 色: 16進＋HSL の調整（lumMod / lumOff / tint / shade / alpha）
+function hexToHsl(hex) {
+  const r = parseInt(hex.slice(0, 2), 16) / 255, g = parseInt(hex.slice(2, 4), 16) / 255, b = parseInt(hex.slice(4, 6), 16) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  if (mx === mn) return [0, 0, l];
+  const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+}
+function hslToHex([h, s, l]) {
+  const f = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  let r = l, g = l, b = l;
+  if (s) { const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; r = f(p, q, h + 1 / 3); g = f(p, q, h); b = f(p, q, h - 1 / 3); }
+  return [r, g, b].map((x) => Math.round(Math.min(1, Math.max(0, x)) * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function makeColorReader(scheme, clrMap) {
+  const PRESET = { black: '000000', white: 'FFFFFF', red: 'FF0000', green: '008000', blue: '0000FF', yellow: 'FFFF00', gray: '808080' };
+  return function color(el) {
+    if (!el) return null;
+    const c = el.c.find((x) => /^a:(srgbClr|schemeClr|sysClr|prstClr|scrgbClr|hslClr)$/.test(x.n));
+    if (!c) return null;
+    let hex = null, ref = null;
+    if (c.n === 'a:srgbClr') hex = c.a.val;
+    else if (c.n === 'a:sysClr') hex = c.a.lastClr || (c.a.val === 'window' ? 'FFFFFF' : '000000');
+    else if (c.n === 'a:prstClr') hex = PRESET[c.a.val] || null;
+    else if (c.n === 'a:schemeClr') { ref = c.a.val; const k = clrMap[ref] || ref; hex = scheme[k] ? scheme[k].slice(1) : null; }
+    if (!hex) return null;
+    let alpha = 1;
+    let hsl = hexToHsl(hex);
+    for (const m of c.c) {
+      const v = +m.a.val / 100000;
+      if (m.n === 'a:lumMod') hsl[2] *= v;
+      else if (m.n === 'a:lumOff') hsl[2] += v;
+      else if (m.n === 'a:tint') hsl[2] = hsl[2] * v + (1 - v);
+      else if (m.n === 'a:shade') hsl[2] *= v;
+      else if (m.n === 'a:alpha') alpha = v;
+    }
+    const out = { hex: '#' + hslToHex(hsl) };
+    if (ref) out.scheme = ref;
+    if (alpha < 1) out.alpha = +alpha.toFixed(2);
+    return out;
+  };
+}
+
+function cmdExtract(pos, opt) {
+  const src = path.resolve(pos[0] || fail('pptx を指定してください: extract <pptx> <出力フォルダ>'));
+  if (!exists(src)) fail(`${src} がありません`);
+  const outDir = path.resolve(pos[1] || fail('出力フォルダを指定してください: extract <pptx> <出力フォルダ>'));
+  if (outDir.startsWith(SKILL + path.sep)) fail('出力フォルダはスキルの外にしてください（取り出したものはテンプレートを作る材料で、コミットしない）');
+  fs.mkdirSync(path.join(outDir, 'media'), { recursive: true });
+  const zip = readZip(src);
+  const xml = (name) => zip.has(name) ? parseXml(zip.get(name).toString('utf8')) : null;
+  const relsOf = (part) => {
+    const dir = path.posix.dirname(part), r = xml(path.posix.join(dir, '_rels', path.posix.basename(part) + '.rels'));
+    const map = {};
+    for (const x of findAll(r, 'Relationship')) map[x.a.Id] = { type: x.a.Type.split('/').pop(), target: x.a.TargetMode === 'External' ? null : path.posix.normalize(path.posix.join(dir, x.a.Target)) };
+    return map;
+  };
+
+  const pres = xml('ppt/presentation.xml');
+  const sz = findAll(pres, 'p:sldSz')[0];
+  const W = +sz.a.cx, H = +sz.a.cy;
+  const presRels = relsOf('ppt/presentation.xml');
+  const slideParts = findAll(pres, 'p:sldId').map((x) => presRels[x.a['r:id']].target);
+
+  // テーマ（最初のマスターのもの）
+  const firstMaster = presRels[findAll(pres, 'p:sldMasterId')[0].a['r:id']].target;
+  const themePart = Object.values(relsOf(firstMaster)).find((r) => r.type === 'theme').target;
+  const theme = xml(themePart);
+  const scheme = {};
+  for (const c of (findAll(theme, 'a:clrScheme')[0] || { c: [] }).c) {
+    const v = c.c[0];
+    scheme[c.n.slice(2)] = '#' + (v && (v.a.val && v.n === 'a:srgbClr' ? v.a.val : v.a.lastClr || v.a.val) || '000000').toUpperCase();
+  }
+  const fontOf = (el) => el && { latin: dig(el, 'a:latin')?.a.typeface || '', ea: dig(el, 'a:ea')?.a.typeface || '', jpan: kids(el, 'a:font').find((f) => f.a.script === 'Jpan')?.a.typeface || '' };
+  const fs0 = findAll(theme, 'a:fontScheme')[0];
+  const themeFonts = { major: fontOf(dig(fs0, 'a:majorFont')), minor: fontOf(dig(fs0, 'a:minorFont')) };
+
+  const colorsUsed = new Map(), fontsUsed = new Map(), mediaUse = new Map();
+  const bump = (m, k, n = 1) => { if (k) m.set(k, (m.get(k) || 0) + n); };
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+
+  function readPart(part, where, inherit) {
+    const doc = xml(part);
+    const rels = relsOf(part);
+    const masterEl = findAll(doc, 'p:clrMap')[0];
+    const clrMap = Object.assign({ bg1: 'lt1', tx1: 'dk1', bg2: 'lt2', tx2: 'dk2' }, inherit?.clrMap, masterEl ? masterEl.a : {});
+    const color = makeColorReader(scheme, clrMap);
+    const useColor = (c, w = 1) => { if (c) bump(colorsUsed, c.hex, w); return c; };
+    const useMedia = (rid, area, role) => {
+      const t = rels[rid]?.target;
+      if (!t) return null;
+      if (!mediaUse.has(t)) mediaUse.set(t, { parts: new Set(), areas: [], roles: new Set() });
+      const u = mediaUse.get(t); u.parts.add(where); u.areas.push(area); u.roles.add(role);
+      return path.posix.basename(t);
+    };
+    function fill(spPr, area, role) {
+      if (!spPr) return null;
+      if (kid(spPr, 'a:noFill')) return { type: 'none' };
+      const s = kid(spPr, 'a:solidFill');
+      if (s) return { type: 'solid', ...useColor(color(s), area) };
+      const g = kid(spPr, 'a:gradFill');
+      if (g) {
+        const stops = findAll(g, 'a:gs').map((x) => ({ at: r3(+x.a.pos / 100000), ...useColor(color(x), area / 2) }));
+        const lin = kid(g, 'a:lin'), path_ = kid(g, 'a:path');
+        return { type: 'gradient', kind: path_ ? path_.a.path : 'linear', angle: lin ? +lin.a.ang / 60000 : null, stops };
+      }
+      const b = kid(spPr, 'a:blipFill');
+      if (b) return { type: 'image', image: useMedia(dig(b, 'a:blip')?.a['r:embed'], area, role) };
+      if (kid(spPr, 'a:pattFill')) return { type: 'pattern' };
+      return null;
+    }
+    function background() {
+      const bg = findAll(doc, 'p:bg')[0];
+      if (!bg) return null;
+      const pr = kid(bg, 'p:bgPr');
+      if (pr) return fill(pr, 1, 'background');
+      const ref = kid(bg, 'p:bgRef');
+      if (ref) return { type: 'themeBackground', idx: +ref.a.idx, ...useColor(color(ref), 1) };
+      return null;
+    }
+    const phIndex = inherit?.ph || {};
+    function textInfo(tb) {
+      if (!tb) return null;
+      const runs = findAll(tb, 'a:r').concat(findAll(tb, 'a:fld'));
+      const chars = runs.reduce((n, r) => n + [...(dig(r, 'a:t')?.t || '')].length, 0);
+      if (!chars) return null;
+      const paras = kids(tb, 'a:p').filter((p) => findAll(p, 'a:t').some((t) => t.t.trim()));
+      const sizes = new Map(), styles = { bold: 0, italic: 0, caps: 0 }, colors = new Map(), fonts = new Map();
+      for (const r of runs) {
+        const len = [...(dig(r, 'a:t')?.t || '')].length, pr = kid(r, 'a:rPr');
+        if (!pr || !len) continue;
+        if (pr.a.sz) bump(sizes, +pr.a.sz / 100, len);
+        if (pr.a.b === '1') styles.bold += len;
+        if (pr.a.i === '1') styles.italic += len;
+        if (pr.a.cap === 'all') styles.caps += len;
+        const c = color(kid(pr, 'a:solidFill')); if (c) { bump(colors, c.hex, len); bump(colorsUsed, c.hex, len / 400); }
+        for (const f of ['a:latin', 'a:ea']) { const t = kid(pr, f)?.a.typeface; if (t) { bump(fonts, t, len); bump(fontsUsed, t, len); } }
+      }
+      const top = (m) => [...m].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+      const algn = paras.map((p) => kid(p, 'a:pPr')?.a.algn).filter(Boolean);
+      const bodyPr = kid(tb, 'a:bodyPr');
+      const bullets = paras.filter((p) => kid(kid(p, 'a:pPr'), 'a:buChar') || kid(kid(p, 'a:pPr'), 'a:buAutoNum')).length;
+      const out = { chars, paragraphs: paras.length };
+      if (sizes.size) out.sizePt = top(sizes);
+      if (styles.bold * 2 > chars) out.bold = true;
+      if (styles.italic * 2 > chars) out.italic = true;
+      if (styles.caps * 2 > chars) out.allCaps = true;
+      if (colors.size) out.color = top(colors);
+      if (fonts.size) out.font = top(fonts);
+      if (algn.length) out.align = top(new Map(algn.map((a) => [a, algn.filter((x) => x === a).length])))[0];
+      if (bodyPr?.a.anchor) out.anchor = bodyPr.a.anchor;
+      if (bullets) out.bullets = bullets;
+      return out;
+    }
+    function box(xfrm, T) {
+      const off = kid(xfrm, 'a:off'), ext = kid(xfrm, 'a:ext');
+      if (!off || !ext) return null;
+      const [x0, y0] = T(+off.a.x, +off.a.y), [x1, y1] = T(+off.a.x + +ext.a.cx, +off.a.y + +ext.a.cy);
+      return { x: r3(x0 / W), y: r3(y0 / H), w: r3((x1 - x0) / W), h: r3((y1 - y0) / H) };
+    }
+    const placeholders = {};
+    function shapes(tree, T) {
+      const list = [];
+      for (const el of tree.c) {
+        const nv = el.c.find((x) => /^p:nv/.test(x.n));
+        const ph = nv && findAll(nv, 'p:ph')[0];
+        const spPr = kid(el, 'p:spPr') || kid(el, 'p:grpSpPr');
+        const xfrm = spPr ? kid(spPr, 'a:xfrm') : kid(el, 'p:xfrm');
+        let b = xfrm ? box(xfrm, T) : null;
+        let phKey = null;
+        if (ph) {
+          phKey = ph.a.type || 'body';
+          const inh = phIndex['idx:' + ph.a.idx] || phIndex['type:' + phKey];
+          if (!b && inh) b = inh.box;
+          placeholders['type:' + phKey] = placeholders['type:' + phKey] || { box: b };
+          if (ph.a.idx) placeholders['idx:' + ph.a.idx] = { box: b };
+        }
+        const area = b ? Math.max(0, b.w) * Math.max(0, b.h) : 0;
+        const s = {};
+        if (el.n === 'p:sp') {
+          s.kind = ph ? 'placeholder' : kid(nv, 'p:cNvSpPr')?.a.txBox === '1' ? 'text' : 'shape';
+          if (ph) s.placeholder = phKey;
+          const geom = kid(spPr, 'a:prstGeom')?.a.prst || (kid(spPr, 'a:custGeom') ? 'custom' : null);
+          if (geom && !(s.kind !== 'shape' && geom === 'rect')) s.geom = geom;
+          const f = fill(spPr, area, 'shape'); if (f && f.type !== 'none') s.fill = f;
+          const ln = kid(spPr, 'a:ln');
+          if (ln && !kid(ln, 'a:noFill')) { const c = color(kid(ln, 'a:solidFill')); if (c) s.line = { ...c, widthPt: ln.a.w ? r3(+ln.a.w / 12700) : null }; }
+          const t = textInfo(kid(el, 'p:txBody')); if (t) s.text = t;
+        } else if (el.n === 'p:pic') {
+          s.kind = 'image';
+          s.image = useMedia(findAll(el, 'a:blip')[0]?.a['r:embed'], area, ph ? 'placeholder' : 'picture');
+        } else if (el.n === 'p:cxnSp') {
+          s.kind = 'line';
+          const ln = kid(spPr, 'a:ln'); const c = ln && color(kid(ln, 'a:solidFill'));
+          if (c) s.line = { ...useColor(c, 0.01), widthPt: ln.a.w ? r3(+ln.a.w / 12700) : null };
+        } else if (el.n === 'p:grpSp') {
+          s.kind = 'group';
+          const off = kid(xfrm, 'a:off'), ext = kid(xfrm, 'a:ext'), cho = kid(xfrm, 'a:chOff'), che = kid(xfrm, 'a:chExt');
+          const G = off && ext && cho && che && +che.a.cx && +che.a.cy
+            ? (x, y) => T(+off.a.x + (x - +cho.a.x) * +ext.a.cx / +che.a.cx, +off.a.y + (y - +cho.a.y) * +ext.a.cy / +che.a.cy)
+            : T;
+          s.children = shapes(el, G);
+        } else if (el.n === 'p:graphicFrame') {
+          const uri = findAll(el, 'a:graphicData')[0]?.a.uri || '';
+          s.kind = /table/.test(uri) ? 'table' : /chart/.test(uri) ? 'chart' : /diagram/.test(uri) ? 'diagram' : 'object';
+          if (s.kind === 'table') { const rows = findAll(el, 'a:tr'); s.rows = rows.length; s.cols = rows[0] ? kids(rows[0], 'a:tc').length : 0; }
+        } else continue;
+        if (b) s.box = b;
+        if (xfrm?.a.rot) s.rotate = r3(+xfrm.a.rot / 60000);
+        list.push(s);
+      }
+      return list;
+    }
+    const tree = findAll(doc, 'p:spTree')[0];
+    const result = { background: background(), shapes: tree ? shapes(tree, (x, y) => [x, y]) : [] };
+    return { result, rels, ph: Object.assign({}, phIndex, placeholders), clrMap };
+  }
+
+  // マスター → レイアウト → スライド の順に読み、プレースホルダーの位置を受け継ぐ
+  const masters = new Map(), layouts = new Map();
+  const slides = [];
+  slideParts.forEach((part, i) => {
+    const sRels = relsOf(part);
+    const layoutPart = Object.values(sRels).find((r) => r.type === 'slideLayout')?.target;
+    const masterPart = layoutPart && Object.values(relsOf(layoutPart)).find((r) => r.type === 'slideMaster')?.target;
+    if (masterPart && !masters.has(masterPart)) masters.set(masterPart, readPart(masterPart, 'master', null));
+    const M = masters.get(masterPart);
+    if (layoutPart && !layouts.has(layoutPart)) {
+      const L = readPart(layoutPart, 'layout', M);
+      const lx = xml(layoutPart);
+      L.name = findAll(lx, 'p:cSld')[0]?.a.name || path.posix.basename(layoutPart);
+      L.type = findAll(lx, 'p:sldLayout')[0]?.a.type || null;
+      L.slides = [];
+      layouts.set(layoutPart, L);
+    }
+    const L = layouts.get(layoutPart);
+    if (L) L.slides.push(i + 1);
+    const S = readPart(part, 'slide' + (i + 1), L || M);
+    const hidden = findAll(xml(part), 'p:sld')[0]?.a.show === '0';
+    slides.push({ n: i + 1, layout: L ? L.name : null, ...(hidden ? { hidden: true } : {}), ref: null, ...S.result });
+  });
+
+  // 絵: レイアウト・マスター・背景の絵と、2か所以上に出る小さい絵（面積5%未満）だけ保存する（写真などは中身なので保存しない）
+  const media = [];
+  for (const [part, u] of mediaUse) {
+    const name = path.posix.basename(part);
+    const decorative = u.parts.has('master') || u.parts.has('layout') || u.roles.has('background') || (u.parts.size >= 2 && Math.max(...u.areas, 0) < 0.05);
+    const entry = { file: name, usedIn: [...u.parts].sort(), maxArea: r3(Math.max(...u.areas, 0)) };
+    if (decorative && zip.has(part)) { fs.writeFileSync(path.join(outDir, 'media', name), zip.get(part)); entry.saved = 'media/' + name; }
+    else entry.saved = null;
+    media.push(entry);
+  }
+
+  // 元のスライドの絵（比べる相手）。LibreOffice を画面に出さずに使う
+  const refs = renderReferences(src, zip, slideParts.length, path.join(outDir, 'ref'), opt);
+  if (refs) slides.forEach((s, i) => { if (refs[i]) s.ref = refs[i]; });
+
+  const sortCount = (m, min = 0) => Object.fromEntries([...m].filter(([, v]) => v > min).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, r3(v)]));
+  const out = {
+    source: path.basename(src),
+    note: '見た目の決まりだけを取り出したもの。文章は含まない（text は文字数と書式だけ）。box は スライドの幅・高さに対する割合',
+    slideSize: { widthEmu: W, heightEmu: H, ratio: r3(W / H) },
+    theme: { colors: scheme, fonts: themeFonts },
+    colorsUsed: sortCount(colorsUsed, 0.005),
+    fontsUsed: sortCount(fontsUsed),
+    masters: [...masters.values()].map((m) => m.result),
+    layouts: [...layouts.values()].sort((a, b) => b.slides.length - a.slides.length).map((l) => ({ name: l.name, type: l.type, slides: l.slides, ...l.result })),
+    slides,
+    media,
+  };
+  fs.writeFileSync(path.join(outDir, 'extract.json'), JSON.stringify(out, null, 1) + '\n');
+  log(`取り出しました: ${path.join(outDir, 'extract.json')}`);
+  log(`  スライド ${slides.length}枚、レイアウト ${layouts.size}種（よく使う順: ${out.layouts.slice(0, 5).map((l) => `${l.name}×${l.slides.length}`).join('、')}）`);
+  log(`  テーマのフォント: ${[themeFonts.major.latin, themeFonts.major.ea || themeFonts.major.jpan].filter(Boolean).join(' / ')}、よく使う色: ${Object.keys(out.colorsUsed).slice(0, 6).join(' ')}`);
+  log(`  絵: 保存 ${media.filter((m) => m.saved).length}枚（飾り・背景）、保存しない ${media.filter((m) => !m.saved).length}枚（写真など）`);
+  log(refs ? `  元のスライドの絵: ${path.join(outDir, 'ref')}` : '  元のスライドの絵は作っていません（LibreOffice がない）');
+}
+
+function findSoffice(opt) {
+  const cands = [opt.soffice, process.env.MOTION_SOFFICE, '/Applications/LibreOffice.app/Contents/MacOS/soffice', which('soffice'), which('libreoffice')].filter(Boolean);
+  return cands.find((c) => exists(c)) || null;
+}
+
+/** 1枚ずつの pptx に分けて LibreOffice（画面なし）で PNG にする。返り値は ref/ からの相対パスの配列 */
+function renderReferences(src, zip, count, refDir, opt) {
+  const soffice = findSoffice(opt);
+  if (!soffice) { warn('LibreOffice がないので元のスライドの絵を作れません（macOS: brew install --cask libreoffice）'); return null; }
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-extract-'));
+  try {
+    const presXml = zip.get('ppt/presentation.xml').toString('utf8');
+    const ids = [...presXml.matchAll(/<p:sldId\b[^>]*\/>/g)].map((m) => m[0]);
+    const files = [];
+    for (let i = 0; i < count; i++) {
+      const one = presXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/, `<p:sldIdLst>${ids[i]}</p:sldIdLst>`);
+      const f = path.join(tmp, `slide-${String(i + 1).padStart(2, '0')}.pptx`);
+      writeZip(f, [...zip].map(([name, data]) => ({ name, data: name === 'ppt/presentation.xml' ? one : data })));
+      files.push(f);
+    }
+    const env = { ...process.env };
+    if (process.platform === 'darwin') {
+      // 画面なしの LibreOffice は fontconfig でフォントを探すので、macOS のフォントの置き場所を教える
+      const conf = path.join(tmp, 'fonts.conf');
+      const dirs = ['/System/Library/Fonts', '/System/Library/Fonts/Supplemental', '/System/Library/AssetsV2/com_apple_MobileAsset_Font7', '/Library/Fonts', path.join(os.homedir(), 'Library/Fonts')];
+      fs.writeFileSync(conf, `<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n<fontconfig>\n${dirs.map((d) => `  <dir>${d}</dir>`).join('\n')}\n  <cachedir>${path.join(os.tmpdir(), 'motion-extract-fccache')}</cachedir>\n</fontconfig>\n`);
+      env.FONTCONFIG_FILE = conf;
+    }
+    const filter = 'png:impress_png_Export:{"PixelWidth":{"type":"long","value":"1920"},"PixelHeight":{"type":"long","value":"' + Math.round(1920 * +/cy="(\d+)"/.exec(presXml.match(/<p:sldSz[^>]*>/)[0])[1] / +/cx="(\d+)"/.exec(presXml.match(/<p:sldSz[^>]*>/)[0])[1]) + '"}}';
+    const r = spawnSync(soffice, ['--headless', '--norestore', `-env:UserInstallation=${pathToFileURL(path.join(tmp, 'profile')).href}`, '--convert-to', filter, '--outdir', tmp, ...files], { env, encoding: 'utf8', timeout: 20 * 60 * 1000 });
+    if (r.status !== 0) { warn('LibreOffice で絵にできませんでした: ' + (r.stderr || '').trim().split('\n').pop()); return null; }
+    fs.mkdirSync(refDir, { recursive: true });
+    return files.map((f) => {
+      const png = f.replace(/\.pptx$/, '.png');
+      if (!exists(png)) return null;
+      const name = path.basename(png);
+      fs.copyFileSync(png, path.join(refDir, name));
+      return 'ref/' + name;
+    });
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 // ───────────────────────── main ─────────────────────────
 
 const HELP = `motion-deck — ナレーションで動く HTML プレゼン
@@ -1228,12 +1604,15 @@ const HELP = `motion-deck — ナレーションで動く HTML プレゼン
                                     切り替え、台本入りのノート）
   bundle [deck] [--out x.html] [--external-audio]
                                     CSS・JS・画像・音声を1つの HTML にまとめる
+  extract <pptx> <出力フォルダ> [--soffice パス]
+                                    pptx から見た目の決まり（色・フォント・背景・骨組み）を extract.json に、
+                                    飾りの絵を media/ に、元のスライドの絵を ref/ に取り出す（文章は取り出さない）
 `;
 
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   const { pos, opt } = parseArgs(rest);
-  const table = { pptx: cmdPptx, init: cmdInit, runtime: cmdRuntime, check: cmdCheck, ssml: cmdSsml, synth: cmdSynth, timeline: cmdTimeline, still: cmdStill, render: cmdRender, bundle: cmdBundle };
+  const table = { pptx: cmdPptx, init: cmdInit, runtime: cmdRuntime, check: cmdCheck, ssml: cmdSsml, synth: cmdSynth, timeline: cmdTimeline, still: cmdStill, render: cmdRender, bundle: cmdBundle, extract: cmdExtract };
   if (!cmd || cmd === 'help' || cmd === '--help' || !table[cmd]) {
     log(HELP);
     if (cmd && !table[cmd] && cmd !== 'help' && cmd !== '--help') process.exitCode = 2;
