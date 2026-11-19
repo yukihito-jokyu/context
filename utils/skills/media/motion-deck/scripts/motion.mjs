@@ -187,12 +187,40 @@ function bootLists() {
   return { css: arr('CSS'), js: arr('JS') };
 }
 
-/** deck/motion/ がスキルの runtime/ と完全に同じか（版の照合） */
+// deck/motion/ に配るもの：実行系＋外枠の機能の見た目（base）
+const MOTION_SOURCES = [
+  path.join(SKILL, 'runtime'),
+  path.join(SKILL, 'template', 'base'),
+];
+
+const walkFiles = (dir, rel = '') => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walkFiles(path.join(dir, e.name), rel + e.name + '/') : [rel + e.name]);
+
+/** motion/ の中の相対パス → スキル側の元のファイル。同じ名前が2か所にあればエラー */
+function motionFiles() {
+  const map = new Map();
+  for (const dir of MOTION_SOURCES) {
+    for (const f of walkFiles(dir)) {
+      if (map.has(f)) fail(`motion/${f} が2か所にあります: ${map.get(f)} と ${path.join(dir, f)}`);
+      map.set(f, path.join(dir, f));
+    }
+  }
+  return map;
+}
+
+/** motion/ を配る（既にあるファイルは上書き） */
+function copyMotion(P) {
+  for (const [f, src] of motionFiles()) {
+    const dst = path.join(P.root, 'motion', f);
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(src, dst);
+  }
+}
+
+/** deck/motion/ がスキルの runtime/ ＋ template/base/ と完全に同じか（版の照合） */
 function runtimeDrift(P) {
   const out = [];
-  const walk = (dir, rel = '') => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(dir, e.name), rel + e.name + '/') : [rel + e.name]);
-  for (const f of walk(path.join(SKILL, 'runtime'))) {
-    const a = path.join(SKILL, 'runtime', f), b = path.join(P.root, 'motion', f);
+  for (const [f, a] of motionFiles()) {
+    const b = path.join(P.root, 'motion', f);
     if (!exists(b)) out.push(`${f}（ない）`);
     else if (sha(fs.readFileSync(a)) !== sha(fs.readFileSync(b))) out.push(`${f}（違う）`);
   }
@@ -213,8 +241,12 @@ function copyDir(src, dst, overwrite) {
 function cmdInit(pos, opt) {
   const P = deckPaths(pos[0] || fail('作るフォルダを指定してください: init <フォルダ>'));
   if (exists(P.index) || exists(P.script)) fail(`${P.root} には既にデッキがあります（index.html / script.json）`);
-  copyDir(path.join(SKILL, 'template'), P.root, false);
-  copyDir(path.join(SKILL, 'runtime'), path.join(P.root, 'motion'), true);
+  // 雛形は template/ 直下のファイル（template/base/ は motion/ に配る）
+  fs.mkdirSync(P.root, { recursive: true });
+  for (const e of fs.readdirSync(path.join(SKILL, 'template'), { withFileTypes: true })) {
+    if (e.isFile() && !exists(path.join(P.root, e.name))) fs.copyFileSync(path.join(SKILL, 'template', e.name), path.join(P.root, e.name));
+  }
+  copyMotion(P);
   if (opt.title) {
     const s = readJSON(P.script);
     s.title = opt.title;
@@ -230,7 +262,7 @@ function cmdInit(pos, opt) {
 function cmdRuntime(pos) {
   const P = deckPaths(pos[0]);
   if (!exists(P.index)) fail(`${P.index} がありません`);
-  copyDir(path.join(SKILL, 'runtime'), path.join(P.root, 'motion'), true);
+  copyMotion(P);
   log(`実行系を更新しました: ${path.join(P.root, 'motion')}`);
   // 古い書き方（個別の読み込み）を boot.js の1行に直す
   let html = fs.readFileSync(P.index, 'utf8');
