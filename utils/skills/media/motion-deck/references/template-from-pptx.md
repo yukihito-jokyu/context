@@ -90,5 +90,6 @@ cp <pptx> template/<name>/source.pptx   # 元の pptx を同封する（人が�
 ## 6. 仕上げ
 
 - `node scripts/motion.mjs check <作業フォルダ>/sample` がエラー 0 件。
+- `node scripts/motion.mjs pptx <作業フォルダ>/sample` で書き出し、最後の「図形にできず画像にした要素」の一覧を見る。図形にできる範囲（[プレイヤーと書き出し](player.md)の `pptx`）で同じ見た目にできるものは `kit.css` を直し、画像のまま残すものは作った人に伝える。
 - 見本帳（`template/<name>/index.html`）を開いて、部品と構図が崩れていないか見る。
 - 残った違いと、テンプレートにしなかったもの（写真・1枚だけの飾りなど）を、作った人に伝える。
