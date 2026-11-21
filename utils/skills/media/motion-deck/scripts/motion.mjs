@@ -1017,6 +1017,505 @@ window.__pptx = {
   },
 };`;
 
+const PPTX_SHAPES = String.raw`// PPTX 用：DOM を PowerPoint の図形の一覧にする。テンプレートのクラス名は見ず、計算後のスタイルと位置だけを読む。
+// 図形にできないもの（SVG・画像・filter など）はその要素だけを画像にする印（fb）を付けて返す。
+// 返す形（座標は #composition の px）：
+//   { t:'sp', x,y,w,h, radii:[tl,tr,br,bl], fill, line, shadow, name }
+//   { t:'text', x,y,w,h, align, pitch, lines:[[{ text, size, color, bold, italic, under, strike, spc, latin, ea }]], name }
+//   { t:'pic', fb:'<data-pptx-id>', x,y,w,h, name, alt }
+//   { t:'group', name, id, children:[...] }
+window.__pptx.conv = (function () {
+  var SC = 1, CR = null, FB = [], seq = 0;
+  var num = function (v) { return parseFloat(v) || 0; };
+  var GENERIC = ['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-sans-serif', 'ui-serif', 'ui-monospace', 'math', 'emoji', '-apple-system'];
+
+  // 'rgb(1, 2, 3)' 'rgba(1, 2, 3, 0.5)' → { c:'010203', a }。透明は null、読めない形式は undefined
+  function color(s, op) {
+    if (!s || s === 'transparent') return null;
+    var m = /^rgba?\(([^)]+)\)$/.exec(s.trim());
+    if (!m) return undefined;
+    var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number);
+    var a = (p.length > 3 ? p[3] : 1) * (op == null ? 1 : op);
+    if (a <= 0.003) return null;
+    return { c: p.slice(0, 3).map(function (n) { return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0'); }).join('').toUpperCase(), a: Math.min(1, a) };
+  }
+  function box(r) { return { x: (r.left - CR.left) / SC, y: (r.top - CR.top) / SC, w: r.width / SC, h: r.height / SC }; }
+  // カンマ区切り（括弧の中は区切らない）
+  function split(s, sep) {
+    var out = [], depth = 0, cur = '';
+    for (var i = 0; i < s.length; i++) {
+      var ch = s[i];
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (ch === sep && depth === 0) { out.push(cur.trim()); cur = ''; } else cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  }
+  function label(el) {
+    var t = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+    if (t) return t;
+    var name = function (e) {
+      var cls = (e.getAttribute('class') || '').trim().split(/\s+/)[0];
+      return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (cls ? '.' + cls : '');
+    };
+    var own = name(el);
+    return el.id || el.getAttribute('class') || !el.parentElement ? own : name(el.parentElement) + ' > ' + own;
+  }
+  function sceneOf(el) { var s = el.closest('[data-scene]'); return s ? s.dataset.scene : ''; }
+
+  // ── 図形にできるか ──
+  function transformOk(t) {
+    if (!t || t === 'none') return true;
+    var m = /^matrix\(([^)]+)\)$/.exec(t);
+    if (!m) return false;
+    var v = m[1].split(',').map(Number);
+    return Math.abs(v[0] - 1) < 0.002 && Math.abs(v[3] - 1) < 0.002 && Math.abs(v[1]) < 0.002 && Math.abs(v[2]) < 0.002;
+  }
+  function shadowOf(cs) {
+    var s = cs.boxShadow;
+    if (!s || s === 'none') return { list: [] };
+    var parts = split(s, ',');
+    var list = [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var cm = /rgba?\([^)]+\)/.exec(p);
+      var rest = p.replace(/rgba?\([^)]+\)/, '').trim();
+      var inset = /\binset\b/.test(rest);
+      var n = rest.replace(/\binset\b/, '').trim().split(/\s+/).map(num);
+      list.push({ inset: inset, dx: n[0] || 0, dy: n[1] || 0, blur: n[2] || 0, spread: n[3] || 0, color: cm ? color(cm[0]) : undefined });
+    }
+    return { list: list };
+  }
+  function bgOf(cs) {
+    var img = cs.backgroundImage;
+    if (!img || img === 'none') return {};
+    if (/url\(/.test(img)) return { why: '背景画像' };
+    if (/repeating-/.test(img)) return { why: '繰り返しの模様（repeating-gradient）' };
+    if (/radial-gradient|conic-gradient/.test(img)) return { why: '円や扇のグラデーション' };
+    var gs = [], depth = 0, start = -1;
+    for (var i = 0; i < img.length; i++) {
+      if (img.startsWith('linear-gradient(', i) && depth === 0) start = i;
+      if (img[i] === '(') depth++;
+      if (img[i] === ')') { depth--; if (depth === 0 && start >= 0) { gs.push(img.slice(start + 16, i)); start = -1; } }
+    }
+    if (gs.length !== 1) return { why: '重ねた背景' };
+    var args = split(gs[0], ',');
+    var deg = 180;
+    var first = args[0];
+    if (/deg$/.test(first)) { deg = num(first); args.shift(); }
+    else if (/^to /.test(first)) {
+      var d = { 'to top': 0, 'to right': 90, 'to bottom': 180, 'to left': 270 }[first];
+      if (d == null) return { why: '斜めのグラデーション' };
+      deg = d; args.shift();
+    }
+    var stops = [];
+    for (var k = 0; k < args.length; k++) {
+      var cm = /rgba?\([^)]+\)/.exec(args[k]);
+      if (!cm) return { why: 'グラデーションの色の形式' };
+      var c = color(cm[0]);
+      if (c === undefined) return { why: 'グラデーションの色の形式' };
+      var pos = /(-?[\d.]+)%/.exec(args[k].replace(cm[0], ''));
+      stops.push({ c: c, pos: pos ? num(pos[1]) / 100 : null });
+    }
+    stops.forEach(function (s, idx) { if (s.pos == null) s.pos = stops.length > 1 ? idx / (stops.length - 1) : 0; });
+    var same = stops.every(function (s) { return JSON.stringify(s.c) === JSON.stringify(stops[0].c); });
+    var size = cs.backgroundSize;
+    var sized = size && size !== 'auto' && size !== 'auto auto';
+    if (sized && !same) return { why: '大きさを指定したグラデーション' };
+    if (sized && !/no-repeat/.test(cs.backgroundRepeat)) return { why: '繰り返しの背景' };
+    return { grad: { deg: deg, stops: stops, same: same, sized: sized } };
+  }
+  function unsupported(el, cs) {
+    var tag = el.tagName.toLowerCase();
+    if (el instanceof SVGElement) return 'SVG';
+    if (tag === 'img' || tag === 'picture') return '画像（img）';
+    if (tag === 'canvas' || tag === 'video' || tag === 'iframe' || tag === 'object' || tag === 'embed') return tag;
+    if (cs.filter && cs.filter !== 'none' && !/^blur\(0px\)$/.test(cs.filter)) return 'filter';
+    if (cs.backdropFilter && cs.backdropFilter !== 'none') return 'backdrop-filter';
+    if ((cs.maskImage && cs.maskImage !== 'none') || (cs.webkitMaskImage && cs.webkitMaskImage !== 'none')) return 'mask';
+    if (cs.clipPath && cs.clipPath !== 'none' && !/^inset\(\s*(0(px|%)?\s*)+\)$/.test(cs.clipPath)) return 'clip-path';
+    if (cs.mixBlendMode && cs.mixBlendMode !== 'normal') return 'mix-blend-mode';
+    if (!transformOk(cs.transform)) return 'transform（回転・拡大・傾き）';
+    if (cs.writingMode && !/^horizontal/.test(cs.writingMode)) return '縦書き';
+    if (cs.textShadow && cs.textShadow !== 'none') return '文字の影（text-shadow）';
+    if (num(cs.webkitTextStrokeWidth) > 0) return '文字の縁取り（text-stroke）';
+    if (/text/.test(cs.backgroundClip || cs.webkitBackgroundClip || '')) return '文字の塗り（background-clip: text）';
+    if (cs.outlineStyle !== 'none' && num(cs.outlineWidth) > 0) return 'outline';
+    var bg = bgOf(cs);
+    if (bg.why) return bg.why;
+    var sh = shadowOf(cs).list;
+    if (sh.length > 1) return '重ねた影（box-shadow）';
+    if (sh.length && sh[0].color === undefined) return '影の色の形式';
+    if (sh.length && sh[0].spread) return '広げた影（box-shadow の spread）';
+    if (sh.length && sh[0].inset && sh[0].blur) return 'ぼかした内側の影';
+    var sides = ['Top', 'Right', 'Bottom', 'Left'];
+    for (var i = 0; i < 4; i++) {
+      var st = cs['border' + sides[i] + 'Style'];
+      if (st !== 'none' && st !== 'hidden' && st !== 'solid' && st !== 'dashed' && st !== 'dotted' && num(cs['border' + sides[i] + 'Width']) > 0) return '枠線の種類（' + st + '）';
+      if (st !== 'none' && color(cs['border' + sides[i] + 'Color']) === undefined) return '枠線の色の形式';
+    }
+    if (color(cs.backgroundColor) === undefined || color(cs.color) === undefined) return '色の形式';
+    return null;
+  }
+
+  // ── 箱（塗り・枠線・影） ──
+  function radiiOf(cs, w, h) {
+    var keys = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius'];
+    var r = keys.map(function (k, i) {
+      var v = (cs[k] || '0').split(/\s+/)[0];
+      return /%$/.test(v) ? num(v) / 100 * Math.min(w, h) : num(v);
+    });
+    var f = Math.min(1, w / (r[0] + r[1] || 1), w / (r[3] + r[2] || 1), h / (r[0] + r[3] || 1), h / (r[1] + r[2] || 1));
+    return r.map(function (v) { return v * f; });
+  }
+  function clipShape(s, clip) {
+    if (!clip) return s;
+    var x0 = Math.max(s.x, clip.x), y0 = Math.max(s.y, clip.y);
+    var x1 = Math.min(s.x + s.w, clip.x + clip.w), y1 = Math.min(s.y + s.h, clip.y + clip.h);
+    if (x1 - x0 < 0.5 || y1 - y0 < 0.5) return null;
+    var out = Object.assign({}, s, { x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+    // 切り抜く箱の角に接する角は、その角の丸みを受け継ぐ
+    var near = function (a, b) { return Math.abs(a - b) < 1.5; };
+    var rr = (out.radii || [0, 0, 0, 0]).slice();
+    var cr = clip.radii || [0, 0, 0, 0];
+    if (near(out.x, clip.x) && near(out.y, clip.y)) rr[0] = Math.max(rr[0], cr[0]);
+    if (near(out.x + out.w, clip.x + clip.w) && near(out.y, clip.y)) rr[1] = Math.max(rr[1], cr[1]);
+    if (near(out.x + out.w, clip.x + clip.w) && near(out.y + out.h, clip.y + clip.h)) rr[2] = Math.max(rr[2], cr[2]);
+    if (near(out.x, clip.x) && near(out.y + out.h, clip.y + clip.h)) rr[3] = Math.max(rr[3], cr[3]);
+    out.radii = rr;
+    return out;
+  }
+  // 1つの矩形（要素か、行に分かれたインラインの1片）の塗り・枠線・影
+  function boxShapes(cs, b, op, clip, name, out) {
+    if (b.w < 0.5 && b.h < 0.5) return;
+    var sides = ['Top', 'Right', 'Bottom', 'Left'];
+    var bw = sides.map(function (s) { var st = cs['border' + s + 'Style']; return st === 'none' || st === 'hidden' ? 0 : num(cs['border' + s + 'Width']); });
+    var bc = sides.map(function (s) { return color(cs['border' + s + 'Color'], op); });
+    var bs = sides.map(function (s) { return cs['border' + s + 'Style']; });
+    var radii = radiiOf(cs, b.w, b.h);
+    var fill = color(cs.backgroundColor, op);
+    var bg = bgOf(cs);
+    var extra = null; // 大きさを指定した単色のグラデーション（蛍光ペン・取り消し線）
+    if (bg.grad) {
+      var g = bg.grad;
+      if (g.same && g.sized) {
+        var sz = cs.backgroundSize.split(/\s+/);
+        var pw = b.w - bw[1] - bw[3], ph = b.h - bw[0] - bw[2];
+        var len = function (v, full) { return v === 'auto' ? full : /%$/.test(v) ? num(v) / 100 * full : num(v); };
+        var w = len(sz[0], pw), h = len(sz[1] || 'auto', ph);
+        var ps = (cs.backgroundPosition || '0% 0%').split(/\s+/);
+        var at = function (v, free) { return /%$/.test(v) ? num(v) / 100 * free : num(v); };
+        var x = b.x + bw[3] + at(ps[0], pw - w), y = b.y + bw[0] + at(ps[1] || '0%', ph - h);
+        var c = g.stops[0].c && { c: g.stops[0].c.c, a: g.stops[0].c.a * op };
+        if (c && w > 0.5 && h > 0.5) extra = { t: 'sp', x: x, y: y, w: w, h: h, radii: [0, 0, 0, 0], fill: c, name: name };
+      } else if (g.same) {
+        fill = g.stops[0].c && { c: g.stops[0].c.c, a: g.stops[0].c.a * op };
+      } else {
+        fill = { grad: { deg: g.deg, stops: g.stops.map(function (s) { return { pos: s.pos, c: s.c ? { c: s.c.c, a: s.c.a * op } : { c: '000000', a: 0 } }; }) } };
+      }
+    }
+    var sh = shadowOf(cs).list[0];
+    var shadow = sh && !sh.inset && sh.color ? { dx: sh.dx, dy: sh.dy, blur: sh.blur, c: { c: sh.color.c, a: sh.color.a * op } } : null;
+    var uniform = bw[0] > 0 && bw.every(function (v) { return Math.abs(v - bw[0]) < 0.01; }) &&
+      bc.every(function (c) { return JSON.stringify(c) === JSON.stringify(bc[0]); }) && bs.every(function (s) { return s === bs[0]; });
+    var anyBorder = bw.some(function (v, i) { return v > 0 && bc[i]; });
+    var dash = function (s) { return s === 'dashed' ? 'dash' : s === 'dotted' ? 'sysDot' : null; };
+    if (uniform && bc[0]) {
+      // CSS の枠線は箱の内側、PowerPoint の線は輪郭の中心に引かれるので、線の太さの半分だけ内側に寄せる
+      var h2 = bw[0] / 2;
+      var s = { t: 'sp', x: b.x + h2, y: b.y + h2, w: Math.max(0.5, b.w - bw[0]), h: Math.max(0.5, b.h - bw[0]), radii: radii.map(function (r) { return Math.max(0, r - h2); }), fill: fill, line: { w: bw[0], c: bc[0], dash: dash(bs[0]) }, shadow: shadow, name: name };
+      s = clipShape(s, clip); if (s) out.push(s);
+    } else {
+      if (fill || shadow) { var s2 = clipShape({ t: 'sp', x: b.x, y: b.y, w: b.w, h: b.h, radii: radii, fill: fill, shadow: shadow, name: name }, clip); if (s2) out.push(s2); }
+      if (anyBorder) {
+        if (radii.some(function (r) { return r > 0.5; })) return '角の丸い、辺ごとに違う枠線';
+        var rects = [
+          [b.x, b.y, b.w, bw[0]], [b.x + b.w - bw[1], b.y, bw[1], b.h], [b.x, b.y + b.h - bw[2], b.w, bw[2]], [b.x, b.y, bw[3], b.h],
+        ];
+        rects.forEach(function (q, i) { if (bw[i] > 0 && bc[i]) { var s3 = clipShape({ t: 'sp', x: q[0], y: q[1], w: q[2], h: q[3], radii: [0, 0, 0, 0], fill: bc[i], name: name }, clip); if (s3) out.push(s3); } });
+      }
+    }
+    // 内側の影（ぼかしなし）は、ずらした側の帯として描く
+    if (sh && sh.inset && sh.color) {
+      var ix = b.x + bw[3], iy = b.y + bw[0], iw = b.w - bw[1] - bw[3], ih = b.h - bw[0] - bw[2];
+      var ic = { c: sh.color.c, a: sh.color.a * op };
+      var strips = [];
+      if (sh.dx > 0) strips.push([ix, iy, sh.dx, ih]);
+      if (sh.dx < 0) strips.push([ix + iw + sh.dx, iy, -sh.dx, ih]);
+      if (sh.dy > 0) strips.push([ix, iy, iw, sh.dy]);
+      if (sh.dy < 0) strips.push([ix, iy + ih + sh.dy, iw, -sh.dy]);
+      strips.forEach(function (q) { var s4 = clipShape({ t: 'sp', x: q[0], y: q[1], w: q[2], h: q[3], radii: [0, 0, 0, 0], fill: ic, name: name }, clip); if (s4) out.push(s4); });
+    }
+    if (extra) { var s5 = clipShape(extra, clip); if (s5) out.push(s5); }
+    return null;
+  }
+
+  // ── 文字 ──
+  var fontMemo = new Map();
+  var probe = null;
+  function glyphSig(font, ch) {
+    if (!probe) { probe = document.createElement('canvas'); probe.width = probe.height = 48; }
+    var g = probe.getContext('2d', { willReadFrequently: true });
+    g.clearRect(0, 0, 48, 48); g.font = font; g.fillStyle = '#000'; g.textBaseline = 'top'; g.fillText(ch, 2, 2);
+    var d = g.getImageData(0, 0, 48, 48).data, h = 0;
+    for (var i = 3; i < d.length; i += 4) h = (h * 31 + d[i]) | 0;
+    return h + ':' + g.measureText(ch).width;
+  }
+  // そのフォントにその文字の字形があるか（後ろの総称フォントを変えても絵が同じなら、そのフォントで描かれている）
+  function hasGlyph(fam, ch) {
+    var k = fam + '|' + ch;
+    if (!fontMemo.has(k)) fontMemo.set(k, glyphSig('32px "' + fam + '", serif', ch) === glyphSig('32px "' + fam + '", sans-serif', ch) && glyphSig('32px "' + fam + '", serif', ch) === glyphSig('32px "' + fam + '", monospace', ch));
+    return fontMemo.get(k);
+  }
+  function families(list) {
+    return split(list, ',').map(function (f) { return f.replace(/^["']|["']$/g, '').trim(); }).filter(function (f) { return f && GENERIC.indexOf(f.toLowerCase()) < 0; });
+  }
+  function pickFont(list, ch) {
+    var fs = families(list);
+    for (var i = 0; i < fs.length; i++) if (hasGlyph(fs[i], ch)) return fs[i];
+    return null;
+  }
+  function isInlineBox(cs) { return cs.display === 'inline' || cs.display === 'contents'; }
+
+  // 文字を集める箱（block）の中の、文字と、インラインの要素の塗り
+  function inlineContent(container, op, clip, out) {
+    var chars = [];
+    var decor = [];
+    (function visit(node, op2) {
+      for (var n = node.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3) {
+          var parent = n.parentElement;
+          var pcs = getComputedStyle(parent);
+          if (pcs.visibility !== 'visible') continue;
+          var text = n.data;
+          if (!text) continue;
+          var range = document.createRange();
+          var idx = 0;
+          Array.from(text).forEach(function (ch) {
+            var len = ch.length;
+            range.setStart(n, idx); range.setEnd(n, idx + len); idx += len;
+            if (ch === '\n' || ch === '\r' || (ch === '\t' && pcs.whiteSpace.indexOf('pre') < 0)) return;
+            var rr = range.getClientRects();
+            if (!rr.length) return;
+            var r = rr[rr.length - 1];
+            if (r.width < 0.01) return;
+            var b = box(r);
+            if (clip && (b.x + b.w / 2 < clip.x || b.x + b.w / 2 > clip.x + clip.w || b.y + b.h / 2 < clip.y || b.y + b.h / 2 > clip.y + clip.h)) return;
+            chars.push({ ch: ch === '\t' ? ' ' : ch, b: b, el: parent, cs: pcs, op: op2 });
+          });
+        } else if (n.nodeType === 1) {
+          var cs = getComputedStyle(n);
+          if (cs.display === 'none' || !isInlineBox(cs)) continue;
+          var o = op2 * num(cs.opacity === '' ? 1 : cs.opacity);
+          if (o < 0.01) continue;
+          var why = unsupported(n, cs);
+          if (why) { decor.push({ fb: n, why: why }); continue; }
+          if (cs.visibility === 'visible') Array.from(n.getClientRects()).forEach(function (r) { boxShapes(cs, box(r), o, clip, label(n), decor); });
+          visit(n, o);
+        }
+      }
+    })(container, op);
+    decor.forEach(function (d) { if (d.fb) out.push(fallback(d.fb, d.why)); else out.push(d); });
+    if (!chars.length) return;
+    // 行に分ける（文字の中心が今の行の下端より下なら次の行）
+    var lines = [];
+    chars.forEach(function (c) {
+      var cy = c.b.y + c.b.h / 2;
+      var L = lines[lines.length - 1];
+      if (!L || cy > L.bottom || c.b.x + 0.5 < L.right - 2 * c.b.w && cy > L.top + (L.bottom - L.top) / 2) lines.push(L = { top: c.b.y, bottom: c.b.y + c.b.h, left: c.b.x, right: c.b.x + c.b.w, chars: [] });
+      L.chars.push(c);
+      L.top = Math.min(L.top, c.b.y); L.bottom = Math.max(L.bottom, c.b.y + c.b.h);
+      L.left = Math.min(L.left, c.b.x); L.right = Math.max(L.right, c.b.x + c.b.w);
+    });
+    var ccs = getComputedStyle(container);
+    var lh = ccs.lineHeight === 'normal' ? null : num(ccs.lineHeight);
+    var pitch = lines.length > 1 ? (lines[lines.length - 1].top + lines[lines.length - 1].bottom - lines[0].top - lines[0].bottom) / 2 / (lines.length - 1) : null;
+    if (!pitch) pitch = lh || (lines[0].bottom - lines[0].top);
+    var runsOf = function (L) {
+      var runs = [];
+      L.chars.forEach(function (c) {
+        var cs = c.cs;
+        var col = color(cs.color, c.op) || { c: '000000', a: 0 };
+        var deco = cs.textDecorationLine || '';
+        var key = [cs.fontFamily, cs.fontSize, cs.fontWeight, cs.fontStyle, cs.letterSpacing, col.c, col.a, deco].join('|');
+        var R = runs[runs.length - 1];
+        if (!R || R.key !== key) runs.push(R = {
+          key: key, text: '', size: num(cs.fontSize), color: col, bold: num(cs.fontWeight) >= 600, italic: cs.fontStyle !== 'normal',
+          under: /underline/.test(deco), strike: /line-through/.test(deco), spc: cs.letterSpacing === 'normal' ? 0 : num(cs.letterSpacing), list: cs.fontFamily,
+        });
+        R.text += c.ch;
+      });
+      runs.forEach(function (R) {
+        var latinCh = (R.text.match(/[A-Za-z0-9]/) || ['a'])[0];
+        var eaCh = (R.text.match(/[　-鿿＀-￯]/) || ['あ'])[0];
+        R.latin = pickFont(R.list, latinCh); R.ea = pickFont(R.list, eaCh);
+        delete R.key; delete R.list;
+      });
+      return runs;
+    };
+    var left = Math.min.apply(null, lines.map(function (L) { return L.left; }));
+    var right = Math.max.apply(null, lines.map(function (L) { return L.right; }));
+    var mid0 = (lines[0].top + lines[0].bottom) / 2;
+    var ta = ccs.textAlign;
+    var align = ta === 'center' ? 'ctr' : ta === 'right' || ta === 'end' ? 'r' : 'l';
+    // 1行は字の高さの箱に置き、行送りは決めない（行の高さで固定すると PowerPoint は字を行の下寄りに置くため、line-height が大きいほど下にずれる）
+    if (lines.length === 1) out.push({ t: 'text', x: left, y: lines[0].top, w: right - left, h: lines[0].bottom - lines[0].top, pitch: null, align: align, lines: lines.map(runsOf), name: label(container) });
+    else out.push({ t: 'text', x: left, y: mid0 - pitch / 2, w: right - left, h: pitch * lines.length, pitch: pitch, align: align, lines: lines.map(runsOf), name: label(container) });
+  }
+
+  // ── 疑似要素 ::before / ::after を本物の span にする（変換のあいだだけ） ──
+  var made = [];
+  var sheet = null;
+  function materialize(root) {
+    if (!sheet) { sheet = document.createElement('style'); sheet.textContent = '.pptx-mat-b::before{content:none!important}.pptx-mat-a::after{content:none!important}'; document.head.appendChild(sheet); }
+    var els = [root].concat(Array.from(root.querySelectorAll('*')));
+    var todo = [];
+    els.forEach(function (el) {
+      if (el instanceof SVGElement) return;
+      ['::before', '::after'].forEach(function (which) {
+        var ps = getComputedStyle(el, which);
+        var content = ps.content;
+        if (!content || content === 'none' || content === 'normal' || ps.display === 'none') return;
+        todo.push({ el: el, which: which, ps: ps, content: content });
+      });
+    });
+    // 先にすべてを測ってから入れ替える（入れ替えた後の値で別の疑似要素を測らない）
+    todo = todo.map(function (t) {
+      var style = {};
+      for (var i = 0; i < t.ps.length; i++) { var k = t.ps[i]; if (k !== 'content') style[k] = t.ps.getPropertyValue(k); }
+      var m = /^"((?:[^"\\]|\\.)*)"$/.exec(t.content);
+      return Object.assign(t, { style: style, text: m ? m[1].replace(/\\(.)/g, '$1') : null });
+    });
+    todo.forEach(function (t) {
+      if (t.text == null) return; // counter() や attr() は元のまま（図形にしない）
+      var span = document.createElement('span');
+      span.dataset.pptxPseudo = t.which;
+      for (var k in t.style) span.style.setProperty(k, t.style[k]);
+      span.textContent = t.text;
+      if (t.which === '::before') { t.el.insertBefore(span, t.el.firstChild); t.el.classList.add('pptx-mat-b'); } else { t.el.appendChild(span); t.el.classList.add('pptx-mat-a'); }
+      made.push({ el: t.el, span: span });
+    });
+  }
+  function unmaterialize() {
+    made.forEach(function (m) { m.span.remove(); m.el.classList.remove('pptx-mat-b', 'pptx-mat-a'); });
+    made = [];
+  }
+
+  // 画像にする要素。id は __pptx.iso で切り出すため
+  function fallback(el, why) {
+    var target = el;
+    if (target.dataset && target.dataset.pptxPseudo) target = target.parentElement; // 疑似要素は持ち主ごと
+    if (!target.dataset.pptxId) target.dataset.pptxId = 'f' + (++seq);
+    var b = box(target.getBoundingClientRect());
+    FB.push({ id: target.dataset.pptxId, scene: sceneOf(target), text: label(target), why: why });
+    return { t: 'pic', fb: target.dataset.pptxId, x: b.x, y: b.y, w: b.w, h: b.h, name: label(target), alt: (target.textContent || '').replace(/\s+/g, ' ').trim() };
+  }
+
+  function opacityAbove(el) {
+    var op = 1;
+    for (var p = el.parentElement; p && p.id !== 'composition'; p = p.parentElement) op *= num(getComputedStyle(p).opacity);
+    return op;
+  }
+  function clipAbove(el) {
+    var clip = null;
+    var chain = [];
+    for (var p = el.parentElement; p && p.id !== 'composition'; p = p.parentElement) chain.unshift(p);
+    chain.forEach(function (p) { clip = clipOf(p, getComputedStyle(p), clip); });
+    return clip;
+  }
+  function clipOf(el, cs, clip) {
+    if (cs.overflowX === 'visible' && cs.overflowY === 'visible') return clip;
+    var b = box(el.getBoundingClientRect());
+    var bt = num(cs.borderTopWidth), br = num(cs.borderRightWidth), bb = num(cs.borderBottomWidth), bl = num(cs.borderLeftWidth);
+    var outer = radiiOf(cs, b.w, b.h);
+    var c = { x: b.x + bl, y: b.y + bt, w: b.w - bl - br, h: b.h - bt - bb, radii: [Math.max(0, outer[0] - Math.max(bt, bl)), Math.max(0, outer[1] - Math.max(bt, br)), Math.max(0, outer[2] - Math.max(bb, br)), Math.max(0, outer[3] - Math.max(bb, bl))] };
+    if (!clip) return c;
+    var x0 = Math.max(c.x, clip.x), y0 = Math.max(c.y, clip.y);
+    return { x: x0, y: y0, w: Math.max(0, Math.min(c.x + c.w, clip.x + clip.w) - x0), h: Math.max(0, Math.min(c.y + c.h, clip.y + clip.h) - y0), radii: c.radii };
+  }
+
+  // 1つの要素とその中身
+  function walk(el, op, clip, out, ctx) {
+    var cs = getComputedStyle(el);
+    if (cs.display === 'none') return;
+    if (ctx.isRoot(el) && el !== ctx.top) {
+      var g = { t: 'group', name: label(el), children: [] };
+      walk(el, op, clip, g.children, Object.assign({}, ctx, { top: el, inRoot: true }));
+      if (g.children.length) (ctx.inRoot ? out : ctx.tops).push(g);
+      return;
+    }
+    op *= num(cs.opacity === '' ? 1 : cs.opacity);
+    if (op < 0.01) return;
+    var why = unsupported(el, cs);
+    if (why) {
+      if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && !el.querySelector('*')) return;
+      out.push(fallback(el, why));
+      return;
+    }
+    var b = box(el.getBoundingClientRect());
+    if (cs.visibility === 'visible' && cs.display !== 'contents') {
+      var bad = boxShapes(cs, b, op, clip, label(el), out);
+      if (bad) { out.push(fallback(el, bad)); return; }
+    }
+    inlineContent(el, op, clip, out);
+    var cclip = clipOf(el, cs, clip);
+    for (var c = el.firstElementChild; c; c = c.nextElementSibling) {
+      var ccs = getComputedStyle(c);
+      if (isInlineBox(ccs)) continue; // 文字と一緒に描いた
+      walk(c, op, cclip, out, ctx);
+    }
+  }
+
+  function begin() {
+    var comp = document.getElementById('composition');
+    CR = comp.getBoundingClientRect();
+    SC = CR.width / comp.offsetWidth || 1;
+    FB = [];
+    return comp;
+  }
+  var isRoot = function (el) { return !!(el.dataset && (el.dataset.pptxId && el.dataset.pptxId[0] === 'p' || el.hasAttribute('data-at') || el.hasAttribute('data-anim'))); };
+
+  return {
+    // スライドの最初の状態：背景の色と、「固定の要素」のグループ＋現れる印のある要素ごとのグループ
+    slide: function () {
+      var comp = begin();
+      materialize(comp);
+      try {
+        var tops = [];
+        var fixed = { t: 'group', name: '固定の要素', children: [] };
+        var ctx = { isRoot: isRoot, top: comp, inRoot: false, tops: tops };
+        var ccs = getComputedStyle(comp);
+        var bgc = color(ccs.backgroundColor);
+        for (var c = comp.firstElementChild; c; c = c.nextElementSibling) walk(c, 1, null, fixed.children, ctx);
+        var items = (fixed.children.length ? [fixed] : []).concat(tops);
+        return { bg: bgc ? bgc.c : 'FFFFFF', items: items, fallbacks: FB };
+      } finally { unmaterialize(); }
+    },
+    // 現れる要素1つを1つのグループに
+    element: function (id) {
+      var comp = begin();
+      var el = comp.querySelector('[data-pptx-id="' + id + '"]');
+      if (!el) return { item: null, fallbacks: [] };
+      materialize(el);
+      try {
+        var g = { t: 'group', name: label(el), children: [] };
+        var ctx = { isRoot: isRoot, top: el, inRoot: true, tops: [] };
+        walk(el, opacityAbove(el), clipAbove(el), g.children, ctx);
+        return { item: g.children.length ? g : null, fallbacks: FB };
+      } finally { unmaterialize(); }
+    },
+    // 透明な画像が空か（何も描かれていないか）
+    async empty(b64) {
+      var im = await window.__pptx.load(b64);
+      var d = im.g.getImageData(0, 0, im.c.width, im.c.height).data;
+      for (var i = 3; i < d.length; i += 4) if (d[i] > 8) return false;
+      return true;
+    },
+  };
+})();
+`;
+
 async function cmdPptx(pos, opt) {
   const P = deckPaths(pos[0]);
   const tl = loadTimeline(P);
@@ -1030,15 +1529,42 @@ async function cmdPptx(pos, opt) {
   const slides = [];
   let elementSteps = 0, patchSteps = 0;
   let font = null;
+  const fallbacks = new Map(); // 画像にした要素（id → シーン・文字・理由）
   try {
     const page = await openDeck(browser, P, tl, '&mode=live&static=1&notransition=1&subtitles=0');
     const errs = await page.evaluate('window.__motion.errors.slice()');
     if (errs.length) fail('デッキにエラーがあります。check で直してから書き出してください:\n  ' + errs.join('\n  '));
     await page.evaluate(PPTX_HELPERS + '; true');
+    await page.evaluate(PPTX_SHAPES + '; true');
     const stops = await page.evaluate('__motion.stops');
     const scenes = await page.evaluate('__motion.sceneInfo()');
     const shot = async () => (await page.capture('png')).toString('base64');
     const transparent = (on) => page.send('Emulation.setDefaultBackgroundColorOverride', on ? { color: { r: 0, g: 0, b: 0, a: 0 } } : {});
+    // 図形にできなかった要素（fb の印）を透明な画像に切り出し、空のものと空のグループを除く
+    const capturePics = async (items, found) => {
+      const pics = [];
+      (function collect(list) { for (const it of list) { if (it.t === 'group') collect(it.children); else if (it.t === 'pic' && it.fb) pics.push(it); } })(items);
+      if (pics.length) {
+        await transparent(true);
+        for (const it of pics) {
+          const x = Math.max(0, Math.floor(it.x - PAD)), y = Math.max(0, Math.floor(it.y - PAD));
+          const w = Math.min(W - x, Math.ceil(it.w + PAD * 2)), h = Math.min(H - y, Math.ceil(it.h + PAD * 2));
+          if (w <= 0 || h <= 0) { it.drop = true; continue; }
+          await page.evaluate(`__pptx.iso(${JSON.stringify(it.fb)}); true`);
+          const b64 = (await page.capture('png', 92, { x, y, width: w, height: h })).toString('base64');
+          await page.evaluate('__pptx.unIso(); true');
+          if (await page.evaluate(`__pptx.conv.empty(${JSON.stringify(b64)})`)) { it.drop = true; continue; }
+          const f = found.find((z) => z.id === it.fb);
+          if (f && !fallbacks.has(f.id)) fallbacks.set(f.id, f);
+          Object.assign(it, { png: Buffer.from(b64, 'base64'), x, y, w, h });
+          delete it.fb;
+        }
+        await transparent(false);
+      }
+      const prune = (list) => list.filter((it) => !it.drop && (it.t !== 'group' || (it.children = prune(it.children)).length));
+      return prune(items);
+    };
+    const count = (items, n = { sp: 0, text: 0, pic: 0 }) => { for (const it of items) { if (it.t === 'group') count(it.children, n); else n[it.t]++; } return n; };
     const SPRINGY = ['up', 'down', 'left', 'right', 'scale', 'zoom', 'pop', 'fade', 'blur'];
     const TWEENY = ['draw', 'wipe', 'grow', 'grow-y', 'type', 'words', 'highlight', 'wipe-down', 'progress', 'strike'];
     for (const sc of scenes) {
@@ -1047,11 +1573,14 @@ async function cmdPptx(pos, opt) {
       // 1画面＝1スライド。シーンの最初のスライドはシーンの切り替え、途中で分けたスライドはフェードで入る
       let cur = null;
       const sceneSlides = [];
-      const startSlide = (b64, transition) => {
-        cur = { background: b64, transition, notes: [], pictures: [], steps: [], visible: [], layerOf: new Map(), clicks: 0 };
+      // background の絵は判定（check）にだけ使う。スライドに置くのは、今見えているものを図形にしたもの
+      const startSlide = async (b64, transition) => {
+        const s = await page.evaluate('__pptx.conv.slide()');
+        const items = await capturePics(s.items, s.fallbacks);
+        cur = { bg: s.bg, background: b64, transition, notes: [], items, steps: [], visible: [], layerOf: new Map(), clicks: 0 };
         sceneSlides.push(cur);
       };
-      startSlide(await shot(), { kind: sc.transition, dir: sc.direction });
+      await startSlide(await shot(), { kind: sc.transition, dir: sc.direction });
       if (sc.notes) cur.notes.push(sc.notes, '');
       let prev = cur.background;
       let heads = await page.evaluate(`__pptx.headings(${JSON.stringify(sc.id)})`);
@@ -1068,8 +1597,8 @@ async function cmdPptx(pos, opt) {
         if (split) {
           await page.evaluate(`__pptx.hide(${JSON.stringify(ents.map((e) => e.id))}); true`);
           const bg = await shot();
+          await startSlide(bg, { kind: 'fade' });
           await page.evaluate('__pptx.unhide(); true');
-          startSlide(bg, { kind: 'fade' });
           prev = bg;
         }
         // 要素を透明な絵に切り出す
@@ -1085,6 +1614,11 @@ async function cmdPptx(pos, opt) {
           pieces.push({ e, b64, x, y, w, h });
         }
         await transparent(false);
+        // 現れる要素を図形のグループにする
+        for (const p of pieces) {
+          const r = await page.evaluate(`__pptx.conv.element(${JSON.stringify(p.e.id)})`);
+          p.item = r.item ? (await capturePics([r.item], r.fallbacks))[0] : null;
+        }
         // 消える要素（このスライドで前に絵として出したもの）
         const exits = (await page.evaluate(`__motion.exiting(${from}, ${stop})`)).filter((x) => cur.layerOf.has(x.id));
         const layersAfter = cur.visible.filter((l) => !exits.some((x) => x.id === l.id)).concat(pieces.map((p) => ({ id: p.e.id, b64: p.b64, x: p.x, y: p.y })));
@@ -1103,12 +1637,14 @@ async function cmdPptx(pos, opt) {
         }
         const t0 = Math.min(...ents.map((e) => e.begin), Infinity);
         const effects = [];
-        for (const x of exits) effects.push({ pic: cur.layerOf.get(x.id), kind: 'exitFade', dur: 300, delay: 0 });
+        for (const x of exits) effects.push({ item: cur.layerOf.get(x.id), kind: 'exitFade', dur: 300, delay: 0 });
         for (const p of pieces) {
-          cur.pictures.push({ png: Buffer.from(p.b64, 'base64'), x: p.x, y: p.y, w: p.w, h: p.h, name: p.e.text.slice(0, 30) || p.e.anims.join(' '), alt: p.e.text });
-          cur.layerOf.set(p.e.id, cur.pictures.length - 1);
+          if (!p.item) continue;
+          p.item.name = p.e.text.slice(0, 30) || p.e.anims.join(' ');
+          cur.items.push(p.item);
+          cur.layerOf.set(p.e.id, cur.items.length - 1);
           const springOnly = p.e.anims.some((a) => SPRINGY.includes(a)) && !p.e.anims.some((a) => TWEENY.includes(a));
-          effects.push({ pic: cur.pictures.length - 1, kind: effectFor(p.e.anims), dur: Math.min(3000, ((springOnly ? 15 : p.e.dur) * 1000) / fps), delay: ((p.e.begin - t0) * 1000) / fps });
+          effects.push({ item: cur.items.length - 1, kind: effectFor(p.e.anims), dur: Math.min(3000, ((springOnly ? 15 : p.e.dur) * 1000) / fps), delay: ((p.e.begin - t0) * 1000) / fps });
         }
         cur.visible = layersAfter;
         if (pieces.length) elementSteps++;
@@ -1118,9 +1654,9 @@ async function cmdPptx(pos, opt) {
           const b = res.rest;
           const x = Math.max(0, b.x - 4), y = Math.max(0, b.y - 4), w = Math.min(W - x, b.w + 8), h = Math.min(H - y, b.h + 8);
           const b64 = await page.evaluate(`__pptx.crop(${JSON.stringify(next)}, ${x}, ${y}, ${w}, ${h})`);
-          cur.pictures.push({ png: Buffer.from(b64, 'base64'), x, y, w, h, name: `ステップ${k}の変化`, alt: lines.map((c) => c.text).join(' ') });
-          effects.push({ pic: cur.pictures.length - 1, kind: 'fade', dur: 400, delay: 0 });
-          cur.visible.push({ id: 'patch' + cur.pictures.length, b64, x, y });
+          cur.items.push({ t: 'pic', png: Buffer.from(b64, 'base64'), x, y, w, h, name: `ステップ${k}の変化`, alt: lines.map((c) => c.text).join(' ') });
+          effects.push({ item: cur.items.length - 1, kind: 'fade', dur: 400, delay: 0 });
+          cur.visible.push({ id: 'patch' + cur.items.length, b64, x, y });
         }
         cur.steps.push({ auto: first, effects });
         if (!first) cur.clicks++;
@@ -1128,8 +1664,9 @@ async function cmdPptx(pos, opt) {
         from = stop;
         prev = next;
       }
-      for (const s of sceneSlides) slides.push({ background: Buffer.from(s.background, 'base64'), transition: s.transition, notes: s.notes, pictures: s.pictures, steps: s.steps });
-      log(`  ${sc.id}: ${sceneSlides.length}スライド、${sceneSlides.reduce((n, s) => n + s.clicks, 0) + sceneSlides.length - 1}クリック、絵 ${sceneSlides.reduce((n, s) => n + s.pictures.length, 0)}枚`);
+      for (const s of sceneSlides) slides.push({ bg: s.bg, transition: s.transition, notes: s.notes, items: s.items, steps: s.steps });
+      const n = count(sceneSlides.flatMap((s) => s.items));
+      log(`  ${sc.id}: ${sceneSlides.length}スライド、${sceneSlides.reduce((m, s) => m + s.clicks, 0) + sceneSlides.length - 1}クリック、図形 ${n.sp}・文字 ${n.text}・画像 ${n.pic}`);
     }
     // PPTX のテーマのフォント（発表者ノートの文字）は、テンプレートの本文の書体（kit の --jp）の先頭にそろえる
     font = await page.evaluate(`getComputedStyle(document.getElementById('composition')).getPropertyValue('--jp').split(',')[0].trim().replace(/^["']|["']$/g, '')`);
@@ -1138,7 +1675,11 @@ async function cmdPptx(pos, opt) {
     await browser.close();
   }
   const r = buildPptx(out, { title: script.title, width: W, height: H, slides, font: font || undefined });
-  log(`PPTX: ${out}（${r.slides}スライド、絵 ${r.images}枚。要素のアニメーション ${elementSteps}ステップ、差分の重ね ${patchSteps}ステップ）`);
+  log(`PPTX: ${out}（${r.slides}スライド、図形 ${r.shapes}・文字 ${r.texts}・画像 ${r.images}、グループ ${r.groups}。要素のアニメーション ${elementSteps}ステップ、差分の重ね ${patchSteps}ステップ）`);
+  if (fallbacks.size) {
+    log(`図形にできず画像にした要素 ${fallbacks.size}件（直すなら HTML/CSS を図形にできる範囲に。references/player.md の「pptx」）:`);
+    for (const f of fallbacks.values()) log(`  - ${f.scene}「${f.text}」: ${f.why}`);
+  }
 }
 
 // ───────────────────────── bundle ─────────────────────────
