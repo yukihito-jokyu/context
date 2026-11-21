@@ -1521,16 +1521,19 @@ window.__pptx.conv = (function () {
     return comp;
   }
   var isRoot = function (el) { return !!(el.dataset && (el.dataset.pptxId && el.dataset.pptxId[0] === 'p' || el.hasAttribute('data-at') || el.hasAttribute('data-anim'))); };
+  // PPTX専用のデッキ：シーンの直下の要素ごとに1グループ
+  var isTop = function (el) { return !!(el.parentElement && el.parentElement.hasAttribute('data-scene')); };
 
   return {
     // スライドの最初の状態：背景の色と、「固定の要素」のグループ＋現れる印のある要素ごとのグループ
-    slide: function () {
+    // （top が true なら、シーンの直下の要素ごとのグループ。PPTX専用のデッキの完成した画面に使う）
+    slide: function (top) {
       var comp = begin();
       materialize(comp);
       try {
         var tops = [];
         var fixed = { t: 'group', name: '固定の要素', children: [] };
-        var ctx = { isRoot: isRoot, top: comp, inRoot: false, tops: tops };
+        var ctx = { isRoot: top ? isTop : isRoot, top: comp, inRoot: false, tops: tops };
         var ccs = getComputedStyle(comp);
         var bgc = color(ccs.backgroundColor);
         for (var c = comp.firstElementChild; c; c = c.nextElementSibling) walk(c, 1, null, fixed.children, ctx);
@@ -1611,9 +1614,23 @@ async function cmdPptx(pos, opt) {
       return prune(items);
     };
     const count = (items, n = { sp: 0, text: 0, pic: 0 }) => { for (const it of items) { if (it.t === 'group') count(it.children, n); else n[it.t]++; } return n; };
+    if (script.format === 'pptx') {
+      // PPTX専用のデッキ：1シーン＝1スライド。各シーンの完成した画面を図形・テキストにする。アニメーションと画面の切り替えはなし
+      for (const sc of scenes) {
+        const mine = stops.filter((s) => s >= sc.start && s < sc.start + sc.duration);
+        await page.seek(mine.length ? mine[mine.length - 1] : sc.start);
+        const s = await page.evaluate('__pptx.conv.slide(true)');
+        const items = await capturePics(s.items, s.fallbacks);
+        const notes = sc.notes ? [sc.notes, ''] : [];
+        sc.cues.forEach((c) => notes.push(c.text, ...(c.note ? [`　メモ: ${c.note}`] : [])));
+        slides.push({ bg: s.bg, transition: null, notes, items, steps: [] });
+        const n = count(items);
+        log(`  ${sc.id}: 図形 ${n.sp}・文字 ${n.text}・画像 ${n.pic}`);
+      }
+    }
     const SPRINGY = ['up', 'down', 'left', 'right', 'scale', 'zoom', 'pop', 'fade', 'blur'];
     const TWEENY = ['draw', 'wipe', 'grow', 'grow-y', 'type', 'words', 'highlight', 'wipe-down', 'progress', 'strike'];
-    for (const sc of scenes) {
+    for (const sc of script.format === 'pptx' ? [] : scenes) {
       const mine = stops.filter((s) => s >= sc.start && s < sc.start + sc.duration);
       await page.seek(sc.start);
       // 1画面＝1スライド。シーンの最初のスライドはシーンの切り替え、途中で分けたスライドはフェードで入る
@@ -1721,7 +1738,8 @@ async function cmdPptx(pos, opt) {
     await browser.close();
   }
   const r = buildPptx(out, { title: script.title, width: W, height: H, slides, font: font || undefined });
-  log(`PPTX: ${out}（${r.slides}スライド、図形 ${r.shapes}・文字 ${r.texts}・画像 ${r.images}、グループ ${r.groups}。要素のアニメーション ${elementSteps}ステップ、差分の重ね ${patchSteps}ステップ）`);
+  if (script.format === 'pptx') log(`PPTX: ${out}（PPTX専用のデッキ。${r.slides}スライド、図形 ${r.shapes}・文字 ${r.texts}・画像 ${r.images}、グループ ${r.groups}。アニメーション・画面の切り替えなし）`);
+  else log(`PPTX: ${out}（${r.slides}スライド、図形 ${r.shapes}・文字 ${r.texts}・画像 ${r.images}、グループ ${r.groups}。要素のアニメーション ${elementSteps}ステップ、差分の重ね ${patchSteps}ステップ）`);
   if (fallbacks.size) {
     log(`図形にできず画像にした要素 ${fallbacks.size}件（直すなら HTML/CSS を図形にできる範囲に。references/player.md の「pptx」）:`);
     for (const f of fallbacks.values()) log(`  - ${f.scene}「${f.text}」: ${f.why}`);
@@ -2189,7 +2207,8 @@ const HELP = `motion-deck — ナレーションで動く HTML プレゼン
          [--crf 18] [--subtitles 0] [--allow-estimated]
                                     MP4 に書き出す
   pptx [deck] [--out x.pptx]       PowerPoint に書き出す（クリックごとのネイティブのアニメーション、
-                                    切り替え、台本入りのノート）
+                                    切り替え、台本入りのノート）。PPTX専用のデッキは1シーン＝1スライドで、
+                                    アニメーションと切り替えなし
   bundle [deck] [--out x.html] [--external-audio]
                                     CSS・JS・画像・音声を1つの HTML にまとめる
   extract <pptx> <出力フォルダ> [--soffice パス]
