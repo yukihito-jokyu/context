@@ -62,6 +62,7 @@ cp <pptx> template/<name>/source.pptx   # 元の pptx を同封する（人が�
 | `motion/kit.css` | `#composition` の変数の**値**（名前は変えない。部品と実行系がこの名前を使う）、`--jp`、背景、字幕の見た目。章バーの見た目（`.md-chapters`・`.md-chapter*` の規則）は消す。部品の形（枠・影・角丸・文字の太さ）の違いは末尾の「このテンプレートの上書き」に、新しい飾りのクラスは「テンプレートの飾り」にまとめる |
 | `motion/kit.js` | 変えない |
 | `deck/` | シーンの型ごとに1シーンの見本デッキ。文章は新しく書く。`script.json` の `title` も変える。`index.html` の `#composition` は `data-chapter-bar="off"` |
+| `deck-pptx/` | PPTX専用の見本（必ず作る）。`deck/` と同じシーンの型を、動きを使わない完成した1枚で書く（[シーンの書き方](authoring.md)の1）。`script.json` の `"format": "pptx"` は残す |
 | `style.md` | 1〜4章（骨格・色と文字・部品・シーンの型）をこのテンプレートの決まりに書き直す |
 | `index.html` | 見本帳。構図の `<section>` と `CATALOG` の `c-*` を、このテンプレートのシーンの型に入れ替える（見本帳の字幕に文の名前はないので `data-at` は番号で書く）。飾りの見本（`d-decor`）を足す。`#composition` は `data-chapter-bar="off"` |
 
@@ -90,6 +91,8 @@ cp <pptx> template/<name>/source.pptx   # 元の pptx を同封する（人が�
 ## 6. 仕上げ
 
 - `node scripts/motion.mjs check <作業フォルダ>/sample` がエラー 0 件。
+- PPTX専用の見本も、`node scripts/motion.mjs init <作業フォルダ>/sample-pptx --template <name> --format pptx` で作り、`check <作業フォルダ>/sample-pptx` がエラー 0 件。
 - `node scripts/motion.mjs pptx <作業フォルダ>/sample` で書き出し、最後の「図形にできず画像にした要素」の一覧を見る。図形にできる範囲（[プレイヤーと書き出し](player.md)の `pptx`）で同じ見た目にできるものは `kit.css` を直し、画像のまま残すものは作った人に伝える。
 - 見本帳（`template/<name>/index.html`）を開いて、部品と構図が崩れていないか見る。
 - 残った違いと、テンプレートにしなかったもの（写真・1枚だけの飾りなど）を、作った人に伝える。
+- 仕上げたあとは、[会話からテンプレートを作る](template-from-talk.md)の5章「指摘で直す」で直せる。
