@@ -86,8 +86,10 @@ function loadScript(P) {
     leadIn: raw.leadIn != null ? raw.leadIn : 0.6,
     tail: raw.tail != null ? raw.tail : 1.0,
     charsPerSecond: raw.charsPerSecond || 7,
+    format: raw.format || null,
     scenes: [],
   };
+  if (s.format != null && s.format !== 'pptx') fail(`script.json の format「${s.format}」は使えません（PPTX専用のデッキなら "pptx"、通常のデッキなら書かない）`);
   if (!Array.isArray(raw.scenes) || !raw.scenes.length) fail('script.json の scenes が空です');
   const ids = new Set();
   raw.scenes.forEach((sc, i) => {
@@ -118,6 +120,11 @@ function loadScript(P) {
     });
   });
   return s;
+}
+
+/** PPTX専用のデッキ（script.json の format が pptx）では使えないコマンドを止める */
+function notForPptx(script, cmd, why) {
+  if (script.format === 'pptx') fail(`${cmd} は PPTX専用のデッキでは使えません（${why}）。書き出しは pptx を使ってください`);
 }
 
 function loadLexicon(P) {
@@ -182,6 +189,17 @@ const sceneHash = (ssml, t) => sha([ssml, t.tts, t.voice || '', t.engine || ''].
 const BOOT_TAG = /<script\s+src=["']motion\/boot\.js["'][^>]*><\/script>/g;
 const PLAYER_REQUIRED = ['player', 'scrubber', 'timelinePanel', 'modeToggle', 'presenterView', 'narrationToggle', 'blackout', 'help', 'keyboard', 'editPanel'];
 const REQUIRED = ['boot', 'composition', 'scenes', 'theme', 'kit', 'chapterBar', 'subtitles', 'liveLayout', 'transitions', 'fonts'];
+
+// PPTX専用のデッキで使えない、時間・文番号で見た目が変わる data-* 属性（runtime/motion.js・kit.js が読むもの）
+const PPTX_TIMED = [
+  // 宣言的な動き（出る・消える・強調・待機中の動き・線に沿った移動・数え上げ）
+  'data-at', 'data-anim', 'data-until', 'data-active', 'data-delay', 'data-dur', 'data-ease', 'data-damping', 'data-mass', 'data-stiffness',
+  'data-out', 'data-loop', 'data-loop-speed', 'data-stagger', 'data-follow', 'data-follow-rotate', 'data-anchor', 'data-to', 'data-from', 'data-format',
+  // 部品の時間の指定（コードの行、ターミナル、升目、カメラ）
+  'data-reveal', 'data-focus', 'data-show', 'data-type-speed', 'data-fill', 'data-fill-to', 'data-shots',
+  // シーンの切り替えと発表のステップ
+  'data-transition', 'data-direction', 'data-enter', 'data-exit', 'data-timing', 'data-live-step',
+];
 
 function bootLists() {
   const src = fs.readFileSync(path.join(SKILL, 'runtime', 'boot.js'), 'utf8');
@@ -264,10 +282,15 @@ function cmdInit(pos, opt) {
   const P = deckPaths(pos[0] || fail('作るフォルダを指定してください: init <フォルダ>'));
   if (exists(P.index) || exists(P.script)) fail(`${P.root} には既にデッキがあります（index.html / script.json）`);
   const name = opt.template ? String(opt.template) : DEFAULT_TEMPLATE;
-  copyDir(path.join(templateDir(name), 'deck'), P.root, false);
-  if (name !== DEFAULT_TEMPLATE) {
+  const format = opt.format ? String(opt.format) : null;
+  if (format != null && format !== 'pptx') fail(`--format「${format}」は使えません（PPTX専用のデッキなら --format pptx）`);
+  // PPTX専用のデッキは deck-pptx/ から配る
+  const src = path.join(templateDir(name), format === 'pptx' ? 'deck-pptx' : 'deck');
+  if (!exists(src)) fail(`テンプレート「${name}」には PPTX専用の雛形（template/${name}/deck-pptx/）がありません`);
+  copyDir(src, P.root, false);
+  if (name !== DEFAULT_TEMPLATE || format) {
     const s = readJSON(P.script);
-    writeJSON(P.script, { title: s.title, template: name, ...s });
+    writeJSON(P.script, { title: s.title, ...(name !== DEFAULT_TEMPLATE ? { template: name } : {}), ...(format ? { format } : {}), ...s });
   }
   copyMotion(P);
   if (opt.title) {
@@ -344,6 +367,7 @@ const SECONDS_PER_CHAR = { voxcpm2: 0.33, omnivoice: 0.3, s2: 1.7, voicevox: 0.0
 
 function cmdSynth(pos, opt) {
   const P = deckPaths(pos[0]);
+  notForPptx(loadScript(P), 'synth', 'ナレーションの音声を作らないため');
   const { script, spoken } = cmdSsml(pos, opt);
   const t = ttsSettings(script, opt);
   const only = opt.scenes ? new Set(String(opt.scenes).split(',')) : null;
@@ -499,6 +523,7 @@ function cmdTimeline(pos, opt) {
     audio,
     voice: t && t.voice, engine: t && t.engine, tts: t && t.tts,
     estimated,
+    ...(script.format ? { format: script.format } : {}),
     scriptHash: sha(fs.readFileSync(P.script, 'utf8') + (exists(P.lexicon) ? fs.readFileSync(P.lexicon, 'utf8') : '')),
     generated: new Date().toISOString(),
     scenes,
@@ -506,7 +531,7 @@ function cmdTimeline(pos, opt) {
   fs.writeFileSync(P.timeline, `window.MOTION_TIMELINE = ${JSON.stringify(tl, null, 1)};\n`);
   const min = (cursor / fps / 60).toFixed(2);
   log(`timeline.js: ${scenes.length}シーン、${min}分（${cursor}フレーム @${fps}fps）${audio ? '、音声あり' : '、音声なし'}`);
-  if (estimated.length) log(`  仮の尺（文字数からの見積もり）: ${estimated.join(', ')}`);
+  if (estimated.length && script.format !== 'pptx') log(`  仮の尺（文字数からの見積もり）: ${estimated.join(', ')}`);
   if (stale.length) warn(`原稿が変わったので音声が古いシーン（仮の尺にしました）: ${stale.join(', ')} → synth で作り直す`);
   return tl;
 }
@@ -690,9 +715,13 @@ async function cmdCheck(pos, opt) {
   const spoken = makeSpoken(loadLexicon(P));
   const errors = [];
   const warnings = [];
-  const r = inspectSpoken(script, spoken, { allowLatin: !!opt['allow-latin'] });
-  errors.push(...r.errors.map((e) => '[原稿] ' + e));
-  warnings.push(...r.warnings.map((e) => '[原稿] ' + e));
+  // PPTX専用のデッキ：文はノートにだけ使い、読み上げない。動きも使わない
+  const pptxOnly = script.format === 'pptx';
+  if (!pptxOnly) {
+    const r = inspectSpoken(script, spoken, { allowLatin: !!opt['allow-latin'] });
+    errors.push(...r.errors.map((e) => '[原稿] ' + e));
+    warnings.push(...r.warnings.map((e) => '[原稿] ' + e));
+  }
 
   if (!exists(P.index)) fail('index.html がありません');
   const html = fs.readFileSync(P.index, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
@@ -712,6 +741,14 @@ async function cmdCheck(pos, opt) {
   if (/@keyframes|transition\s*:/.test(html) || (exists(path.join(P.root, 'theme.css')) && /@keyframes/.test(fs.readFileSync(path.join(P.root, 'theme.css'), 'utf8')))) {
     warnings.push('[HTML] @keyframes / transition があります。時間に連動しないので書き出しでずれます');
   }
+  if (pptxOnly) {
+    for (const a of PPTX_TIMED) {
+      const n = (html.match(new RegExp(`\\s${a}(?=[\\s=>/])`, 'g')) || []).length;
+      if (n) errors.push(`[PPTX専用] ${a} があります（${n}か所）。PPTX専用のデッキでは動きを使わず、完成した画面だけを書きます`);
+    }
+    const js = exists(path.join(P.root, 'scenes.js')) ? fs.readFileSync(path.join(P.root, 'scenes.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '') : '';
+    if (/Motion\.scene\s*\(/.test(js + html)) errors.push('[PPTX専用] Motion.scene を使っています。PPTX専用のデッキでは動きを使わず、完成した画面だけを書きます');
+  }
 
   let tl = exists(P.timeline) ? loadTimeline(P) : null;
   const hashNow = sha(fs.readFileSync(P.script, 'utf8') + (exists(P.lexicon) ? fs.readFileSync(P.lexicon, 'utf8') : ''));
@@ -719,20 +756,26 @@ async function cmdCheck(pos, opt) {
     log('timeline.js が原稿より古いので作り直します。');
     tl = cmdTimeline([P.root], {});
   }
-  if (tl.estimated.length) warnings.push(`[音声] 仮の尺のシーン: ${tl.estimated.join(', ')}（synth で音声を作ると本当の尺になる）`);
+  if (tl.estimated.length && !pptxOnly) warnings.push(`[音声] 仮の尺のシーン: ${tl.estimated.join(', ')}（synth で音声を作ると本当の尺になる）`);
 
   if (!opt['no-browser']) {
     const browser = await launchBrowser();
     try {
       const page = await openDeck(browser, P, tl, '&subtitles=1');
       const feats = await page.evaluate('window.__motion.features()');
-      const missing = REQUIRED.filter((k) => !feats[k]);
+      // PPTX専用のデッキには章バーと字幕がない
+      const required = pptxOnly ? REQUIRED.filter((k) => k !== 'chapterBar' && k !== 'subtitles') : REQUIRED;
+      const missing = required.filter((k) => !feats[k]);
       if (missing.length) errors.push(`[機能] 備わっていない機能: ${missing.join(', ')}`);
       const runtimeErrors = await page.evaluate('window.__motion.errors.slice()');
       errors.push(...runtimeErrors.map((e) => '[実行] ' + e));
       const filter = opt.scene ? new Set(String(opt.scene).split(',')) : null;
       const seen = new Map();
-      for (const pt of checkpoints(tl, filter)) {
+      // PPTX専用のデッキは各シーンの完成状態（シーンの終わり）だけを調べる
+      const pts = pptxOnly
+        ? tl.scenes.filter((sc) => !filter || filter.has(sc.id)).map((sc) => ({ scene: sc.id, label: '完成', frame: sc.start + Math.max(0, sc.duration - 12) }))
+        : checkpoints(tl, filter);
+      for (const pt of pts) {
         await page.seek(pt.frame);
         const issues = await page.evaluate('window.__motion.lint()');
         for (const is of issues) {
@@ -740,25 +783,27 @@ async function cmdCheck(pos, opt) {
           if (!seen.has(k)) seen.set(k, { ...is, where: `${pt.scene} ${pt.label} f${pt.frame}` });
         }
       }
-      // 発表モードの各ステップも同じ検査をする（動きを縮めた時間軸）
-      const livePage = await openDeck(browser, P, tl, '&mode=live');
-      const info = await livePage.evaluate('({ stops: __motion.stops, scenes: __motion.scenes })');
-      for (const f of info.stops) {
-        const sc = info.scenes.filter((x) => f >= x.start).pop();
-        if (filter && !filter.has(sc.id)) continue;
-        await livePage.seek(f);
-        for (const is of await livePage.evaluate('window.__motion.lint()')) {
-          const k = is.kind + is.el;
-          if (!seen.has(k)) seen.set(k, { ...is, where: `${sc.id} 発表ステップ f${f}` });
-        }
+      // 発表モードの各ステップも同じ検査をする（動きを縮めた時間軸）。PPTX専用のデッキでは行わない
+      if (!pptxOnly) {
+        const livePage = await openDeck(browser, P, tl, '&mode=live');
+        const info = await livePage.evaluate('({ stops: __motion.stops, scenes: __motion.scenes })');
+        for (const f of info.stops) {
+          const sc = info.scenes.filter((x) => f >= x.start).pop();
+          if (filter && !filter.has(sc.id)) continue;
+          await livePage.seek(f);
+          for (const is of await livePage.evaluate('window.__motion.lint()')) {
+            const k = is.kind + is.el;
+            if (!seen.has(k)) seen.set(k, { ...is, where: `${sc.id} 発表ステップ f${f}` });
+          }
       }
       livePage.pageErrors.forEach((e) => errors.push('[ブラウザ] ' + e));
       await livePage.close();
       log(`発表モード: ${info.stops.length}ステップ`);
+      }
       // 人が開く形（プレーヤー）でも開き、機能の自己申告と、キー操作で実際に動くかを確かめる
       const pl = await openDeck(browser, P, tl, '&mode=live', { player: true });
       const pf = await pl.evaluate('window.__motionPlayer.features()');
-      const pmissing = REQUIRED.concat(PLAYER_REQUIRED).filter((k) => !pf[k]);
+      const pmissing = required.concat(PLAYER_REQUIRED).filter((k) => !pf[k]);
       if (pmissing.length) errors.push(`[機能] プレーヤーに備わっていない機能: ${pmissing.join(', ')}`);
       const probe = await pl.evaluate(`(() => {
         const P = window.__motionPlayer, key = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
@@ -776,7 +821,7 @@ async function cmdCheck(pos, opt) {
       })()`);
       const PROBES = { startLive: '?mode=live で発表モードになる', play: '→でステップの動きが始まる', next: '→をもう一度で次のステップの終わりへ', prev: '←で前のステップ', toVideo: 'P で動画モード', toLive: 'P で発表モードに戻る', blackOn: 'B で画面を隠す', blackOff: 'B で戻す', help: '? でヘルプ', helpClose: 'Esc でヘルプを閉じる', editHidden: '発表モードでは修正の列を隠す', editOn: 'E で修正の列を出す', inspect: 'I で DOM選択', inspectOff: 'Esc で DOM選択をやめる', editOff: 'E で修正の列を隠す', voice: 'V でナレーションのオン・オフ', voiceBack: 'V で戻す' };
       for (const [k, label] of Object.entries(PROBES)) if (k in probe && !probe[k]) errors.push(`[操作] ${label} が動きません`);
-      if (!probe.hasAudio) warnings.push('[音声] narration がないので、ナレーションのオン・オフは確かめていません（synth のあとで check し直してください）');
+      if (!probe.hasAudio && !pptxOnly) warnings.push('[音声] narration がないので、ナレーションのオン・オフは確かめていません（synth のあとで check し直してください）');
       pl.pageErrors.forEach((e) => errors.push('[ブラウザ] ' + e));
       await pl.close();
       const later = await page.evaluate('window.__motion.errors.slice()');
@@ -850,6 +895,7 @@ async function cmdStill(pos, opt) {
 
 async function cmdRender(pos, opt) {
   const P = deckPaths(pos[0]);
+  notForPptx(loadScript(P), 'render', '動画・MP4 に書き出さないため');
   needFfmpeg();
   const tl = loadTimeline(P);
   const from = Math.max(0, Number(opt.from || 0));
@@ -2125,8 +2171,9 @@ function renderReferences(src, zip, count, refDir, opt) {
 
 const HELP = `motion-deck — ナレーションで動く HTML プレゼン
 
-  init <フォルダ> [--title 題名] [--template 名前]
+  init <フォルダ> [--title 題名] [--template 名前] [--format pptx]
                                   雛形を作り、仮の timeline まで用意する（テンプレートの既定は default）
+                                  --format pptx は PPTX専用のデッキ（動き・声・字幕・章バーなし）
   runtime [deck]                    deck/motion/ の実行系をスキルの最新版に置き換える
   check [deck] [--scene id,..] [--no-browser]
                                     原稿・HTML・配置（はみ出し）を検査する

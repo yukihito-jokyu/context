@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>motion-deck 入門</title>
+</head>
+<body>
+<!--
+  PPTX専用のデッキ：1つの section が script.json の1シーンで、PowerPoint の1枚のスライドになる（data-scene は id と同じ）。
+  動きは使わない（時間で見た目が変わる data-*（data-at・data-anim・data-focus など。一覧は references/authoring.md）と Motion.scene は書かない）。各シーンは、要素が重ならない「完成した1枚」として書く。
+  見た目は motion/kit.css の部品（.h .card .tile .code .terminal .roadmap .summary .runner …）だけで組む。
+-->
+<main id="composition" data-chapter-bar="off">
+
+  <!-- 表紙：一本の道が二つに分かれ、走者がそれぞれの先にいる -->
+  <section data-scene="title" data-chrome="none">
+    <div class="title-wrap">
+      <div class="sub" style="font-size:40px">PowerPoint 専用のスライド</div>
+      <div class="display"><span class="mono">motion-deck</span> 入門</div>
+    </div>
+    <div class="branch diagram">
+      <svg width="1460" height="300" viewBox="0 0 1460 300">
+        <path d="M0 150 L560 150" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/>
+        <path d="M560 150 C 680 150, 660 50, 800 50 L1400 50" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round"/>
+        <path d="M560 150 C 680 150, 660 250, 800 250 L1400 250" fill="none" stroke="var(--coral)" stroke-width="8" stroke-linecap="round"/>
+      </svg>
+      <div class="runner at" data-size="84" style="left:220px;top:53px"></div>
+      <div class="runner at" data-size="84" data-color="cyan" data-seed="2" style="left:980px;top:-47px"></div>
+      <div class="runner at" data-size="84" data-color="coral" data-seed="4" style="left:980px;top:153px"></div>
+      <div class="at" style="left:1130px;top:-40px"><span class="bubble cyan">図形</span></div>
+      <div class="at" style="left:1130px;top:290px"><span class="bubble coral">ノート</span></div>
+    </div>
+  </section>
+
+  <!-- 道のり：番号と色つきのカードを並べ、下に結論 -->
+  <section data-scene="roadmap">
+    <h2 class="h">今日の道のり</h2>
+    <div class="sub muted">進むステップは 3つ</div>
+    <div class="roadmap" style="margin-top:56px">
+      <div class="stop"><div class="num">1</div><div class="card cyan"><h3>原稿を書く</h3><p>文は、ノートの台本になる</p><span class="chip mono">script.json</span></div></div>
+      <div class="stop"><div class="num">2</div><div class="card yellow"><h3>完成の画面を書く</h3><p>動きは使わない</p><span class="chip mono">index.html</span></div></div>
+      <div class="stop"><div class="num">3</div><div class="card green"><h3>書き出す</h3><p>図形とテキストのスライドに</p><span class="chip mono">out/*.pptx</span></div></div>
+    </div>
+    <div class="card yellow bold" style="margin-top:70px">声と動きの手順は、まるごと飛ばす</div>
+  </section>
+
+  <!-- 対比：左右のカードと、右下の結論 -->
+  <section data-scene="compare">
+    <div class="title-bar cyan">
+      <div><div class="kicker">考え方</div><div class="h">1シーンが、そのまま1枚</div></div>
+    </div>
+    <div class="pair">
+      <div class="card coral"><h3>動きで書いた画面</h3><p>途中で消える要素が、1枚に重なって残る</p>
+        <div class="points"><div class="point bad">消えるはずの要素も残る</div><div class="point bad">文字と図が重なる</div><div class="point bad">どれが今の話か分からない</div></div>
+      </div>
+      <div class="card cyan"><h3>完成の画面で書く</h3><p>最後の1枚だけを、重ならずに置く</p>
+        <div class="points"><div class="point good">見えるものだけを置く</div><div class="point good">そのまま1枚のスライド</div><div class="point good">ノートで話の順を補う</div></div>
+      </div>
+    </div>
+    <div class="card yellow bold" style="position:absolute;right:var(--safe-x);bottom:var(--safe-bottom)">1シーン ＝ 1枚のスライド</div>
+  </section>
+
+  <!-- コードとターミナル：書き方と書き出し、下に決まりごと -->
+  <section data-scene="markup">
+    <h2 class="h">書き方は、<span class="c-cyan">置くだけ</span></h2>
+    <div style="display:flex;gap:44px;margin-top:40px;align-items:flex-start">
+      <pre class="code" data-title="index.html" data-lang="html" data-width="1100" data-size="36">
+&lt;section data-scene="compare"&gt;
+  &lt;h2 class="h"&gt;見出し&lt;/h2&gt;
+  &lt;div class="card cyan"&gt;…&lt;/div&gt;
+  &lt;div class="card coral"&gt;…&lt;/div&gt;
+&lt;/section&gt;
+</pre>
+      <div class="terminal" data-command="motion.mjs pptx" data-width="576" data-size="30">
+        <div class="dim">1シーン ＝ 1枚</div>
+        <div class="dim">切り替えなし</div>
+        <div class="ok">ノートに台本</div>
+      </div>
+    </div>
+    <div class="points" style="margin-top:64px">
+      <div class="point bad">時間で変わる印（<span class="kw">data-at</span> など）は書かない</div>
+      <div class="point good">部品と色は、ふだんのデッキと同じ</div>
+      <div class="point note">はみ出しと重なりは、check が知らせる</div>
+    </div>
+  </section>
+
+  <!-- 数字：タイルを横に並べ、下に補足 -->
+  <section data-scene="contents">
+    <div class="title-bar green">
+      <div><div class="kicker">書き出しの中身</div><div class="h">1枚のスライドに入るもの</div></div>
+    </div>
+    <div class="tile-row">
+      <div class="tile cyan"><div class="label">スライド</div><div class="value">6<small>枚</small></div><div class="sub-text">1シーン ＝ 1枚</div></div>
+      <div class="tile green"><div class="label">アニメーション</div><div class="value">0<small>個</small></div><div class="sub-text">画面の切り替えもなし</div></div>
+      <div class="tile yellow"><div class="label">ノート</div><div class="value">台本</div><div class="sub-text">原稿の文とメモ</div></div>
+    </div>
+    <div class="points" style="margin-top:84px">
+      <div class="point good">図形とテキストなので、PowerPoint で直せる</div>
+      <div class="point note">図形にできないものは画像にして、一覧で知らせる</div>
+      <div class="point note">ノートには、原稿の文とシーンのメモが入る</div>
+    </div>
+  </section>
+
+  <!-- まとめ：キーと値の行 -->
+  <section data-scene="summary">
+    <h2 class="h">今日のまとめ</h2>
+    <div class="summary" style="margin-top:48px">
+      <div class="row"><div class="key">--format pptx</div><div class="val">init で、PPTX専用のデッキを作る</div></div>
+      <div class="row"><div class="key">script.json</div><div class="val">原稿の文は、ノートの台本になる</div></div>
+      <div class="row"><div class="key">1シーン</div><div class="val">動きを使わず、完成した1枚を書く</div></div>
+      <div class="row"><div class="key">pptx</div><div class="val">図形・テキストとノートの台本に書き出す</div></div>
+    </div>
+    <div class="next-link" style="margin-top:90px">次は、自分の原稿で試してみる</div>
+  </section>
+
+</main>
+<!-- 読み込みはこの1行だけ（実行系・部品・theme.css・timeline.js・scenes.js を順に読み、起動する） -->
+<script src="motion/boot.js"></script>
+</body>
+</html>

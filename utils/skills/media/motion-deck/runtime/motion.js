@@ -1954,7 +1954,7 @@
       }
       const hasText = Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.nodeValue.trim());
       if (hasText) texts.push({ el, r });
-      if (hasText && safeBottom && subtitlesOn() && rec.el.dataset.chrome !== 'none' && rec.tl.cues.length && y1 > H - safeBottom + 2) {
+      if (hasText && safeBottom && state.subtitle && subtitlesOn() && rec.el.dataset.chrome !== 'none' && rec.tl.cues.length && y1 > H - safeBottom + 2) {
         reported.add(el);
         issues.push({ kind: 'safe-area', el: describe(el), message: '字幕の帯に文字が重なっています' });
       }
@@ -2116,11 +2116,13 @@
       } catch (e) { report(`Motion.scene("${id}") の準備でエラー: ${e.message}`); }
     });
 
-    // 字幕と章バー（ステージの中に置くので、書き出した動画にも入る）
-    state.subtitleText = h('div', { class: 'md-subtitle-text' });
-    state.subtitle = h('div', { class: 'md-subtitle' }, [state.subtitleText]);
-    state.comp.appendChild(state.subtitle);
-    if (state.comp.dataset.chapterBar != null && state.comp.dataset.chapterBar !== 'off') buildChapterBar();
+    // 字幕と章バー（ステージの中に置くので、書き出した動画にも入る）。PPTX専用のデッキ（format: pptx）には出さない
+    if (tl.format !== 'pptx') {
+      state.subtitleText = h('div', { class: 'md-subtitle-text' });
+      state.subtitle = h('div', { class: 'md-subtitle' }, [state.subtitleText]);
+      state.comp.appendChild(state.subtitle);
+      if (state.comp.dataset.chapterBar != null && state.comp.dataset.chapterBar !== 'off') buildChapterBar();
+    }
 
     if (RENDER) {
       state.subtitles = params.get('subtitles') !== '0';
