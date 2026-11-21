@@ -220,6 +220,19 @@ function templateDir(name) {
   return dir;
 }
 
+/** <main id="composition"> の data-chapter-bar の値（属性がなければ null、値がなければ ''） */
+function chapterBarAttr(html) {
+  const tag = /<[a-zA-Z][^>]*\sid=["']composition["'][^>]*>/.exec(html.replace(/<!--[\s\S]*?-->/g, ''));
+  const m = tag && /\sdata-chapter-bar(?:\s*=\s*["']([^"']*)["'])?/.exec(tag[0]);
+  return m ? (m[1] ?? '') : null;
+}
+
+/** テンプレートの雛形（deck/index.html）が章バーを使うか。data-chapter-bar="off" なら使わない */
+function templateHasChapterBar(name) {
+  const v = chapterBarAttr(fs.readFileSync(path.join(templateDir(name), 'deck', 'index.html'), 'utf8'));
+  return v != null && v !== 'off';
+}
+
 /** デッキが使うテンプレート（script.json の template。書いていなければ default） */
 function deckTemplate(P) {
   let name = DEFAULT_TEMPLATE;
@@ -734,7 +747,12 @@ async function cmdCheck(pos, opt) {
   if (boots.length !== 1) errors.push(`[構成] <script src="motion/boot.js"></script> がちょうど1つ必要です（今は${boots.length}つ）。古いデッキは runtime コマンドで直せます`);
   if (/<(?:script|link)[^>]+(?:src|href)=["'](?:motion\/(?:motion|kit)\.(?:js|css)|timeline\.js|scenes\.js|theme\.css)["']/.test(html) || /Motion\.start\(/.test(html)) errors.push('[構成] 実行系・テーマ・時間軸を直接読み込んでいます。boot.js の1行だけにしてください（runtime コマンドで直せます）');
   if (!/<main[^>]*\sid=["']composition["']/.test(html)) errors.push('[構成] <main id="composition"> がありません');
-  if (!/id=["']composition["'][^>]*data-chapter-bar|data-chapter-bar[^>]*id=["']composition["']/.test(html)) errors.push('[構成] #composition に data-chapter-bar がありません');
+  // 章バーはテンプレートの雛形に従う。雛形が data-chapter-bar="off" のテンプレートでは付けない（PPTX専用のデッキは雛形どおり "off"）
+  const noChapterBar = !pptxOnly && !templateHasChapterBar(deckTemplate(P));
+  const bar = chapterBarAttr(html);
+  if (noChapterBar) {
+    if (bar != null && bar !== 'off') errors.push(`[構成] テンプレート「${deckTemplate(P)}」は章バーを使いません。#composition の data-chapter-bar を外すか "off" にしてください`);
+  } else if (bar == null) errors.push('[構成] #composition に data-chapter-bar がありません');
   for (const f of ['theme.css', 'scenes.js']) if (!exists(path.join(P.root, f))) errors.push(`[構成] ${f} がありません`);
   const drift = runtimeDrift(P);
   if (drift.length) errors.push(`[構成] 実行系がスキルの版と違います: ${drift.join(', ')} → node "${path.join(SKILL, 'scripts/motion.mjs')}" runtime "${P.root}"`);
@@ -763,8 +781,8 @@ async function cmdCheck(pos, opt) {
     try {
       const page = await openDeck(browser, P, tl, '&subtitles=1');
       const feats = await page.evaluate('window.__motion.features()');
-      // PPTX専用のデッキには章バーと字幕がない
-      const required = pptxOnly ? REQUIRED.filter((k) => k !== 'chapterBar' && k !== 'subtitles') : REQUIRED;
+      // PPTX専用のデッキには章バーと字幕がない。章バーを使わないテンプレートには章バーがない
+      const required = pptxOnly ? REQUIRED.filter((k) => k !== 'chapterBar' && k !== 'subtitles') : noChapterBar ? REQUIRED.filter((k) => k !== 'chapterBar') : REQUIRED;
       const missing = required.filter((k) => !feats[k]);
       if (missing.length) errors.push(`[機能] 備わっていない機能: ${missing.join(', ')}`);
       const runtimeErrors = await page.evaluate('window.__motion.errors.slice()');
