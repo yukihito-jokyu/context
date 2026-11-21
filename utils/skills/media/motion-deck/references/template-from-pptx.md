@@ -49,7 +49,7 @@ node scripts/motion.mjs extract <pptx> <出力フォルダ>   # 出力フォル�
 
 ## 4. 下書きを作る
 
-`template/default/` を写して、見た目に関わるところだけ変える。
+`template/default/` を写して、見た目に関わるところだけ変える。章バーは default だけの部品なので、写したら外す（雛形 `deck/index.html` と見本帳 `index.html` の `#composition` を `data-chapter-bar="off"` にし、`kit.css` から章バーの見た目を消す）。`check` は雛形に従い、このテンプレートのデッキには章バーを求めない。字幕の帯は残す。
 
 ```bash
 cp -R template/default template/<name>
@@ -59,11 +59,11 @@ cp <pptx> template/<name>/source.pptx   # 元の pptx を同封する（人が�
 | ファイル | 変えること |
 |---|---|
 | `source.pptx` | 元の pptx をそのまま置く。人が見比べるためのもので、実装では読まない。`.gitignore` でコミットしない |
-| `motion/kit.css` | `#composition` の変数の**値**（名前は変えない。部品と実行系がこの名前を使う）、`--jp`、背景、章バーと字幕の見た目。部品の形（枠・影・角丸・文字の太さ）の違いは末尾の「このテンプレートの上書き」に、新しい飾りのクラスは「テンプレートの飾り」にまとめる |
+| `motion/kit.css` | `#composition` の変数の**値**（名前は変えない。部品と実行系がこの名前を使う）、`--jp`、背景、字幕の見た目。章バーの見た目（`.md-chapters`・`.md-chapter*` の規則）は消す。部品の形（枠・影・角丸・文字の太さ）の違いは末尾の「このテンプレートの上書き」に、新しい飾りのクラスは「テンプレートの飾り」にまとめる |
 | `motion/kit.js` | 変えない |
-| `deck/` | シーンの型ごとに1シーンの見本デッキ。文章は新しく書く。`script.json` の `title` も変える |
+| `deck/` | シーンの型ごとに1シーンの見本デッキ。文章は新しく書く。`script.json` の `title` も変える。`index.html` の `#composition` は `data-chapter-bar="off"` |
 | `style.md` | 1〜4章（骨格・色と文字・部品・シーンの型）をこのテンプレートの決まりに書き直す |
-| `index.html` | 見本帳。構図の `<section>` と `CATALOG` の `c-*` を、このテンプレートのシーンの型に入れ替える（見本帳の字幕に文の名前はないので `data-at` は番号で書く）。飾りの見本（`d-decor`）を足す |
+| `index.html` | 見本帳。構図の `<section>` と `CATALOG` の `c-*` を、このテンプレートのシーンの型に入れ替える（見本帳の字幕に文の名前はないので `data-at` は番号で書く）。飾りの見本（`d-decor`）を足す。`#composition` は `data-chapter-bar="off"` |
 
 ## 5. 比べて直す（最大3回）
 
