@@ -3,7 +3,7 @@
 // switch：走者（今いる枝）が、文に合わせて main と feature/login の間を移る
 Motion.scene("switch", (s) => {
   const runner = s.$("#sw-runner");
-  const yMain = 250, yFeat = 60;
+  const yMain = 188, yFeat = 18;
   return () => {
     let y = yMain;
     if (s.reached("create")) y = s.interpolate(s.appear("create"), [0, 1], [yMain, yFeat]);
