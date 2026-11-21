@@ -30,6 +30,7 @@
 
 | 項目 | 既定 | 意味 |
 |---|---|---|
+| `format` | — | `"pptx"`でPPTX専用のデッキ（`init --format pptx`が書く）。文は読み上げず、PPTXのノートの台本にだけ使う。`synth`・`render`は使えない |
 | `voice` `engine` | local-ttsの設定 | 声とエンジン。`synth --voice`・`--engine`が優先 |
 | `pause` | 350 | 文と文の間（ミリ秒）。文ごとの`"pause"`で上書き |
 | `leadIn` / `tail` | 0.6 / 1.0 | シーンの音声の前後の余白（秒）。シーンごとに上書き可 |

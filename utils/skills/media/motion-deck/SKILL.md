@@ -17,7 +17,7 @@ node "<motion-deck>/scripts/motion.mjs" <command> <デッキのフォルダ> [op
 
 1. **見た目は常に[見た目の決まり](template/default/style.md)（別のテンプレートを使うデッキはその `template/<名前>/style.md`）に従う。** 「動画」と頼まれても「発表資料」と頼まれても同じ見た目・配置・動きにする。ユーザーはRemotionで作った解説動画の見た目を好んでいて、一般的な箇条書きのスライドは好まない。部品は`motion/kit.css`・`motion/kit.js`のものを使い、新しい見た目を発明しない。
 2. **ナレーションは常にlocal-tts。** 他の音声合成やOSの読み上げは使わない。
-3. **1つのデッキで「動画」と「発表」の両方になる。** 作り分けない。頼まれた用途は、渡し方（下の6）と報告で区別する。
+3. **1つのデッキで「動画」と「発表」の両方になる。** 作り分けない。頼まれた用途は、渡し方（下の6）と報告で区別する。ただし、PowerPointだけで使う資料は、PPTX専用のデッキ（手順1の`--format pptx`）で作る。
 
 ## Remotionから借りた考え方
 
@@ -35,8 +35,10 @@ Remotionのコードは使っていない（`runtime/`と`template/`はこのス
 
 ### 0. 決める
 
-主題、聞き手、長さ、使い方（発表で使う／動画で配る／両方）、声とエンジンを確かめる。会話から分かることは聞き直さない。
+主題、聞き手、長さ、使い方（発表で使う／動画で配る／両方／PowerPointだけ）、声とエンジンを確かめる。会話から分かることは聞き直さない。
 声を指定されなければlocal-ttsの既定の声とエンジン。長さは日本語で**1分あたり約420文字**のナレーションが目安。
+
+使い方がPowerPointだけ（動画にもHTMLの発表にも使わない）なら、PPTX専用のデッキにする（手順1で`--format pptx`）。PPTX専用のデッキは動かない完成した画面で作り、ナレーション（声）・字幕の帯・章バー・動画（MP4）は作らない。声とエンジンは聞かない。
 
 ### 1. 雛形を作る
 
@@ -48,6 +50,7 @@ node "<motion-deck>/scripts/motion.mjs" init <フォルダ> --title "題名"   #
 `index.html`は`<script src="motion/boot.js"></script>`の1行だけで実行系・部品・テーマ・時間軸を読み込む。この行を消したり、実行系を直接読み込んだりしない。
 雛形の6シーン（表紙・道のり・時間の帯・コード・数字・まとめ）は手本の動画の型の見本。中身は書き換えるが、構図と部品の使い方は流用する。`motion/`は編集しない。
 `--template`を付けると`template/<名前>/`の見た目と雛形で作り、`script.json`に`"template"`が書かれる（書いていなければ default）。以降の`runtime`と`check`はそのテンプレートを基準にする。
+PPTX専用のデッキは`init <フォルダ> --format pptx --title "題名"`で作る。雛形は`template/<名前>/deck-pptx/`（動きを使わない6シーンの見本）から配られ、`script.json`に`"format": "pptx"`が書かれる。`--template`と一緒に使える。
 
 ### 2. 原稿を先に書く（script.json）
 
@@ -57,6 +60,7 @@ node "<motion-deck>/scripts/motion.mjs" init <フォルダ> --title "題名"   #
 - 1文＝画面の変化1つ（発表では1クリック）。後から参照する文には`"name"`。
 - 英字・記号は`lexicon.json`か文ごとの`"say"`で読みを与える。数字は漢数字に寄せる。
 - 発表で使うなら、話す人向けのメモを文の`"note"`やシーンの`"notes"`に書ける（発表者ビューに出る）。
+- PPTX専用のデッキでは、文は読み上げず、PPTXのノートの台本にだけ使う。読みの指定（`lexicon.json`・`"say"`）は要らない。
 
 ### 3. シーンを書く
 
@@ -66,6 +70,7 @@ node "<motion-deck>/scripts/motion.mjs" init <フォルダ> --title "題名"   #
 - 要素に`data-at="文番号か名前"`、動きは`data-anim`、途中で消すなら`data-until`、今の項目の強調は`data-active`。
 - 部品（`.runner` `pre.code` `.terminal` `.gantt` `.hbars` `.tile` `.card`…）を使う。色は変数、文字は28px以上。
 - 画面に原稿を貼らない（字幕と二重）。図・キーワード・数字・コードで「今話していること」を見せる。
+- PPTX専用のデッキでは動きを使わない（`data-at`・`data-anim`・`data-focus`・`data-transition`など時間で見た目が変わる`data-*`と`Motion.scene`は書かない。一覧は[シーンの書き方](references/authoring.md)の1）。各シーンを、要素が重ならない「完成した1枚」として書く。
 
 ### 4. 検査して、見て確かめる
 
@@ -79,10 +84,13 @@ node "<motion-deck>/scripts/motion.mjs" still <フォルダ> --cues
   - 構成：boot.jsの1行、`main#composition[data-chapter-bar]`、`theme.css`・`scenes.js`、実行系`motion/`がスキルと同じ版（違えば`runtime`で直す）。
   - 機能（ページ自身の申告`features()`）：シーン、テーマ、部品、章バー、字幕、発表の時間軸、トランジション、フォント。プレーヤーとして開いたときの再生バー、タイムライン、動画／発表の切り替え、発表者ビュー、ナレーションの切り替え、画面を隠す、ヘルプ、キー操作、修正の列。
   - 操作：プレーヤーで実際にキーを送り、→で進む・←で戻る・Pで切り替え・Bで隠す・?でヘルプ・Vでナレーションのオン・オフ・Eで修正の列の出し入れ・IでDOM選択が動くこと（Vは音声があるときだけ）。
+- PPTX専用のデッキでは、`check`は時間で見た目が変わる`data-*`と`Motion.scene`があればエラーにし、配置は各シーンの完成した画面で調べる。章バー・字幕・音声・`V`は調べない。
 - `still --cues`の一覧画像（`out/stills/contact.png`）を**Readで見て**、手本の動画の見た目になっているか（見出しが左上、太枠と影、余白、色の意味）を確かめる。発表のステップは`still --live`。
 - 音声がないシーンは文字数から見積もった「仮の尺」で動く。この段階で動きを詰めてよい。
 
 ### 5. ナレーションを作る（local-tts）
+
+PPTX専用のデッキでは、この手順は飛ばす（`synth`は使えない）。
 
 ```console
 node "<motion-deck>/scripts/motion.mjs" synth <フォルダ> --dry-run
@@ -107,6 +115,8 @@ node "<motion-deck>/scripts/motion.mjs" timeline <フォルダ>
 | PowerPoint | `pptx <フォルダ>` → `out/<名前>.pptx`。1画面＝1スライド（シーンの途中で見出しが変わったらスライドを分ける）、1文＝1クリックで、要素は図形・テキストにして要素ごとにグループ化（図形にできないものは画像にして一覧で知らせる）、出る・消える動きはPowerPointのネイティブのアニメーション、切り替えも対応、ノートに台本 |
 | MP4 | `render <フォルダ>`。1080pで毎秒約70フレーム（このMacの実測） |
 | 配布用の画像 | `still <フォルダ> --live`（発表の各ステップのPNGと一覧） |
+
+PPTX専用のデッキで渡すのはPPTXだけ（`pptx <フォルダ>` → `out/<名前>.pptx`）。1シーン＝1スライドで、要素は図形・テキスト（図形にできないものは画像にして一覧で知らせる）、アニメーションと画面の切り替えはなし、ノートに台本（文）とシーンの`notes`が入る。`render`は使えない。
 
 操作の詳細は[プレイヤーと書き出し](references/player.md)。
 
@@ -150,6 +160,7 @@ node "<motion-deck>/scripts/motion.mjs" timeline <フォルダ>
 | `template/default/style.md` | 見た目の決まり：骨格、色と文字、部品の一覧、シーンの型、動きの決まり | シーンを書く・直すとき（必ず） |
 | `template/default/motion/` | 今の見た目：kit.css（色・文字・部品・章バー・字幕）、kit.js（部品）、fonts/（JetBrains Mono、OFL） | 見た目・部品を直すとき |
 | `template/default/deck/` | `init`で配る雛形（手本の動画の型の見本） | 雛形を変えるとき |
+| `template/default/deck-pptx/` | `init --format pptx`で配るPPTX専用の雛形（動きを使わない完成した画面の見本） | PPTX専用の雛形を変えるとき |
 | `template/default/index.html` | defaultの見本帳（デザインと構図を一覧で見る。人が見るためのもので、実装では読まない） | 見た目を確かめるとき |
 | `template/<名前>/` | default と同じ形の別のテンプレート（`init --template <名前>`で使う）。pptx から作ったものは元の pptx を`source.pptx`として同封する（人が見るためのもので、git の対象外） | そのテンプレートのデッキを書くとき |
 | `scripts/motion.mjs` | すべてのコマンド（pptx から取り出す`extract`も。元のスライドの絵には LibreOffice を画面なしで使う） | 実行、改修 |
