@@ -1,5 +1,5 @@
 // pptx.mjs — 依存なしで .pptx（Office Open XML）を書く。
-// スライドは「背景の絵」＋「現れる要素の絵」で組み、要素には PowerPoint のネイティブのアニメーション
+// スライドは背景の色＋図形・テキスト・画像のグループで組み、グループには PowerPoint のネイティブのアニメーション
 // （フロートイン・フェード・ワイプ・ズーム）をクリック順に付ける。ノートには台本を入れる。
 
 import fs from 'node:fs';
@@ -154,34 +154,127 @@ const TRANSITION = {
 // ───────── スライド ─────────
 
 /**
- * slides = [{ background: Buffer(png), transition: {kind, dir}, notes: [string],
- *             pictures: [{ png: Buffer, x, y, w, h (px), name, alt }],
- *             steps: [{ auto, effects: [{ pic: index, kind, dur, delay }] }] }]
+ * slides = [{ bg: 'RRGGBB', transition: {kind, dir}, notes: [string],
+ *             items: [item],   // 座標は px
+ *             steps: [{ auto, effects: [{ item: index, kind, dur, delay }] }] }]
+ * item = { t:'group', name, children:[item] }
+ *      | { t:'sp', x,y,w,h, radii:[tl,tr,br,bl], fill, line:{w,c,dash}, shadow:{dx,dy,blur,c}, name }
+ *        fill = { c:'RRGGBB', a } | { grad: { deg, stops:[{ pos, c }] } }
+ *      | { t:'text', x,y,w,h, align:'l'|'ctr'|'r', pitch（1行なら null：行送りを決めない）, lines:[[run]], name }
+ *        run = { text, size, color:{c,a}, bold, italic, under, strike, spc, latin, ea }
+ *      | { t:'pic', png: Buffer, x,y,w,h, name, alt }
  */
+const clr = (c) => `<a:srgbClr val="${c.c}">${c.a < 0.999 ? `<a:alpha val="${Math.round(c.a * 100000)}"/>` : ''}</a:srgbClr>`;
+const solid = (c) => `<a:solidFill>${clr(c)}</a:solidFill>`;
+
+function geometry(it, E) {
+  const w = Math.max(1, Math.round(it.w * E)), h = Math.max(1, Math.round(it.h * E));
+  const r = (it.radii || [0, 0, 0, 0]).map((v) => Math.max(0, Math.round(v * E)));
+  if (r.every((v) => v < 1)) return '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>';
+  if (r.every((v) => Math.abs(v - r[0]) <= 1)) return `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val ${Math.min(50000, Math.round((r[0] / Math.min(w, h)) * 100000))}"/></a:avLst></a:prstGeom>`;
+  // 角ごとに丸みが違う：輪郭を線と弧で描く
+  const [tl, tr, br, bl] = r;
+  const arc = (rad, st) => (rad ? `<a:arcTo wR="${rad}" hR="${rad}" stAng="${st}" swAng="5400000"/>` : '');
+  return `<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/><a:pathLst><a:path w="${w}" h="${h}">`
+    + `<a:moveTo><a:pt x="${tl}" y="0"/></a:moveTo><a:lnTo><a:pt x="${w - tr}" y="0"/></a:lnTo>${arc(tr, 16200000)}`
+    + `<a:lnTo><a:pt x="${w}" y="${h - br}"/></a:lnTo>${arc(br, 0)}`
+    + `<a:lnTo><a:pt x="${bl}" y="${h}"/></a:lnTo>${arc(bl, 5400000)}`
+    + `<a:lnTo><a:pt x="0" y="${tl}"/></a:lnTo>${arc(tl, 10800000)}<a:close/></a:path></a:pathLst></a:custGeom>`;
+}
+
+function fillXml(f) {
+  if (!f) return '<a:noFill/>';
+  if (f.grad) {
+    // CSS は 180deg が上→下、DrawingML の lin は 0 が左→右・時計回り
+    const ang = ((((f.grad.deg - 90) % 360) + 360) % 360) * 60000;
+    return `<a:gradFill rotWithShape="1"><a:gsLst>${f.grad.stops.map((s) => `<a:gs pos="${Math.round(Math.max(0, Math.min(1, s.pos)) * 100000)}">${clr(s.c)}</a:gs>`).join('')}</a:gsLst><a:lin ang="${ang}" scaled="0"/></a:gradFill>`;
+  }
+  return solid(f);
+}
+
+function xfrm(it, E, extra = '') {
+  const x = Math.round(it.x * E), y = Math.round(it.y * E), w = Math.max(1, Math.round(it.w * E)), h = Math.max(1, Math.round(it.h * E));
+  return `<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/>${extra}</a:xfrm>`;
+}
+
+function shapeXml(it, id, E) {
+  const ln = it.line ? `<a:ln w="${Math.max(1, Math.round(it.line.w * E))}">${solid(it.line.c)}${it.line.dash ? `<a:prstDash val="${it.line.dash}"/>` : ''}</a:ln>` : '<a:ln><a:noFill/></a:ln>';
+  let fx = '';
+  if (it.shadow) {
+    const { dx, dy, blur, c } = it.shadow;
+    const dist = Math.round(Math.hypot(dx, dy) * E);
+    const dir = Math.round(((((Math.atan2(dy, dx) * 180) / Math.PI) + 360) % 360) * 60000);
+    fx = `<a:effectLst><a:outerShdw blurRad="${Math.round(blur * E)}" dist="${dist}" dir="${dir}" algn="tl" rotWithShape="0">${clr(c)}</a:outerShdw></a:effectLst>`;
+  }
+  return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(it.name || '図形')}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(it, E)}${geometry(it, E)}${fillXml(it.fill)}${ln}${fx}</p:spPr></p:sp>`;
+}
+
+function textXml(it, id, E) {
+  const pt = E / 12700; // 1px が何ポイントか
+  const rPr = (r, tag = 'a:rPr') => {
+    const attrs = ['lang="ja-JP"', `sz="${Math.max(100, Math.round(r.size * pt * 100))}"`, r.bold ? 'b="1"' : 'b="0"', r.italic ? 'i="1"' : '', r.under ? 'u="sng"' : '', r.strike ? 'strike="sngStrike"' : '', r.spc ? `spc="${Math.round(r.spc * pt * 100)}"` : '', 'dirty="0"'].filter(Boolean).join(' ');
+    const fonts = `${r.latin ? `<a:latin typeface="${esc(r.latin)}"/>` : ''}${r.ea ? `<a:ea typeface="${esc(r.ea)}"/>` : ''}`;
+    return `<${tag} ${attrs}>${solid(r.color)}${fonts}</${tag}>`;
+  };
+  // ブラウザで折り返した位置で改行し、自動の折り返しはしない（行の位置がずれないように）。1つの箱の文字は1段落
+  const body = it.lines.map((runs) => runs.map((r) => `<a:r>${rPr(r)}<a:t>${esc(r.text)}</a:t></a:r>`).join('')).join(`<a:br>${rPr(it.lines[0][0])}</a:br>`);
+  const last = it.lines[it.lines.length - 1];
+  const end = rPr(last[last.length - 1], 'a:endParaRPr');
+  const lnSpc = it.pitch ? `<a:lnSpc><a:spcPts val="${Math.max(100, Math.round(it.pitch * pt * 100))}"/></a:lnSpc>` : '';
+  return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(it.name || 'テキスト')}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(it, E)}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr>`
+    + '<p:txBody><a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0" rtlCol="0" anchor="t"><a:noAutofit/></a:bodyPr><a:lstStyle/>'
+    + `<a:p><a:pPr algn="${it.align || 'l'}">${lnSpc}<a:spcBef><a:spcPts val="0"/></a:spcBef><a:spcAft><a:spcPts val="0"/></a:spcAft></a:pPr>${body}${end}</a:p></p:txBody></p:sp>`;
+}
+
+/** グループの子をすべて含む範囲（px） */
+function bounds(items) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const it of items) {
+    const b = it.t === 'group' ? bounds(it.children) : it;
+    if (!b) continue;
+    x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h);
+  }
+  return x0 === Infinity ? null : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
 export function buildPptx(file, { title, width, height, slides, font = 'Hiragino Sans' }) {
-  const emu = SLIDE_W / width;
+  const E = SLIDE_W / width; // 1px の EMU
   const entries = [];
   const media = [];
   const ct = [];
+  const total = { shapes: 0, texts: 0, images: 0, groups: 0 };
   slides.forEach((sl, i) => {
     const n = i + 1;
     const relList = [['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'notesSlide', `../notesSlides/notesSlide${n}.xml`]];
     let rid = 3;
     let spid = 2;
-    const addPic = (png, x, y, w, h, name, alt) => {
+    const pic = (it, id) => {
       const mname = `image${media.length + 1}.png`;
-      media.push({ name: `ppt/media/${mname}`, data: png });
+      media.push({ name: `ppt/media/${mname}`, data: it.png });
       const r = `rId${rid++}`;
       relList.push([r, 'image', `../media/${mname}`]);
-      const id = spid++;
-      const xml = `<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="${esc(name)}" descr="${esc(alt || '')}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${r}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${Math.round(x * emu)}" y="${Math.round(y * emu)}"/><a:ext cx="${Math.max(1, Math.round(w * emu))}" cy="${Math.max(1, Math.round(h * emu))}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`;
-      return { id, xml };
+      return `<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="${esc(it.name || '画像')}" descr="${esc(it.alt || '')}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${r}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>${xfrm(it, E)}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`;
     };
-    const bg = addPic(sl.background, 0, 0, width, height, '背景', '');
-    const pics = sl.pictures.map((p, k) => addPic(p.png, p.x, p.y, p.w, p.h, p.name || `要素${k + 1}`, p.alt));
-    const steps = sl.steps.map((st) => ({ auto: st.auto, effects: st.effects.map((e) => ({ spid: pics[e.pic].id, kind: e.kind, dur: e.dur, delay: e.delay })) }));
+    const itemXml = (it) => {
+      const id = spid++;
+      it.spid = id;
+      if (it.t === 'group') {
+        const b = bounds(it.children);
+        const inner = it.children.map(itemXml).join('');
+        const off = `<a:chOff x="${Math.round(b.x * E)}" y="${Math.round(b.y * E)}"/><a:chExt cx="${Math.max(1, Math.round(b.w * E))}" cy="${Math.max(1, Math.round(b.h * E))}"/>`;
+        total.groups++;
+        return `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="${id}" name="${esc(it.name || 'グループ')}"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr>${xfrm(b, E, off)}</p:grpSpPr>${inner}</p:grpSp>`;
+      }
+      if (it.t === 'sp') { total.shapes++; return shapeXml(it, id, E); }
+      if (it.t === 'text') { total.texts++; return textXml(it, id, E); }
+      total.images++;
+      return pic(it, id);
+    };
+    const tree = sl.items.map(itemXml).join('');
+    const steps = sl.steps.map((st) => ({ auto: st.auto, effects: st.effects.filter((e) => sl.items[e.item]).map((e) => ({ spid: sl.items[e.item].spid, kind: e.kind, dur: e.dur, delay: e.delay })) }));
     const tr = sl.transition && TRANSITION[sl.transition.kind] ? `<p:transition spd="med">${TRANSITION[sl.transition.kind](sl.transition.dir)}</p:transition>` : '';
-    const xml = `${HEAD}<p:sld ${NS}><p:cSld><p:spTree>${emptyTree}${bg.xml}${pics.map((p) => p.xml).join('')}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>${tr}${timing(steps)}</p:sld>`;
+    const bg = sl.bg ? `<p:bg><p:bgPr><a:solidFill><a:srgbClr val="${sl.bg}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>` : '';
+    const xml = `${HEAD}<p:sld ${NS}><p:cSld>${bg}<p:spTree>${emptyTree}${tree}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>${tr}${timing(steps)}</p:sld>`;
     entries.push({ name: `ppt/slides/slide${n}.xml`, data: xml });
     entries.push({ name: `ppt/slides/_rels/slide${n}.xml.rels`, data: rels(relList) });
     entries.push({ name: `ppt/notesSlides/notesSlide${n}.xml`, data: notesSlide(sl.notes || []) });
@@ -216,7 +309,7 @@ export function buildPptx(file, { title, width, height, slides, font = 'Hiragino
   // [Content_Types].xml を先頭に
   entries.sort((a, b) => (a.name === '[Content_Types].xml' ? -1 : b.name === '[Content_Types].xml' ? 1 : 0));
   writeZip(file, [...entries, ...media]);
-  return { slides: slides.length, images: media.length };
+  return { slides: slides.length, ...total };
 }
 
 /** data-anim の名前から PowerPoint の効果を選ぶ */
