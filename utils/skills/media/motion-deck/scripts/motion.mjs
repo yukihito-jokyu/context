@@ -793,9 +793,12 @@ async function cmdCheck(pos, opt) {
       const pts = pptxOnly
         ? tl.scenes.filter((sc) => !filter || filter.has(sc.id)).map((sc) => ({ scene: sc.id, label: '完成', frame: sc.start + Math.max(0, sc.duration - 12) }))
         : checkpoints(tl, filter);
+      // 各シーンの最後の確認点（最後の状態）では、下が空きすぎていないかも調べる。
+      // default は「余白は残してよい」見た目（見出しの下に上から置く）なので調べない。ほかのテンプレートは下の余白まで使う
+      const lastPt = deckTemplate(P) === DEFAULT_TEMPLATE ? new Map() : new Map(pts.map((pt) => [pt.scene, pt]));
       for (const pt of pts) {
         await page.seek(pt.frame);
-        const issues = await page.evaluate('window.__motion.lint()');
+        const issues = await page.evaluate(`window.__motion.lint(${lastPt.get(pt.scene) === pt ? '{ space: true }' : ''})`);
         for (const is of issues) {
           const k = is.kind + is.el;
           if (!seen.has(k)) seen.set(k, { ...is, where: `${pt.scene} ${pt.label} f${pt.frame}` });
@@ -847,7 +850,7 @@ async function cmdCheck(pos, opt) {
       page.pageErrors.forEach((e) => errors.push('[ブラウザ] ' + e));
       for (const is of seen.values()) {
         const line = `[配置] ${is.where}: ${is.message} ${is.el}`;
-        if (is.kind === 'safe-area' || is.kind === 'css-transition' || is.kind === 'overlap') warnings.push(line); else errors.push(line);
+        if (is.kind === 'safe-area' || is.kind === 'css-transition' || is.kind === 'overlap' || is.kind === 'bottom-space') warnings.push(line); else errors.push(line);
       }
       await page.close();
     } finally { await browser.close(); }

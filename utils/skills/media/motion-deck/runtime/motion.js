@@ -1918,7 +1918,7 @@
 
   // ───────────────────────── 検査（書き出し前のはみ出し確認） ─────────────────────────
 
-  function lint() {
+  function lint(opts) {
     const issues = [];
     const rec = state.current;
     if (!rec) return issues;
@@ -1971,7 +1971,53 @@
         if (w > 4 && hgt > Math.max(4, minH * 0.25) && w > minW * 0.1) issues.push({ kind: 'overlap', el: describe(a.el) + ' と ' + describe(b.el), message: `文字が重なっています（${Math.round(w)}×${Math.round(hgt)}px）` });
       }
     }
+    if (opts && opts.space) {
+      const s = bottomSpace(rec, stageRect, H - safeBottom);
+      if (s) issues.push(s);
+    }
     return issues;
+  }
+
+  /**
+   * 下の空き（lint({ space: true }) のとき。check がシーンの最後の状態で使う）。
+   * 見える要素（文字・塗り・枠・影・画像）の下の端が、使える下端（--safe-bottom の位置。通常版では字幕の帯の上端）より
+   * 使える高さの BOTTOM_GAP 以上上で止まっていて、しかも上の空きより CENTER_SLACK 以上大きい（中央寄せではない）ときに知らせる。
+   */
+  const BOTTOM_GAP = 0.25, CENTER_SLACK = 0.1;
+  function bottomSpace(rec, stageRect, bottom) {
+    const top = parseFloat(getComputedStyle(rec.el).paddingTop) || 0;
+    const usable = bottom - top;
+    if (usable <= 0) return null;
+    let y0 = Infinity, y1 = -Infinity;
+    const add = (r) => {
+      if (r.width < 1 || r.height < 1) return;
+      y0 = Math.min(y0, r.top - stageRect.top);
+      y1 = Math.max(y1, r.bottom - stageRect.top);
+    };
+    const visible = (c) => c && !/rgba\(.*,\s*0\)$|transparent/.test(c);
+    rec.el.querySelectorAll('*').forEach((el) => {
+      if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return;
+      const cam = el.closest('.camera');
+      if (cam && cam.style.transform) return;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none') return;
+      const tag = el.tagName.toLowerCase();
+      const painted = /^(img|svg|canvas|video)$/.test(tag)
+        || visible(cs.backgroundColor) || cs.backgroundImage !== 'none' || cs.boxShadow !== 'none'
+        || ['Top', 'Right', 'Bottom', 'Left'].some((d) => parseFloat(cs['border' + d + 'Width']) > 0 && cs['border' + d + 'Style'] !== 'none' && visible(cs['border' + d + 'Color']));
+      if (painted) add(el.getBoundingClientRect());
+      for (const n of el.childNodes) {
+        if (n.nodeType !== 3 || !n.nodeValue.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        add(range.getBoundingClientRect());
+      }
+    });
+    if (y1 === -Infinity) return null;
+    const gapBottom = (bottom - Math.min(y1, bottom)) / usable;
+    const gapTop = (Math.max(y0, top) - top) / usable;
+    if (gapBottom < BOTTOM_GAP || gapBottom - gapTop < CENTER_SLACK) return null;
+    return { kind: 'bottom-space', el: describe(rec.el), message: `内容の下の端が使える下端より上で止まっています（下が使える高さの${Math.round(gapBottom * 100)}%空いている。上の空きは${Math.round(gapTop * 100)}%）` };
   }
 
   // ───────────────────────── 起動 ─────────────────────────
