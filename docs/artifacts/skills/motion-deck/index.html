@@ -6,33 +6,32 @@
 <title>Gitのブランチ入門</title>
 </head>
 <body>
+<!-- 線とコミットは SVG ではなく箱（div）で描く。PPTX でも図形のまま残すため -->
 <main id="composition" data-chapter-bar>
 
-  <!-- idea：一本の線（main）にコミットが積もり、枝が分かれて走者が進む -->
+  <!-- idea：一本の線（main）にコミットが積もり、枝が分かれる -->
   <section data-scene="idea" data-transition="none">
     <div class="title-bar cyan" data-at="0" data-anim="left">
       <div><div class="kicker">Gitのブランチ入門</div><div class="h">作業の流れを<span class="c-cyan">枝分かれ</span>させる</div></div>
     </div>
     <div class="branch diagram">
-      <svg width="1240" height="300" viewBox="0 0 1240 300">
-        <path id="b-main" d="M0 220 L1200 220" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="main" data-anim="draw" data-dur="40"/>
-        <path id="b-feat" d="M520 220 C 640 220, 620 60, 760 60 L1180 60" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="fork" data-anim="draw" data-dur="40"/>
-      </svg>
-      <div data-at="main" data-stagger="8" data-anim="scale">
-        <i class="commit" style="left:98px;top:198px"></i>
-        <i class="commit" style="left:298px;top:198px"></i>
-        <i class="commit" style="left:498px;top:198px"></i>
-        <i class="commit" style="left:958px;top:198px"></i>
+      <i class="line ink" style="left:0;top:250px;width:1260px" data-at="main" data-anim="wipe" data-dur="30"></i>
+      <div data-at="main" data-delay="10" data-stagger="8" data-anim="scale">
+        <i class="commit" style="left:96px;top:231px"></i>
+        <i class="commit" style="left:296px;top:231px"></i>
+        <i class="commit" style="left:496px;top:231px"></i>
+        <i class="commit" style="left:996px;top:231px"></i>
       </div>
+      <i class="line cyan v" style="left:555px;top:70px;height:190px" data-at="fork" data-anim="grow-y" data-dur="14"></i>
+      <i class="line cyan" style="left:555px;top:70px;width:660px" data-at="fork" data-delay="14" data-anim="wipe" data-dur="24"></i>
       <div data-at="fork" data-delay="30" data-stagger="8" data-anim="scale">
-        <i class="commit feat" style="left:838px;top:38px"></i>
-        <i class="commit feat" style="left:1038px;top:38px"></i>
+        <i class="commit feat" style="left:776px;top:51px"></i>
+        <i class="commit feat" style="left:996px;top:51px"></i>
       </div>
-      <div class="at" style="left:0;top:250px" data-at="main" data-anim="fade"><span class="chip mono">main</span></div>
-      <div class="at" style="left:640px;top:-60px" data-at="fork" data-delay="20" data-anim="pop"><span class="chip mono cyan">feature/login</span></div>
-      <div class="runner at" data-size="76" data-color="cyan" data-seed="3" data-at="fork" data-anim="follow" data-follow="#b-feat" data-anchor="bottom" data-dur="50"></div>
+      <div class="at" style="left:0;top:285px" data-at="main" data-anim="fade"><span class="chip mono">main</span></div>
+      <div class="at" style="left:620px;top:-24px" data-at="fork" data-delay="20" data-anim="pop"><span class="chip mono cyan">feature/login</span></div>
     </div>
-    <div class="card green bold verdict" data-at="safe" data-anim="pop"><span class="mono">main</span> は そのまま</div>
+    <div class="card green bold verdict" data-at="safe" data-anim="pop"><span class="mono">main</span> は<br>そのまま</div>
   </section>
 
   <!-- switch：左にコマンド（文ごとに強調する行が移る）と差し替わる注釈、右に今いる枝 -->
@@ -49,19 +48,18 @@ $ git switch main
 </pre>
         <div class="notes">
           <div class="card yellow bold" data-at="create" data-anim="right" data-until="list"><span class="kw">-c</span> ＝ 作って、すぐ移る</div>
-          <div class="card yellow bold" data-at="list" data-anim="right" data-until="star">枝の一覧を見る</div>
+          <div class="card yellow bold" data-at="list" data-anim="right" data-until="star">今ある枝の一覧</div>
           <div class="card yellow bold" data-at="star" data-anim="right" data-until="back"><span class="kw">*</span> ＝ 今いる枝</div>
           <div class="card cyan bold" data-at="back" data-anim="right"><span class="mono">main</span> に戻る</div>
         </div>
       </div>
       <div class="where diagram" data-at="0" data-delay="14" data-anim="fade">
-        <svg width="640" height="330" viewBox="0 0 640 330">
-          <path d="M0 260 L620 260" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/>
-          <path d="M90 260 C 190 260, 170 90, 290 90 L620 90" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="create" data-anim="draw" data-dur="30"/>
-        </svg>
-        <div class="at" style="left:20px;top:280px"><span class="chip mono sm">main</span></div>
-        <div class="at" style="left:250px;top:110px" data-at="create" data-delay="16" data-anim="fade"><span class="chip mono sm cyan">feature/login</span></div>
-        <div class="runner at" id="sw-runner" data-size="72" data-color="yellow" style="left:540px;top:188px"></div>
+        <i class="line ink" style="left:0;top:256px;width:620px"></i>
+        <i class="line cyan v" style="left:90px;top:86px;height:180px" data-at="create" data-anim="grow-y" data-dur="12"></i>
+        <i class="line cyan" style="left:90px;top:86px;width:530px" data-at="create" data-delay="12" data-anim="wipe" data-dur="18"></i>
+        <div class="at" style="left:0;top:290px"><span class="chip mono">main</span></div>
+        <div class="at" style="left:150px;top:116px" data-at="create" data-delay="20" data-anim="fade"><span class="chip mono cyan">feature/login</span></div>
+        <div class="runner at" id="sw-runner" data-size="72" data-color="yellow" style="left:520px;top:188px"></div>
       </div>
     </div>
   </section>
@@ -71,27 +69,32 @@ $ git switch main
     <div class="part" data-at="start" data-anim="fade" data-until="recap">
       <h2 class="h" data-at="0">終わったら <span class="c-cyan">main</span> に<span class="c-cyan">合流</span></h2>
       <div class="merge-fig diagram">
-        <svg width="1000" height="300" viewBox="0 0 1000 300">
-          <path d="M0 230 L960 230" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" data-at="0" data-anim="draw" data-dur="30"/>
-          <path d="M120 230 C 220 230, 200 70, 320 70 L560 70 C 680 70, 660 230, 780 230" fill="none" stroke="var(--cyan)" stroke-width="8" stroke-linecap="round" data-at="0" data-anim="draw" data-delay="10" data-dur="40"/>
-        </svg>
-        <i class="commit feat" style="left:378px;top:48px" data-at="0" data-delay="30" data-anim="scale"></i>
-        <i class="commit merged" style="left:750px;top:200px" data-at="run" data-delay="30" data-anim="pop"></i>
-        <div class="at" style="left:0;top:250px"><span class="chip mono sm">main</span></div>
-        <div class="at" style="left:300px;top:-10px" data-at="0" data-delay="20" data-anim="fade"><span class="chip mono sm cyan">feature/login</span></div>
-        <div class="at" style="left:700px;top:290px" data-at="run" data-delay="40" data-anim="up"><span class="bubble green">合流した</span></div>
+        <i class="line ink" style="left:0;top:230px;width:960px" data-at="0" data-anim="wipe" data-dur="24"></i>
+        <i class="line cyan v" style="left:115px;top:70px;height:170px" data-at="0" data-delay="12" data-anim="grow-y" data-dur="10"></i>
+        <i class="line cyan" style="left:115px;top:70px;width:670px" data-at="0" data-delay="22" data-anim="wipe" data-dur="20"></i>
+        <i class="line cyan v" style="left:775px;top:70px;height:170px" data-at="run" data-anim="wipe-down" data-dur="16"></i>
+        <div data-at="0" data-delay="30" data-stagger="8" data-anim="scale">
+          <i class="commit feat" style="left:316px;top:51px"></i>
+          <i class="commit feat" style="left:536px;top:51px"></i>
+          <i class="commit" style="left:426px;top:211px"></i>
+        </div>
+        <i class="commit merged" style="left:750px;top:205px" data-at="run" data-delay="24" data-anim="pop"></i>
+        <div class="at" style="left:0;top:265px"><span class="chip mono">main</span></div>
+        <div class="at" style="left:250px;top:-24px" data-at="0" data-delay="20" data-anim="fade"><span class="chip mono cyan">feature/login</span></div>
+        <div class="at" style="left:690px;top:295px" data-at="run" data-delay="36" data-anim="up"><span class="bubble green">合流した</span></div>
       </div>
       <div class="terminal merge-term" data-show="0" data-at="run" data-command="git merge feature/login" data-width="760" data-size="32">
-        <div data-at="run" data-delay="40" class="ok">Fast-forward</div>
+        <div data-at="run" data-delay="40" class="ok">Merge made by the 'ort' strategy.</div>
       </div>
     </div>
     <div class="part" data-at="recap">
       <h2 class="h">今日のまとめ</h2>
-      <div class="summary" style="margin-top:44px;width:1400px" data-at="three" data-stagger="10">
-        <div class="row"><div class="key">switch -c</div><div class="val">作って、すぐ移る</div></div>
-        <div class="row"><div class="key">switch</div><div class="val">枝を行き来する</div></div>
-        <div class="row"><div class="key">merge</div><div class="val">main に合流する</div></div>
+      <div class="summary" style="margin-top:44px;width:1400px" data-at="recap" data-delay="8" data-stagger="10">
+        <div class="row"><div class="key">git switch -c</div><div class="val">枝を作って、すぐ移る</div></div>
+        <div class="row"><div class="key">git switch</div><div class="val">枝を行き来する</div></div>
+        <div class="row"><div class="key">git merge</div><div class="val">枝を main に合流する</div></div>
       </div>
+      <div class="card green bold" style="display:inline-block;margin-top:48px" data-at="safe" data-anim="pop"><span class="mono">main</span> を壊さずに、新しいことを試せる</div>
     </div>
   </section>
 
