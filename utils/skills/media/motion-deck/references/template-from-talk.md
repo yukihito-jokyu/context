@@ -60,7 +60,7 @@ cp -R template/default template/<name>
 
 - 模様や飾りは CSS や SVG で描く。絵を使うときは `motion/assets/` に置き、`url("assets/…")` で読む。
 - 部品（`.card` `.tile` `.code` など）は消さない。どのテンプレートでも同じ部品が使える。
-- 構図の箱の高さを px で決めない。字幕の帯のある通常版と、帯のない PPTX専用版（`--safe-bottom` が小さい）で使える高さが違う。見出しと構図を `position: absolute; inset: var(--safe-top) var(--safe-x) var(--safe-bottom)` の縦の flex で包み、のこりの高さを使う部分を `flex: 1` にして、どちらでも下の余白まで伸ばす。`pre`（`pre.code`）は既定の上下の余白があるので、構図に入れるときは `margin: 0` にする。
+- 構図の箱の高さを px で決めない。字幕の帯のある通常版と、帯のない PPTX専用版（`--safe-bottom` が小さい）で使える高さが違う。見出しと構図を `position: absolute; inset: var(--safe-top) var(--safe-x) var(--safe-bottom)` の縦の flex で包み、のこりの高さを使う部分を `flex: 1` にして、どちらでも下の余白まで伸ばす。
 - PPTX で画像になる CSS（`transform` での拡大・回転、SVG の線、模様の背景など。[プレイヤーと書き出し](player.md)の `pptx`）は、構図や強調の見た目に使わない。線は四角形で描く。
 - `data-anim` を付ける要素と、`data-active` で見た目が変わる要素は分ける（実行系が `opacity`・`transform` を上書きするため）。外側の箱に動きを、内側に `data-active` を付ける。
 - 同じシーンを `deck/`・`deck-pptx/`・`index.html` の3か所に書くので、`deck/` を先に書き、ほかの2つはそこから写して直す（動きの属性を外す・`c-` を付ける）。シーンが多いときは、作業フォルダに1つの元を置いて3つを作るスクリプトにしてもよい（スクリプトはテンプレートに入れない）。
