@@ -28,7 +28,11 @@
 - `<link>`や`<script src="motion/…">`を直接書かない。`Motion.start()`も書かない（`check`がエラーにする）。
 - どうしても足すCSS・JSは属性で渡す：`<script src="motion/boot.js" data-css="extra.css" data-js="chart.js"></script>`（テーマの後・`scenes.js`の前に読む）。
 - どれかが読めなければ起動せず、理由を画面に出す（`window.__motionBootError`）。
-- `#composition`の属性: `data-chapter-bar`（上に章ごとの進捗。必須）、`data-subtitles="off"`（字幕を出さない）。
+- `#composition`の属性: `data-chapter-bar`（上に章ごとの進捗。defaultテンプレートだけ必須で、章バーを使わないテンプレートでは付けない）、`data-subtitles="off"`（字幕を出さない）。
+- PPTX専用のデッキ（`init --format pptx`）は`data-chapter-bar="off"`で、字幕と章バーは出ない。動きを使わないので、時間・文番号で見た目が変わる次の`data-*`と`Motion.scene`は書かない（`check`がエラーにする）。部品はそのまま使い、各シーンを要素が重ならない完成した1枚として書く。
+  - 動き（2）：`data-at` `data-anim` `data-until` `data-active` `data-delay` `data-dur` `data-ease` `data-damping` `data-mass` `data-stiffness` `data-out` `data-loop` `data-loop-speed` `data-stagger` `data-follow` `data-follow-rotate` `data-anchor` `data-to` `data-from` `data-format`
+  - 部品：`data-reveal` `data-focus`（`pre.code`）、`data-show` `data-type-speed`（`.terminal`）、`data-fill` `data-fill-to`（`.tiles`）、`data-shots`（`.camera`）
+  - 切り替えと発表（6・7）：`data-transition` `data-direction` `data-enter` `data-exit` `data-timing` `data-live-step`
 - シーンは`position:absolute; inset:0`で重なり、今のシーンだけ表示される。`padding`は安全領域（`--safe-top`112px・`--safe-bottom`178px・`--safe-x`100px）。
 - 自由な位置に置く要素は`position:absolute`で、`var(--safe-*)`を基準にする。
 
