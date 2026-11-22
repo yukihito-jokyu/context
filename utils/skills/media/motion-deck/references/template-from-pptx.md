@@ -59,12 +59,14 @@ cp <pptx> template/<name>/source.pptx   # 元の pptx を同封する（人が�
 | ファイル | 変えること |
 |---|---|
 | `source.pptx` | 元の pptx をそのまま置く。人が見比べるためのもので、実装では読まない。`.gitignore` でコミットしない |
-| `motion/kit.css` | `#composition` の変数の**値**（名前は変えない。部品と実行系がこの名前を使う）、`--jp`、背景、字幕の見た目。章バーの見た目（`.md-chapters`・`.md-chapter*` の規則）は消す。部品の形（枠・影・角丸・文字の太さ）の違いは末尾の「このテンプレートの上書き」に、新しい飾りのクラスは「テンプレートの飾り」にまとめる |
+| `motion/kit.css` | `#composition` の変数の**値**（名前は変えない。部品と実行系がこの名前を使う）、`--jp`、背景、字幕の見た目。章バーの見た目（`.md-chapters`・`.md-chapter*` の規則）と、章バーだけが使う変数 `--track` は消す。部品の形（枠・影・角丸・文字の太さ）の違いは末尾の「このテンプレートの上書き」に、新しい飾りと構図の組み立て用のクラスは「テンプレートの飾り」にまとめる |
 | `motion/kit.js` | 変えない |
 | `deck/` | シーンの型ごとに1シーンの見本デッキ。文章は新しく書く。`script.json` の `title` も変える。`index.html` の `#composition` は `data-chapter-bar="off"` |
 | `deck-pptx/` | PPTX専用の見本（必ず作る）。`deck/` と同じシーンの型を、動きを使わない完成した1枚で書く（[シーンの書き方](authoring.md)の1）。`script.json` の `"format": "pptx"` は残す |
-| `style.md` | 1〜4章（骨格・色と文字・部品・シーンの型）をこのテンプレートの決まりに書き直す |
-| `index.html` | 見本帳。構図の `<section>` と `CATALOG` の `c-*` を、このテンプレートのシーンの型に入れ替える（見本帳の字幕に文の名前はないので `data-at` は番号で書く）。飾りの見本（`d-decor`）を足す。`#composition` は `data-chapter-bar="off"` |
+| `style.md` | 1〜4章（骨格・色と文字・部品・シーンの型）をこのテンプレートの決まりに書き直す。冒頭の題と前書き、6章「やらないこと」の default の色の意味（青＝主役 など）もそろえる |
+| `index.html` | 見本帳。構図の `<section>` と `CATALOG` の `c-*` を、このテンプレートのシーンの型に入れ替える（見本帳の字幕に文の名前はないので `data-at` は番号で書く）。部品の見本 `d-*` は残し、default の題材に寄った中身は題材を選ばない中身に書き換える。飾りがあれば見本（`d-decor`）を足す（飾りがなければ足さない）。`#composition` は `data-chapter-bar="off"` |
+
+構図の高さ（px で決めず下の余白まで伸ばす）、PPTX で画像になる CSS、`data-anim` と `data-active` の分け方、3か所の見本のそろえ方は、[会話からテンプレートを作る](template-from-talk.md)の3章の注に従う。
 
 ## 5. 比べて直す（最大3回）
 
@@ -85,12 +87,13 @@ cp <pptx> template/<name>/source.pptx   # 元の pptx を同封する（人が�
    | 背景 | 地の作り方（単色・グラデーション・模様） |
    | 飾り | 線・枠・角丸・図形の形と太さ |
 
+   `--cues` の絵は文の終わりなので、消える途中の要素が半透明に写ることがある（崩れではない）。
 3. `kit.css`・見本デッキを直して撮り直す。表の違いがなくなるか3回で止め、残った違いを書き出す。
 4. 毎回の終わりに「具体化していないか」を確かめる。元の文章・写真・ロゴが入っていないか、1枚にしかない飾りを写していないか、位置を写しすぎて別の中身が載らない形になっていないか。
 
 ## 6. 仕上げ
 
-- `node scripts/motion.mjs check <作業フォルダ>/sample` がエラー 0 件。
+- `node scripts/motion.mjs check <作業フォルダ>/sample` がエラー 0 件（見本は声を作らないので「仮の尺」などの注意は気にしない）。
 - PPTX専用の見本も、`node scripts/motion.mjs init <作業フォルダ>/sample-pptx --template <name> --format pptx` で作り、`check <作業フォルダ>/sample-pptx` がエラー 0 件。
 - `node scripts/motion.mjs pptx <作業フォルダ>/sample` で書き出し、最後の「図形にできず画像にした要素」の一覧を見る。図形にできる範囲（[プレイヤーと書き出し](player.md)の `pptx`）で同じ見た目にできるものは `kit.css` を直し、画像のまま残すものは作った人に伝える。
 - 見本帳（`template/<name>/index.html`）を開いて、部品と構図が崩れていないか見る。
