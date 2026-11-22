@@ -871,7 +871,8 @@ async function cmdStill(pos, opt) {
   const filter = opt.scene ? new Set(String(opt.scene).split(',')) : null;
   if (opt.live) pts = null; // 発表モードのステップはページを開いてから決まる
   else if (opt.frames) pts = String(opt.frames).split(',').map((x) => ({ frame: Number(x), scene: '', label: '' }));
-  else if (opt.cues) pts = checkpoints(tl, filter);
+  // PPTX専用のデッキは動かないので、--cues でもシーンごとに1枚（最後の状態）にする
+  else if (opt.cues && loadScript(P).format !== 'pptx') pts = checkpoints(tl, filter);
   else {
     pts = tl.scenes.filter((s) => !filter || filter.has(s.id)).map((s) => ({ frame: s.start + Math.max(0, s.duration - 12), scene: s.id, label: 'end' }));
   }
