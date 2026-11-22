@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pop-study テンプレートの見本帳</title>
+<!--
+  pop-study テンプレートの見本帳（人が見るためのページ。init では配らない）。
+  - そのまま開く：デザインと構図の一覧（各シーンの完成形を縮小して並べる）
+  - ?play          ：同じシーンをプレイヤーで再生（&scene=<id> でそのシーンから）
+  - ?render=1&frame=N：一覧の縮小画像に使う1フレーム（実行系の書き出しモード）
+  実行系は ../../runtime/、外枠の見た目は ../base/、このテンプレートの見た目は motion/ を直接読む。
+  シーンの説明と字幕は下の CATALOG にだけ書く（一覧もプレイヤーもここから作る）。
+-->
+<style>
+  body.catalog { margin: 0; background: #fbedd3; color: #2b2340; font: 15px/1.6 "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; }
+  .catalog #composition { display: none; }
+  .cat-head { padding: 40px 48px 8px; }
+  .cat-head h1 { margin: 0; font-size: 30px; font-weight: 800; }
+  .cat-head p { margin: 6px 0 0; color: #59626f; }
+  .cat-head a { color: #d4560a; font-weight: 700; }
+  .cat-sec { padding: 24px 48px 8px; }
+  .cat-sec h2 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
+  .cat-sec > p { margin: 0 0 16px; color: #59626f; }
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 24px; padding-bottom: 24px; }
+  .cat-item { background: #fff; border: 3px solid #2b2340; border-radius: 20px; box-shadow: 6px 6px 0 #ff7a1a; overflow: hidden; display: flex; flex-direction: column; }
+  .cat-thumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 3px solid #2b2340; background: #fff6e6; display: block; }
+  .cat-thumb iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .cat-body { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .cat-title { display: flex; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 800; }
+  .cat-title code { font: 12px ui-monospace, Menlo, monospace; color: #59626f; font-weight: 400; }
+  .cat-desc { color: #3a4350; font-size: 14px; }
+  .cat-play { margin-top: auto; padding-top: 6px; font-weight: 700; color: #d4560a; text-decoration: none; font-size: 14px; }
+  .cat-play::after { content: " ▶"; font-size: 0.8em; }
+
+  /* 見本帳だけで使う飾り（色の見本） */
+  #composition .sw-row { display: grid; grid-template-columns: 250px repeat(6, 236px); align-items: center; height: 104px; }
+  #composition .sw-row > .kicker { font-size: 28px; }
+  #composition .sw { display: flex; align-items: center; gap: 14px; }
+  #composition .sw i { flex: none; width: 66px; height: 66px; border: 4px solid var(--ink); border-radius: 14px; box-sizing: border-box; }
+  #composition .sw b { display: block; font-family: var(--mono); font-size: 24px; line-height: 1.2; }
+  #composition .sw span { display: block; font-family: var(--mono); font-size: 22px; color: var(--muted); line-height: 1.2; }
+  #composition .spec { font-family: var(--mono); font-size: 26px; color: var(--muted); white-space: nowrap; }
+  #composition .type-grid { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 40px; row-gap: 10px; }
+  #composition .arrow { font-size: 44px; font-weight: 800; color: var(--muted); }
+</style>
+</head>
+<body>
+<main id="composition" data-chapter-bar="off">
+
+  <!-- ───────── デザイン ───────── -->
+
+  <section data-scene="d-color">
+    <h2 class="h" data-at="0">色は、<span class="c-cyan">意味</span>で使う</h2>
+    <div style="margin-top:24px">
+      <div class="sw-row" data-at="1"><div class="kicker">土台</div>
+        <div class="sw" data-var="--paper"></div><div class="sw" data-var="--paper-deep"></div><div class="sw" data-var="--ink"></div><div class="sw" data-var="--muted"></div><div class="sw" data-var="--line"></div><div class="sw" data-var="--white"></div></div>
+      <div class="sw-row" data-at="2"><div class="kicker c-cyan">主役・強調</div>
+        <div class="sw" data-var="--cyan"></div><div class="sw" data-var="--cyan-deep"></div><div class="sw" data-var="--cyan-soft"></div></div>
+      <div class="sw-row" data-at="2" data-delay="6"><div class="kicker c-coral">問題・注意</div>
+        <div class="sw" data-var="--coral"></div><div class="sw" data-var="--coral-deep"></div><div class="sw" data-var="--coral-soft"></div></div>
+      <div class="sw-row" data-at="2" data-delay="12"><div class="kicker c-yellow">補足</div>
+        <div class="sw" data-var="--yellow"></div><div class="sw" data-var="--yellow-deep"></div><div class="sw" data-var="--yellow-soft"></div></div>
+      <div class="sw-row" data-at="2" data-delay="18"><div class="kicker c-green">解決・良い点</div>
+        <div class="sw" data-var="--green"></div><div class="sw" data-var="--green-deep"></div><div class="sw" data-var="--green-soft"></div></div>
+      <div class="sw-row" data-at="3"><div class="kicker">コード</div>
+        <div class="sw" data-var="--panel"></div><div class="sw" data-var="--panel-line"></div><div class="sw" data-var="--term"></div><div class="sw" data-var="--code-plain"></div></div>
+    </div>
+  </section>
+
+  <section data-scene="d-type">
+    <div class="type-grid">
+      <div class="display" data-at="0">大きな題名</div><div class="spec" data-at="0">.display 130px</div>
+      <h2 class="h" data-at="1">見出しは<span class="c-cyan">左上</span>に置く</h2><div class="spec" data-at="1">.h 68px</div>
+      <div class="title-bar cyan" data-at="1" data-delay="6"><div><div class="kicker">小さなラベル</div><div class="h">色帯つきの見出し</div></div></div><div class="spec" data-at="1" data-delay="6">.title-bar .h 62px</div>
+      <div class="sub" data-at="2">小見出しは色付きで 34px</div><div class="spec" data-at="2">.sub 34px</div>
+      <div style="font-size:42px;font-weight:800" data-at="2" data-delay="6">カードの本文は 40〜52px、<span class="kw">kw</span> はコードの語</div><div class="spec" data-at="2" data-delay="6">.card.bold 42px</div>
+      <div class="mono" style="font-size:40px" data-at="3">items.map() // JetBrains Mono</div><div class="spec" data-at="3">.mono</div>
+      <div class="note" data-at="3" data-delay="6">注記がいちばん小さい。28px より小さい文字は使わない</div><div class="spec" data-at="3" data-delay="6">.note 28px</div>
+    </div>
+  </section>
+
+  <section data-scene="d-box">
+    <h2 class="h" data-at="0">箱は、太い枠と<span class="c-cyan">色付きの影</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:26px;margin-top:40px" data-at="1" data-stagger="6">
+      <div class="card"><h3>card</h3><p>白</p></div>
+      <div class="card cyan"><h3>cyan</h3><p>主役</p></div>
+      <div class="card yellow"><h3>yellow</h3><p>補足</p></div>
+      <div class="card coral"><h3>coral</h3><p>注意</p></div>
+      <div class="card green"><h3>green</h3><p>良い点</p></div>
+      <div class="card dark"><h3>dark</h3><p>濃い紫</p></div>
+    </div>
+    <div style="display:flex;gap:40px;margin-top:56px;align-items:flex-start">
+      <div class="tile cyan" style="width:400px" data-at="2" data-anim="scale"><div class="label">.tile（数字）</div><div class="value"><span data-at="2" data-anim="count" data-to="24">0</span><small>人</small></div><div class="sub-text">ラベル・値・補足</div></div>
+      <div data-at="2" data-delay="8" data-anim="scale"><div class="counter-label">.counter</div><div class="counter">42</div></div>
+      <div data-at="3" data-anim="pop"><div class="quote">.quote は標語や引用に</div><div class="quote-en">small mono line under the quote</div></div>
+    </div>
+  </section>
+
+  <section data-scene="d-parts">
+    <h2 class="h" data-at="0">小さな部品</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px">
+      <div style="display:grid;gap:30px;align-content:start">
+        <div style="display:flex;gap:16px;flex-wrap:wrap" data-at="1" data-stagger="4"><span class="bubble">bubble</span><span class="bubble cyan">cyan</span><span class="bubble coral">coral</span><span class="bubble yellow">yellow</span><span class="bubble green">green</span></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap" data-at="1" data-delay="12" data-stagger="4"><span class="chip">chip</span><span class="chip mono cyan">chip.mono</span><span class="chip coral">coral</span><span class="chip sm green">chip.sm</span></div>
+        <div style="font-size:40px;font-weight:700" data-at="1" data-delay="24">文中の <span class="kw">kw</span> <span class="kw cyan">cyan</span> <span class="kw coral">coral</span> <span class="kw dark">dark</span></div>
+        <div style="display:flex;gap:18px;align-items:center" data-at="2"><span class="num">1</span><span class="num">2</span><span class="num">3</span><span class="next-link" style="margin-left:24px">.next-link 次へ</span></div>
+      </div>
+      <div style="display:grid;gap:36px;align-content:start">
+        <div class="points" data-at="2" data-stagger="6"><div class="point good">.point.good 良い点</div><div class="point bad">.point.bad 注意点</div><div class="point note">.point.note 補足</div></div>
+        <div class="title-bar coral" data-at="3" data-anim="left"><div><div class="kicker">.title-bar.coral</div><div class="h">色帯つきの見出し</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="d-runner">
+    <h2 class="h" data-at="0">動く部品：<span class="c-cyan">ゲージ</span>と升目</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:60px;align-items:start">
+      <div style="display:grid;gap:40px">
+        <div class="gauge" data-label="わかった度" data-value="7" data-max="10" data-unit="/10" data-color="cyan" data-at="1"></div>
+        <div class="gauge" data-label="進み具合" data-value="60" data-max="100" data-unit="%" data-color="green" data-at="1" data-delay="8"></div>
+      </div>
+      <div data-at="2"><div class="spec" style="margin-bottom:12px">.tiles（埋まっていく升目）</div><div class="tiles" data-count="40" data-cols="10" data-color="coral" data-fill="2"></div></div>
+    </div>
+    <div style="display:flex;gap:70px;align-items:flex-end;margin-top:50px" data-at="3" data-stagger="6">
+      <div style="text-align:center"><div class="runner" data-size="96" data-color="cyan" data-seed="2"></div><div class="spec">主役</div></div>
+      <div style="text-align:center"><div class="runner" data-size="96" data-color="coral" data-seed="4"></div><div class="spec">注意</div></div>
+      <div style="text-align:center"><div class="runner" data-size="96" data-color="yellow" data-seed="6"></div><div class="spec">補足</div></div>
+      <div style="text-align:center"><div class="runner" data-size="96" data-color="green" data-sleepy data-seed="8"></div><div class="spec">待っている</div></div>
+    </div>
+  </section>
+
+  <section data-scene="d-code">
+    <h2 class="h" data-at="0">動く部品：<span class="c-cyan">コード</span>とターミナル</h2>
+    <div style="display:flex;gap:44px;margin-top:34px;align-items:flex-start">
+      <pre class="code" data-title="app.js" data-lang="js" data-width="1040" data-size="32" data-focus="1:1-2; 2:4-6" data-at="0" data-delay="8">
+const list = ["a", "b", "c"];
+const upper = list.map((s) =&gt; s.toUpperCase());
+// ひとつずつ表示する
+for (const s of upper) {
+  console.log(s);
+}
+</pre>
+      <div class="terminal" data-show="0" data-at="3" data-command="node app.js" data-width="620" data-size="30">
+        <div data-at="3" data-delay="24" class="dim">A</div>
+        <div data-at="3" data-delay="32" class="dim">B</div>
+        <div data-at="3" data-delay="40" class="ok">C</div>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="d-chart">
+    <h2 class="h" data-at="0">動く部品：<span class="c-cyan">時間の帯</span>と横棒</h2>
+    <div class="gantt" data-max="12" data-ticks="0,4,8,12" data-unit="分" data-width="1720" data-label-width="220" data-row-height="80" style="margin-top:40px" data-at="0" data-delay="8" data-anim="fade">
+      <div data-label="ひとりで"><div class="bar" data-color="cyan" data-start="0" data-end="4" data-at="1" data-anim="wipe">調べる</div><div class="bar" data-color="yellow" data-hatch data-start="4" data-end="8" data-at="1" data-delay="10" data-anim="wipe"><span>待つ</span></div><div class="bar" data-color="cyan" data-start="8" data-end="12" data-at="1" data-delay="20" data-anim="wipe">書く</div></div>
+      <div data-label="手分け"><div class="bar" data-color="green" data-start="0" data-end="4" data-at="2" data-anim="wipe">調べる＋書く</div></div>
+    </div>
+    <div class="hbars" data-max="12" data-width="1100" data-label-width="300" style="margin-top:40px">
+      <div data-label="ひとりで" data-value="12" data-color="coral" data-hatch data-at="3">12分</div>
+      <div data-label="手分け" data-value="4" data-color="green" data-at="3" data-delay="8">4分</div>
+    </div>
+  </section>
+
+  <!-- ───────── 構図（style.md の「シーンの型」） ───────── -->
+
+  <!-- 色ブロックの表紙：左に大きな題名、右に縦長のオレンジの箱。箱の中に回・対象・時間のタグ。 -->
+  <section data-scene="c-cover" data-chrome="none" data-transition="none">
+    <div class="ps-cover">
+      <div class="ps-cover-title">
+        <div class="sub" style="font-size:44px" data-at="start" data-anim="fade">配列を、ことばで変える</div>
+        <div class="display" data-at="start" data-delay="6" data-anim="pop">はじめての<br><span class="mono c-cyan">map</span> と <span class="mono c-coral">filter</span></div>
+      </div>
+      <div class="ps-block" data-at="start" data-delay="14" data-anim="right">
+        <div class="ps-block-kicker">JavaScript<br>勉強会</div>
+        <div style="display:flex;flex-direction:column;gap:22px" data-at="1" data-stagger="6"><span class="chip">第 3 回</span><span class="chip yellow">はじめての人むけ</span><span class="chip green">30 分</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 先に結果を見せる：画面いっぱいの結果のカードと、右下の「どうやって？」。答えは後のシーンで明かす。 -->
+  <section data-scene="c-first" data-transition="zoom">
+    <div class="ps-fill">
+      <div class="ps-first ps-grow">
+        <div class="card cyan" data-at="0" data-anim="zoom">
+          <span class="ps-label cyan">今日のゴール</span>
+          <div class="ps-first-code" data-at="1" data-anim="type">nums.filter(isEven).map(double)</div>
+          <div class="ps-big-line" data-at="1" data-delay="30" data-anim="up">偶数だけを、<span class="c-cyan">2倍</span>に</div>
+        </div>
+        <div class="ps-ask" data-at="2" data-anim="pop"><span class="bubble">どうやって？</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 思い込みを崩す：上に「よくある思い込み」（取り消し線が引かれる）、下に「本当は」。 -->
+  <section data-scene="c-myth">
+    <div class="ps-fill">
+      <div class="ps-myth ps-grow">
+        <div class="card" data-at="0" data-anim="up"><span class="ps-label coral">よくある思い込み</span><div class="ps-big-line" data-at="1"><span data-at="1" data-delay="30" data-anim="strike"><span class="mono">for</span> 文のほうが、分かりやすい</span></div></div>
+        <div class="card green" data-at="2" data-anim="pop"><span class="ps-label green">本当は</span><div class="ps-big-line"><span class="mono c-cyan">map</span> と <span class="mono c-coral">filter</span> は、<br>やりたいことが<span class="c-green">そのまま読める</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- この動画の約束：左に「この動画で」の色の箱と時間のタグ、右に ✓ の行を3つ。 -->
+  <section data-scene="c-promise">
+    <div class="ps-fill">
+      <div class="ps-promise ps-grow">
+        <div class="ps-block" data-at="0" data-anim="left"><div class="ps-block-kicker">この動画で<br>できること</div><span class="chip">30 分</span></div>
+        <div class="ps-checks">
+          <div class="ps-slot" data-at="1" data-anim="right"><div class="card ps-check"><span><span class="mono c-cyan">map</span> で変換できる</span></div></div>
+          <div class="ps-slot" data-at="2" data-anim="right"><div class="card ps-check"><span><span class="mono c-coral">filter</span> で絞り込める</span></div></div>
+          <div class="ps-slot" data-at="3" data-anim="right"><div class="card ps-check"><span>つなげて、一行で書ける</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 番号つきの章扉：左に上から下までのオレンジの箱と白抜きの大きな番号、右に章名と一言。 -->
+  <section data-scene="c-chapter" data-chrome="none" data-transition="slide">
+    <div class="ps-chapter">
+      <div class="ps-bignum" data-at="0" data-anim="pop">1</div>
+      <div>
+        <div class="kicker" data-at="0" data-delay="8">第 1 章</div>
+        <div class="h" data-at="0" data-delay="12"><span class="mono c-cyan">map</span> で<br>全部を変える</div>
+        <div class="ps-chapter-lead" data-at="1" data-anim="words">配列の全部に、同じ変え方を</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- クイズ：上に問い、下に選択肢を3つ。答えの文で正解だけ太い枠と大きな影のミントに、他は薄く。 -->
+  <section data-scene="c-quiz">
+    <div class="ps-fill">
+      <div class="ps-question" data-at="0" data-anim="left"><span class="ps-label cyan">Q</span><span>[1, 2, 3] を [2, 4, 6] にするには？</span></div>
+      <div class="ps-choices ps-grow">
+        <div class="ps-slot" data-at="1" data-anim="pop"><div class="ps-choice" data-active="4"><span class="ps-label">A</span><span><span class="code-word">for</span> 文で<br>一つずつ書き換える</span></div></div>
+        <div class="ps-slot" data-at="2" data-anim="pop"><div class="ps-choice correct" data-active="4"><span class="ps-label">B</span><span><span class="code-word">map</span> を使う</span></div></div>
+        <div class="ps-slot" data-at="3" data-anim="pop"><div class="ps-choice" data-active="4"><span class="ps-label">C</span><span><span class="code-word">filter</span> を使う</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ことばの定義：辞書のような大きなカード（用語・読み・定義）、例のタグ、注意のカード。 -->
+  <section data-scene="c-define">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">ことばを<span class="c-cyan">確かめる</span></h2>
+      <div class="ps-define ps-grow">
+        <div class="card" data-at="0" data-delay="8" data-anim="scale">
+          <div class="ps-term">map</div>
+          <div class="ps-yomi">マップ ／ 配列のメソッド</div>
+          <div class="ps-meaning" data-at="1" data-anim="words">全部に同じ変え方をして、<span class="c-cyan">新しい配列</span>を返す</div>
+        </div>
+        <div class="ps-examples">
+          <div class="kicker" data-at="2">たとえば</div>
+          <div style="display:flex;flex-direction:column;gap:22px" data-at="2" data-stagger="8"><span class="chip cyan">2倍にする</span><span class="chip yellow">文字にする</span><span class="chip green">名前だけ取り出す</span></div>
+          <div class="card coral bold" data-at="3" data-anim="pop">元の配列は、<br>変わらない</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 関数の解剖：上に関数の形（説明する語に色が付く）、下に部分ごとの説明のカードを3つ。 -->
+  <section data-scene="c-anatomy">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0"><span class="mono c-coral">filter</span> を<span class="c-cyan">分解</span>する</h2>
+      <div class="ps-sig" data-at="0" data-delay="8" data-anim="scale"><span class="ps-tok cyan" data-active="1">arr</span>.filter(<span class="ps-tok coral" data-active="2">(n) =&gt; 条件</span>) → <span class="ps-tok green" data-active="3">新しい配列</span></div>
+      <div class="ps-parts ps-grow">
+        <div class="ps-slot" data-at="1" data-anim="up"><div class="card cyan"><div class="mono">arr</div><p>元の配列。変わらない</p></div></div>
+        <div class="ps-slot" data-at="2" data-anim="up"><div class="card coral"><div class="mono">(n) =&gt; 条件</div><p>残すなら true を返す関数</p></div></div>
+        <div class="ps-slot" data-at="3" data-anim="up"><div class="card green"><div class="mono">新しい配列</div><p>残ったものだけが入る</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ビフォー・アフター：左右の大きなカードと太い矢印、下に結論の帯。 -->
+  <section data-scene="c-before-after" data-transition="slide">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0"><span class="mono">for</span> 文を、<span class="mono c-cyan">map</span> で書き直す</h2>
+      <div class="ps-ba ps-grow">
+        <div class="card coral" data-at="1" data-anim="left"><span class="ps-label coral">これまで</span><div class="ps-code-text">const out = [];
+for (const n of nums) {
+  out.push(n * 2);
+}</div></div>
+        <div class="ps-arrow" data-at="2" data-anim="left">→</div>
+        <div class="card green" data-at="2" data-delay="8" data-anim="pop"><span class="ps-label green">これから</span><div class="ps-code-text">const out =
+  nums.map((n) =&gt; n * 2);</div></div>
+      </div>
+      <div class="ps-band" data-at="3" data-anim="wipe"><span class="ps-label yellow">!</span>書く量が減って、読みやすい</div>
+    </div>
+  </section>
+
+  <!-- 構成図（データの流れ）：左から右へ箱と矢印、箱の下に説明。文ごとに次の箱と矢印が出て、点が流れる。 -->
+  <section data-scene="c-flow">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">データは、<span class="c-cyan">左から右</span>へ流れる</h2>
+      <div class="ps-flow-row">
+        <div class="ps-link" style="left:300px;width:173px" data-at="2" data-anim="wipe" data-dur="20"></div>
+        <div class="ps-link" style="left:773px;width:173px" data-at="3" data-anim="wipe" data-dur="20"></div>
+        <div class="ps-link" style="left:1246px;width:174px" data-at="4" data-anim="wipe" data-dur="20"></div>
+        <svg width="1720" height="260" viewBox="0 0 1720 260">
+          <path id="c-fl-1" d="M300 130 L473 130" fill="none" stroke="none"/>
+          <path id="c-fl-2" d="M773 130 L946 130" fill="none" stroke="none"/>
+          <path id="c-fl-3" d="M1246 130 L1420 130" fill="none" stroke="none"/>
+        </svg>
+        <div class="card ps-node" style="left:0" data-at="1" data-anim="pop"><div class="mono">nums</div><p>[1, 2, 3, 4]</p></div>
+        <div class="card coral ps-node" style="left:473px" data-at="2" data-delay="14" data-anim="pop"><div class="mono">filter</div><p>偶数だけ</p></div>
+        <div class="card cyan ps-node" style="left:946px" data-at="3" data-delay="14" data-anim="pop"><div class="mono">map</div><p>2倍に</p></div>
+        <div class="card green ps-node" style="left:1420px" data-at="4" data-delay="14" data-anim="pop"><div class="mono">result</div><p>[4, 8]</p></div>
+        <div class="ps-dot" data-at="2" data-until="3" data-anim="follow" data-follow="#c-fl-1" data-dur="24"></div>
+        <div class="ps-dot" data-at="3" data-until="4" data-anim="follow" data-follow="#c-fl-2" data-dur="24"></div>
+        <div class="ps-dot" data-at="4" data-anim="follow" data-follow="#c-fl-3" data-dur="24"></div>
+      </div>
+      <div class="ps-flow-notes ps-grow">
+        <div class="ps-slot" data-at="1" data-delay="8"><div class="card"><h3>元の配列</h3><p>ここは変わらない</p></div></div>
+        <div class="ps-slot" data-at="2" data-delay="20"><div class="card coral"><h3>選ぶ</h3><p>true を返したものだけ残る</p></div></div>
+        <div class="ps-slot" data-at="3" data-delay="20"><div class="card cyan"><h3>変える</h3><p>一つずつ同じ変え方</p></div></div>
+        <div class="ps-slot" data-at="4" data-delay="20"><div class="card green"><h3>できあがり</h3><p>新しい配列が返る</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 手順を順に：左に番号の行、右に今の段の説明。今の段だけ色が付き、済んだ段は ✓。 -->
+  <section data-scene="c-steps">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0"><span class="mono c-coral">filter</span> は、<span class="c-cyan">3つの段</span>で書く</h2>
+      <div class="ps-steps ps-grow">
+        <div class="ps-step-list" data-at="0" data-delay="8" data-stagger="6">
+          <div class="ps-step" data-active="1..2"><span class="num">1</span>条件を決める</div>
+          <div class="ps-step" data-active="2..3"><span class="num">2</span>関数にする</div>
+          <div class="ps-step" data-active="3"><span class="num">3</span>filter に渡す</div>
+        </div>
+        <div class="ps-detail">
+          <div class="card" data-at="0" data-delay="20" data-until="1" data-anim="right"><h3>残すものを選ぶ</h3><p>配列から、条件に合うものだけを残す。順に見ていきます。</p></div>
+          <div class="card cyan" data-at="1" data-until="2" data-anim="right"><h3>条件を決める</h3><p>何を残したいかを、ことばで書く。<br>例：偶数だけ</p></div>
+          <div class="card yellow" data-at="2" data-until="3" data-anim="right"><h3>関数にする</h3><p>真か偽を返す関数に。<br><span class="kw">(n) =&gt; n % 2 === 0</span></p></div>
+          <div class="card green" data-at="3" data-anim="right"><h3>filter に渡す</h3><p>真になったものだけが残る。<br><span class="kw green">nums.filter(isEven)</span></p></div>
+        </div>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- ライブコーディング：左にコード（文ごとに行が出る）、右にやること・ターミナル・結果。 -->
+  <section data-scene="c-live">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">書いて、<span class="c-cyan">動かして</span>みる</h2>
+      <div class="ps-live ps-grow">
+        <pre class="code" data-title="main.js" data-lang="js" data-width="1080" data-size="40" data-reveal="1:1; 2:2-4; 3:5" data-focus="1:1; 2:2-4; 3:5" data-at="0" data-delay="8">
+const nums = [1, 2, 3, 4];
+const result = nums
+  .filter((n) =&gt; n % 2 === 0)
+  .map((n) =&gt; n * 2);
+console.log(result);
+</pre>
+        <div class="ps-live-side">
+          <div class="card yellow bold" data-at="0" data-delay="16" data-anim="right">偶数だけを、2倍に</div>
+          <div class="terminal" data-show="4" data-at="4" data-command="node main.js" data-size="34"><div data-at="4" data-delay="24" class="ok">[ 4, 8 ]</div></div>
+          <div class="card green ps-result" data-at="4" data-delay="34" data-anim="pop"><div class="label">結果</div><div class="value">[4, 8]</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ファイルの木：左にフォルダの木（今のファイルに色）、右に今のファイルの説明。 -->
+  <section data-scene="c-tree">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">どこに<span class="c-cyan">書く</span>？</h2>
+      <div class="ps-tree ps-grow">
+        <div class="card ps-tree-card" data-at="0" data-delay="8" data-anim="left">
+          <div class="ps-tree-row dir">src/</div>
+          <div class="ps-tree-row i1" data-active="3">index.js</div>
+          <div class="ps-tree-row i1 dir">utils/</div>
+          <div class="ps-tree-row i2" data-active="1..2">numbers.js</div>
+          <div class="ps-tree-row dir">test/</div>
+          <div class="ps-tree-row i1" data-active="2..3">numbers.test.js</div>
+          <div class="ps-tree-row">package.json</div>
+        </div>
+        <div class="ps-detail">
+          <div class="card cyan" data-at="1" data-until="2" data-anim="right"><h3>numbers.js</h3><p><span class="kw">map</span> と <span class="kw">filter</span> を使う関数を書く</p></div>
+          <div class="card yellow" data-at="2" data-until="3" data-anim="right"><h3>numbers.test.js</h3><p>結果が [4, 8] になるかを確かめる</p></div>
+          <div class="card green" data-at="3" data-anim="right"><h3>index.js</h3><p>関数を呼び出して使う</p></div>
+        </div>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- NG と OK：上段に NG（取り消し線）、下段に OK、右に理由。 -->
+  <section data-scene="c-ngok" data-transition="slide">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">よくある<span class="c-coral">つまずき</span></h2>
+      <div class="ps-ngok ps-grow">
+        <div class="ps-ngok-rows">
+          <div class="card coral ps-ngok-row" data-at="1" data-anim="left"><span class="ps-label coral">NG</span><div><div class="mono"><span data-at="1" data-delay="24" data-anim="strike">nums[i] = n * 2;</span></div><p>元の配列を書き換える</p></div></div>
+          <div class="card green ps-ngok-row" data-at="2" data-anim="left"><span class="ps-label green">OK</span><div><div class="mono">return n * 2;</div><p>変えた値を返すだけ</p></div></div>
+        </div>
+        <div class="ps-reason">
+          <div class="card yellow" data-at="3" data-anim="right"><h3>なぜ？</h3><p>元の配列が変わると、別の場所で思わぬ結果になる</p></div>
+          <div class="point good" data-at="3" data-delay="14" data-anim="up">map の中では、返すだけ</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- トラブルと直し方：症状 → 原因 → 直し方 の3列を、1行ずつ左から右へ。 -->
+  <section data-scene="c-trouble">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">困ったときの<span class="c-cyan">直し方</span></h2>
+      <div class="ps-trouble ps-grow">
+        <div class="ps-trouble-head" data-at="0" data-delay="8" data-anim="fade"><div>症状</div><div></div><div>原因</div><div></div><div>直し方</div></div>
+        <div class="ps-trouble-row" data-at="1" data-stagger="8" data-anim="left"><div class="card coral">undefined だらけ</div><div class="ps-arrow">→</div><div class="card yellow">return の書き忘れ</div><div class="ps-arrow">→</div><div class="card green">return を書く</div></div>
+        <div class="ps-trouble-row" data-at="2" data-stagger="8" data-anim="left"><div class="card coral">元の配列が変わった</div><div class="ps-arrow">→</div><div class="card yellow">中で書き換えている</div><div class="ps-arrow">→</div><div class="card green">新しい値を返す</div></div>
+        <div class="ps-trouble-row" data-at="3" data-stagger="8" data-anim="left"><div class="card coral">何も残らない</div><div class="ps-arrow">→</div><div class="card yellow">条件が逆</div><div class="ps-arrow">→</div><div class="card green">true になる条件を確かめる</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- A と B の判定：左右に良い点（✓）と弱点（!）、下に「こんなときは A／B」の帯を2本。 -->
+  <section data-scene="c-vs" data-transition="slide">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0"><span class="mono">for</span> 文 と <span class="mono c-cyan">map</span>・<span class="mono c-coral">filter</span>、どっち？</h2>
+      <div class="ps-vs ps-grow">
+        <div class="card coral" data-at="1" data-anim="left"><h3><span class="mono">for</span> 文</h3><div class="points"><div class="point good">何でも書ける</div><div class="point good">途中で止められる</div><div class="point bad">長くなりがち</div></div></div>
+        <div class="card cyan" data-at="2" data-anim="right"><h3><span class="mono">map</span>・<span class="mono">filter</span></h3><div class="points"><div class="point good">短く読める</div><div class="point good">元の配列を変えない</div><div class="point bad">途中では止められない</div></div></div>
+      </div>
+      <div class="ps-verdicts">
+        <div class="ps-band coral" data-at="3" data-anim="wipe"><span class="ps-label coral">A</span>途中で止めたい → <span class="mono">for</span> 文</div>
+        <div class="ps-band cyan" data-at="3" data-delay="10" data-anim="wipe"><span class="ps-label cyan">B</span>変換・絞り込み → <span class="mono">map</span>・<span class="mono">filter</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ランキング：高さの違う3つの箱（左に2位・中央に1位・右に3位）が、3位から順に下から伸びる。 -->
+  <section data-scene="c-ranking">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">よく使う配列のメソッド <span class="c-cyan">ランキング</span></h2>
+      <div class="ps-rank ps-grow">
+        <div class="card coral ps-podium r2" data-at="2" data-anim="grow-y"><div class="ps-rank-num c-coral">2</div><div class="mono">filter</div><p>選ぶ</p></div>
+        <div class="card cyan ps-podium r1" data-at="3" data-anim="grow-y"><div class="ps-rank-num c-cyan">1</div><div class="mono">map</div><p>変える</p></div>
+        <div class="card green ps-podium r3" data-at="1" data-anim="grow-y"><div class="ps-rank-num c-green">3</div><div class="mono">forEach</div><p>一つずつ使う</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 大きな数字：中央に画面いっぱいの数字（数え上げる）、下に比べる横棒と帯。 -->
+  <section data-scene="c-number">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">どれくらい<span class="c-cyan">短く</span>なる？</h2>
+      <div class="ps-number ps-grow" data-at="1" data-anim="scale"><span class="ps-num-value" data-at="1" data-anim="count" data-from="6" data-to="2">6</span><span class="ps-num-unit">行</span></div>
+      <div class="hbars" data-max="6" data-width="1400" data-label-width="380">
+        <div data-label="for 文" data-value="6" data-color="coral" data-at="2">6行</div>
+        <div data-label="filter + map" data-value="2" data-color="cyan" data-at="2" data-delay="10">2行</div>
+      </div>
+      <div class="ps-band" data-at="2" data-delay="24" data-anim="wipe"><span class="ps-label yellow">!</span><span class="mono">for</span> 文の、およそ 3 分の 1</div>
+    </div>
+  </section>
+
+  <!-- ニュース速報：上に NEWS のラベルとタグ、大きな見出し、要点3行、右に「何が変わる？」。 -->
+  <section data-scene="c-news" data-transition="wipe">
+    <div class="ps-fill">
+      <div class="ps-news-head" data-at="0" data-anim="left"><span class="ps-label coral">NEWS</span><span class="chip">ES2023</span><span class="chip yellow">配列</span></div>
+      <div class="ps-headline" data-at="1" data-anim="up">元の配列を変えない並べ替え <span class="mono c-cyan">toSorted</span> が使える</div>
+      <div class="ps-news-body ps-grow">
+        <div class="ps-news-rows">
+          <div class="ps-slot" data-at="1" data-delay="16" data-anim="left"><div class="card ps-news-row"><span class="num">1</span>新しい配列を返す</div></div>
+          <div class="ps-slot" data-at="2" data-anim="left"><div class="card ps-news-row"><span class="num">2</span><span><span class="kw">sort</span> は元の配列を変える</span></div></div>
+          <div class="ps-slot" data-at="2" data-delay="10" data-anim="left"><div class="card ps-news-row"><span class="num">3</span>主なブラウザで使える</div></div>
+        </div>
+        <div class="card yellow" data-at="3" data-anim="pop"><h3>何が変わる？</h3><p><span class="kw">map</span>・<span class="kw">filter</span> と同じく、つなげて書ける</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 結論から話す（PREP）：2×2の4枠（結論・理由・例・結論）。最後の結論は最初と同じ色で太い枠。 -->
+  <section data-scene="c-prep">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0"><span class="c-cyan">結論</span>から話す</h2>
+      <div class="ps-prep ps-grow">
+        <div class="ps-slot" data-at="1" data-anim="pop"><div class="card cyan"><span class="ps-label cyan">結論</span><div class="ps-line">変換は <span class="mono">map</span> で書く</div></div></div>
+        <div class="ps-slot" data-at="2" data-anim="pop"><div class="card yellow"><span class="ps-label yellow">理由</span><div class="ps-line">やりたいことが、名前で分かる</div></div></div>
+        <div class="ps-slot" data-at="3" data-anim="pop"><div class="card"><span class="ps-label">例</span><div class="ps-line mono">users.map((u) =&gt; u.name)</div></div></div>
+        <div class="ps-slot" data-at="4" data-anim="pop"><div class="card cyan final"><span class="ps-label cyan">だから</span><div class="ps-line">変換は <span class="mono">map</span></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 持ち帰り3つ：画面いっぱいの番号つきカードを3枚、下に次回の帯。 -->
+  <section data-scene="c-takeaway" data-transition="iris">
+    <div class="ps-fill">
+      <h2 class="h" data-at="0">今日の<span class="c-cyan">持ち帰り</span></h2>
+      <div class="ps-takeaways ps-grow">
+        <div class="card cyan ps-take" data-at="1" data-anim="pop"><div class="ps-take-num">1</div><h3><span class="mono">map</span></h3><p>全部を、同じように変える</p></div>
+        <div class="card coral ps-take" data-at="2" data-anim="pop"><div class="ps-take-num">2</div><h3><span class="mono">filter</span></h3><p>条件に合うものだけを残す</p></div>
+        <div class="card green ps-take" data-at="3" data-anim="pop"><div class="ps-take-num">3</div><h3>つなげる</h3><p>二つを、一行で書ける</p></div>
+      </div>
+      <div class="ps-band cyan" data-at="4" data-anim="wipe"><span class="ps-label cyan">次回</span><span class="mono">reduce</span> で、まとめて一つに</div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ───────── 見本帳の中身（一覧の説明とプレイヤーの字幕はここだけに書く） ─────────
+const CATALOG = [
+  { id: 'd-color', chapter: 'デザイン', label: '色', desc: '色は変数と意味の組。オレンジ＝主役、ピンク＝注意、イエロー＝補足、ミント＝良い点。',
+    lines: ['色は、変数と意味の組で決まっています。', '土台は、クリーム色と濃い紫です。', 'オレンジは主役、ピンクは注意、イエローは補足、ミントは良い点に使います。', 'コードとターミナルは、濃い紫の箱です。'] },
+  { id: 'd-type', chapter: 'デザイン', label: '文字', desc: '題名・見出し・小見出し・本文・注記の大きさ。28px 未満は使わない。',
+    lines: ['題名は、とても大きく置きます。', '見出しは左上に、色帯つきの見出しもあります。', '小見出しと本文は、太い字で読みやすく。', 'コードは等幅の字、注記がいちばん小さい字です。'] },
+  { id: 'd-box', chapter: 'デザイン', label: '箱', desc: 'カード・数字のタイル・カウンター・引用。大きな角丸、太い枠、ずらした色付きの影。',
+    lines: ['箱は、太い枠と色付きの影で描きます。', 'カードの色は、意味の色と同じです。', '数字は、タイルやカウンターで大きく見せます。', '標語や引用は、中央の箱にします。'] },
+  { id: 'd-parts', chapter: 'デザイン', label: '小さな部品', desc: '吹き出し・タグ・コードの語・番号・良い点と注意点・色帯の見出し。',
+    lines: ['小さな部品を並べます。', '吹き出し、タグ、文中のコードの語です。', '番号と、良い点や注意点の行です。', '色帯の見出しは、色を変えて使えます。'] },
+  { id: 'd-runner', chapter: 'デザイン', label: '動く部品：ゲージと升目', desc: '伸びるゲージ、埋まっていく升目、役割の色のキャラクター。',
+    lines: ['数の大きさを、動く部品で見せます。', 'ゲージは、文に合わせて伸びます。', '升目は、文の長さに合わせて埋まります。', 'キャラクターは、役割の色で使えます。'] },
+  { id: 'd-code', chapter: 'デザイン', label: '動く部品：コードとターミナル', desc: '文ごとに強調する行が移るコードと、打ち込まれるターミナル。',
+    lines: ['コードは、濃い紫の箱に表示します。', '文ごとに、強調する行が移ります。', '強調されていない行は、薄くなります。', 'ターミナルは、文字を打ってから結果を出します。'] },
+  { id: 'd-chart', chapter: 'デザイン', label: '動く部品：時間の帯と横棒', desc: 'ガント（待ち時間は斜線）と横棒グラフ。棒は文に合わせて伸びる。',
+    lines: ['時間の帯は、左から伸びていきます。', '待ち時間は、斜線で表します。', '手分けすると、帯が短くなります。', '横棒グラフは、数の比較に使います。'] },
+
+  { id: 'c-cover', chapter: '構図', label: '色ブロックの表紙', desc: '左に大きな題名、右に縦長のオレンジの箱。箱の中に回・対象・時間のタグ。',
+    lines: ['今日は、配列を変える二つの道具、map と filter を紹介します。', 'はじめての人向けに、三十分でお話しします。'] },
+  { id: 'c-first', chapter: '構図', label: '先に結果を見せる', desc: '画面いっぱいの結果のカードと、右下の「どうやって？」。答えは後のシーンで明かす。',
+    lines: ['先に、今日のゴールを見せます。', 'この一行で、偶数だけを二倍にできます。', 'どうやって書くのか、順に見ていきましょう。'] },
+  { id: 'c-myth', chapter: '構図', label: '思い込みを崩す', desc: '上に「よくある思い込み」（取り消し線が引かれる）、下に「本当は」。',
+    lines: ['よくある思い込みがあります。', 'for 文のほうが分かりやすい、というものです。', '本当は、map と filter のほうが、やりたいことがそのまま読めます。'] },
+  { id: 'c-promise', chapter: '構図', label: 'この動画の約束', desc: '左に「この動画で」の色の箱と時間のタグ、右に ✓ の行を3つ。',
+    lines: ['この動画で、できるようになることは三つです。', 'map で、配列を変換できる。', 'filter で、配列を絞り込める。', '二つをつなげて、一行で書ける。'] },
+  { id: 'c-chapter', chapter: '構図', label: '番号つきの章扉', desc: '左に上から下までのオレンジの箱と白抜きの大きな番号、右に章名と一言。',
+    lines: ['第一章は、map です。', '配列の全部を、同じように変える道具です。'] },
+  { id: 'c-quiz', chapter: '構図', label: 'クイズ', desc: '上に問い、下に選択肢を3つ。答えの文で正解だけ太い枠と大きな影のミントに、他は薄く。',
+    lines: ['最初に、クイズです。1、2、3 を、2、4、6 にするには、どれを使うでしょう。', 'A は、for 文で一つずつ書き換える。', 'B は、map を使う。', 'C は、filter を使う。', '正解は、B の map です。'] },
+  { id: 'c-define', chapter: '構図', label: 'ことばの定義', desc: '辞書のような大きなカード（用語・読み・定義）、例のタグ、注意のカード。',
+    lines: ['map という言葉を、確かめておきましょう。', 'map は、配列の全部に同じ変え方をして、新しい配列を返します。', 'たとえば、二倍にする、文字にする、名前だけを取り出す、といった使い方です。', '元の配列は変わらない、というのが大事な点です。'] },
+  { id: 'c-anatomy', chapter: '構図', label: '関数の解剖', desc: '上に関数の形（説明する語に色が付く）、下に部分ごとの説明のカードを3つ。',
+    lines: ['filter の形を、分解してみます。', '左は、元の配列です。', 'かっこの中は、残すなら真を返す関数です。', '返ってくるのは、残ったものだけの、新しい配列です。'] },
+  { id: 'c-before-after', chapter: '構図', label: 'ビフォー・アフター', desc: '左右の大きなカードと太い矢印、下に結論の帯。',
+    lines: ['for 文で書いていたものを、map で書き直してみます。', 'これまでは、空の配列を作って、一つずつ足していました。', 'map なら、一行で書けます。', '書く量が減って、読みやすくなります。'] },
+  { id: 'c-flow', chapter: '構図', label: '構成図（データの流れ）', desc: '左から右へ箱と矢印、箱の下に説明。文ごとに次の箱と矢印が出て、点が流れる。',
+    lines: ['データの流れを、左から右へ見てみます。', 'まず、元の配列があります。', 'filter を通ると、偶数だけが残ります。', 'map を通ると、それぞれが二倍になります。', '最後に、新しい配列ができあがります。'] },
+  { id: 'c-steps', chapter: '構図', label: '手順を順に', desc: '左に番号の行、右に今の段の説明。今の段だけ色が付き、済んだ段は ✓。',
+    lines: ['次は、filter の使い方を、順に見ていきます。', '一つめ、残したい条件を決めます。', '二つめ、条件を、真か偽を返す関数にします。', '三つめ、その関数を filter に渡します。'] },
+  { id: 'c-live', chapter: '構図', label: 'ライブコーディング', desc: '左にコード（文ごとに行が出る）、右にやること・ターミナル・結果。',
+    lines: ['実際に書いてみましょう。', 'まず、数の配列を用意します。', 'filter で偶数だけを残し、map で二倍にします。', '最後に、結果を表示します。', '実行すると、4 と 8 が出てきます。'] },
+  { id: 'c-tree', chapter: '構図', label: 'ファイルの木', desc: '左にフォルダの木（今のファイルに色）、右に今のファイルの説明。',
+    lines: ['プロジェクトの、どこに書くかを見ておきます。', 'numbers.js に、map と filter を使う関数を書きます。', 'numbers.test.js で、結果を確かめます。', 'index.js から、その関数を呼び出します。'] },
+  { id: 'c-ngok', chapter: '構図', label: 'NG と OK', desc: '上段に NG（取り消し線）、下段に OK、右に理由。',
+    lines: ['よくある間違いを、一つ見ておきます。', 'map の中で、元の配列を書き換えてしまうのは、避けましょう。', '変えた値は、返すだけにします。', '元の配列が変わると、別の場所で思わぬ結果になるからです。'] },
+  { id: 'c-trouble', chapter: '構図', label: 'トラブルと直し方', desc: '症状 → 原因 → 直し方 の3列を、1行ずつ左から右へ。',
+    lines: ['困ったときの、直し方をまとめます。', '結果が undefined だらけなら、return の書き忘れです。', '元の配列が変わったら、中で書き換えています。', 'filter で何も残らないなら、条件が逆になっています。'] },
+  { id: 'c-vs', chapter: '構図', label: 'A と B の判定', desc: '左右に良い点（✓）と弱点（!）、下に「こんなときは A／B」の帯を2本。',
+    lines: ['for 文と、map と filter を、比べてみます。', 'for 文は何でも書けて、途中で止められますが、長くなりがちです。', 'map と filter は短く読めて、元の配列を変えませんが、途中では止められません。', '途中で止めたいなら for 文、変換や絞り込みなら map と filter です。'] },
+  { id: 'c-ranking', chapter: '構図', label: 'ランキング', desc: '高さの違う3つの箱（左に2位・中央に1位・右に3位）が、3位から順に下から伸びる。',
+    lines: ['よく使う配列のメソッドを、ランキングで見てみます。', '第三位は、forEach です。', '第二位は、filter です。', '第一位は、map です。'] },
+  { id: 'c-number', chapter: '構図', label: '大きな数字', desc: '中央に画面いっぱいの数字（数え上げる）、下に比べる横棒と帯。',
+    lines: ['書き直すと、どれくらい短くなるでしょう。', '今日の例では、六行が、二行になりました。', 'for 文と比べると、三分の一です。'] },
+  { id: 'c-news', chapter: '構図', label: 'ニュース速報', desc: '上に NEWS のラベルとタグ、大きな見出し、要点3行、右に「何が変わる？」。',
+    lines: ['ここで、関連するニュースを一つ。', '配列を、元のまま並べ替える toSorted が使えるようになりました。', '元の配列を変えないので、sort と違って安心して使えます。', 'map や filter と同じように、つなげて書けます。'] },
+  { id: 'c-prep', chapter: '構図', label: '結論から話す（PREP）', desc: '2×2の4枠（結論・理由・例・結論）。最後の結論は最初と同じ色で太い枠。',
+    lines: ['おすすめを、結論から言います。', '変換は、map で書きましょう。', '理由は、やりたいことが、名前で分かるからです。', 'たとえば、ユーザーの名前だけを取り出すなら、こう書けます。', 'だから、変換は map です。'] },
+  { id: 'c-takeaway', chapter: '構図', label: '持ち帰り3つ', desc: '画面いっぱいの番号つきカードを3枚、下に次回の帯。',
+    lines: ['今日の持ち帰りは、三つです。', 'map は、全部を同じように変えます。', 'filter は、条件に合うものだけを残します。', '二つはつなげて、一行で書けます。', '次回は、reduce を紹介します。'] },
+];
+
+(function () {
+  'use strict';
+  const q = new URLSearchParams(location.search);
+  const VIEW = q.has('render') || q.has('play');
+  const RUNTIME = '../../runtime/', BASE = '../base/', OWN = 'motion/';
+
+  // 時間軸：1文 = 2.5秒、シーンの頭 0.6秒・末尾 1秒
+  const FPS = 30, LEAD = 18, CUE = 75, TAIL = 30;
+  let cursor = 0;
+  const scenes = CATALOG.map((c) => {
+    const cues = c.lines.map((text, i) => ({ text, start: LEAD + i * CUE, end: LEAD + i * CUE + CUE - 12 }));
+    const sc = { id: c.id, chapter: c.chapter, start: cursor, duration: LEAD + c.lines.length * CUE + TAIL, cues };
+    cursor += sc.duration;
+    return sc;
+  });
+  const TIMELINE = { version: 1, title: document.title, fps: FPS, width: 1920, height: 1080, totalFrames: cursor, audio: null, estimated: [], scenes };
+
+  if (!VIEW) { buildCatalog(); return; }
+
+  // ───────── 再生・1フレームの書き出し：実行系を読み込んで起動する ─────────
+  window.MOTION_TIMELINE = TIMELINE;
+  const css = [RUNTIME + 'motion.css', BASE + 'player.css', OWN + 'kit.css'];
+  const js = [RUNTIME + 'motion.js', OWN + 'kit.js'];
+  document.documentElement.style.visibility = 'hidden';
+  const load = (tag, attrs) => new Promise((res, rej) => {
+    const el = Object.assign(document.createElement(tag), attrs);
+    el.onload = res; el.onerror = () => rej(new Error('読み込めません: ' + (attrs.href || attrs.src)));
+    (tag === 'link' ? document.head : document.body).appendChild(el);
+  });
+  Promise.all(css.map((href) => load('link', { rel: 'stylesheet', href })))
+    .then(() => js.reduce((p, src) => p.then(() => load('script', { src, async: false })), Promise.resolve()))
+    .then(() => {
+      // 見本帳だけの部品：色の見本（変数の値をその場で読む）
+      Motion.component('.sw', (el) => {
+        const name = el.dataset.var;
+        const value = getComputedStyle(document.getElementById('composition')).getPropertyValue(name).trim();
+        el.innerHTML = `<i style="background:var(${name})"></i><div><b>${name}</b><span>${value}</span></div>`;
+      });
+      Motion.start();
+      document.documentElement.style.visibility = '';
+      const id = q.get('scene');
+      const sc = id && scenes.find((s) => s.id === id);
+      // シーンの切り替え（既定18フレーム）が終わった所から見せる
+      if (sc && window.__motionPlayer) window.__motionPlayer.seek(sc.start + LEAD + 6);
+    })
+    .catch((e) => { document.documentElement.style.visibility = ''; document.body.textContent = e.message; });
+
+  // ───────── 一覧：各シーンの最後のフレームを縮小して並べる ─────────
+  function buildCatalog() {
+    document.body.classList.add('catalog');
+    const h = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text != null) el.textContent = text; return el; };
+    const head = h('header', 'cat-head');
+    head.append(h('h1', null, 'pop-study テンプレートの見本帳'));
+    const p = h('p');
+    p.append('デザイン（色・文字・部品）と構図（style.md の「シーンの型」）。図は各シーンの完成形。動きは ');
+    const all = h('a', null, 'プレイヤーで全部を再生');
+    all.href = '?play';
+    p.append(all, ' で見られます。');
+    head.append(p);
+    document.body.prepend(head);
+
+    const groups = [
+      ['デザイン', '色・文字・箱・部品。kit.css と kit.js にあるもの。'],
+      ['構図', 'style.md の「シーンの型」。勉強会の動画・発表でよく使う21の組み立て方。'],
+    ];
+    let before = document.getElementById('composition');
+    groups.forEach(([chapter, note]) => {
+      const sec = h('section', 'cat-sec');
+      sec.append(h('h2', null, chapter), h('p', null, note));
+      const grid = h('div', 'cat-grid');
+      CATALOG.filter((c) => c.chapter === chapter).forEach((c) => {
+        const sc = scenes.find((s) => s.id === c.id);
+        const item = h('article', 'cat-item');
+        const thumb = h('a', 'cat-thumb');
+        thumb.href = '?play&scene=' + c.id;
+        const frame = h('iframe');
+        frame.loading = 'lazy';
+        frame.tabIndex = -1;
+        frame.src = `?render=1&subtitles=0&frame=${sc.start + sc.duration - 1}`;
+        thumb.append(frame);
+        const body = h('div', 'cat-body');
+        const title = h('div', 'cat-title', c.label);
+        title.append(h('code', null, c.id));
+        const play = h('a', 'cat-play', '動きを見る');
+        play.href = '?play&scene=' + c.id;
+        body.append(title, h('div', 'cat-desc', c.desc), play);
+        item.append(thumb, body);
+        grid.append(item);
+      });
+      sec.append(grid);
+      before.before(sec);
+    });
+    // 縮小率は枠の幅に合わせる
+    const fit = () => document.querySelectorAll('.cat-thumb').forEach((t) => { t.firstChild.style.transform = `scale(${t.clientWidth / 1920})`; });
+    window.addEventListener('resize', fit);
+    fit();
+  }
+})();
+</script>
+</body>
+</html>
