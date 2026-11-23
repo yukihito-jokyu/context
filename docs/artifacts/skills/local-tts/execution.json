@@ -3,23 +3,25 @@
   "skill": "local-tts",
   "skill_source": "utils/skills/media/local-tts/SKILL.md",
   "skill_sha256": "5b22facb4995ee6162bd3fa8bfd9c80739bb0256d93166e55a866283f0774430",
-  "recorded_at": "2026-11-23T08:03:27.759Z",
+  "recorded_at": "2026-11-23T11:09:17.238Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "a58ee9be12ebd74d9",
-    "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してQwen3-TTS（--engine qwen3-tts）と既定の声でspeakしてWAVにし、エンジンのサーバーを停止するまでを実行する"
+    "agent_id": "a504cdf76e3562b41",
+    "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してQwen3-TTS（--engine qwen3-tts）と既定の声でspeakしてWAVにし、エンジンのサーバーの停止を試みるまでを実行する"
   },
   "input": "input.md",
-  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で6.02秒のWAVを生成しました。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。",
-  "stage": "WAVの生成とエンジンのサーバーの停止まで。音声の試聴は未実施",
+  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.04秒のWAVを生成しました。保存したWAVの大きさは-14.1 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。",
+  "stage": "WAVの生成とserver stopの実行まで。音声の試聴は未実施",
   "checks": [
-    "doctorとengine listでqwen3-ttsがreadyであることを確認（設定の既定のエンジンはvoxcpm2のため、--engine qwen3-ttsで指定）",
-    "voice listで既定の声を確認。qwen3-tts用のプロファイルは未作成で、今回のspeakで初めて使うときに作られたことをvoice listで確認",
-    "planは2発話と0.5秒の間に分かれ、警告なし",
-    "speakは再生せずに終了コード0で6.02秒の音声を生成（生成10.4秒、発話の約1.9倍、最初の音まで6.8秒）",
-    "ffprobeで確かめたWAVの長さと形式がtiming.jsonのaudio_seconds・sample_rate・channelsと一致",
-    "server stop後にserver statusでqwen3-tts・voxcpm2・s2がnot runningであることを確認。OmniVoiceは実行前から別に起動されていた（started elsewhere）ため止めていない",
+    "server statusで、Qwen3-TTSとOmniVoiceのサーバーが実行前から別に起動されている（started elsewhere）ことを確認",
+    "doctorとengine listで、既定のエンジンqwen3-ttsがreadyであることを確認",
+    "voice listで、既定の声にQwen3-TTSのプロファイルがあることを確認",
+    "planは発話2つ、警告0件",
+    "speakは再生せずに終了コード0で5.04秒の音声を生成（生成38.5秒、発話の約7.6倍）",
+    "ffprobeでWAVがpcm_s16le・24,000 Hz・モノラル・5.04秒であり、timing.jsonと一致することを確認",
+    "FFmpegのebur128で、保存したWAVの大きさが-14.1 LUFS、トゥルーピークが-2.0 dBFSであることを確認",
+    "server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは同じプロセスのまま動いており、止めていない",
     "実行者は音声を聞けないため、読みの正しさは未確認。WAVは公開物に含めていない"
   ],
   "downloads": [
@@ -49,23 +51,23 @@
     },
     {
       "file": "output.md",
-      "sha256": "0ae4abf17b98f76ae946842ddaa51c2ca8f85506ebf76c68bd34063c4b4e8adf",
-      "bytes": 3048
+      "sha256": "37164637c766b5f752408a801fdd43f7714e86498805fd37c706cd9d5a98e488",
+      "bytes": 2792
     },
     {
       "file": "plan.txt",
-      "sha256": "41de3c8dda8355099c01b3c9079d92aa574b0f91a097774a76a4ce356631129b",
-      "bytes": 709
+      "sha256": "a5e351b44956240778b4859dc7e67ed625880b5c2fbf92f0a5a93b7e9c92bb64",
+      "bytes": 652
     },
     {
       "file": "sample.ssml",
-      "sha256": "2162f1ed3a4e6ac3bbb6fa7fc52cbe5449cfc72cb971a55489ca276cc3d023d2",
-      "bytes": 280
+      "sha256": "01a67c99305d108021e21c944401b58f872771f13a4e0b80fc0fb2e9ce331b3e",
+      "bytes": 256
     },
     {
       "file": "timing.json",
-      "sha256": "0eb1c3520ec8d652f501e791f9365029b7d6c83075cac4d01ec1e474e199f25c",
-      "bytes": 650
+      "sha256": "cacea714c1233a35b2aee4d9847cfca5f5f2320ad27d2e709db77be8eb0c2c3d",
+      "bytes": 649
     }
   ],
   "source_files": [
@@ -79,7 +81,7 @@
     },
     {
       "file": "references/commands.md",
-      "sha256": "5985e1c50846e513035961bebdd7a7adbc3f4bc6172cad219532adf25b3157eb"
+      "sha256": "bdc797555392d35684d8d8d996e447ad1f36fcc23cf0818f2608471b74fdbc6c"
     },
     {
       "file": "references/cuda-wsl.md",
@@ -171,7 +173,7 @@
     },
     {
       "file": "tools/local-tts.example.toml",
-      "sha256": "4c997068601e96ac65fb1c28bfc74ff1f2f8422d3f95da3bc9e8891f371f5800"
+      "sha256": "3546a3462cd0f4932f3904ae4f0642e2d4866e6da3a2c2bef4f80b6d5e618d99"
     },
     {
       "file": "tools/pyproject.toml",
@@ -215,7 +217,7 @@
     },
     {
       "file": "tools/src/local_tts/audio.py",
-      "sha256": "20e3668330bfb4297b6e64b91aaf99a25e57a0f0914d44baea33cf452e360cca"
+      "sha256": "12dff68d621a3603f96d99021e0f485a063f94f36c67b74c46f6698a8216f27f"
     },
     {
       "file": "tools/src/local_tts/cli.py",
@@ -232,6 +234,10 @@
     {
       "file": "tools/src/local_tts/home.py",
       "sha256": "3393dda66b87376d365439f531f8c226680231fd9e609155c1ddc25d9d41f18d"
+    },
+    {
+      "file": "tools/src/local_tts/loudness.py",
+      "sha256": "476046e4b98f6ef9631aa1ed2450d96be5e9565bfeb4a265a8e9f5a914194ee2"
     },
     {
       "file": "tools/src/local_tts/runtime.py",
@@ -287,12 +293,12 @@
     },
     {
       "file": "tools/tests/test_tts.py",
-      "sha256": "a1151842471bedf3a55bbba548fa5ceb5b9bc3f82f1b793f7fdd8c6401f6f3e6"
+      "sha256": "9885a066fd9b2b4a49968c28637c5896f6a00630c492f6075b2e76274ea6c082"
     },
     {
       "file": "tools/uv.lock",
       "sha256": "bff0f7e0de10b97ca6549c7596039c3cd707300aedfef5281f387926aa93189b"
     }
   ],
-  "source_sha256": "e943dee3da3560b435f164433678c8c9b751c14640a1b12f2c67e514c2095efe"
+  "source_sha256": "8f9ecafda83b9105050b23820a640088a1974659c0f6f753afb58514f8b92f56"
 }
