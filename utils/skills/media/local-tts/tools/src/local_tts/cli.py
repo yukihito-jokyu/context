@@ -1,4 +1,4 @@
-"""Command line: local-tts doctor | plan | speak | say | api | server | voice | engine | home."""
+"""Command line: local-tts doctor | plan | speak | check | say | api | server | voice | engine | home."""
 
 import functools
 import json
@@ -214,6 +214,30 @@ def speak(ctx: typer.Context,
                            "engine": config["engine"],
                            "first_speech_pcm_seconds": report["first_speech_pcm_seconds"],
                            "rtf_speech": report["rtf_speech"]}, ensure_ascii=False, indent=2))
+
+
+def segment_numbers(value):
+    """"6,9" -> [6, 9]; empty -> []."""
+    try:
+        numbers = [int(part) for part in (value or "").split(",") if part.strip()]
+    except ValueError:
+        raise AudioError(f"--segments takes 1-based numbers separated by commas, not {value!r}") from None
+    if any(n < 1 for n in numbers):
+        raise AudioError("--segments numbers start at 1")
+    return sorted(set(numbers))
+
+
+@app.command()
+@handled
+def check(output: Annotated[Path, typer.Option(help="WAV written by speak (its timing JSON sits beside it).")]
+          = Path("outputs/presentation.wav"),
+          segments: Annotated[Optional[str], typer.Option(
+              help="Only these 1-based segments, e.g. 6,9 (default: all).")] = None):
+    """Hear each segment of a speak WAV and print its reading in katakana (Kana Whisper, JSON)."""
+    from . import checker
+    result = checker.check(output, output.with_suffix(".json"), segment_numbers(segments),
+                           echo=lambda line: typer.echo(line, err=True))
+    typer.echo(json.dumps({"output": str(output), "segments": result}, ensure_ascii=False, indent=2))
 
 
 @app.command()

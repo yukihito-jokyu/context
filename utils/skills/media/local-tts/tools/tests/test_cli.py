@@ -293,6 +293,25 @@ class VoiceCommandTests(unittest.TestCase):
         self.assertIn('windows', report['prerequisites'])
         self.assertIn('macos', report['prerequisites'])
 
+    def test_check_passes_the_chosen_segments_and_prints_json(self):
+        heard = [{'segment': 6, 'text': '御用達の店で、出汁を買いました。', 'heard': 'ゴヨータチノミセデダシヲカイマシタ'}]
+        with patch('local_tts.checker.check', return_value=heard) as check:
+            result = self.invoke('check', '--output', 'out.wav', '--segments', '9,6,6')
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(check.call_args.args[:3], (Path('out.wav'), Path('out.json'), [6, 9]))
+        self.assertEqual(json.loads(result.output)['segments'], heard)
+
+    def test_check_rejects_bad_segment_numbers(self):
+        for value in ('a', '0'):
+            result = self.invoke('check', '--segments', value)
+            self.assertEqual(result.exit_code, 2)
+            self.assertIn('--segments', result.output)
+
+    def test_check_needs_the_speak_output(self):
+        result = self.invoke('check', '--output', str(self.folder / 'missing.wav'))
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('make it with speak first', result.output)
+
     def test_normalize_raises_peak_to_minus_3_db(self):
         path = self.folder / 'quiet.wav'
         write_wav(path, [0, 3000, -6000, 1500])
