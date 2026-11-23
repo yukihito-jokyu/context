@@ -11,7 +11,7 @@
 
 | 場所 | 中身 | 消してよいか |
 |---|---|---|
-| `<home>/cache/` | エンジンの実行環境（`engines/`）、モデル（`huggingface/`、`models/`）、s2.cppとビルド、エンジン別の声のプロファイル（`voices/`）、ログ、フィラー | よい（[セットアップ手順](setup.md)で取り直せる） |
+| `<home>/cache/` | エンジンの実行環境（`engines/`）、`check`の実行環境（`checkers/`）、モデル（`huggingface/`、`models/`）、s2.cppとビルド、エンジン別の声のプロファイル（`voices/`）、ログ、フィラー | よい（[セットアップ手順](setup.md)で取り直せる） |
 | `<home>/voices/` | 登録した声と元の録音 | 消さない（取り直せない） |
 | `<home>/config.toml`、`<home>/api-key.txt` | 設定とAPIキー | 消さない |
 
@@ -106,6 +106,21 @@ uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples
 - 保存するWAVは、大きさをYouTubeの推奨（-14 LUFS、ピーク-1.5 dBFS以下）にそろえる（`say`の保存ファイルも同じ）。音量を上げてリミッターでピークを抑え、測り直して±0.3 LU以内にする。長さは変わらないので、時刻のJSONはそのまま使える。`--play`や`say`で流れる音は元の大きさのまま。目標は設定の`loudness`で変える（0でそろえない）。`api`の出力はそろえない。
 - `--play`は生成しながら再生する。生成が再生より遅いため、途中で途切れることがある。
 - 既存の出力は`--force`を付けない限り上書きしない。
+
+### 読みを確かめる（check）と一部を作り直す（redo）
+
+```console
+uv run --project "<local-tts>/tools" local-tts check --output outputs/presentation.wav
+uv run --project "<local-tts>/tools" local-tts check --output outputs/presentation.wav --segments 6,9
+uv run --project "<local-tts>/tools" local-tts redo "<local-tts>/tools/examples/presentation.ssml" --output outputs/presentation.wav --segments 6,9
+```
+
+- `check`は`speak`のWAVを時刻のJSONの区間ごとに切り分け、[Kana Whisper](https://huggingface.co/sbintuitions/kana-whisper)（MIT。Whisper large-v3-turboを、日本語の音声をカタカナで書くように調整したもの）で聞き取る。出力はJSONで、区間ごとに`segment`（1から数える）、`text`（原稿）、`heard`（聞き取った読み）。正しいかどうかは判定しない。
+- 聞き取りはエンジンと同じように別の環境で動く。初回に`tools/checkers/kana-whisper/`の固定した依存関係を`<home>/cache/checkers/kana-whisper/.venv`へ入れ（約0.8 GB）、モデルを`<home>/cache/huggingface/`へ取得する（約3 GB）。以降はネットワークを使わない。
+- CUDA、MacのMPS、CPUの順に使う。M4のMPSで1区間あたり約6秒。
+- `redo`は指定した区間だけを作り直し、WAVの中で差し替える。ほかの区間の音は変えない。新しい区間は差し替える区間と同じ大きさにそろえてから入れ、最後にWAV全体を`loudness`の目標にそろえ直す。
+- `redo`は時刻のJSONの区間とマーカーを、長さの変わった分だけずらす。`elapsed_seconds`と`rtf_speech`は`speak`のときの値のまま。
+- `redo`には`speak`と同じ原稿、`--engine`、`--voice`を渡す。原稿が時刻のJSONの区間と合わなければ、何も変えずに止まる（`speak`し直す）。
 
 ## 5. OpenAI互換のAPI（api）
 

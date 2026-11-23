@@ -1,4 +1,4 @@
-"""Command line: local-tts doctor | plan | speak | say | api | server | voice | engine | home."""
+"""Command line: local-tts doctor | plan | speak | check | redo | say | api | server | voice | engine | home."""
 
 import functools
 import json
@@ -214,6 +214,52 @@ def speak(ctx: typer.Context,
                            "engine": config["engine"],
                            "first_speech_pcm_seconds": report["first_speech_pcm_seconds"],
                            "rtf_speech": report["rtf_speech"]}, ensure_ascii=False, indent=2))
+
+
+def segment_numbers(value):
+    """"6,9" -> [6, 9]; empty -> []."""
+    try:
+        numbers = [int(part) for part in (value or "").split(",") if part.strip()]
+    except ValueError:
+        raise AudioError(f"--segments takes 1-based numbers separated by commas, not {value!r}") from None
+    if any(n < 1 for n in numbers):
+        raise AudioError("--segments numbers start at 1")
+    return sorted(set(numbers))
+
+
+@app.command()
+@handled
+def check(output: Annotated[Path, typer.Option(help="WAV written by speak (its timing JSON sits beside it).")]
+          = Path("outputs/presentation.wav"),
+          segments: Annotated[Optional[str], typer.Option(
+              help="Only these 1-based segments, e.g. 6,9 (default: all).")] = None):
+    """Hear each segment of a speak WAV and print its reading in katakana (Kana Whisper, JSON)."""
+    from . import checker
+    result = checker.check(output, output.with_suffix(".json"), segment_numbers(segments),
+                           echo=lambda line: typer.echo(line, err=True))
+    typer.echo(json.dumps({"output": str(output), "segments": result}, ensure_ascii=False, indent=2))
+
+
+@app.command()
+@handled
+def redo(ctx: typer.Context,
+         source: Annotated[str, typer.Argument(metavar="INPUT", help="The SSML file speak used.")],
+         segments: Annotated[str, typer.Option(help="1-based segments to regenerate, e.g. 6,9.")],
+         output: Annotated[Path, typer.Option(help="WAV written by speak; replaced in place.")]
+         = Path("outputs/presentation.wav"),
+         voice: VoiceOption = None,
+         engine: EngineOption = None):
+    """Regenerate some segments of a speak WAV in place; later times in its JSON move to match."""
+    from .redo import redo as redo_segments
+    config = load_config(ctx, voice, engine)
+    events, _ = compile_ssml(read_document(source))
+    limit = engines.request_chars(config)
+    if limit:
+        events = merge_speech(events, limit)  # The same segments speak made.
+    ensure_server(config)
+    result = redo_segments(events, Backend(config), output, segment_numbers(segments))
+    typer.echo(json.dumps({"output": str(output), "timing": str(output.with_suffix(".json")),
+                           "engine": config["engine"], "redone": result}, ensure_ascii=False, indent=2))
 
 
 @app.command()

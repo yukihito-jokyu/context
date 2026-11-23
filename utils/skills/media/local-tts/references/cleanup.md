@@ -13,7 +13,8 @@ local-ttsが手元に置くデータを、何を消してよいかと一緒に�
 | `<home>/cache/s2-build/` | ビルドしたs2.cpp | 約0.3 GB | 再ビルド（約20分） | よい |
 | `<home>/cache/s2.cpp/` | s2.cppのソース | 約0.1 GB | 再取得（ビルドと同時） | よい |
 | `<home>/cache/engines/` | Qwen3-TTS・OmniVoice・VoxCPM2の実行環境（PyTorchなど） | 各約1〜1.8 GB（WindowsのCUDA版は数GB） | 次の`engine install`で入れ直す（数分） | よい |
-| `<home>/cache/huggingface/` | Qwen3-TTS・OmniVoice・VoxCPM2のモデル | 約4.2 GB、約3 GB、約5 GB | 次の`engine install`で再ダウンロード | よい |
+| `<home>/cache/checkers/` | `check`の聞き取り（Kana Whisper）の実行環境 | 約0.8 GB | 次の`check`で入れ直す（数分） | よい |
+| `<home>/cache/huggingface/` | Qwen3-TTS・OmniVoice・VoxCPM2・Kana Whisperのモデル | 約4.2 GB、約3 GB、約5 GB、約3 GB | 次の`engine install`・`check`で再ダウンロード | よい |
 | `<home>/cache/voices/` | エンジン別の声のプロファイル（`s2/`の`.s2voice`、`qwen3-tts/`・`omnivoice/`・`voxcpm2/`の`.pt`） | 数MB | 次に使うときに録音から作り直す（S2は1つ約1分） | よい |
 | `<home>/cache/fillers/` | エンジンと声ごとのフィラーのキャッシュ | 数MB | 次の`say`で自動で作り直す | よい |
 | `<home>/cache/*.log`、`validation/`、`tmp/` | ログと診断結果 | 小さい | なし | よい |

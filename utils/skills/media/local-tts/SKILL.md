@@ -52,6 +52,7 @@ uv run --project "<local-tts>/tools" local-tts engine list
 | いま声で聞きたい | `say "文章"` | 生成しながらスピーカーで再生する。`outputs/say.wav`にも残る |
 | 音声ファイルとして残したい | `speak 原稿.ssml --output 出力.wav` | 手順は次の節 |
 | 原稿の区切りだけ確かめたい | `plan 原稿.ssml` | モデルを使わず、すぐ終わる |
+| 作ったWAVの読み間違いを確かめて直す | `check` / `redo` | 手順は「読み間違いを確かめて直す」 |
 | 声を増やす・確かめる・作り直す・消す | `voice add` / `voice list` / `voice build` / `voice remove` | 手順は「声を登録する」 |
 | エンジンを入れる・確かめる | `engine install` / `engine list` | |
 | 他のアプリから呼びたい | `api` | 手順は「OpenAI互換API」 |
@@ -104,7 +105,28 @@ uv run --project "<local-tts>/tools" local-tts speak "原稿.ssml" --output "出
 | `100,000個`、`48ms` | `十万個`、`四十八ミリ秒` |
 | `A/B`、`→`などの記号 | `エービー`のように読みを書くか、言葉に置き換える |
 
-これは誤読を減らすための方針で、正しく読めたことの保証にはならない。確かめられるのは実際に聞いたときだけである。
+これは誤読を減らすための方針で、正しく読めたことの保証にはならない。合成したら、次の手順で確かめる。
+
+### 読み間違いを確かめて直す
+
+`speak`のあとに、聞き取った読みを`check`で出し、誤読した文だけを`redo`で作り直す。
+
+```console
+uv run --project "<local-tts>/tools" local-tts check --output "出力.wav"
+uv run --project "<local-tts>/tools" local-tts redo "原稿.ssml" --output "出力.wav" --segments 6,9
+uv run --project "<local-tts>/tools" local-tts check --output "出力.wav" --segments 6,9
+```
+
+1. `check`は区間（`segment`、1から数える）ごとに、原稿（`text`）と聞き取った読み（`heard`、カタカナ）を出す。正しいかどうかは判定しない。
+2. 原稿の文脈から、区間ごとに読みが正しいかを判断する。音声認識が表記の違いで揺れることがあるので、次のように分ける。
+   - **誤読**：語の読みが違う（`御用達`が「ゴヨータチ」など）。直す。
+   - **揺れ**：どちらの読みも使われている（`3階`の「サンカイ」、`ジェイソン`と`ジェーソン`など）。直さない。
+   - **認識の誤り**：長音やカナ1文字の違いで、読みの違いではないもの。直さない。
+3. 誤読の区間だけを`redo`で作り直し、同じ区間を`check`し直す。`redo`には`speak`と同じ原稿、`--engine`、`--voice`を渡す。Qwen3-TTSは生成のたびに読み方が変わるので、作り直すだけで直ることがある。
+4. 3回作り直しても直らない区間は、原稿の表記をかなや`<sub alias>`に変えて`speak`し直すか、ユーザーに試聴を頼む。
+
+- `check`は初回に、聞き取り用の実行環境（約0.8 GB）とKana Whisperのモデル（約3 GB）を`<home>/cache/`へ入れる。承認を得てから実行する。1区間あたり約6秒（M4）。
+- 聞き取れるのは読み（音）だけで、アクセントやイントネーションのずれは分からない。聞いて確かめたことの代わりにはしない。
 
 ## 5. 声を登録する
 
@@ -147,7 +169,7 @@ uv run --project "<local-tts>/tools" local-tts voice list
 ファイルの場所、合計の長さ、使った声と**エンジン**、**聞いて確かめた範囲とまだ聞いていない範囲**を伝える。
 音声を聞く手段がないときは、ユーザーに試聴してもらう箇所（数字、英字、固有名詞、長い文）を具体的に挙げる。長さや音量の確認を、聞いて確かめたことの代わりにしない。
 
-読み間違いがあれば、原稿の表記を直して作り直す。
+`check`で確かめた区間と結果（誤読と直したもの、揺れとして残したもの）も伝える。読み間違いが残っていれば、原稿の表記を直して作り直す。
 
 ## 気をつけること
 
@@ -171,3 +193,4 @@ uv run --project "<local-tts>/tools" local-tts voice list
 | `references/upstream.md` | presenterから切り出して分けた経緯と、修正の取り込み方 | このスキル自体を更新するとき |
 | `tools/` | local-tts本体、テスト、`local-tts.example.toml` | 実行、改修 |
 | `tools/engines/` | Qwen3-TTS・OmniVoice・VoxCPM2のサーバーと、固定した依存関係（`uv.lock`） | エンジンを改修・更新するとき |
+| `tools/checkers/kana-whisper/` | `check`の聞き取り（Kana Whisper）と、固定した依存関係（`uv.lock`） | `check`を改修・更新するとき |
