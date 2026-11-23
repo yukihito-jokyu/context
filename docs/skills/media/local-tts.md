@@ -51,15 +51,15 @@ local-ttsを使って、次の文章をWAVにしてください。出力先は o
 
 1. `doctor`と`engine list`で使うエンジンの状態を確かめ、準備が必要なら承認を得て導入します。
 2. 目的に合うコマンドを選びます。聞くだけなら`say`、ファイルに残すなら`speak`です。
-3. `speak`では文章をSSMLに書き、`plan`で区切りを確かめてから合成します。エンジンは`--engine`で選びます。
+3. `speak`では文章をSSMLに書き、`plan`で区切りを確かめてから合成します。エンジンは`--engine`で選びます。保存するWAVの大きさは、YouTubeの推奨（-14 LUFS）にそろえます。
 4. 出力の場所と長さ、使った声とエンジン、聞いて確かめた範囲を報告します。
 5. 使い終わったらエンジンのサーバーを止めます。
 
 ## 成果物の例
 
-2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で6.02秒のWAVを生成しました。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。
+2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.04秒のWAVを生成しました。保存したWAVの大きさは-14.1 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。
 
-**到達点：WAVの生成とエンジンのサーバーの停止まで。音声の試聴は未実施。**
+**到達点：WAVの生成とserver stopの実行まで。音声の試聴は未実施。**
 
 ### 実行した依頼
 
@@ -73,22 +73,22 @@ local-ttsを使って、次の2文をWAVにしてください。音は再生し�
 以下は保存した原本の冒頭です。全文は原本から取得できます。
 
 ````markdown
-# 音声ファイルの報告
+# 実行報告
+
+2文をQwen3-TTSで合成し、WAVに保存しました。音は再生していません。
 
 | 項目 | 内容 |
 |---|---|
-| ファイル名 | `sample.wav`（区間ごとの時間は同名の `sample.json`） |
-| 合計の長さ | 6.02秒（うち発話 5.52秒、文の間の無音 0.5秒） |
-| 形式 | WAV、PCM 16bit、24,000 Hz、モノラル |
-| 使った声 | `<個人名>`（設定の既定の声） |
-| エンジン | `qwen3-tts`（`--engine qwen3-tts` で指定。設定の既定は `voxcpm2` のまま） |
-| 再生の有無 | 再生していません（`speak` で作成、`playback_enabled: false`） |
+| ファイル名 | `sample.wav`（区間の時間は同名の`sample.json`。公開用には`timing.json`として保存） |
+| 合計の長さ | 5.04秒 |
+| 形式 | WAV（PCM 16ビット）、24,000 Hz、モノラル |
+| 使った声 | 設定の既定の声（`<個人名>`） |
+| エンジン | `qwen3-tts`（Qwen3-TTS） |
+| 再生の有無 | 再生していない（`playback_enabled: false`） |
 
-原稿は2文を `<s>` に分け、間に `<break time="500ms"/>` を置きました（`sample.ssml`）。`plan` で区切りが2発話と0.5秒の間になり、警告がないことを確かめてから合成しました。生成は10.4秒（発話の約1.9倍）、最初の音ができるまで6.8秒でした。
+## 合成までの経過
 
-## 聞いて確かめた範囲
-
-なし。この環境には音声を聞く手段がないため、耳では確かめていません。
+1. `server status`、`doctor`、`engine list`、`voice list`で状態を確かめた。Qwen3-TTSは`ready`で、既定のエンジン。既定の声`<個人名>`はQwen3-TTSのプロファイルを作り終えていた。Qwen3-TTSとOmniVoiceのサーバーは、この実行の前から別に起動されていた（`started elsewhere`）。
 ````
 
 ### 成果物を取得する
@@ -102,12 +102,14 @@ local-ttsを使って、次の2文をWAVにしてください。音は再生し�
 
 ### 確認した結果
 
-- doctorとengine listでqwen3-ttsがreadyであることを確認（設定の既定のエンジンはvoxcpm2のため、--engine qwen3-ttsで指定）
-- voice listで既定の声を確認。qwen3-tts用のプロファイルは未作成で、今回のspeakで初めて使うときに作られたことをvoice listで確認
-- planは2発話と0.5秒の間に分かれ、警告なし
-- speakは再生せずに終了コード0で6.02秒の音声を生成（生成10.4秒、発話の約1.9倍、最初の音まで6.8秒）
-- ffprobeで確かめたWAVの長さと形式がtiming.jsonのaudio_seconds・sample_rate・channelsと一致
-- server stop後にserver statusでqwen3-tts・voxcpm2・s2がnot runningであることを確認。OmniVoiceは実行前から別に起動されていた（started elsewhere）ため止めていない
+- server statusで、Qwen3-TTSとOmniVoiceのサーバーが実行前から別に起動されている（started elsewhere）ことを確認
+- doctorとengine listで、既定のエンジンqwen3-ttsがreadyであることを確認
+- voice listで、既定の声にQwen3-TTSのプロファイルがあることを確認
+- planは発話2つ、警告0件
+- speakは再生せずに終了コード0で5.04秒の音声を生成（生成38.5秒、発話の約7.6倍）
+- ffprobeでWAVがpcm_s16le・24,000 Hz・モノラル・5.04秒であり、timing.jsonと一致することを確認
+- FFmpegのebur128で、保存したWAVの大きさが-14.1 LUFS、トゥルーピークが-2.0 dBFSであることを確認
+- server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは同じプロセスのまま動いており、止めていない
 - 実行者は音声を聞けないため、読みの正しさは未確認。WAVは公開物に含めていない
 
 ## 確認するポイント
