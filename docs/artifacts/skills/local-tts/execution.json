@@ -2,25 +2,26 @@
   "schema_version": 1,
   "skill": "local-tts",
   "skill_source": "utils/skills/media/local-tts/SKILL.md",
-  "skill_sha256": "aa845e16fd4a8ae661e667a6cc9e58100547351da26d592bd78012fb37ffa22e",
-  "recorded_at": "2026-11-23T13:01:28.233Z",
+  "skill_sha256": "b8d206fd4bd45e86ea53d7d2569fe3553ac4e545ee3d7ecb706317797cf470f9",
+  "recorded_at": "2026-11-23T15:05:47.600Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "a910b148ff9f5a711",
+    "agent_id": "a7e20ee81285578e1",
     "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してQwen3-TTS（--engine qwen3-tts）と既定の声でspeakしてWAVにし、checkで読みを聞き取って原稿と照らし、誤読があればredoで直し、エンジンのサーバーの停止を試みるまでを実行する"
   },
   "input": "input.md",
-  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.28秒のWAVを生成しました。checkで2区間の読みをカタカナで聞き取り、原稿と照らして誤読がないと判断したため、redoは行っていません。保存したWAVの大きさは-14.1 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間・聞き取った読みを掲載しています。声の名前は伏せ字にしています。",
+  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で4.72秒のWAVを生成しました。checkで2区間の読みをカタカナで聞き取り、原稿と照らして誤読がないと判断したため、redoは行っていません。保存したWAVの大きさは-14.0 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間・聞き取った読みを掲載しています。声の名前は伏せ字にしています。",
   "stage": "WAVの生成、checkによる読みの確認、server stopの実行まで。音声の試聴は未実施",
   "checks": [
-    "doctorとengine listで、既定のエンジンqwen3-ttsがready、checkの実行環境とモデルが導入済みであることを確認",
-    "server statusで、Qwen3-TTSとOmniVoiceのサーバーが実行前から別に起動されている（started elsewhere）ことを確認",
+    "doctorとengine listで、既定のエンジンqwen3-ttsがreadyであることを確認",
+    "server statusで、Qwen3-TTSのサーバーが実行前から別に起動されている（started elsewhere）ことを確認。ログの最後の生成が終わっており、ほかのセッションが使っていないことを確かめてから合成",
     "planは発話2つ、警告0件",
-    "speakは再生せずに5.28秒の音声を生成（生成11.2秒、発話の約2.1倍）",
-    "FFmpegのebur128で、保存したWAVの大きさが-14.1 LUFS、トゥルーピークが-1.9 dBFSであることを確認",
-    "checkは終了コード0で2区間を約9.6秒で聞き取り。区間1はホンジツワオアツマリイタダキアリガトーゴザイマス、区間2はハッピョーノジカンワジューゴフンデス",
-    "実行者が原稿と照らし、2区間とも読みは正しい（本日＝ホンジツ、十五分＝ジューゴフン）と判断。助詞のワと長音は表記の違いとして扱い、redoは不要",
+    "speakは再生せずに終了コード0で4.72秒の音声を生成（生成10.2秒、発話の約2.2倍）",
+    "ffprobeでWAVがpcm_s16le・24,000 Hz・モノラル・4.72秒であることを確認",
+    "FFmpegのebur128で、保存したWAVの大きさが-14.0 LUFS、トゥルーピークが-1.9 dBFSであることを確認",
+    "checkは終了コード0で2区間を約12.5秒で聞き取り。区間1はホンジツワオアツマリイタダキアリガトーゴザイマス、区間2はハッピョーノジカンワジューゴフンデス",
+    "実行者が原稿と照らし、2区間とも読みは正しい（本日＝ホンジツ、十五分＝ジューゴフン）と判断。助詞のワと長音は書き方だけの違い（認識の誤り）として扱い、redoは不要",
     "server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは止めていない",
     "実行者は音声を聞けないため、アクセントとイントネーションは未確認。WAVは公開物に含めていない"
   ],
@@ -60,8 +61,8 @@
     },
     {
       "file": "output.md",
-      "sha256": "cbb2f3233ec1c620f9d61ad621975fb73e1b4a0898b8caf9f41a25c84c0725ef",
-      "bytes": 1910
+      "sha256": "cd7f83370ff913adbcde94aaea2758294cc2a635ca4f08838b7fb60f5ec34fd1",
+      "bytes": 1952
     },
     {
       "file": "plan.txt",
@@ -75,14 +76,14 @@
     },
     {
       "file": "timing.json",
-      "sha256": "05c8b2fb8dfc967ef88cbe3d8f9561de8bbb3fd95b3568cd870231f6a8b62668",
+      "sha256": "bdeb5f088d9d6dce2947a4e4c8946731170f13ef81bec8ba90ab48925684491e",
       "bytes": 649
     }
   ],
   "source_files": [
     {
       "file": "SKILL.md",
-      "sha256": "aa845e16fd4a8ae661e667a6cc9e58100547351da26d592bd78012fb37ffa22e"
+      "sha256": "b8d206fd4bd45e86ea53d7d2569fe3553ac4e545ee3d7ecb706317797cf470f9"
     },
     {
       "file": "references/cleanup.md",
@@ -90,7 +91,7 @@
     },
     {
       "file": "references/commands.md",
-      "sha256": "90a0636b5a2f2e2e074ea07039df588385a26756b2f79516b67dc5fb51cf401f"
+      "sha256": "8f3110801cd423869c7a2437fb26e04119413b7114edc6f4cfa52866978502c8"
     },
     {
       "file": "references/cuda-wsl.md",
@@ -333,5 +334,5 @@
       "sha256": "bff0f7e0de10b97ca6549c7596039c3cd707300aedfef5281f387926aa93189b"
     }
   ],
-  "source_sha256": "151acf086538d5397c5da831eccef5c064686c556332dc87e4f2605acc72f5d8"
+  "source_sha256": "393d2b069345784ee677b6d9d85961940e34d3c253b4438c26535b1f4d6145c8"
 }
