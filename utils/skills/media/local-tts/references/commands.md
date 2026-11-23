@@ -195,6 +195,7 @@ OS、CPUアーキテクチャ、CUDA/Metal、FFmpeg/FFplay（Macは再生用の`
 | 症状 | 確認すること |
 |---|---|
 | `Cannot reach http://127.0.0.1:303x` | `server status`。止まっていれば`server start --engine <名前>` |
+| `Cannot reach http://127.0.0.1:303x: timed out` | `server status`で`started elsewhere`と出て、`<home>/cache/<エンジン>-server.log`の最後の生成が終わっていなければ、ほかのセッションが同じサーバーを使っている。依頼は順番待ちになる。サーバーは止めず、ユーザーに確かめて、空いてから作り直す |
 | `... is not installed; run: local-tts engine install ...` | そのエンジンが未導入。[セットアップ手順](setup.md)で承認を得てから入れる |
 | `Voices and settings are still in the old folder` | 旧presenter-ttsフォルダから移していない。8節の`home migrate` |
 | `has no S2 profile yet` | S2がない環境で登録した声。`voice build <名前> --engine s2` |
