@@ -12,9 +12,9 @@ local-ttsが手元に置くデータを、何を消してよいかと一緒に�
 | `<home>/cache/models/` | S2 Proのモデルとトークナイザー | 約3.4 GB | 次の[セットアップ](setup.md)で再ダウンロード（数分） | よい |
 | `<home>/cache/s2-build/` | ビルドしたs2.cpp | 約0.3 GB | 再ビルド（約20分） | よい |
 | `<home>/cache/s2.cpp/` | s2.cppのソース | 約0.1 GB | 再取得（ビルドと同時） | よい |
-| `<home>/cache/engines/` | OmniVoice・VoxCPM2の実行環境（PyTorchなど） | 各約1〜1.5 GB（WindowsのCUDA版は数GB） | 次の`engine install`で入れ直す（数分） | よい |
-| `<home>/cache/huggingface/` | OmniVoice・VoxCPM2のモデル | 約3 GB、約5 GB | 次の`engine install`で再ダウンロード | よい |
-| `<home>/cache/voices/` | エンジン別の声のプロファイル（`s2/`の`.s2voice`、`omnivoice/`・`voxcpm2/`の`.pt`） | 数MB | 次に使うときに録音から作り直す（S2は1つ約1分） | よい |
+| `<home>/cache/engines/` | Qwen3-TTS・OmniVoice・VoxCPM2の実行環境（PyTorchなど） | 各約1〜1.8 GB（WindowsのCUDA版は数GB） | 次の`engine install`で入れ直す（数分） | よい |
+| `<home>/cache/huggingface/` | Qwen3-TTS・OmniVoice・VoxCPM2のモデル | 約4.2 GB、約3 GB、約5 GB | 次の`engine install`で再ダウンロード | よい |
+| `<home>/cache/voices/` | エンジン別の声のプロファイル（`s2/`の`.s2voice`、`qwen3-tts/`・`omnivoice/`・`voxcpm2/`の`.pt`） | 数MB | 次に使うときに録音から作り直す（S2は1つ約1分） | よい |
 | `<home>/cache/fillers/` | エンジンと声ごとのフィラーのキャッシュ | 数MB | 次の`say`で自動で作り直す | よい |
 | `<home>/cache/*.log`、`validation/`、`tmp/` | ログと診断結果 | 小さい | なし | よい |
 | `<home>/voices/` | 登録した声の録音（`.wav`）と文字起こし（`.json`）、元の録音（`sources/`）。録音のない古い声は`.s2voice`だけがここにある | 数MB | **取り直せない**。録音と文字起こしから登録し直すしかない | **ユーザーが声ごとに明示したときだけ** |

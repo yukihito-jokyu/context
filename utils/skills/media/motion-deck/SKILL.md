@@ -98,11 +98,11 @@ PPTX専用のデッキでは、この手順は飛ばす（`synth`は使えない
 
 ```console
 node "<motion-deck>/scripts/motion.mjs" synth <フォルダ> --dry-run
-node "<motion-deck>/scripts/motion.mjs" synth <フォルダ> [--voice 名前] [--engine voxcpm2|omnivoice|s2]
+node "<motion-deck>/scripts/motion.mjs" synth <フォルダ> [--voice 名前] [--engine qwen3-tts|voxcpm2|omnivoice|s2]
 node "<motion-deck>/scripts/motion.mjs" timeline <フォルダ>
 ```
 
-- `--dry-run`の目安が1分を超えるなら、**目安を伝えてからBashの`run_in_background`で実行する**（VoxCPM2で1文字約0.33秒＋読み込み約30秒）。
+- `--dry-run`の目安が1分を超えるなら、**目安を伝えてからBashの`run_in_background`で実行する**（Qwen3-TTSで1文字約0.22秒＋読み込み約30秒）。
 - 原稿が変わったシーンだけ作り直す。声・エンジンを途中で変えると全シーンが作り直しになる（混ぜない）。
 - 文ごとの時刻はSSMLの`<mark>`から取るので、文と動きは自動で合う。
 - 終わったらエンジンを止める（`synth`の最後に出るコマンド）。続けて作り直すなら残してよい。

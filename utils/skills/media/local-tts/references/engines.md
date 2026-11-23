@@ -1,4 +1,4 @@
-# エンジンの詳細（OmniVoice、VoxCPM2、S2）
+# エンジンの詳細（Qwen3-TTS、OmniVoice、VoxCPM2、S2）
 
 `<local-tts>`はこのスキルのフォルダ、`<home>`はデータのフォルダ（Macは`~/.local/share/local-tts`、Windowsは`%LOCALAPPDATA%\local-tts`）。
 S2（s2.cpp）の仕組みと検証結果は[engine.md](engine.md)にある。
@@ -7,6 +7,7 @@ S2（s2.cpp）の仕組みと検証結果は[engine.md](engine.md)にある。
 
 ```
 local-tts（制御側：Typerだけ。PyTorchを読み込まない）
+  ├─ qwen3-tts → tools/engines/qwen3-tts/server.py  :3033  <home>/cache/engines/qwen3-tts/.venv
   ├─ omnivoice → tools/engines/omnivoice/server.py  :3032  <home>/cache/engines/omnivoice/.venv
   ├─ voxcpm2   → tools/engines/voxcpm2/server.py    :3031  <home>/cache/engines/voxcpm2/.venv
   ├─ s2        → s2.cpp                             :3030  <home>/cache/s2-build
@@ -16,12 +17,13 @@ local-tts（制御側：Typerだけ。PyTorchを読み込まない）
 - どのエンジンのサーバーも、s2.cppと同じ`POST /generate`（multipartで`text`・`params`・`voice`を受け、PCM16に`X-Audio-Encoding`・`X-Audio-Sample-Rate`・`X-Audio-Channels`を付けて返す）に応じる。そのため`say`・`speak`・`api`、話速・音量・ピッチ（FFmpeg）、マーカーの時刻は、エンジンによらず同じ処理を通る。
 - PyTorchのエンジンは`127.0.0.1`だけで待ち受け、`HF_HUB_OFFLINE=1`で動く。モデルは`<home>/cache/huggingface/`にあり、実行中に外部へ通信しない。
 - 1台のサーバーは1件ずつ生成する。重なったリクエストは順番を待つ。
-- 実行環境はエンジンごとに分ける。PyTorchとtransformersの必要な版が違うため（OmniVoiceはtransformers 5.3以上、VoxCPMは検証した版で5.22）。
+- 実行環境はエンジンごとに分ける。PyTorchとtransformersの必要な版が違うため（OmniVoiceはtransformers 5.3以上、VoxCPMは検証した版で5.22、Qwen3-TTSは4.57.3固定）。
 
 ## 声のプロファイル
 
 - 声の本体は`<home>/voices/<名前>.wav`（44.1 kHz・PCM16・ピーク-3 dB）と`.json`（文字起こし）。
-- OmniVoiceとVoxCPM2は、初めてその声を使うときにプロファイルを作り、`<home>/cache/voices/<エンジン>/<名前>.pt`に保存する。録音と文字起こしのSHA-256を一緒に残し、録音が変わったら作り直す。2回目からは保存したものを読み込む。
+- Qwen3-TTS・OmniVoice・VoxCPM2は、初めてその声を使うときにプロファイルを作り、`<home>/cache/voices/<エンジン>/<名前>.pt`に保存する。録音と文字起こしのSHA-256を一緒に残し、録音が変わったら作り直す。2回目からは保存したものを読み込む。
+  - Qwen3-TTS: 公式の`create_voice_clone_prompt`の結果（参照音声の符号と話者の特徴）を`torch.save`で保存する。パッケージに保存の機能がないため。作成は約1秒。
   - OmniVoice: 公式の`create_voice_clone_prompt`→`VoiceClonePrompt.save/load`。作成は約3秒。
   - VoxCPM2: モデルカードの「Ultimate Cloning」と同じく、同じ録音を続き生成の手本（文字起こし付き）と話者の参照の両方に使う。`build_prompt_cache`の結果を保存し、`_generate_with_prompt_cache`（`VoxCPM.generate`が内部で呼ぶもの）で使う。内部のAPIなので、VoxCPMを更新するときは動作を確かめ直す。
   - S2: `voice add`のときにs2.cppが`<home>/cache/voices/s2/<名前>.s2voice`を作る。消えていれば、S2で使うときに録音から作り直す（約1分）。2026-11-11より前は`voices/`に置いていた（録音があるものは自動で移る）。
@@ -36,6 +38,18 @@ local-tts（制御側：Typerだけ。PyTorchを読み込まない）
 | VoxCPM2（MPS、torch 2.15、文ごと） | 約33秒（読み込みを除く） | 1.86〜2.12倍 | 4.7秒 | 約13.8 GB | 一致 | 0.94 |
 | S2（Metal） | | 約7.8倍 | | 約4 GB | | |
 
+### Qwen3-TTS（2026-11-23、MacBook Air M4・メモリ32 GB、MPS・bfloat16、`yukihito-narration`の声、352文字・約45秒の原稿、文ごと）
+
+| モデル | 音声の長さ | 生成時間 | 倍率 | 最初の音（`speak`） | メモリ |
+|---|---|---|---|---|---|
+| Base 1.7B（採用） | 45.3秒 | 74.9秒 | 1.71倍 | 6.4秒 | 約6.6 GB（`footprint`の値） |
+| Base 0.6B | 47.3秒 | 67.7秒 | 1.48倍 | 8.8秒 | |
+
+- 1.7Bと0.6Bの両方で作り、ユーザーが1.7Bを選んだ。
+- 短い文ほど倍率が上がる（14文字で約2.1倍、40文字前後で約1.6倍）。まとめて送る効果は測っていないので、OmniVoiceのようにはまとめず文ごとに送る。
+- 公開されているPythonのパッケージ（`qwen-tts` 0.1.1）には、生成しながら音を返す方法がない。そのため`say`は文を作り終えてから話す。
+- transformers 4.57.3は、モデルをリポジトリ名で読み込むとオフラインでもHugging Faceに問い合わせて止まる。そのため手元のスナップショットのフォルダから読み込む。
+
 - 原稿どおりかと話者類似度は、faster-whisper mediumの文字起こしとSpeechBrain ECAPA（別人は0.02）による機械の目安で、聞いて確かめたものではない。
 - **OmniVoiceは1回ごとの固定の時間が大きい。** 10秒の参照音声では短い文でも約12秒かかった（参照なしなら2.6秒、ステップ数を16にすると6.1秒）。参照音声と読む文をまとめて毎回計算するためで、そのため`speak`・`say`・`api`は200文字まで（`[engines.omnivoice] request_chars`）まとめて送る。
 - **VoxCPM2はtorchの版で速さが変わる。** 同じMacでtorch 2.8.0は1ステップ約0.47秒、2.15.0は約0.29秒だった。そのためMacだけtorch 2.15.0に固定している。
@@ -47,6 +61,7 @@ local-tts（制御側：Typerだけ。PyTorchを読み込まない）
 | エンジン | 版 | 理由 |
 |---|---|---|
 | OmniVoice | `omnivoice==0.2.1`、torch 2.8.0 | READMEの導入例と、比較のときに動かした版 |
+| Qwen3-TTS | `qwen-tts==0.1.1`（transformers 4.57.3固定）、モデル`Qwen/Qwen3-TTS-12Hz-1.7B-Base`、torchはVoxCPM2と同じ | PyPIの最新版。torchの指定がないので、VoxCPM2で測った版にそろえた |
 | VoxCPM2 | VoxCPM `300e4260`（2026-11-09のGit）、Macはtorch 2.15.0、Windows・Linuxはtorch 2.8.0+cu128 | PyPIの2.0.3は2026-05で古い。torch 2.15のCUDA版は13.2用だけで、新しいNVIDIAドライバーが必要になる |
 
 - 依存関係は`tools/engines/<エンジン>/uv.lock`に固定してある。`engine install`は`uv sync --frozen`で入れるので、ロックの外の版は入らない。
@@ -64,7 +79,7 @@ local-tts（制御側：Typerだけ。PyTorchを読み込まない）
    uv run --project "<local-tts>/tools" local-tts doctor
    ```
 
-   `nvidia-smi`の右上の「CUDA Version」が12.8以上であること（ドライバーが対応する上限）。`doctor`の`engines`に3つのエンジンが並ぶこと。
+   `nvidia-smi`の右上の「CUDA Version」が12.8以上であること（ドライバーが対応する上限）。`doctor`の`engines`にエンジンが並ぶこと。
 
 2. 旧フォルダから移す（presenter-ttsを使っていたPCだけ）。
 
@@ -80,6 +95,7 @@ local-tts（制御側：Typerだけ。PyTorchを読み込まない）
    ```powershell
    uv run --project "<local-tts>/tools" local-tts engine install omnivoice
    uv run --project "<local-tts>/tools" local-tts engine install voxcpm2
+   uv run --project "<local-tts>/tools" local-tts engine install qwen3-tts
    ```
 
 4. 声を作って時間を測る。
@@ -87,6 +103,7 @@ local-tts（制御側：Typerだけ。PyTorchを読み込まない）
    ```powershell
    uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples/presentation.ssml" --engine omnivoice --output outputs/omni.wav --force
    uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples/presentation.ssml" --engine voxcpm2 --output outputs/vox.wav --force
+   uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples/presentation.ssml" --engine qwen3-tts --voice <名前> --output outputs/qwen.wav --force
    uv run --project "<local-tts>/tools" local-tts server status
    uv run --project "<local-tts>/tools" local-tts server stop
    ```

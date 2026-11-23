@@ -6,15 +6,16 @@
 
 ## 0. どのエンジンを用意するか
 
-既定はVoxCPM2。用途で選ぶ（[engines.md](engines.md)）。必要なものだけを用意すればよい。
+既定はQwen3-TTS。用途で選ぶ（[engines.md](engines.md)）。必要なものだけを用意すればよい。
 
 | エンジン | 用意のしかた | 必要なもの | 容量 |
 |---|---|---|---|
+| Qwen3-TTS | 下の「PyTorchのエンジン」 | uv、FFmpeg。WindowsはNVIDIA GPU（VRAMの目安は未計測。ドライバーがCUDA 12.8以上に対応） | 実行環境約1.3 GB、モデル約4.2 GB |
 | OmniVoice | 下の「PyTorchのエンジン」 | uv、FFmpeg。WindowsはNVIDIA GPU（VRAM約4.5 GB以上、ドライバーがCUDA 12.8以上に対応） | 実行環境約1 GB、モデル約3 GB |
 | VoxCPM2 | 下の「PyTorchのエンジン」 | 同上（VRAM約8 GB以上） | 実行環境約1.5 GB、モデル約5 GB |
 | S2 | 手順1〜5（ビルド） | Git、CMake、WindowsはVisual StudioとCUDA Toolkit 12.4以上、MacはXcode CLT。**ライセンスへの同意** | 約4 GB |
 
-### PyTorchのエンジン（OmniVoice・VoxCPM2）
+### PyTorchのエンジン（Qwen3-TTS・OmniVoice・VoxCPM2）
 
 1. `doctor`で`uv`・`ffmpeg`・`huggingface.co`を確かめる（足りなければ手順2の表で入れる）。Windowsは`nvidia-smi`の「CUDA Version」が12.8以上であること。
 2. 入れるもの（PyTorchとモデル、上の表の容量）と時間（回線次第で数分〜十数分）を伝えて承認を得る。
@@ -27,7 +28,7 @@
 
 4. 手順5と同じく音を確かめる（`say --engine omnivoice ...`）。設定の見本がなければ手順4の終わりのとおり置く。
 
-ライセンスはどちらもApache-2.0で、S2のような同意は要らない。ただし、なりすまし・詐欺・偽情報への使用は禁じられている。
+ライセンスはいずれもApache-2.0で、S2のような同意は要らない。ただし、なりすまし・詐欺・偽情報への使用は禁じられている。
 以下の手順1〜5はS2（s2.cpp）を用意するときのもの。
 
 ## 1. いまの状態を調べる

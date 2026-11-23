@@ -73,7 +73,7 @@
 
 | Skill | 概要 |
 |---|---|
-| [local-tts](media/local-tts/SKILL.md) | ローカルの音声合成（VoxCPM2・OmniVoice・Fish Audio S2 Pro）で文章の読み上げ・WAV生成・声の登録・エンジンの切り替え・OpenAI互換APIの起動を行う。 |
+| [local-tts](media/local-tts/SKILL.md) | ローカルの音声合成（Qwen3-TTS・VoxCPM2・OmniVoice・Fish Audio S2 Pro）で文章の読み上げ・WAV生成・声の登録・エンジンの切り替え・OpenAI互換APIの起動を行う。 |
 | [remote-tts](media/remote-tts/SKILL.md) | LAN上の別PCのOpenAI互換音声API（local-tts）で文章を音声にし、使えないときはこのPCのlocal-ttsへ切り替える。 |
 | [motion-deck](media/motion-deck/SKILL.md) | ナレーションの文に合わせて要素が動くHTMLのスライドを作り、動画（MP4）と発表（クリック・発表者ビュー）の両方で使い、アニメーション付きのPowerPointにも書き出す。ナレーションはlocal-ttsで作る。 |
 | [loop-bgm](media/loop-bgm/SKILL.md) | TOMLの設計図から数式合成でオリジナルのループBGMを作り、テンポ・調・楽器・パート単位で修正する。 |

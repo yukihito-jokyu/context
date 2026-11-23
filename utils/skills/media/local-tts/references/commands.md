@@ -19,7 +19,7 @@
 
 ## 1. エンジンのサーバー
 
-`say`・`speak`・`api`は、選んだエンジンのサーバーに音声を作らせる（`--engine`、なければ設定の`engine`、なければVoxCPM2）。
+`say`・`speak`・`api`は、選んだエンジンのサーバーに音声を作らせる（`--engine`、なければ設定の`engine`、なければQwen3-TTS）。
 
 ```console
 uv run --project "<local-tts>/tools" local-tts server start --engine omnivoice
@@ -30,7 +30,7 @@ uv run --project "<local-tts>/tools" local-tts server stop --engine voxcpm2
 
 - `start`はサーバーを裏で（別プロセスで）起動し、リクエストを受け付けられるまで待ってから戻る。ターミナルを閉じても動き続ける。
 - `say`・`speak`・`api`は、サーバーが止まっていれば自動で起動する。自動起動しない場合は、S2は`[server] auto_start = false`、PyTorchのエンジンは`[engines.<名前>] auto_start = false`。
-- 動いている間のメモリはOmniVoice約4 GB、VoxCPM2約14 GB（CUDAは約8 GB）、S2約4.6 GB。使い終わったら`stop`で止める。`stop`は止まりきるまで待ってから戻る。
+- 動いている間のメモリはQwen3-TTS約6.6 GB（Mac）、OmniVoice約4 GB、VoxCPM2約14 GB（CUDAは約8 GB）、S2約4.6 GB。使い終わったら`stop`で止める。`stop`は止まりきるまで待ってから戻る。
 - `status`は全エンジンを表示する（`--engine`で1つだけ）。`stop`は`--engine`がなければ、このツールが起動したサーバーをすべて止める。手動で起動したサーバーは、そのターミナルでCtrl+Cを押して止める。
 - WindowsのCUDAで空きVRAMが目安より少ないと、PyTorchのエンジンは起動を止める。動いているエンジンを`stop`してから使う。
 - S2のGPUに載せる層の数やコーデックの置き場所は、設定の`[server]`（`gpu_layers`、`codec_gpu`）で変える。
@@ -75,7 +75,7 @@ uv run --project "<local-tts>/tools" local-tts voice remove myvoice
 - 録音は5〜30秒、ピアノやBGM、ほかの人の声が入っていない区間がよい。長い録音は、話している区間だけを切り出してから使う。
 - 小さい録音は自動で音量を上げてから登録する（`--no-boost`で無効）。
 - 声の本体は録音（`<名前>.wav`）と文字起こし（`<名前>.json`）で、どのエンジンでも使う。S2が入っていれば、S2用のプロファイル（`<home>/cache/voices/s2/<名前>.s2voice`）もCPUで作る（約30秒〜1分。サーバーを止めているときは`--gpu`で速くできる）。消えていれば、S2で使うときに録音から作り直す。2026-11-11より前に`voices/`へ置かれた`.s2voice`は、次のコマンドの実行時にここへ移る（録音のない古い声は`voices/`に残す）。
-- OmniVoice・VoxCPM2のプロファイルは、初めて使うときに作って`<home>/cache/voices/<エンジン>/`に残す。録音を作り直すと、自動で作り直される。
+- Qwen3-TTS・OmniVoice・VoxCPM2のプロファイルは、初めて使うときに作って`<home>/cache/voices/<エンジン>/`に残す。録音を作り直すと、自動で作り直される。
 - 作成後、確認用の文を選んだエンジン（`--engine`）で`outputs/voice-<名前>.wav`に作って再生する（`--no-preview`で再生しない）。
 - `voice build`は、保存してある録音から1つのエンジンのプロファイルを作り直す。
 - `voice list`の`[s2,omnivoice]`のような印は、プロファイルを作り終えたエンジン。
@@ -136,7 +136,7 @@ API key: ...
 | `voice` | 登録した声の名前（`myvoice`など）。`alloy`などOpenAIの声の名前や省略時は`--voice`の声 |
 | `response_format` | `mp3`（既定）、`opus`、`aac`、`flac`、`wav`、`pcm`（24 kHz・16ビット・モノラル） |
 | `speed` | 話す速さ（0.25〜4.0、既定1.0） |
-| `model` | エンジン。`omnivoice`、`voxcpm2`、`s2-pro`、`voicevox`。`tts-1`などOpenAIの名前や省略時は`api --engine`か設定の`engine`。止まっていれば自動で起動する |
+| `model` | エンジン。`qwen3-tts`、`omnivoice`、`voxcpm2`、`s2-pro`、`voicevox`。`tts-1`などOpenAIの名前や省略時は`api --engine`か設定の`engine`。止まっていれば自動で起動する |
 
 音声は生成しながら返す（ストリーミング）。s2.cppは一度に1件しか処理できないため、同時に来たリクエストは順番に処理する。
 
@@ -193,15 +193,17 @@ OS、CPUアーキテクチャ、CUDA/Metal、FFmpeg/FFplay（Macは再生用の`
 
 | 場所 | 項目 | 意味 |
 |---|---|---|
-| 先頭 | `engine` | 既定のエンジン（`voxcpm2`、`omnivoice`、`s2`、`voicevox`）。省略時はVoxCPM2。古い`backend = "s2cpp"`は`s2`として読む |
+| 先頭 | `engine` | 既定のエンジン（`qwen3-tts`、`voxcpm2`、`omnivoice`、`s2`、`voicevox`）。省略時はQwen3-TTS。古い`backend = "s2cpp"`は`s2`として読む |
 | 先頭 | `url` | S2（s2.cpp）のアドレス（既定`http://127.0.0.1:3030`） |
 | 先頭 | `voice` | 普段使う声の名前（`voice list`の名前）か`.s2voice`のパス |
 | `[engines.omnivoice]` | `language` | 言語名（`Japanese`など）。指定すると少し良くなる（README）。混在する文章では外す |
 | `[engines.omnivoice]` | `num_step`、`guidance_scale` | 拡散のステップ数（既定32。16で約2倍速いが質は未確認）、ガイダンス（既定2.0） |
 | `[engines.omnivoice]` | `request_chars` | 1回にまとめて送る文字数（既定200、0で文ごと） |
+| `[engines.qwen3-tts]` | `language` | 言語（例`Japanese`。省略すると自動判定） |
+| `[engines.qwen3-tts]` | `temperature`、`top_k`、`top_p`、`repetition_penalty`、`max_new_tokens` | 生成のサンプリング（省略時はモデルの既定） |
 | `[engines.voxcpm2]` | `cfg_value`、`inference_timesteps` | ガイダンス（既定2.0）、拡散のステップ数（既定10） |
 | `[engines.voxcpm2]` | `stream_start_buffer_ms_per_char` | 生成しながら再生するとき、1文字あたり先に溜める時間（Mac既定120、ほか0） |
-| `[engines.<名前>]` | `url`、`device`、`dtype`、`timeout`、`auto_start` | アドレス、`auto`（CUDA→MPS→CPU）か`cuda`・`mps`・`cpu`、OmniVoiceの精度（GPUは既定`float16`）、1リクエストの待ち時間（既定600秒）、自動起動 |
+| `[engines.<名前>]` | `url`、`device`、`dtype`、`timeout`、`auto_start` | アドレス、`auto`（CUDA→MPS→CPU）か`cuda`・`mps`・`cpu`、OmniVoiceの精度（GPUは既定`float16`、Qwen3-TTSは`bfloat16`）、1リクエストの待ち時間（既定600秒）、自動起動 |
 | `[engines.voicevox]` | `url` | VOICEVOX ENGINEのアドレス（既定`http://127.0.0.1:50021`）。話者は先頭の`speaker` |
 | `[generation]` | `stream_start_buffer_ms_per_char` | 話し始める前に、1文字あたりためる時間（途切れ対策） |
 | `[server]` | `auto_start` | `say`/`speak`でサーバーを自動起動するか（既定true） |
@@ -238,7 +240,7 @@ uv run --project "<local-tts>/tools" local-tts home migrate
 - 声（`voices/`）、`config.toml`とそのバックアップ、`api-key.txt`は**コピー**する。旧フォルダにも残る（新しいフォルダに同じ名前があれば上書きしない）。
 - `cache/`（S2のモデル、s2.cppのソース、フィラー、ログ）は**移動**する。動いているサーバーがあれば止めるよう求める。
 - Macのs2.cppのビルド（`cache/s2-build`）は、ライブラリを絶対パスで参照しているので移さない。移したあとに`tools/scripts/setup-s2.sh`でビルドし直す（モデルは照合だけで、ダウンロードし直さない）。Windowsのビルドは移し、CMakeのキャッシュだけ消す。
-- ユーザーのHugging Faceのキャッシュ（`~/.cache/huggingface/hub`）にOmniVoice・VoxCPM2のモデルがあれば、`<home>/cache/huggingface/hub/`へ移動する。
+- ユーザーのHugging Faceのキャッシュ（`~/.cache/huggingface/hub`）にQwen3-TTS・OmniVoice・VoxCPM2のモデルがあれば、`<home>/cache/huggingface/hub/`へ移動する。
 - 旧フォルダには`MOVED-TO-local-tts.txt`を置く。旧フォルダを消すかどうかは、presenterや古い版のremote-ttsを使い続けるかを確かめてから決める。
 - 環境変数は`LOCAL_TTS_HOME`・`LOCAL_TTS_API_KEY`。旧名の`PRESENTER_TTS_HOME`・`PRESENTER_TTS_API_KEY`も警告付きで読む。
 
@@ -248,6 +250,7 @@ uv run --project "<local-tts>/tools" local-tts home migrate
 uv run --project "<local-tts>/tools" local-tts engine list
 uv run --project "<local-tts>/tools" local-tts engine install omnivoice
 uv run --project "<local-tts>/tools" local-tts engine install voxcpm2
+uv run --project "<local-tts>/tools" local-tts engine install qwen3-tts
 ```
 
 - `list`は、各エンジンが使える状態か、アドレス、ライセンスを表示する。`*`は既定のエンジン。

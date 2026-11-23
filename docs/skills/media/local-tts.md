@@ -5,7 +5,7 @@ sidebar_label: local-tts
 
 # local-tts
 
-文章を外部のAPIへ送らず、手元の音声合成エンジン（VoxCPM2・OmniVoice・Fish Audio S2 Pro）で音声にしたいときに使います。その場での読み上げ、SSMLからのWAV生成、録音からの声の登録、エンジンの導入と切り替え、OpenAI互換の音声APIの起動、不調の切り分け、旧presenter-ttsフォルダからの移し替え、キャッシュの片付けを扱います。
+文章を外部のAPIへ送らず、手元の音声合成エンジン（Qwen3-TTS・VoxCPM2・OmniVoice・Fish Audio S2 Pro）で音声にしたいときに使います。その場での読み上げ、SSMLからのWAV生成、録音からの声の登録、エンジンの導入と切り替え、OpenAI互換の音声APIの起動、不調の切り分け、旧presenter-ttsフォルダからの移し替え、キャッシュの片付けを扱います。
 
 スライドへのナレーション付けや発表原稿の作成は扱いません。これらは、このリポジトリの外で配布されている`presenter`と`presentation-ja`の対象です。LAN上の別PCで動くAPIを使う場合は[remote-tts](remote-tts.md)を使います。
 
@@ -19,20 +19,21 @@ npx skills add https://github.com/yukihito-jokyu/context/tree/main/utils/skills 
 
 | 項目 | 内容 |
 | --- | --- |
-| 対応環境 | Apple Silicon Mac（VoxCPM2・OmniVoiceはMPS、S2はMetal）、またはWindows 10/11＋NVIDIA GPU（VoxCPM2・OmniVoiceはCUDA 12.8版PyTorch、S2はCUDA 12.4以上）。Windowsでの動作はまだ確認していません |
+| 対応環境 | Apple Silicon Mac（Qwen3-TTS・VoxCPM2・OmniVoiceはMPS、S2はMetal）、またはWindows 10/11＋NVIDIA GPU（Qwen3-TTS・VoxCPM2・OmniVoiceはCUDA 12.8版PyTorch、S2はCUDA 12.4以上）。Windowsでの動作はまだ確認していません |
 | 必要なソフト | uv、FFmpeg。S2のビルドにはGit、CMake、WindowsはVisual Studio C++、MacはXcode Command Line Tools |
-| 初回の準備 | 使うエンジンだけを導入します。VoxCPM2は実行環境約1.5 GBとモデル約5 GB、OmniVoiceは約1 GBと約3 GB、S2はビルドに約20分。エージェントが容量と時間を伝え、承認を得てから進めます |
-| 実行時のメモリ | エンジンのサーバーの起動中、VoxCPM2は約14 GB（CUDAは約8 GB）、OmniVoiceとS2は約4 GB使います（Macではユニファイドメモリ） |
-| 生成の速さ | Apple M4で、VoxCPM2とOmniVoiceは音声の長さの約2倍、S2は約8倍の時間がかかります。初回はモデルの読み込みに20〜30秒かかります |
+| 初回の準備 | 使うエンジンだけを導入します。Qwen3-TTSは実行環境約1.3 GBとモデル約4.2 GB、VoxCPM2は実行環境約1.5 GBとモデル約5 GB、OmniVoiceは約1 GBと約3 GB、S2はビルドに約20分。エージェントが容量と時間を伝え、承認を得てから進めます |
+| 実行時のメモリ | エンジンのサーバーの起動中、Qwen3-TTSは約6.6 GB、VoxCPM2は約14 GB（CUDAは約8 GB）、OmniVoiceとS2は約4 GB使います（Macではユニファイドメモリ） |
+| 生成の速さ | Apple M4で、Qwen3-TTSは音声の長さの約1.7倍、VoxCPM2とOmniVoiceは約2倍、S2は約8倍の時間がかかります。初回はモデルの読み込みに20〜30秒かかります |
 
 | エンジン | 向いている用途 | ライセンス |
 | --- | --- | --- |
-| VoxCPM2（既定） | 最初の音が早い。生成しながら再生できます | Apache-2.0 |
+| Qwen3-TTS（既定） | Apple M4ではいちばん速い。録音から登録した声で話します | Apache-2.0 |
+| VoxCPM2 | 最初の音が早い。生成しながら再生できます | Apache-2.0 |
 | OmniVoice | メモリが少ない環境。長い文をまとめて生成すると速くなります | Apache-2.0 |
 | S2 Pro | 以前に作った音声と声をそろえたいとき | Fish Audio Research License |
 
 :::warning ライセンス
-S2（s2.cppとS2 Proのモデル）は**Fish Audio Research License**で提供されます。研究・非商用の利用は無償ですが、商用利用にはFish Audioとの別途の契約が必要です。VoxCPM2とOmniVoiceはApache-2.0ですが、なりすまし・詐欺・偽情報への使用は禁じられています。
+S2（s2.cppとS2 Proのモデル）は**Fish Audio Research License**で提供されます。研究・非商用の利用は無償ですが、商用利用にはFish Audioとの別途の契約が必要です。Qwen3-TTS・VoxCPM2・OmniVoiceはApache-2.0ですが、なりすまし・詐欺・偽情報への使用は禁じられています。
 :::
 
 ## 渡す情報
