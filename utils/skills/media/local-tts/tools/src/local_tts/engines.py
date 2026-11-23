@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 TOOLS = Path(__file__).resolve().parents[2]
-DEFAULT = "voxcpm2"
+DEFAULT = "qwen3-tts"
 ENGINES = {
     "omnivoice": {
         "kind": "python", "label": "OmniVoice", "url": "http://127.0.0.1:3032",

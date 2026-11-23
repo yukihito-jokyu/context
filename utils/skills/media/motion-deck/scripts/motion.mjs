@@ -376,7 +376,7 @@ function run(cmd, args, what) {
 
 function needFfmpeg() { if (!which('ffmpeg')) fail('ffmpeg が見つかりません（brew install ffmpeg）'); }
 
-const SECONDS_PER_CHAR = { voxcpm2: 0.33, omnivoice: 0.3, s2: 1.7, voicevox: 0.05 };
+const SECONDS_PER_CHAR = { 'qwen3-tts': 0.22, voxcpm2: 0.33, omnivoice: 0.3, s2: 1.7, voicevox: 0.05 };
 
 function cmdSynth(pos, opt) {
   const P = deckPaths(pos[0]);
@@ -401,7 +401,7 @@ function cmdSynth(pos, opt) {
   }
   if (mixed.length && !only) warn(`次のシーンは別の声・エンジンで作られています。声をそろえるならそれらも作り直されます: ${mixed.join(', ')}`);
   if (!todo.length) { log('すべてのシーンの音声が最新です。'); return; }
-  const est = todo.reduce((a, x) => a + x.chars, 0) * (SECONDS_PER_CHAR[t.engine || 'voxcpm2'] || 0.5) + 30;
+  const est = todo.reduce((a, x) => a + x.chars, 0) * (SECONDS_PER_CHAR[t.engine || 'qwen3-tts'] || 0.5) + 30;
   log(`合成（local-tts）: ${todo.length}シーン、${todo.reduce((a, x) => a + x.chars, 0)}文字。voice=${t.voice || '既定'} engine=${t.engine || '既定'}`);
   log(`目安: 約${Math.ceil(est / 60)}分`);
   if (opt['dry-run']) { todo.forEach((x) => log(`  ${x.sc.id}（${x.chars}文字）`)); return; }

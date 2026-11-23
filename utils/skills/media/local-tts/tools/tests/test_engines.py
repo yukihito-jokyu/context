@@ -20,7 +20,7 @@ import server_base  # noqa: E402
 
 class SelectionTests(unittest.TestCase):
     def test_default_engine_and_overrides(self):
-        self.assertEqual(engines.resolve({}), "voxcpm2")
+        self.assertEqual(engines.resolve({}), "qwen3-tts")
         self.assertEqual(engines.resolve({"engine": "voxcpm2"}), "voxcpm2")
         self.assertEqual(engines.resolve({"engine": "voxcpm2"}, "s2"), "s2")
         with self.assertRaises(engines.EngineError):
