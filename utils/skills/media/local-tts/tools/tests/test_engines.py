@@ -42,11 +42,13 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(engines.url(config, "s2"), "http://127.0.0.1:3999")
         self.assertEqual(engines.url(config, "voxcpm2"), "http://127.0.0.1:4001")
         self.assertEqual(engines.url(config, "omnivoice"), "http://127.0.0.1:3032")
+        self.assertEqual(engines.url(config, "qwen3-tts"), "http://127.0.0.1:3033")
         self.assertEqual(Backend(engines.select(config, "omnivoice")).url, "http://127.0.0.1:3032")
 
     def test_api_models_map_to_engines(self):
         self.assertEqual(engines.by_api_model("s2-pro"), "s2")
         self.assertEqual(engines.by_api_model("omnivoice"), "omnivoice")
+        self.assertEqual(engines.by_api_model("qwen3-tts"), "qwen3-tts")
         self.assertIsNone(engines.by_api_model("tts-1"))
 
     def test_windows_virtual_environment_layout(self):

@@ -248,7 +248,7 @@ def api(ctx: typer.Context,
     """Serve an OpenAI-compatible speech API: POST /v1/audio/speech.
 
     Point an OpenAI client at http://<this PC>:8000/v1 with the printed API key. A request's
-    "voice" picks a registered voice by name and "model" an engine (omnivoice, voxcpm2, s2-pro).
+    "voice" picks a registered voice by name and "model" an engine (omnivoice, voxcpm2, qwen3-tts, s2-pro).
     With --host 127.0.0.1 no key is needed."""
     config = load_config(ctx, voice, engine)
     ensure_server(config)
@@ -317,7 +317,7 @@ def engine_list(ctx: typer.Context):
 
 @engine_app.command("install")
 @handled
-def engine_install(name: Annotated[str, typer.Argument(help="omnivoice or voxcpm2.")]):
+def engine_install(name: Annotated[str, typer.Argument(help="omnivoice, voxcpm2 or qwen3-tts.")]):
     """Install a PyTorch engine into <home>/cache/engines/<name> and download its model.
 
     Uses the engine's locked dependencies (CUDA PyTorch on Windows, MPS-capable PyTorch on macOS)."""

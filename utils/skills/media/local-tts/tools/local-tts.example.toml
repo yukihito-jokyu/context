@@ -1,6 +1,6 @@
 # Copy to %LOCALAPPDATA%\local-tts\config.toml on Windows or
 # ~/.local/share/local-tts/config.toml on macOS (or pass --config) and adjust.
-# Engine for say/speak/api unless --engine says otherwise: voxcpm2 (default), omnivoice, s2, voicevox.
+# Engine for say/speak/api unless --engine says otherwise: voxcpm2 (default), omnivoice, qwen3-tts, s2, voicevox.
 engine = "voxcpm2"
 # Address of the S2 (s2.cpp) server and its request timeout; the other engines use [engines.<name>].
 url = "http://127.0.0.1:3030"
@@ -23,6 +23,13 @@ language = "Japanese"
 # inference_timesteps = 10
 # Live playback (say) head start per character; 120 on macOS (RTF ~2 on an M4), 0 elsewhere.
 # stream_start_buffer_ms_per_char = 120
+
+[engines.qwen3-tts]
+# Without it Qwen3-TTS detects the language (Auto).
+language = "Japanese"
+# device = "auto"
+# dtype = "bfloat16"     # bfloat16 on GPUs, float32 on the CPU
+# temperature = 0.9
 
 # [engines.voicevox]
 # url = "http://127.0.0.1:50021"   # with engine = "voicevox"; pick the speaker with `speaker` at the root
