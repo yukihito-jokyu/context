@@ -2,27 +2,27 @@
   "schema_version": 1,
   "skill": "local-tts",
   "skill_source": "utils/skills/media/local-tts/SKILL.md",
-  "skill_sha256": "5b22facb4995ee6162bd3fa8bfd9c80739bb0256d93166e55a866283f0774430",
-  "recorded_at": "2026-11-23T11:09:17.238Z",
+  "skill_sha256": "aa845e16fd4a8ae661e667a6cc9e58100547351da26d592bd78012fb37ffa22e",
+  "recorded_at": "2026-11-23T13:01:28.233Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "a504cdf76e3562b41",
-    "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してQwen3-TTS（--engine qwen3-tts）と既定の声でspeakしてWAVにし、エンジンのサーバーの停止を試みるまでを実行する"
+    "agent_id": "a910b148ff9f5a711",
+    "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してQwen3-TTS（--engine qwen3-tts）と既定の声でspeakしてWAVにし、checkで読みを聞き取って原稿と照らし、誤読があればredoで直し、エンジンのサーバーの停止を試みるまでを実行する"
   },
   "input": "input.md",
-  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.04秒のWAVを生成しました。保存したWAVの大きさは-14.1 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。",
-  "stage": "WAVの生成とserver stopの実行まで。音声の試聴は未実施",
+  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.28秒のWAVを生成しました。checkで2区間の読みをカタカナで聞き取り、原稿と照らして誤読がないと判断したため、redoは行っていません。保存したWAVの大きさは-14.1 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間・聞き取った読みを掲載しています。声の名前は伏せ字にしています。",
+  "stage": "WAVの生成、checkによる読みの確認、server stopの実行まで。音声の試聴は未実施",
   "checks": [
+    "doctorとengine listで、既定のエンジンqwen3-ttsがready、checkの実行環境とモデルが導入済みであることを確認",
     "server statusで、Qwen3-TTSとOmniVoiceのサーバーが実行前から別に起動されている（started elsewhere）ことを確認",
-    "doctorとengine listで、既定のエンジンqwen3-ttsがreadyであることを確認",
-    "voice listで、既定の声にQwen3-TTSのプロファイルがあることを確認",
     "planは発話2つ、警告0件",
-    "speakは再生せずに終了コード0で5.04秒の音声を生成（生成38.5秒、発話の約7.6倍）",
-    "ffprobeでWAVがpcm_s16le・24,000 Hz・モノラル・5.04秒であり、timing.jsonと一致することを確認",
-    "FFmpegのebur128で、保存したWAVの大きさが-14.1 LUFS、トゥルーピークが-2.0 dBFSであることを確認",
-    "server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは同じプロセスのまま動いており、止めていない",
-    "実行者は音声を聞けないため、読みの正しさは未確認。WAVは公開物に含めていない"
+    "speakは再生せずに5.28秒の音声を生成（生成11.2秒、発話の約2.1倍）",
+    "FFmpegのebur128で、保存したWAVの大きさが-14.1 LUFS、トゥルーピークが-1.9 dBFSであることを確認",
+    "checkは終了コード0で2区間を約9.6秒で聞き取り。区間1はホンジツワオアツマリイタダキアリガトーゴザイマス、区間2はハッピョーノジカンワジューゴフンデス",
+    "実行者が原稿と照らし、2区間とも読みは正しい（本日＝ホンジツ、十五分＝ジューゴフン）と判断。助詞のワと長音は表記の違いとして扱い、redoは不要",
+    "server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは止めていない",
+    "実行者は音声を聞けないため、アクセントとイントネーションは未確認。WAVは公開物に含めていない"
   ],
   "downloads": [
     {
@@ -40,19 +40,28 @@
     {
       "file": "timing.json",
       "label": "区間ごとの時間（JSON）"
+    },
+    {
+      "file": "check.json",
+      "label": "checkの出力（JSON）"
     }
   ],
   "text_output": "output.md",
   "artifacts": [
     {
+      "file": "check.json",
+      "sha256": "e26f932d2a2159e061973e8ee24eb50a08cd57d4702009da050092dc9baa6f8f",
+      "bytes": 418
+    },
+    {
       "file": "input.md",
-      "sha256": "09c7f23c15689cb8ddf8004ceabbcbf4f9cf29ed7c4ab6ab563025384278b5a4",
-      "bytes": 276
+      "sha256": "2d4622a8808ca61aab3d4c304e4d71e3d07912cce681cfbab69784e20aef7f44",
+      "bytes": 351
     },
     {
       "file": "output.md",
-      "sha256": "37164637c766b5f752408a801fdd43f7714e86498805fd37c706cd9d5a98e488",
-      "bytes": 2792
+      "sha256": "cbb2f3233ec1c620f9d61ad621975fb73e1b4a0898b8caf9f41a25c84c0725ef",
+      "bytes": 1910
     },
     {
       "file": "plan.txt",
@@ -66,22 +75,22 @@
     },
     {
       "file": "timing.json",
-      "sha256": "cacea714c1233a35b2aee4d9847cfca5f5f2320ad27d2e709db77be8eb0c2c3d",
+      "sha256": "05c8b2fb8dfc967ef88cbe3d8f9561de8bbb3fd95b3568cd870231f6a8b62668",
       "bytes": 649
     }
   ],
   "source_files": [
     {
       "file": "SKILL.md",
-      "sha256": "5b22facb4995ee6162bd3fa8bfd9c80739bb0256d93166e55a866283f0774430"
+      "sha256": "aa845e16fd4a8ae661e667a6cc9e58100547351da26d592bd78012fb37ffa22e"
     },
     {
       "file": "references/cleanup.md",
-      "sha256": "60147b1a0b7f0389f64c90a691ceb51f4781ef347bea3d2b94af9a868f9b9200"
+      "sha256": "198013f4e699f0723d43e38c92b96f8b7ea7fc494efecda0b53fb0b04d1ab9ea"
     },
     {
       "file": "references/commands.md",
-      "sha256": "bdc797555392d35684d8d8d996e447ad1f36fcc23cf0818f2608471b74fdbc6c"
+      "sha256": "90a0636b5a2f2e2e074ea07039df588385a26756b2f79516b67dc5fb51cf401f"
     },
     {
       "file": "references/cuda-wsl.md",
@@ -110,6 +119,22 @@
     {
       "file": "tools/LICENSE",
       "sha256": "482cccd449d057fa1cf2b43d45bd61a00c6d2a2016cf1d1cd8ff3b65fc6d3de1"
+    },
+    {
+      "file": "tools/checkers/kana-whisper/.python-version",
+      "sha256": "7b55f8e67b5623c4bef3fa691288da9437d79d3aba156de48d481db32ac7d16d"
+    },
+    {
+      "file": "tools/checkers/kana-whisper/check.py",
+      "sha256": "2613b1c4f79bcc761fdcc086322823d7d0261d3a9d0dfb85c039d861f91fc313"
+    },
+    {
+      "file": "tools/checkers/kana-whisper/pyproject.toml",
+      "sha256": "b1f11893d1f5309a702d2cd9a3258db8a5cd81b90f5fed32a33c33bc2f2cfca9"
+    },
+    {
+      "file": "tools/checkers/kana-whisper/uv.lock",
+      "sha256": "7163037d4aadf3a9f7b66e98e8fe19d60c18558f9c05e44cc0fa3075d52e109c"
     },
     {
       "file": "tools/engines/common/server_base.py",
@@ -220,8 +245,12 @@
       "sha256": "12dff68d621a3603f96d99021e0f485a063f94f36c67b74c46f6698a8216f27f"
     },
     {
+      "file": "tools/src/local_tts/checker.py",
+      "sha256": "6e70f28c411f71c8b54fc2782269cac1d1db19842a33b0d47f86bc7c6ea6c6a3"
+    },
+    {
       "file": "tools/src/local_tts/cli.py",
-      "sha256": "b6a47689822713c1dae658449b7813436528cc6734fb6621058bc17b97e9330a"
+      "sha256": "9456180bdc0d51d00cfebec1efdc450028a02ac918d6d314adfb9c16cfb5f12d"
     },
     {
       "file": "tools/src/local_tts/engines.py",
@@ -238,6 +267,10 @@
     {
       "file": "tools/src/local_tts/loudness.py",
       "sha256": "476046e4b98f6ef9631aa1ed2450d96be5e9565bfeb4a265a8e9f5a914194ee2"
+    },
+    {
+      "file": "tools/src/local_tts/redo.py",
+      "sha256": "543ba534cf8f6286d625e998638f64bdd6dab5317a5b8fc8dc5b476eb30b9be8"
     },
     {
       "file": "tools/src/local_tts/runtime.py",
@@ -269,7 +302,7 @@
     },
     {
       "file": "tools/tests/test_cli.py",
-      "sha256": "ba18d80b132c27f170424793a5a7ce19cb10ed922fcadfe4b5c3bb2f09d1a435"
+      "sha256": "0f3ff448dc27b0f1a9b1c1d8f5ee18db199a52058c0bc53b13e5551e27ab779a"
     },
     {
       "file": "tools/tests/test_engines.py",
@@ -293,12 +326,12 @@
     },
     {
       "file": "tools/tests/test_tts.py",
-      "sha256": "9885a066fd9b2b4a49968c28637c5896f6a00630c492f6075b2e76274ea6c082"
+      "sha256": "24e81571cc82f2432fde791b40a64d7d8369978fb9a6f157be12d148dd82dfeb"
     },
     {
       "file": "tools/uv.lock",
       "sha256": "bff0f7e0de10b97ca6549c7596039c3cd707300aedfef5281f387926aa93189b"
     }
   ],
-  "source_sha256": "8f9ecafda83b9105050b23820a640088a1974659c0f6f753afb58514f8b92f56"
+  "source_sha256": "151acf086538d5397c5da831eccef5c064686c556332dc87e4f2605acc72f5d8"
 }

@@ -58,14 +58,14 @@ local-ttsを使って、次の文章をWAVにしてください。出力先は o
 
 ## 成果物の例
 
-2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.04秒のWAVを生成しました。保存したWAVの大きさは-14.1 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。
+2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.28秒のWAVを生成しました。checkで2区間の読みをカタカナで聞き取り、原稿と照らして誤読がないと判断したため、redoは行っていません。保存したWAVの大きさは-14.1 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間・聞き取った読みを掲載しています。声の名前は伏せ字にしています。
 
-**到達点：WAVの生成とserver stopの実行まで。音声の試聴は未実施。**
+**到達点：WAVの生成、checkによる読みの確認、server stopの実行まで。音声の試聴は未実施。**
 
 ### 実行した依頼
 
 ```text
-local-ttsを使って、次の2文をWAVにしてください。音は再生しないでください。声は既定のもの、エンジンはQwen3-TTSを使います。
+local-ttsを使って、次の2文をWAVにしてください。音は再生しないでください。声は既定のもの、エンジンはQwen3-TTSを使います。読み間違いがないか確かめて、あれば直してください。
 本日はお集まりいただき、ありがとうございます。発表の時間は十五分です。
 ```
 
@@ -74,22 +74,22 @@ local-ttsを使って、次の2文をWAVにしてください。音は再生し�
 以下は保存した原本の冒頭です。全文は原本から取得できます。
 
 ````markdown
-# 実行報告
+2文をWAVにしました。音は再生していません。
 
-2文をQwen3-TTSで合成し、WAVに保存しました。音は再生していません。
+- ファイル：`sample.wav`（区間ごとの時間は`sample.json`）
+- 長さ：5.28秒（24 kHz、モノラル）
+- 声：`<既定の声>`（設定の既定の声）
+- エンジン：Qwen3-TTS
+- 生成時間：約11.2秒（音声の約2.1倍）
+- 音量：-14.1 LUFS、トゥルーピーク -1.9 dBFS
 
-| 項目 | 内容 |
-|---|---|
-| ファイル名 | `sample.wav`（区間の時間は同名の`sample.json`。公開用には`timing.json`として保存） |
-| 合計の長さ | 5.04秒 |
-| 形式 | WAV（PCM 16ビット）、24,000 Hz、モノラル |
-| 使った声 | 設定の既定の声（`<個人名>`） |
-| エンジン | `qwen3-tts`（Qwen3-TTS） |
-| 再生の有無 | 再生していない（`playback_enabled: false`） |
+## 読みの確認（check）
 
-## 合成までの経過
+`check`で区間ごとに読みを聞き取り、原稿と照らし合わせました。
 
-1. `server status`、`doctor`、`engine list`、`voice list`で状態を確かめた。Qwen3-TTSは`ready`で、既定のエンジン。既定の声`<個人名>`はQwen3-TTSのプロファイルを作り終えていた。Qwen3-TTSとOmniVoiceのサーバーは、この実行の前から別に起動されていた（`started elsewhere`）。
+| 区間 | 原稿 | 聞き取った読み | 判断 |
+|---|---|---|---|
+| 1 | 本日はお集まりいただき、ありがとうございます。 | ホンジツワオアツマリイタダキアリガトーゴザイマス | 正しい（「本日」はホンジツ） |
 ````
 
 ### 成果物を取得する
@@ -98,20 +98,21 @@ local-ttsを使って、次の2文をWAVにしてください。音は再生し�
 - [合成に使ったSSML](pathname:///skills/local-tts/sample.ssml#download)
 - [planの出力](pathname:///skills/local-tts/plan.txt#download)
 - [区間ごとの時間（JSON）](pathname:///skills/local-tts/timing.json#download)
+- [checkの出力（JSON）](pathname:///skills/local-tts/check.json#download)
 - [実行入力の原本](pathname:///skills/local-tts/input.md#download)
 - [実行・検証記録（JSON）](pathname:///skills/local-tts/execution.json#download)
 
 ### 確認した結果
 
+- doctorとengine listで、既定のエンジンqwen3-ttsがready、checkの実行環境とモデルが導入済みであることを確認
 - server statusで、Qwen3-TTSとOmniVoiceのサーバーが実行前から別に起動されている（started elsewhere）ことを確認
-- doctorとengine listで、既定のエンジンqwen3-ttsがreadyであることを確認
-- voice listで、既定の声にQwen3-TTSのプロファイルがあることを確認
 - planは発話2つ、警告0件
-- speakは再生せずに終了コード0で5.04秒の音声を生成（生成38.5秒、発話の約7.6倍）
-- ffprobeでWAVがpcm_s16le・24,000 Hz・モノラル・5.04秒であり、timing.jsonと一致することを確認
-- FFmpegのebur128で、保存したWAVの大きさが-14.1 LUFS、トゥルーピークが-2.0 dBFSであることを確認
-- server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは同じプロセスのまま動いており、止めていない
-- 実行者は音声を聞けないため、読みの正しさは未確認。WAVは公開物に含めていない
+- speakは再生せずに5.28秒の音声を生成（生成11.2秒、発話の約2.1倍）
+- FFmpegのebur128で、保存したWAVの大きさが-14.1 LUFS、トゥルーピークが-1.9 dBFSであることを確認
+- checkは終了コード0で2区間を約9.6秒で聞き取り。区間1はホンジツワオアツマリイタダキアリガトーゴザイマス、区間2はハッピョーノジカンワジューゴフンデス
+- 実行者が原稿と照らし、2区間とも読みは正しい（本日＝ホンジツ、十五分＝ジューゴフン）と判断。助詞のワと長音は表記の違いとして扱い、redoは不要
+- server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは止めていない
+- 実行者は音声を聞けないため、アクセントとイントネーションは未確認。WAVは公開物に含めていない
 
 ## 確認するポイント
 
