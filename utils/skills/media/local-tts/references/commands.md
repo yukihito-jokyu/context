@@ -103,6 +103,7 @@ uv run --project "<local-tts>/tools" local-tts speak "<local-tts>/tools/examples
 
 - `plan`はモデルを使わず、区切り・間・マーカーをJSONで表示する。原稿の確認用。
 - `speak`は`outputs/presentation.wav`に保存する（`--output`で変更）。同名のJSONに区間ごとの時間も保存する。
+- 保存するWAVは、大きさをYouTubeの推奨（-14 LUFS、ピーク-1.5 dBFS以下）にそろえる（`say`の保存ファイルも同じ）。音量を上げてリミッターでピークを抑え、測り直して±0.3 LU以内にする。長さは変わらないので、時刻のJSONはそのまま使える。`--play`や`say`で流れる音は元の大きさのまま。目標は設定の`loudness`で変える（0でそろえない）。`api`の出力はそろえない。
 - `--play`は生成しながら再生する。生成が再生より遅いため、途中で途切れることがある。
 - 既存の出力は`--force`を付けない限り上書きしない。
 
@@ -196,6 +197,7 @@ OS、CPUアーキテクチャ、CUDA/Metal、FFmpeg/FFplay（Macは再生用の`
 | 先頭 | `engine` | 既定のエンジン（`qwen3-tts`、`voxcpm2`、`omnivoice`、`s2`、`voicevox`）。省略時はQwen3-TTS。古い`backend = "s2cpp"`は`s2`として読む |
 | 先頭 | `url` | S2（s2.cpp）のアドレス（既定`http://127.0.0.1:3030`） |
 | 先頭 | `voice` | 普段使う声の名前（`voice list`の名前）か`.s2voice`のパス |
+| 先頭 | `loudness` | `speak`・`say`が保存するWAVの大きさ（LUFS、既定-14＝YouTubeの推奨）。0でそろえない |
 | `[engines.omnivoice]` | `language` | 言語名（`Japanese`など）。指定すると少し良くなる（README）。混在する文章では外す |
 | `[engines.omnivoice]` | `num_step`、`guidance_scale` | 拡散のステップ数（既定32。16で約2倍速いが質は未確認）、ガイダンス（既定2.0） |
 | `[engines.omnivoice]` | `request_chars` | 1回にまとめて送る文字数（既定200、0で文ごと） |
