@@ -87,6 +87,8 @@ class SSMLTests(unittest.TestCase):
 
 
 class StubBackend:
+    config = {'loudness': 0}  # Keep the samples exact.
+
     @contextmanager
     def synthesize(self, text, live=True):
         yield Format(16000), iter([b'\x01', b'\x00' * 3199])
@@ -109,6 +111,8 @@ class RenderTests(unittest.TestCase):
 
     def test_filler_plays_only_when_speech_is_late(self):
         class SlowBackend:
+            config = {'loudness': 0}
+
             def __init__(self, delay):
                 self.delay = delay
 
@@ -141,6 +145,8 @@ class RenderTests(unittest.TestCase):
 
     def test_error_does_not_replace_existing_output(self):
         class BrokenBackend:
+            config = {'loudness': 0}
+
             @contextmanager
             def synthesize(self, text, live=True):
                 def chunks():
@@ -162,6 +168,8 @@ class RenderTests(unittest.TestCase):
 
     def test_empty_or_odd_audio_is_not_published(self):
         class EmptyBackend:
+            config = {'loudness': 0}
+
             @contextmanager
             def synthesize(self, text, live=True):
                 yield Format(16000), iter([b'\0'])
@@ -174,6 +182,29 @@ class RenderTests(unittest.TestCase):
     def test_remote_endpoints_are_rejected(self):
         with self.assertRaises(AudioError):
             Backend({'engine': 's2', 'url': 'https://example.com'})
+
+    @unittest.skipUnless(shutil.which('ffmpeg'), 'FFmpeg is not installed')
+    def test_saved_wav_reaches_the_target_loudness_without_moving_samples(self):
+        from local_tts.loudness import LIMIT, measure
+        rate = 16000
+        quiet = array.array('h', (int(1600 * math.sin(2 * math.pi * 220 * i / rate)) for i in range(rate * 2)))
+
+        class QuietBackend:
+            config = {}  # The default target, -14 LUFS.
+
+            @contextmanager
+            def synthesize(self, text, live=True):
+                yield Format(rate), iter([quiet.tobytes()])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'speech.wav'
+            report = render([Speech('one', Style()), Mark('end')], QuietBackend(), path)
+            with wave.open(str(path)) as wav:
+                frames = wav.getnframes()
+                samples = array.array('h', wav.readframes(frames))
+            self.assertAlmostEqual(measure(shutil.which('ffmpeg'), path), -14.0, delta=.3)
+            self.assertEqual(frames, len(quiet))
+            self.assertEqual(report['marks'][0]['frame'], len(quiet))
+            self.assertLessEqual(max(map(abs, samples)), int(LIMIT * 32768) + 1)
 
     @unittest.skipUnless(shutil.which('ffmpeg'), 'FFmpeg is not installed')
     def test_real_ffmpeg_changes_duration_and_pitch(self):

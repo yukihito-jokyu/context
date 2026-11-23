@@ -297,6 +297,10 @@ def render(events, backend, output, *, play=False, force=False, filler=None, fil
     if any(isinstance(e, Speech) and filters(e.style, Format(44100)) for e in events):
         if not shutil.which("ffmpeg"):
             raise AudioError("FFmpeg is required for SSML prosody and emphasis")
+    from . import loudness
+    goal = loudness.target(backend.config)
+    if goal is not None and not shutil.which("ffmpeg"):
+        raise AudioError("FFmpeg is required to normalize loudness (or set loudness = 0)")
     output.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(prefix=".local-tts-", suffix=".wav", dir=output.parent)
     os.close(handle)
@@ -421,6 +425,9 @@ def render(events, backend, output, *, play=False, force=False, filler=None, fil
                 raise AudioError("Playback did not finish within 120 s of the last audio") from None
             if failed:
                 raise AudioError("macOS audio player failed" if mac_player else "ffplay failed")
+        if goal is not None:
+            # Only the file: audio already played live keeps the engine's own level.
+            loudness.normalize(temporary, goal)
         os.replace(temporary, output)
         metadata.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return report
