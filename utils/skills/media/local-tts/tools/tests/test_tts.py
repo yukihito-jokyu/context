@@ -255,6 +255,63 @@ class RenderTests(unittest.TestCase):
             list(read_pcm(response))
 
 
+class LengthBackend:
+    """Every segment is `frames` samples of `value`, so a test can see which ones were replaced."""
+    config = {'loudness': 0}
+
+    def __init__(self, frames, value):
+        self.frames, self.value = frames, value
+
+    @contextmanager
+    def synthesize(self, text, live=True):
+        yield Format(16000), iter([struct.pack('<h', self.value) * self.frames])
+
+
+class RedoTests(unittest.TestCase):
+    events = [Speech('one', Style()), Pause(.1), Mark('next'), Speech('two', Style()), Speech('three', Style())]
+
+    def test_replaces_only_the_chosen_segment_and_moves_later_times(self):
+        from local_tts.redo import redo
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'speech.wav'
+            render(self.events, LengthBackend(1600, 1), path)
+            done = redo(self.events, LengthBackend(2400, 7), path, [2])
+            report = json.loads(path.with_suffix('.json').read_text())
+            with wave.open(str(path)) as wav:
+                samples = array.array('h', wav.readframes(wav.getnframes()))
+        self.assertEqual(done[0]['segment'], 2)
+        self.assertEqual([(s['start_frame'], s['end_frame']) for s in report['segments']],
+                         [(0, 1600), (3200, 5600), (5600, 7200)])
+        self.assertEqual(report['marks'][0]['frame'], 3200)  # Before the redone segment: unchanged.
+        self.assertEqual(len(samples), 7200)
+        self.assertEqual(set(samples[3200:5600]), {7})
+        self.assertEqual(set(samples[:1600]) | set(samples[5600:]), {1})
+        self.assertAlmostEqual(report['audio_seconds'], .45)
+
+    def test_marks_after_a_redone_segment_move(self):
+        from local_tts.redo import redo
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'speech.wav'
+            render(self.events, LengthBackend(1600, 1), path)
+            redo(self.events, LengthBackend(800, 7), path, [1])
+            report = json.loads(path.with_suffix('.json').read_text())
+        self.assertEqual(report['marks'][0]['frame'], 2400)
+        self.assertEqual(report['segments'][2]['end_frame'], 5600)
+
+    def test_a_changed_script_is_refused(self):
+        from local_tts.redo import redo
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'speech.wav'
+            render(self.events, LengthBackend(1600, 1), path)
+            before = path.read_bytes()
+            edited = [Speech('one', Style()), Speech('TWO', Style()), Speech('three', Style())]
+            with self.assertRaisesRegex(AudioError, 'no longer matches'):
+                redo(edited, LengthBackend(800, 7), path, [2])
+            with self.assertRaisesRegex(AudioError, 'out of range'):
+                redo(self.events, LengthBackend(800, 7), path, [4])
+            self.assertEqual(path.read_bytes(), before)
+
+
 class WireTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
