@@ -2,24 +2,24 @@
   "schema_version": 1,
   "skill": "local-tts",
   "skill_source": "utils/skills/media/local-tts/SKILL.md",
-  "skill_sha256": "7780d2cb3096b757bb8e31f1ca3ff2a42bf5cd7b2591368a7511ab528f86b177",
-  "recorded_at": "2026-11-11T09:20:56.200Z",
+  "skill_sha256": "5b22facb4995ee6162bd3fa8bfd9c80739bb0256d93166e55a866283f0774430",
+  "recorded_at": "2026-11-23T08:03:27.759Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "abe9ec9ecfafdd72f",
-    "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認して既定のエンジンでspeakしてWAVにし、エンジンのサーバーを停止するまでを実行する"
+    "agent_id": "a58ee9be12ebd74d9",
+    "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してQwen3-TTS（--engine qwen3-tts）と既定の声でspeakしてWAVにし、エンジンのサーバーを停止するまでを実行する"
   },
   "input": "input.md",
-  "summary": "2文の日本語をSSMLにして区切りを確認し、既定のエンジンVoxCPM2と既定の声で6.1秒のWAVを生成しました。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。",
+  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で6.02秒のWAVを生成しました。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間を掲載しています。声の名前は伏せ字にしています。",
   "stage": "WAVの生成とエンジンのサーバーの停止まで。音声の試聴は未実施",
   "checks": [
-    "doctorとengine listで既定のエンジンvoxcpm2がreadyであることを確認",
-    "voice listで既定の声にvoxcpm2用のプロファイルがあることを確認",
+    "doctorとengine listでqwen3-ttsがreadyであることを確認（設定の既定のエンジンはvoxcpm2のため、--engine qwen3-ttsで指定）",
+    "voice listで既定の声を確認。qwen3-tts用のプロファイルは未作成で、今回のspeakで初めて使うときに作られたことをvoice listで確認",
     "planは2発話と0.5秒の間に分かれ、警告なし",
-    "speakは再生せずに終了コード0で6.1秒の音声を生成（生成11.2秒、発話の約2.0倍、最初の音まで6.1秒）",
+    "speakは再生せずに終了コード0で6.02秒の音声を生成（生成10.4秒、発話の約1.9倍、最初の音まで6.8秒）",
     "ffprobeで確かめたWAVの長さと形式がtiming.jsonのaudio_seconds・sample_rate・channelsと一致",
-    "server stop後にserver statusで全エンジンがnot runningであることを確認",
+    "server stop後にserver statusでqwen3-tts・voxcpm2・s2がnot runningであることを確認。OmniVoiceは実行前から別に起動されていた（started elsewhere）ため止めていない",
     "実行者は音声を聞けないため、読みの正しさは未確認。WAVは公開物に含めていない"
   ],
   "downloads": [
@@ -44,13 +44,13 @@
   "artifacts": [
     {
       "file": "input.md",
-      "sha256": "f68ed4db336bc109c80bf3df7e1948fd683a509f8ed9f45c2b4cb4d76920335a",
-      "bytes": 264
+      "sha256": "09c7f23c15689cb8ddf8004ceabbcbf4f9cf29ed7c4ab6ab563025384278b5a4",
+      "bytes": 276
     },
     {
       "file": "output.md",
-      "sha256": "7de65fc3fe9a7430db70b552ce7506130c701a18e87434d39e9c9db2c6ba27d1",
-      "bytes": 2301
+      "sha256": "0ae4abf17b98f76ae946842ddaa51c2ca8f85506ebf76c68bd34063c4b4e8adf",
+      "bytes": 3048
     },
     {
       "file": "plan.txt",
@@ -64,22 +64,22 @@
     },
     {
       "file": "timing.json",
-      "sha256": "3a53ac7cb21c36943476b9526fa09e922f44902b6436ba4103ed1198b326dae5",
-      "bytes": 648
+      "sha256": "0eb1c3520ec8d652f501e791f9365029b7d6c83075cac4d01ec1e474e199f25c",
+      "bytes": 650
     }
   ],
   "source_files": [
     {
       "file": "SKILL.md",
-      "sha256": "7780d2cb3096b757bb8e31f1ca3ff2a42bf5cd7b2591368a7511ab528f86b177"
+      "sha256": "5b22facb4995ee6162bd3fa8bfd9c80739bb0256d93166e55a866283f0774430"
     },
     {
       "file": "references/cleanup.md",
-      "sha256": "af3983e9bcda10f6506f1f2d807bf654b6a760ce07630a6494662f9ee5b8b858"
+      "sha256": "60147b1a0b7f0389f64c90a691ceb51f4781ef347bea3d2b94af9a868f9b9200"
     },
     {
       "file": "references/commands.md",
-      "sha256": "614e53f1b7a195a44a01f515e41648450bfb6de08621162cb9b3d1e0bb78114a"
+      "sha256": "5985e1c50846e513035961bebdd7a7adbc3f4bc6172cad219532adf25b3157eb"
     },
     {
       "file": "references/cuda-wsl.md",
@@ -91,11 +91,11 @@
     },
     {
       "file": "references/engines.md",
-      "sha256": "3b95a7cc1bc87ecc9c82eaf56e274ee82f886a4023321216e6b7b83eaa114d26"
+      "sha256": "71ac906844d7e3cb81b6332064eaec45d68e9ef3d1d66e3a9a139d3907d79a9c"
     },
     {
       "file": "references/setup.md",
-      "sha256": "d99bf63391351f6dd96871ec828ce858bcd44a0651af4bf4c2381b8f2519655d"
+      "sha256": "669c907502654fc988a1a5dfc22d7d11c4c6149f8ab810f58fe2702e6de492b3"
     },
     {
       "file": "references/upstream.md",
@@ -130,6 +130,22 @@
       "sha256": "957a5462330171ea7a35322015403bd9e56da86b28d9892f6941017688f01772"
     },
     {
+      "file": "tools/engines/qwen3-tts/.python-version",
+      "sha256": "7b55f8e67b5623c4bef3fa691288da9437d79d3aba156de48d481db32ac7d16d"
+    },
+    {
+      "file": "tools/engines/qwen3-tts/pyproject.toml",
+      "sha256": "723f2b47a6cd6001ed34e2710cbafe1687392af85e48094c21110379a94a154a"
+    },
+    {
+      "file": "tools/engines/qwen3-tts/server.py",
+      "sha256": "c235c905a49b80dfc3578211bff1d52713f3b04ba4223d33c3367f50607cc579"
+    },
+    {
+      "file": "tools/engines/qwen3-tts/uv.lock",
+      "sha256": "8ddf0af978725f0f143d845a28d98ec6d89a8cb8b24c2c1615470d42ffb0a087"
+    },
+    {
       "file": "tools/engines/voxcpm2/.python-version",
       "sha256": "7b55f8e67b5623c4bef3fa691288da9437d79d3aba156de48d481db32ac7d16d"
     },
@@ -155,7 +171,7 @@
     },
     {
       "file": "tools/local-tts.example.toml",
-      "sha256": "4444a658838c5ef215b8bb95f03972119bc384213402bfdca46bf1a3d204a9d7"
+      "sha256": "4c997068601e96ac65fb1c28bfc74ff1f2f8422d3f95da3bc9e8891f371f5800"
     },
     {
       "file": "tools/pyproject.toml",
@@ -203,11 +219,11 @@
     },
     {
       "file": "tools/src/local_tts/cli.py",
-      "sha256": "dd227d048ae64ce58b7dc0ed3defb40f2b32a68c4af66b1bee7c7b5eb4ec61b3"
+      "sha256": "b6a47689822713c1dae658449b7813436528cc6734fb6621058bc17b97e9330a"
     },
     {
       "file": "tools/src/local_tts/engines.py",
-      "sha256": "ab8bc46d4afb946e3050beb7dacca94b9b770cbd8510297323a52a8d747fd2c4"
+      "sha256": "4a9a7192f2031249905cf845fc089049b6f83305e806b9c9aec1b8988fe017b7"
     },
     {
       "file": "tools/src/local_tts/fillers.py",
@@ -227,7 +243,7 @@
     },
     {
       "file": "tools/src/local_tts/server.py",
-      "sha256": "5e69be689902c00842201326c1086b4e6e645cbe78351fb741e3c4f1e7167aa1"
+      "sha256": "c9fa8e4917c8553ae9c63dc541b1426f06a7b5283a434b8016e594774cd2abf0"
     },
     {
       "file": "tools/src/local_tts/ssml.py",
@@ -243,7 +259,7 @@
     },
     {
       "file": "tools/tests/test_api.py",
-      "sha256": "f2575a09b21cc241f277e1419832f41ddb3912acdbf3e91de891900cd4f00071"
+      "sha256": "ef2ffa08a7e3b0747e886671679be3b9667bfc1cccac2fb99311031e583564d4"
     },
     {
       "file": "tools/tests/test_cli.py",
@@ -251,7 +267,7 @@
     },
     {
       "file": "tools/tests/test_engines.py",
-      "sha256": "4a5ec895016ac1a6174ad503db2e79355dd79f45e8b9aead8fb4bdcb1da060a0"
+      "sha256": "c01e7df2cfebd039487f3ca908137d604bb248ae3a6c6a41f134a4a5e9c99635"
     },
     {
       "file": "tools/tests/test_fetch_s2.py",
@@ -278,5 +294,5 @@
       "sha256": "bff0f7e0de10b97ca6549c7596039c3cd707300aedfef5281f387926aa93189b"
     }
   ],
-  "source_sha256": "17b8d627a78d1ef5234bb98842c0042609d6a6e55e0686c3d432e139f3750ac8"
+  "source_sha256": "e943dee3da3560b435f164433678c8c9b751c14640a1b12f2c67e514c2095efe"
 }
