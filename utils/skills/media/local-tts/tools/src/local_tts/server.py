@@ -1,6 +1,6 @@
 """Run the engine servers as background processes: start, stop and status.
 
-s2 runs s2.cpp; omnivoice and voxcpm2 run tools/engines/<name>/server.py in their own virtual
+s2 runs s2.cpp; omnivoice, voxcpm2 and qwen3-tts run tools/engines/<name>/server.py in their own virtual
 environment. Each keeps a PID file and a log in <home>/cache/ (s2-server.pid, omnivoice-server.pid, ...).
 VOICEVOX is started by the user and only reported here."""
 

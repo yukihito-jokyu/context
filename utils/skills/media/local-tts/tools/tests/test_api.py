@@ -31,6 +31,7 @@ class ParseTests(unittest.TestCase):
     def test_validation(self):
         self.assertEqual(api.parse(b'{"input": "hi", "voice": "myvoice"}'), ('hi', 'myvoice', 'mp3', 1.0, None))
         self.assertEqual(api.parse(b'{"input": "hi", "model": "voxcpm2"}')[4], 'voxcpm2')
+        self.assertEqual(api.parse(b'{"input": "hi", "model": "qwen3-tts"}')[4], 'qwen3-tts')
         self.assertEqual(api.parse(b'{"input": "hi", "model": "s2-pro"}')[4], 's2')
         self.assertIsNone(api.parse(b'{"input": "hi", "model": "tts-1"}')[4])
         for body, param in ((b'[]', None), (b'{}', 'input'), (b'{"input": " "}', 'input'),

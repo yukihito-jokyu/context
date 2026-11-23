@@ -1,8 +1,8 @@
 ---
 name: local-tts
-description: スライドや検査済み原稿を伴わない、ローカルの音声合成（VoxCPM2、OmniVoice、Fish Audio S2 Pro）を運用する。文章をその場で読み上げる、テキストやSSMLをWAVにする、録音から声をクローンして登録・一覧・作り直し・削除する、エンジンの導入と切り替え、TTSサーバーを起動・停止する、OpenAI互換の音声API（/v1/audio/speech）を立てる、不調を切り分ける、旧presenter-ttsフォルダからの移し替え、キャッシュの片付けに使う。「読み上げて」「音声にして」「WAVにして」「この声で話して」「声を登録して」「OmniVoiceで」「VoxCPM2で」「S2で」「TTSサーバーを止めて」「ローカルTTS」「音声APIを立てて」では、スキル名を言われなくてもこのスキルを使う。html-deckのスライドにナレーションを付ける、player.htmlやMP4を作る場合はpresenter、発表原稿の作成や検査はpresentation-ja、別PCのAPIを使う場合はremote-ttsを使う。
+description: スライドや検査済み原稿を伴わない、ローカルの音声合成（Qwen3-TTS、VoxCPM2、OmniVoice、Fish Audio S2 Pro）を運用する。文章をその場で読み上げる、テキストやSSMLをWAVにする、録音から声をクローンして登録・一覧・作り直し・削除する、エンジンの導入と切り替え、TTSサーバーを起動・停止する、OpenAI互換の音声API（/v1/audio/speech）を立てる、不調を切り分ける、旧presenter-ttsフォルダからの移し替え、キャッシュの片付けに使う。「読み上げて」「音声にして」「WAVにして」「この声で話して」「声を登録して」「Qwen3-TTSで」「OmniVoiceで」「VoxCPM2で」「S2で」「TTSサーバーを止めて」「ローカルTTS」「音声APIを立てて」では、スキル名を言われなくてもこのスキルを使う。html-deckのスライドにナレーションを付ける、player.htmlやMP4を作る場合はpresenter、発表原稿の作成や検査はpresentation-ja、別PCのAPIを使う場合はremote-ttsを使う。
 license: MIT
-compatibility: Apple Silicon Mac（OmniVoice・VoxCPM2はMPS、S2はMetal）、またはWindows 10/11＋NVIDIA GPU（OmniVoice・VoxCPM2はCUDA 12.8版PyTorch、S2はCUDA 12.4以上でビルド）。uv、FFmpegが必要。導入時にHugging Face接続、S2のビルドにはGit、CMake、WindowsはVisual Studio C++、MacはXcode Command Line Tools、GitHub接続が必要。
+compatibility: Apple Silicon Mac（Qwen3-TTS・OmniVoice・VoxCPM2はMPS、S2はMetal）、またはWindows 10/11＋NVIDIA GPU（Qwen3-TTS・OmniVoice・VoxCPM2はCUDA 12.8版PyTorch、S2はCUDA 12.4以上でビルド）。uv、FFmpegが必要。導入時にHugging Face接続、S2のビルドにはGit、CMake、WindowsはVisual Studio C++、MacはXcode Command Line Tools、GitHub接続が必要。
 ---
 
 # local-tts
@@ -25,12 +25,13 @@ uv run --project "<local-tts>/tools" local-tts <command> ...
 
 | エンジン | このMac（M4）での速さ | メモリ | 向いている用途 | ライセンス |
 |---|---|---|---|---|
-| `voxcpm2`（既定） | 音声の約1.9〜2.4倍の時間 | 約14 GB（CUDAは約8 GB） | 生成しながら届き、最初の音が早い（約1分の原稿で4.6秒） | Apache-2.0 |
+| `qwen3-tts`（既定） | 音声の約1.7倍の時間 | 約6.6 GB | このMacでいちばん速い。録音から声をクローンできるBase 1.7Bを使う | Apache-2.0 |
+| `voxcpm2` | 約1.9〜2.4倍 | 約14 GB（CUDAは約8 GB） | 生成しながら届き、最初の音が早い（約1分の原稿で4.6秒） | Apache-2.0 |
 | `omnivoice` | 約1.9〜2.0倍 | 約4 GB | メモリが少ない環境。1回の生成が長いほど速い（最初の音は遅い） | Apache-2.0 |
 | `s2` | 約8倍 | 約4 GB | 以前の音声と声をそろえたいとき | 研究・非商用（商用は別契約） |
 | `voicevox` | — | — | 自分で起動したVOICEVOX ENGINEにつなぐ | キャラクターごと |
 
-- 指定しなければ設定の`engine`（なければVoxCPM2）。コマンドごとに`--engine <名前>`で変える。
+- 指定しなければ設定の`engine`（なければQwen3-TTS）。コマンドごとに`--engine <名前>`で変える。
 - 状態は`engine list`で確かめる。PyTorchのエンジンは`engine install <名前>`で導入する（実行環境約1〜1.5 GBとモデル約3〜5 GBをダウンロードするので、承認を得てから）。
 - 詳しい計測値と仕組みは[エンジンの詳細](references/engines.md)にある。
 
@@ -88,8 +89,9 @@ uv run --project "<local-tts>/tools" local-tts speak "原稿.ssml" --output "出
 
 - 既定の出力は`outputs/presentation.wav`。同名のJSONに区間ごとの時間が残る。
 - 既存の出力は上書きしない。作り直すと確認できたときだけ`--force`を付ける。
-- 生成は実時間より遅い。このMac（M4）でOmniVoice・VoxCPM2は音声の約1.9倍、S2は約7〜11倍、RTX 3080のS2は約1.4倍（各実測）。初回はモデルの読み込みに20〜30秒かかる。1分を超えそうな音声は、**目安の時間を伝えてからバックグラウンドで実行する**。
+- 生成は実時間より遅い。このMac（M4）でQwen3-TTSは音声の約1.7倍、OmniVoice・VoxCPM2は約1.9倍、S2は約7〜11倍、RTX 3080のS2は約1.4倍（各実測）。初回はモデルの読み込みに20〜30秒かかる。1分を超えそうな音声は、**目安の時間を伝えてからバックグラウンドで実行する**。
 - OmniVoiceは、`break`や`mark`で区切られていない文を200文字までまとめて1回で生成する（1回ごとの固定の時間が大きいため）。その場合、時間のJSONの区間もまとめた単位になる。
+- Qwen3-TTSは登録した声がないと話せない。`--voice`か設定の`voice`を必ず指定する。
 - 1本の音声の中でエンジンを混ぜない。続きを作り直すときは、前と同じ`--engine`を付ける。
 
 ### 読み間違いを減らす表記
@@ -114,7 +116,7 @@ uv run --project "<local-tts>/tools" local-tts voice list
 - **本人の声か、本人の許可を得た声だけを登録する。** 声は本人を特定でき、なりすましにも使える。許可が分からない他人の声（配信の切り抜きなど）は、登録する前に確認する。
 - 録音は5〜30秒で、BGMや他人の声が入っていない区間にする。長い録音は話している区間を切り出し、候補をユーザーに聞いてもらって選ぶ。
 - 文字起こしは録音とそのまま一致させる。ずれると声の再現が悪くなるので、分からない部分を推測で埋めない。ユーザーに書き起こしてもらうか、聞き取れた範囲だけにする。
-- 声の本体は録音と文字起こし（`<home>/voices/`）で、どのエンジンでも使える。エンジンごとのプロファイルは`<home>/cache/voices/<エンジン>/`に置く。S2のものは、S2が入っていれば登録のときに作る。OmniVoice・VoxCPM2のものは、初めて使うときに作る。消えていても、使うときに録音から作り直す（S2は約1分）。
+- 声の本体は録音と文字起こし（`<home>/voices/`）で、どのエンジンでも使える。エンジンごとのプロファイルは`<home>/cache/voices/<エンジン>/`に置く。S2のものは、S2が入っていれば登録のときに作る。Qwen3-TTS・OmniVoice・VoxCPM2のものは、初めて使うときに作る。消えていても、使うときに録音から作り直す（S2は約1分）。
 - `voice list`の`[ ]`は、プロファイルを作り終えたエンジン。作り直しは`voice build <名前> --engine <エンジン>`。
 - 作り直しは`--force`。失敗しても前の声は残る。登録し直すと、各エンジンのプロファイルも作り直される。
 - 声の削除（`voice remove`）は取り消せず、録音からの登録し直しになる。ユーザーが名前で指定したときだけ実行する。
@@ -123,7 +125,7 @@ uv run --project "<local-tts>/tools" local-tts voice list
 
 ## 6. OpenAI互換API
 
-他のアプリやプログラムから、OpenAIの音声API（`POST /v1/audio/speech`）と同じ形式で呼び出すためのサーバーを立てる。リクエストの`model`で`omnivoice`・`voxcpm2`・`s2-pro`を選べる（`tts-1`などは既定のエンジン）。
+他のアプリやプログラムから、OpenAIの音声API（`POST /v1/audio/speech`）と同じ形式で呼び出すためのサーバーを立てる。リクエストの`model`で`qwen3-tts`・`omnivoice`・`voxcpm2`・`s2-pro`を選べる（`tts-1`などは既定のエンジン）。
 
 このコマンドは**既定で`0.0.0.0:8000`に公開する**。同じネットワークの機器から、APIキーを知っている人が登録済みの声で何でも話させられる。
 そのため、次のように扱う。
@@ -149,9 +151,9 @@ uv run --project "<local-tts>/tools" local-tts voice list
 
 ## 気をつけること
 
-- 使い終わったらエンジンのサーバーを止める（`server stop`）。動いている間はメモリを使う（OmniVoice約4 GB、VoxCPM2約14 GB、S2約4 GB。Macはユニファイドメモリ）。ユーザーが続けて使う場合は残してよい。
+- 使い終わったらエンジンのサーバーを止める（`server stop`）。動いている間はメモリを使う（Qwen3-TTS約6.6 GB、OmniVoice約4 GB、VoxCPM2約14 GB、S2約4 GB。Macはユニファイドメモリ）。ユーザーが続けて使う場合は残してよい。
 - WindowsのCUDAでは、空きVRAMが足りないエンジンは起動を止める。他のエンジンを`server stop`で止めてから使う。
-- S2（s2.cppとS2 Proのモデル）は**Fish Audio Research License**で、研究・非商用の利用は無償、**商用利用にはFish Audioとの別途の契約が必要**。業務や収益化に使うと分かったら伝える。OmniVoiceとVoxCPM2はApache-2.0だが、なりすまし・詐欺・偽情報への使用は禁じられている。
+- S2（s2.cppとS2 Proのモデル）は**Fish Audio Research License**で、研究・非商用の利用は無償、**商用利用にはFish Audioとの別途の契約が必要**。業務や収益化に使うと分かったら伝える。Qwen3-TTS・OmniVoice・VoxCPM2はApache-2.0だが、なりすまし・詐欺・偽情報への使用は禁じられている。
 - 合成した声を公開・配布する場合は、合成音声であることを示すかどうかをユーザーに確かめる。
 - 生成に失敗したときは、エラーの1行目と`<home>/cache/<エンジン>-server.log`（S2は`s2-server.log`）の末尾を読んでから対処する。原因が分からないまま再試行を繰り返さない。
 - ディスクを空けたい、作り直したい、消したいと言われたら[片付け手順](references/cleanup.md)に従う。声・設定・APIキーは取り直せないので、消す前に必ず確認する。
@@ -161,11 +163,11 @@ uv run --project "<local-tts>/tools" local-tts voice list
 | パス | 中身 | 読むとき |
 |---|---|---|
 | `references/commands.md` | 全コマンド、APIの項目と例、設定、移し替え、症状別の対処 | オプションや設定、不調を扱うとき |
-| `references/engines.md` | 3つのエンジンの計測値、仕組み、Windowsでの確認手順 | エンジンを選ぶ、速度やメモリの問題、Windowsで確かめるとき |
+| `references/engines.md` | PyTorchのエンジンとS2の計測値、仕組み、Windowsでの確認手順 | エンジンを選ぶ、速度やメモリの問題、Windowsで確かめるとき |
 | `references/engine.md` | SSMLの対応範囲、S2（s2.cpp）の仕組みと検証結果 | SSMLの詳細やS2の問題を扱うとき |
 | `references/setup.md` | 前提ソフト、エンジンの導入、S2のライセンス確認とビルド | エンジンが`ready`でない、ビルドし直すとき |
 | `references/cuda-wsl.md` | WindowsのCUDAとWSLの確認 | WindowsのCUDAで問題が出たとき |
 | `references/cleanup.md` | ローカルデータの片付け | 片付け、アンインストール |
 | `references/upstream.md` | presenterから切り出して分けた経緯と、修正の取り込み方 | このスキル自体を更新するとき |
 | `tools/` | local-tts本体、テスト、`local-tts.example.toml` | 実行、改修 |
-| `tools/engines/` | OmniVoice・VoxCPM2のサーバーと、固定した依存関係（`uv.lock`） | エンジンを改修・更新するとき |
+| `tools/engines/` | Qwen3-TTS・OmniVoice・VoxCPM2のサーバーと、固定した依存関係（`uv.lock`） | エンジンを改修・更新するとき |

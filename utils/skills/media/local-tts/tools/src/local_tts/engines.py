@@ -3,7 +3,7 @@
 Every engine is a local HTTP server speaking the same /generate contract as s2.cpp (multipart
 text/params/voice in, PCM16 with X-Audio-* headers out), so the controller stays free of ML packages.
 - s2: Fish Audio S2 Pro through s2.cpp (C++; built by tools/scripts/setup-s2.*)
-- omnivoice, voxcpm2: PyTorch models, each in its own uv project under tools/engines/<name>
+- omnivoice, voxcpm2, qwen3-tts: PyTorch models, each in its own uv project under tools/engines/<name>
   with its own virtual environment in <home>/cache/engines/<name>/.venv
 - voicevox: a VOICEVOX ENGINE the user runs; its own API, no cloned voices
 """
@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 TOOLS = Path(__file__).resolve().parents[2]
-DEFAULT = "voxcpm2"
+DEFAULT = "qwen3-tts"
 ENGINES = {
     "omnivoice": {
         "kind": "python", "label": "OmniVoice", "url": "http://127.0.0.1:3032",
@@ -35,6 +35,12 @@ ENGINES = {
         # audio per Japanese character), so about 55% of a sentence must be ready first; CUDA is
         # expected to run faster than real time (not yet measured here), so no head start there.
         "start_buffer_ms_per_char": 120 if sys.platform == "darwin" else 0,
+    },
+    "qwen3-tts": {
+        "kind": "python", "label": "Qwen3-TTS", "url": "http://127.0.0.1:3033",
+        "repo": "Qwen/Qwen3-TTS-12Hz-1.7B-Base", "license": "Apache-2.0",
+        # Not measured yet: a 1.7B model in bfloat16 plus its codec; kept at VoxCPM2's figure.
+        "memory_gb": 8.0, "streaming": False, "api_model": "qwen3-tts",
     },
     "s2": {
         "kind": "s2cpp", "label": "Fish Audio S2 Pro (s2.cpp)", "url": "http://127.0.0.1:3030",
