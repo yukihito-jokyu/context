@@ -5,7 +5,7 @@
 //
 //   node motion.mjs <command> [deck] [options]
 //
-// command: init | runtime | check | ssml | synth | timeline | still | render | pptx | bundle | extract
+// command: init | runtime | check | ssml | synth | timeline | still | render | pdf | pptx | bundle | extract
 // 外部コマンド（extract のみ）: LibreOffice（元のスライドの絵。画面は出さない）
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -989,6 +989,66 @@ async function cmdRender(pos, opt) {
   const code = await ffDone;
   if (code !== 0) fail(`ffmpeg が失敗しました:\n${ffErr.slice(-1500)}`);
   log(`完了: ${out}（${((Date.now() - started) / 1000 / 60).toFixed(1)}分かかりました）`);
+}
+
+// ───────────────────────── pdf ─────────────────────────
+//
+// 発表モードの1ステップを1ページにした PDF。各ステップを画像にせず印刷するので、文字を選べる・検索できる。
+// ステップごとの iframe を並べたページを作り、1回の印刷で全ページを書き出す（PDF をつなぐ道具が要らない）。
+
+async function cmdPdf(pos, opt) {
+  const P = deckPaths(pos[0]);
+  const tl = loadTimeline(P);
+  const out = path.resolve(opt.out || path.join(P.out, `${path.basename(P.root)}.pdf`));
+  const filter = opt.scene ? new Set(String(opt.scene).split(',')) : null;
+  const host = path.join(P.root, 'build', 'pdf', 'index.html');
+  let pages = 0;
+  const browser = await launchBrowser();
+  try {
+    const page = await openDeck(browser, P, tl, '&mode=live');
+    const errs = await page.evaluate('window.__motion.errors.slice()');
+    if (errs.length) fail('デッキにエラーがあります。check で直してから書き出してください:\n  ' + errs.join('\n  '));
+    const info = await page.evaluate('({ stops: __motion.stops, scenes: __motion.scenes })');
+    await page.close();
+    const stops = info.stops.filter((f) => !filter || filter.has((info.scenes.filter((x) => f >= x.start).pop() || {}).id));
+    if (!stops.length) fail(filter ? `--scene に当てはまるステップがありません: ${opt.scene}` : '発表モードのステップがありません');
+
+    const src = pathToFileURL(P.index).href + '?render=1&mode=live';
+    fs.mkdirSync(path.dirname(host), { recursive: true });
+    fs.writeFileSync(host, `<!doctype html><meta charset="utf-8"><title>${xml(loadScript(P).title)}</title><style>@page { size: ${tl.width}px ${tl.height}px; margin: 0 }
+html, body { margin: 0 } iframe { display: block; border: 0; width: ${tl.width}px; height: ${tl.height}px; break-after: page }</style>
+${stops.map((f) => `<iframe data-frame="${f}" src="${src}&frame=${f}"></iframe>`).join('\n')}\n`);
+
+    const { targetId } = await browser.cdp.send('Target.createTarget', { url: 'about:blank', newWindow: true });
+    const { sessionId } = await browser.cdp.send('Target.attachToTarget', { targetId, flatten: true });
+    const s = (m, p) => browser.cdp.send(m, p, sessionId);
+    const evaluate = async (expression) => {
+      const r = await s('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+      if (r.exceptionDetails) throw new Error((r.exceptionDetails.exception && r.exceptionDetails.exception.description) || r.exceptionDetails.text);
+      return r.result.value;
+    };
+    await s('Page.enable');
+    await s('Emulation.setDeviceMetricsOverride', { width: tl.width, height: tl.height, deviceScaleFactor: 1, mobile: false });
+    await s('Page.navigate', { url: pathToFileURL(host).href });
+    const deadline = Date.now() + 120000;
+    while (!(await evaluate('document.readyState === "complete" && [...document.querySelectorAll("iframe")].every((f) => f.contentWindow.__motion || f.contentWindow.__motionBootError)').catch(() => false))) {
+      if (Date.now() > deadline) fail('デッキを開けません（120秒待っても iframe の window.__motion ができません）');
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    const bootError = await evaluate('[...document.querySelectorAll("iframe")].map((f) => f.contentWindow.__motionBootError).find(Boolean) || ""');
+    if (bootError) fail(`デッキを開けません（boot.js）\n${bootError}`);
+    // still と同じく、フォントの用意を待ってからそのステップに進め直す
+    await evaluate('Promise.all([...document.querySelectorAll("iframe")].map(async (f) => { const m = f.contentWindow.__motion; await m.ready; await m.seek(Number(f.dataset.frame)); }))');
+    const r = await s('Page.printToPDF', { printBackground: true, preferCSSPageSize: true, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0 });
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, Buffer.from(r.data, 'base64'));
+    pages = stops.length;
+    await s('Target.closeTarget', { targetId }).catch(() => {});
+  } finally {
+    await browser.close();
+    fs.rmSync(path.dirname(host), { recursive: true, force: true });
+  }
+  log(`完了: ${out}（${pages}ページ）`);
 }
 
 // ───────────────────────── pptx ─────────────────────────
@@ -2228,6 +2288,8 @@ const HELP = `motion-deck — ナレーションで動く HTML プレゼン
   render [deck] [--out x.mp4] [--concurrency 4] [--from f --to f] [--scale 0.5]
          [--crf 18] [--subtitles 0] [--allow-estimated]
                                     MP4 に書き出す
+  pdf [deck] [--out x.pdf] [--scene id,..]
+                                    発表モードの1ステップを1ページにした PDF に書き出す（字幕なし、文字を選べる）
   pptx [deck] [--out x.pptx]       PowerPoint に書き出す（クリックごとのネイティブのアニメーション、
                                     切り替え、台本入りのノート）。PPTX専用のデッキは1シーン＝1スライドで、
                                     アニメーションと切り替えなし
@@ -2241,7 +2303,7 @@ const HELP = `motion-deck — ナレーションで動く HTML プレゼン
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   const { pos, opt } = parseArgs(rest);
-  const table = { pptx: cmdPptx, init: cmdInit, runtime: cmdRuntime, check: cmdCheck, ssml: cmdSsml, synth: cmdSynth, timeline: cmdTimeline, still: cmdStill, render: cmdRender, bundle: cmdBundle, extract: cmdExtract };
+  const table = { pdf: cmdPdf, pptx: cmdPptx, init: cmdInit, runtime: cmdRuntime, check: cmdCheck, ssml: cmdSsml, synth: cmdSynth, timeline: cmdTimeline, still: cmdStill, render: cmdRender, bundle: cmdBundle, extract: cmdExtract };
   if (!cmd || cmd === 'help' || cmd === '--help' || !table[cmd]) {
     log(HELP);
     if (cmd && !table[cmd] && cmd !== 'help' && cmd !== '--help') process.exitCode = 2;

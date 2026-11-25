@@ -1,27 +1,23 @@
-/* theme.css — このデッキだけの調整。色と部品の既定は motion/kit.css。
- * 枝の線とコミットは、PPTX で図形のまま残るよう SVG ではなく箱で描く。 */
+/* theme.css — このデッキだけの調整。部品と色の既定は motion/kit.css。 */
 
-.graph { position: absolute; }
-.graph .line { position: absolute; height: 12px; border-radius: 6px; }
-.graph .line.vert { width: 12px; }
-.graph .line.ink { background: var(--ink); }
-.graph .line.cyan { background: var(--cyan); }
-.graph .commit { position: absolute; width: 48px; height: 48px; border-radius: 50%; box-sizing: border-box; border: 6px solid var(--ink); background: var(--paper); }
-.graph .commit.cyan { border-color: var(--cyan-deep); background: var(--cyan-soft); }
-.graph .commit.green { border-color: var(--ink); background: var(--green); }
-.graph .commit.big { width: 60px; height: 60px; }
-.graph .at { position: absolute; white-space: nowrap; }
+/* Gitの図：線は太い箱、コミットは太枠の丸（PPTXで図形として残る） */
+.git-graph { position: absolute; left: var(--safe-x); top: 330px; width: 1720px; height: 470px; }
+.git-graph .rail { height: 12px; border-radius: 6px; background: var(--ink); }
+.git-graph .main-rail { left: 0; top: 300px; width: 1360px; }
+.git-graph .branch-up { left: 374px; top: 110px; width: 12px; height: 196px; background: var(--cyan); }
+.git-graph .branch-rail { left: 374px; top: 104px; width: 812px; background: var(--cyan); }
+.git-graph .branch-down { left: 1174px; top: 110px; width: 12px; height: 196px; background: var(--cyan); }
+.git-graph .dot { z-index: 1; width: 56px; height: 56px; box-sizing: border-box; border: 4px solid var(--ink); border-radius: 50%; background: var(--white); }
+.git-graph .dot.cyan { background: var(--cyan-soft); }
+.git-graph .dot.green { background: var(--green); }
 
-[data-scene="idea"] .safe-card { position: absolute; right: var(--safe-x); top: 470px; width: 380px; font-size: 48px; text-align: center; }
+/* 作って移る */
+[data-scene="make"] .make-row { display: flex; gap: 44px; margin-top: 40px; align-items: flex-start; }
+[data-scene="make"] .make-side { display: flex; flex-direction: column; gap: 34px; width: 616px; }
+[data-scene="make"] .here-list { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin-top: 14px; }
+[data-scene="make"] .here-list .chip { opacity: 0.4; }
+[data-scene="make"] .here-list .chip.is-active { opacity: 1; background: var(--cyan-soft); }
 
-[data-scene="switch"] .where { position: absolute; right: var(--safe-x); top: 290px; width: 620px; height: 330px; }
-[data-scene="switch"] .where-title { font-size: 32px; font-weight: 800; color: var(--muted); }
-[data-scene="switch"] .lane { position: absolute; left: 0; width: 600px; height: 90px; }
-[data-scene="switch"] .lane-bar { position: absolute; left: 0; top: 74px; width: 600px; height: 12px; border-radius: 6px; }
-[data-scene="switch"] .lane-bar.cyan { background: var(--cyan); }
-[data-scene="switch"] .lane-bar.ink { background: var(--ink); }
-[data-scene="switch"] .lane-name { position: absolute; left: 0; top: 0; font-size: 32px; font-weight: 700; line-height: 48px; }
-[data-scene="switch"] .note-card { position: absolute; right: var(--safe-x); top: 660px; width: 520px; font-size: 40px; text-align: center; }
-
-[data-scene="merge"] .merge-term { position: absolute; right: var(--safe-x); top: 330px; }
-[data-scene="merge"] .end-card { position: absolute; right: var(--safe-x); top: 680px; font-size: 44px; }
+/* 合流のあとのまとめ */
+[data-scene="merge"] .merge-sum-h { position: absolute; left: var(--safe-x); top: var(--safe-top); }
+[data-scene="merge"] .merge-sum { position: absolute; left: var(--safe-x); top: 260px; width: 1500px; display: flex; flex-direction: column; gap: 48px; }

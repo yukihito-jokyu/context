@@ -99,7 +99,7 @@ motion-deck のデッキを直してください。
 
 ## 書き出し用の表示（?render=1）
 
-`index.html?render=1&frame=N`で開くと、UIなしのステージだけになり、`window.__motion`が使える。`check`・`still`・`render`はこれをヘッドレスChromeで操作している。
+`index.html?render=1&frame=N`で開くと、UIなしのステージだけになり、`window.__motion`が使える。`check`・`still`・`render`・`pdf`はこれをヘッドレスChromeで操作している。
 
 | 名前 | 内容 |
 |---|---|
@@ -110,7 +110,7 @@ motion-deck のデッキを直してください。
 | `__motion.stops` `mode` | 発表モードで開いたとき（`&mode=live`）のステップ |
 | `__motion.features()` | 備わっている機能の申告（`check`が必須項目を照合する） |
 
-`&subtitles=0`で字幕なし。`&mode=live`で発表モードの時間軸（`still --live`と`check`が使う）。
+`&subtitles=0`で字幕なし。`&mode=live`で発表モードの時間軸（`still --live`・`pdf`・`check`が使う）。
 
 ## コマンドのオプション
 
@@ -139,6 +139,18 @@ motion-deck のデッキを直してください。
 | `--quality` | 92 | 途中のJPEGの画質 |
 | `--subtitles 0` | 字幕あり | 字幕を焼き込まない |
 | `--allow-estimated` | — | 仮の尺のシーンがあっても書き出す（無音になる） |
+
+`pdf`:
+
+| オプション | 既定 | 意味 |
+|---|---|---|
+| `--out` | `out/<フォルダ名>.pdf` | 出力 |
+| `--scene id,id` | 全シーン | シーンを絞る |
+
+- 発表モードの1ステップを1ページにする。並びは`still --live`と同じで、字幕は出さない。ページはステージと同じ大きさ（1920×1080なら16:9）で、余白なし。
+- 画像にせず画面をそのまま印刷するので、文字を選べる・検索できる。見た目は同じステップの`still --live`の静止画と同じになる。
+- ステップごとの`?render=1&mode=live&frame=N`を並べたページ（`build/pdf/`。終わったら消す）を1回で印刷する。デッキにエラーがあれば書き出さない（`check`で直す）。
+- PPTX専用のデッキでも使える（ページは`still --live`と同じステップ）。
 
 `pptx`:
 
