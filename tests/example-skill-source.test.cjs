@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {createHash} = require('node:crypto');
-const {verifyExampleSkillSource, sourceManifest, verifyArtifacts, verifySkillInventory, discoverSkills} = require('../scripts/example-skill-source.cjs');
+const {collectFiles, verifyExampleSkillSource, sourceManifest, verifyArtifacts, verifySkillInventory, discoverSkills} = require('../scripts/example-skill-source.cjs');
 const hash = text => createHash('sha256').update(text).digest('hex');
 
 function fixture(t) {
@@ -68,6 +68,15 @@ test('共有しない検証記録の有無は配布ソースの一致に影響�
   fs.mkdirSync(path.join(f.skillDir, 'dev'));
   fs.writeFileSync(path.join(f.skillDir, 'dev', 'spec.json'), '{}');
   assert.throws(() => verifyExampleSkillSource(f), /同梱資料/);
+});
+test('collectFilesで作った全成果物の一覧はそのまま検査に通る', t => {
+  const f = fixture(t);
+  fs.mkdirSync(path.join(f.exampleDir, 'nested'));
+  fs.writeFileSync(path.join(f.exampleDir, 'nested', 'output.md'), 'output');
+  f.record.artifacts = collectFiles(f.exampleDir).filter(file => file !== 'execution.json')
+    .map(file => ({file, sha256: hash(fs.readFileSync(path.join(f.exampleDir, file)))}));
+  assert.deepEqual(f.record.artifacts.map(item => item.file), ['input.md', 'nested/output.md']);
+  verifyArtifacts(f);
 });
 test('成果物一覧ではdev/resultsという名前のファイルも登録を省略できない', t => {
   const f = fixture(t);
