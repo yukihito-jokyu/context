@@ -1001,6 +1001,38 @@ async function cmdRender(pos, opt) {
 //
 // 発表モードの1ステップを1ページにした PDF。各ステップを画像にせず印刷するので、文字を選べる・検索できる。
 // ステップごとの iframe を並べたページを作り、1回の印刷で全ページを書き出す（PDF をつなぐ道具が要らない）。
+// #composition に data-pdf="scene" があれば1シーン＝1ページ（途中で見出しが消えたら分ける。pptx と同じ区切り）で、
+// 各ページはその区切りの最後のステップの画面にする。撮るあいだは #composition に data-export="pdf" を付ける。
+
+// 今見えている見出し（.h）。シーンの section の中での順番で返す（pdf・pptx のページ・スライドの区切りに使う）
+const HEADINGS = `function (sceneId) {
+    const sec = document.querySelector('#composition [data-scene="' + sceneId + '"]');
+    if (!sec) return [];
+    return Array.from(sec.querySelectorAll('.h')).map((el, i) => {
+      const r = el.getBoundingClientRect();
+      const shown = r.width > 0 && r.height > 0 && (!el.checkVisibility || el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+      return shown ? i : -1;
+    }).filter((i) => i >= 0);
+  }`;
+
+/** data-pdf="scene" のときのページ：シーンごとに、見出しが消えたステップで区切り、各区切りの最後のステップを返す */
+async function scenePages(page, stops, scenes) {
+  const out = [];
+  for (const sc of scenes) {
+    const mine = stops.filter((s) => s >= sc.start && s < sc.start + sc.duration);
+    if (!mine.length) continue;
+    await page.seek(sc.start);
+    let heads = await page.evaluate(`(${HEADINGS})(${JSON.stringify(sc.id)})`);
+    for (let k = 0; k < mine.length; k++) {
+      await page.seek(mine[k]);
+      const nowHeads = await page.evaluate(`(${HEADINGS})(${JSON.stringify(sc.id)})`);
+      if (k > 0 && heads.some((i) => !nowHeads.includes(i))) out.push(mine[k - 1]);
+      heads = nowHeads;
+    }
+    out.push(mine[mine.length - 1]);
+  }
+  return out;
+}
 
 async function cmdPdf(pos, opt) {
   const P = deckPaths(pos[0]);
@@ -1014,9 +1046,12 @@ async function cmdPdf(pos, opt) {
     const page = await openDeck(browser, P, tl, '&mode=live');
     const errs = await page.evaluate('window.__motion.errors.slice()');
     if (errs.length) fail('デッキにエラーがあります。check で直してから書き出してください:\n  ' + errs.join('\n  '));
-    const info = await page.evaluate('({ stops: __motion.stops, scenes: __motion.scenes })');
+    const info = await page.evaluate('({ stops: __motion.stops, scenes: __motion.sceneInfo(), by: (document.getElementById("composition") || {}).dataset?.pdf || "" })');
+    if (info.by && info.by !== 'scene') fail(`#composition の data-pdf「${info.by}」は使えません（1シーン＝1ページなら "scene"、1ステップ＝1ページなら書かない）`);
+    const scenes = info.scenes.filter((x) => !filter || filter.has(x.id));
+    const all = info.stops.filter((f) => !filter || filter.has((info.scenes.filter((x) => f >= x.start).pop() || {}).id));
+    const stops = info.by === 'scene' ? await scenePages(page, all, scenes) : all;
     await page.close();
-    const stops = info.stops.filter((f) => !filter || filter.has((info.scenes.filter((x) => f >= x.start).pop() || {}).id));
     if (!stops.length) fail(filter ? `--scene に当てはまるステップがありません: ${opt.scene}` : '発表モードのステップがありません');
 
     const src = pathToFileURL(P.index).href + '?render=1&mode=live';
@@ -1043,8 +1078,8 @@ ${stops.map((f) => `<iframe data-frame="${f}" src="${src}&frame=${f}"></iframe>`
     }
     const bootError = await evaluate('[...document.querySelectorAll("iframe")].map((f) => f.contentWindow.__motionBootError).find(Boolean) || ""');
     if (bootError) fail(`デッキを開けません（boot.js）\n${bootError}`);
-    // still と同じく、フォントの用意を待ってからそのステップに進め直す
-    await evaluate('Promise.all([...document.querySelectorAll("iframe")].map(async (f) => { const m = f.contentWindow.__motion; await m.ready; await m.seek(Number(f.dataset.frame)); }))');
+    // still と同じく、フォントの用意を待ってからそのステップに進め直す。テンプレートが PDF 用の見た目にできるよう、先に印を付ける
+    await evaluate('Promise.all([...document.querySelectorAll("iframe")].map(async (f) => { const m = f.contentWindow.__motion; await m.ready; const c = f.contentDocument.getElementById("composition"); if (c) c.dataset.export = "pdf"; await m.seek(Number(f.dataset.frame)); }))');
     const r = await s('Page.printToPDF', { printBackground: true, preferCSSPageSize: true, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0 });
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, Buffer.from(r.data, 'base64'));
@@ -1071,16 +1106,7 @@ const PPTX_HELPERS = `
 window.__pptx = {
   style: null,
   hideStyle: null,
-  // 今見えている見出し（.h）。シーンの section の中での順番で返す
-  headings(sceneId) {
-    const sec = document.querySelector('#composition [data-scene="' + sceneId + '"]');
-    if (!sec) return [];
-    return Array.from(sec.querySelectorAll('.h')).map((el, i) => {
-      const r = el.getBoundingClientRect();
-      const shown = r.width > 0 && r.height > 0 && (!el.checkVisibility || el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
-      return shown ? i : -1;
-    }).filter((i) => i >= 0);
-  },
+  headings: ${HEADINGS},
   // 指定した要素を隠す（新しいスライドの背景を撮るため）
   hide(ids) {
     if (!this.hideStyle) {
