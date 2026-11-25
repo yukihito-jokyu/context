@@ -437,7 +437,10 @@ function cmdSynth(pos, opt) {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
   log('合成が終わりました。続けて timeline を実行してください。');
-  log(`使い終わったらエンジンを止める: uv run --project "${path.join(localTts, 'tools')}" local-tts server stop${used ? ` --engine ${used}` : ''}`);
+  // 停止はこのツールが起動したサーバーだけ案内する。別に起動されたサーバーはほかのセッションが使っているかもしれない
+  const status = used ? run('uv', ['run', '--project', path.join(localTts, 'tools'), 'local-tts', 'server', 'status', '--engine', used], 'local-tts server status') : '';
+  if (/started elsewhere/.test(status)) log('別に起動されたサーバーなので止めていません。');
+  else log(`使い終わったらエンジンを止める: uv run --project "${path.join(localTts, 'tools')}" local-tts server stop${used ? ` --engine ${used}` : ''}`);
 }
 
 // ───────────────────────── timeline ─────────────────────────
