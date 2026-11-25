@@ -1,23 +1,28 @@
-/* theme.css — このデッキだけの調整。色と部品の既定は motion/kit.css。 */
+/* theme.css — このデッキだけの調整。部品と色の既定は motion/kit.css。 */
 
-/* 枝の図：線は細長い箱、コミットは丸（PPTXで図形のまま残る） */
-.tree { position: relative; width: 1180px; height: 420px; margin-top: 60px; }
-.tree .at { position: absolute; }
-.tree .line { position: absolute; height: 12px; border-radius: 6px; background: var(--ink); }
-.tree .line.v { width: 12px; }
-.tree .line.cyan { background: var(--cyan); }
-.tree .line.green { background: var(--green); }
-.tree .dot { position: absolute; width: 52px; height: 52px; margin: -20px 0 0 -20px; border-radius: 50%; border: 5px solid var(--ink); background: var(--white); box-sizing: border-box; }
-.tree .dot.cyan { background: var(--cyan-soft); }
-.tree .dot.green { background: var(--green); width: 64px; height: 64px; margin: -26px 0 0 -26px; }
-.tree .dot.bad { background: var(--coral-soft); border-color: var(--coral); }
+/* 枝の図：細長い箱を線、丸をコミットにする（PPTXで図形として残る） */
+.tree { position: absolute; left: var(--safe-x); width: 1720px; }
+.tree .bar { position: absolute; border-radius: 8px; }
+.tree .h-bar { height: 16px; }
+.tree .v-bar { width: 16px; }
+.tree .bg-ink { background-color: var(--ink); }
+.tree .commit { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 4px solid var(--ink); box-sizing: border-box; background: var(--white); }
+.tree .commit.cyan { background: var(--cyan); }
+.tree .commit.green { background: var(--green); }
+.tree .tag { position: absolute; }
 
-/* 右の列 */
-.side { position: absolute; right: var(--safe-x); width: 540px; display: flex; flex-direction: column; gap: 26px; }
+[data-scene="idea"] .tree { top: 330px; height: 340px; }
+[data-scene="idea"] .safe-card { position: absolute; left: var(--safe-x); top: 720px; }
 
-/* switch：今いる枝 */
-[data-scene="switch"] .row2 { display: flex; gap: 56px; margin-top: 48px; align-items: flex-start; }
-[data-scene="switch"] .where { position: relative; width: 560px; height: 360px; }
-[data-scene="switch"] .where .card { position: absolute; left: 0; width: 360px; padding: 20px 28px; font-family: var(--mono); font-size: 40px; font-weight: 700; }
-[data-scene="switch"] .where .bubble { position: absolute; left: 400px; }
-[data-scene="merge"] .side .chip { font-size: 34px; padding: 10px 26px; }
+[data-scene="switch"] .row2 { display: flex; gap: 70px; margin-top: 70px; align-items: flex-start; }
+[data-scene="switch"] .where { position: relative; width: 640px; display: grid; gap: 40px; }
+[data-scene="switch"] .where .card { width: 440px; }
+[data-scene="switch"] .here { position: absolute; left: 470px; }
+[data-scene="switch"] .here.on-main { top: 50px; }
+[data-scene="switch"] .here.on-feature { top: 258px; }
+
+[data-scene="merge"] .tree { top: 290px; height: 260px; }
+[data-scene="merge"] .lower { position: absolute; left: var(--safe-x); top: 600px; }
+[data-scene="merge"] .run-card { position: absolute; left: 1360px; top: 620px; width: 460px; }
+[data-scene="merge"] .summary { position: absolute; left: var(--safe-x); top: 600px; width: 1160px; }
+[data-scene="merge"] .summary .row { grid-template-columns: 380px 1fr; }
