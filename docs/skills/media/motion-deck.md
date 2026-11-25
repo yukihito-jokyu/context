@@ -62,9 +62,9 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 
 ## 成果物の例
 
-「Gitのブランチ入門」を3シーン・12文（読み上げ340文字）のmotion-deckのデッキ（defaultテンプレート）として新しく書き、local-ttsの既定の声とQwen3-TTSでナレーションを付けて、1分00秒の動画・12ステップの発表・4スライドのPowerPoint・12ページのPDFにしました。PDFは発表の1ステップ＝1ページで、文書のタイトルはscript.jsonの題名「Gitのブランチ入門」になり、全ページの文字を取り出せ、画像は使っていません。声の名前と絶対パスは伏せ字にし、個人の声による音声は載せていません。
+「Gitのブランチ入門」を、idea・switch・merge の3シーン・12文（読み上げ311文字）の新しいmotion-deckのデッキ（defaultテンプレート）として書き、local-ttsの既定の声とQwen3-TTSでナレーションを作りました。動画は0.94分（音声56.6秒）、発表は12ステップで、PowerPointは3スライド・要素のアニメーション11ステップ、PDFは発表の1ステップ＝1ページの12ページです。最終のcheckはエラー0件・注意0件でした。音声は聞いておらず、個人の声の音声は載せていません。
 
-**到達点：PDFとPPTXの書き出しと確認、修正の列の画面の撮影まで。Qwen3-TTSのサーバーは合成前から別に起動されていた（started elsewhere）ため、synthは起動しておらず、止めずに残した。音声の試聴、PowerPointでの再生確認、PDFビューアでの文字選択の操作、MP4の書き出し、bundleは未実施。**
+**到達点：init から pdf までの全コマンドと、PDF・PPTXの中身の確認、修正の列の撮影まで。Qwen3-TTSのサーバーは合成前から別に起動されていた（started elsewhere）ため、停止コマンドは実行せず残した。音声の試聴、PowerPointでの再生、PDFビューアでの文字選択の操作、render（MP4）、bundle は未実施。**
 
 ### 実行した依頼
 
@@ -74,39 +74,39 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 
 ### 実際の画面
 
-![紙色の背景に、mainの黒い線からfeature/loginの青い枝が分かれる図、ターミナルの打ち込みと今いる枝の札が移る画面、枝の先からmainへ線が下りて緑の合流のコミットができる図とまとめの表が、各文の終わりごとに12枚並んだ一覧画像](/skills/motion-deck/contact.png)
+![紙色の背景に、mainの黒い線とコミットから水色のfeature/loginの枝が分かれる図、ターミナルでgit switchを打ち「今ここ」の札が枝を移る画面、枝の先から緑の線がmainへ上がって合流し最後にコマンドの3つのまとめが出る画面が、各文の終わりごとに12枚並んだ一覧画像](/skills/motion-deck/contact.png)
 
 [画像を原寸で開く](pathname:///skills/motion-deck/contact.png)
 
-合成後の still --cues の一覧。次の文の直前を撮るため、data-until で消える merge の図は消えかけの薄い状態で写る（発表の各ステップは live-contact.png と git-branch.pdf）
+合成後の still --cues の一覧。次の文の直前を撮るため、data-until で消える要素（「今ここ」の札、mergeの「mainで実行」のカード）は消えかけの薄い状態で写る。発表の各ステップは live-contact.png と git-branch.pdf
 
 ### 実出力の抜粋
 
 以下は保存した原本の冒頭です。全文は原本から取得できます。
 
 ````markdown
-# motion-deck 実行報告：Gitのブランチ入門
+# 実行報告：Gitのブランチ入門
 
-| 項目 | 内容 |
-|---|---|
-| 出力 | デッキ `<work>/git-branch/index.html`、PowerPoint `git-branch.pptx`、PDF `git-branch.pdf` |
-| 全体の長さ（動画） | 1分00秒（1808フレーム、30fps。narration.m4a は60.3秒） |
-| ステップ数（発表） | 12ステップ（1文＝1ステップ） |
-| シーン数 | 3（ブランチとは／作って移る／合流）、12文、読み上げ340文字 |
-| 声とエンジン | local-tts の既定の声 `<声の名前>`、エンジン Qwen3-TTS（`--engine qwen3-tts`で指定） |
-| check | エラー 0 件、注意 0 件（synth と timeline の後に再実行） |
-| PPTX | 4スライド（merge は見出しが「今日のまとめ」に変わる所で2枚に分かれる）、図形55・文字53・画像3、グループ40。要素のアニメーション12ステップ、差分の重ね2ステップ |
-| PDF | 12ページ（発表の12ステップと同じ数）。文書のタイトル「Gitのブランチ入門」、1ページ1440×810pt（16:9）、字幕なし、文字を選べる・検索できる |
-| 音声の試聴 | 未実施（実行者は音声を聞けない）。試聴してほしい箇所は下に記載 |
-| 仮の尺のシーン | なし（全シーンに音声あり） |
-| 公開しないもの | 音声（個人の声）、timeline.js、lexicon.json、個々の静止画、motion/（スキルの実行系の写し） |
+## 出力
 
+- デッキ：`<work>/git-branch/`（新しいデッキ、defaultテンプレート）。公開しているのは `index.html`・`theme.css`・`scenes.js`・`script.json`
+- 動画：3シーン、0.94分（1698フレーム @30fps、ナレーションの音声は56.6秒）
+- 発表：12ステップ（1文＝1ステップ。各シーン4文）
+- 声とエンジン：local-ttsの既定の声（`<声の名前>`）、Qwen3-TTS（`--engine qwen3-tts`）
+- PowerPoint：`git-branch.pptx`（3スライド、図形41・文字29・画像4、グループ31、要素のアニメーション11ステップ、差分の重ね4ステップ。図形にできず画像にした要素はなし）
+- PDF：`git-branch.pdf`（12ページ＝発表の12ステップ、字幕なし）
+
+| シーン | 章 | 文 | 音声 | 画面 |
+|---|---|---|---|---|
+| idea | ブランチとは | 4 | 16.6秒 | mainの線とコミット、そこから分かれる feature/login の枝、枝の先の失敗（赤い丸）と「mainは無事」のカード |
+| switch | 作って移る | 4 | 16.6秒 | ターミナルで `git switch -c feature/login` と `git switch main`、右に枝の札と「今ここ」の札が移る |
+| merge | 合流する | 4 | 17.5秒 | 枝の先からmainへ緑の線が上がり合流のコミットができる。最後にコマンドの3つのまとめに差し替え |
 ````
 
 ### 成果物を取得する
 
 - [実行報告（Markdown）](pathname:///skills/motion-deck/output.md#download)
-- [PDFの書き出し（発表の各ステップ）](pathname:///skills/motion-deck/git-branch.pdf#download)
+- [PDFの書き出し（発表の12ステップ）](pathname:///skills/motion-deck/git-branch.pdf#download)
 - [PowerPointの書き出し（PPTX）](pathname:///skills/motion-deck/git-branch.pptx#download)
 - [pptxの出力](pathname:///skills/motion-deck/pptx.log#download)
 - [プレーヤーの修正の列（PNG）](pathname:///skills/motion-deck/player-edit.png#download)
@@ -122,22 +122,24 @@ motion-deckを使って、「Gitのブランチ入門」を3シーン・約1分�
 
 ### 確認した結果
 
-- init（既定のテンプレート、通常のデッキ）で雛形を作り、script.jsonを3シーン（idea・make・merge）・12文に書き換え、lexicon.jsonにGit・main・switch・branch・mergeの読みを足し、index.html・theme.css・scenes.jsを新しく書いた。枝の線とコミットは、PPTXで図形として残るよう箱と丸で描いた
-- 音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）。still --cuesの一覧を見て、枝の縦線がコミットの丸の上に重なって見えたため丸を線より前に出し、checkとstillをやり直した
-- synth --dry-runで3シーン・340文字・目安約2分と出たため、synthを--engine qwen3-ttsでバックグラウンドで実行し、終了コード0・約90秒で3シーン（18.3秒・19.1秒・17.6秒）の音声ができた
-- timelineで3シーン・1.00分（1808フレーム）・音声ありになり、ffprobeでnarration.m4aが60.3秒であることを確認。依頼の約1分に収まった
-- 合成後のcheckでエラー0件・注意0件、発表モード12ステップを確認
-- 合成後のstill --cues（12枚）とstill --live（12ステップ、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影、紙色の背景、章バーと字幕の帯（動画のみ）がそろっていることを確認
-- pdfで12ページのPDFができ、PDFKitでページ数12（発表のステップ数と同じ）、文書のタイトルが「Gitのブランチ入門」（script.jsonのtitleと同じ）、全ページ1440×810pt、全ページでpage.stringから見出し・ラベル・ターミナルの行などの文字を取り出せること、ナレーションの文（字幕）が入っていないことを確認
-- PDFの画像のXObjectは0個、フォントはJetBrains Mono（Type0、部分埋め込み）15個と、日本語の文字のType3フォント54個。メタデータはTitle「Gitのブランチ入門」、Creator HeadlessChrome、Producer Skia/PDFで、パスやユーザー名は含まない
-- PDFの1・4・6・9・10・12ページをPDFKitでPNGにして同じステップのstill --liveの画像と並べて見比べ、配置と内容が一致することを確認（PSNR 31〜35dB。差はPDFKitの描画の色の違い程度）
-- pptxで4スライド（mergeは見出しの差し替えで2枚）・図形55・文字53・画像3・グループ40・要素のアニメーション12ステップ・差分の重ね2ステップのPPTXができた。図形にできず画像にした要素は走るキャラクターのSVG 1件
-- PPTXのXMLで、文字がテキストボックス（txBox。スライド順に8・16・8・21個）に入っていること、アニメーションの対象がグループ（14・11・5・5件）か画像（1・1・0・0件）で単独の図形がないこと、画面切り替え（フェード・プッシュ）、ノートの台本（【スライド開始】【クリック n】）・文のメモ・シーンのメモ、docPropsのタイトルが題名であることを確認
-- ヘッドレスのChrome（1600×900）で動画モードを開き、CDPでI→ideaのfeature/loginの札のクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、溜めた指示が1件になったことを画像とDOMで確認
-- still --liveの出力ファイル名のシーン名が、発表のフレーム番号に動画の時間軸のシーンを当てて付けられ、make・mergeのステップにもideaと付いていた（画像の中身は正しい）。スキル側の不具合候補として報告
-- 公開する全ファイル（PPTXのノート・XML・docProps、PDFの圧縮ストリームとメタデータ、PNGのチャンクを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを確認し、check.log・synth.log・pptx.logの絶対パスとoutput.mdの声の名前は伏せ字にした
-- 合成前と作業の最後にlocal-tts server statusで、Qwen3-TTSが別に起動されたもの（started elsewhere）として動いていることを確認し、止めなかった
-- 実行者は音声を聞けず、PowerPointでの再生も、PDFビューアでの文字選択の操作も確かめていない。試聴が必要な箇所をoutput.mdにシーンと文番号で記録
+- init git-branch --title "Gitのブランチ入門"（defaultテンプレート、通常のデッキ）で雛形を作り、script.jsonを3シーン（idea・switch・merge、各4文）に、lexicon.jsonを「git merge」「main」の読みに書き換え、index.html・theme.cssを新しく書いた。枝とコミットはPPTXで図形として残るよう、細長い箱と丸で組んだ。scenes.jsは関数なし
+- 合成前のcheckはエラー0件・注意2件（仮の尺のシーン、narrationがないためナレーションのオン・オフ未確認）
+- 合成前のstill --cuesの一覧をReadで見て、ideaの緑のカードが「main」の途中で折り返す点と、mergeのカード内のコマンドの文字が小さい点を直し、checkとstill --cuesをやり直した
+- synth --dry-runは「3シーン、311文字。voice=既定 engine=qwen3-tts」「目安: 約2分」。1分を超えるため、synth git-branch --engine qwen3-ttsをバックグラウンドで実行し、終了コード0で idea 16.6秒・switch 16.6秒・merge 17.5秒の音声ができた（約85秒）
+- #143 synthの停止コマンド：synthの最後の行は「使い終わったらエンジンを止める: uv run --project "<local-tts>/tools" local-tts server stop --engine qwen3-tts」で、--engine qwen3-tts が付いていた。合成前（19:47）と合成後（19:51）のlocal-tts server statusはどちらも「qwen3-tts: http://127.0.0.1:3033: listening, started elsewhere」で、他のセッションのサーバーのため停止コマンドは実行しなかった
+- #143 help：node motion.mjs help の synth の行は「synth [deck] [--voice 名前] [--engine voxcpm2|omnivoice|qwen3-tts|s2]」で、qwen3-tts が候補に出た
+- timelineで「3シーン、0.94分（1698フレーム @30fps）、音声あり」。ffprobeでnarration.m4aは56.6秒。依頼の約1分に収まった
+- 合成後（最終）のcheckはエラー0件・注意0件、発表モード12ステップ
+- 合成後のstill --cues（12枚、contact.png）とstill --live（12枚、live-contact.png）の一覧をReadで見て、見出しが左上、太枠とずらした影、紙色の背景、章バー、字幕の帯（still --cuesのみ）がそろっていることを確かめた
+- #143 still --live の名前：画像は 000042-idea・000098-idea・000170-idea・000220-idea・000282-switch・000368-switch・000410-switch・000468-switch・000514-merge・000556-merge・000614-merge・000672-merge で、各シーン4枚は script.json の各シーンの文の数（4・4・4）と一致し、画像の中身も名前のシーンの画面だった。動画の時間軸では switch は546フレーム、merge は1094フレームから始まるので、発表のフレーム282〜468を switch と名付けているのは発表モードのシーンから名前を決めているため
+- pdfで12ページのPDFができ、PDFKitでページ数12（発表のステップ数と同じ）、文書のタイトル「Gitのブランチ入門」、全ページ1440×810pt、全ページで見出し・ラベル・ターミナルの行の文字を取り出せること、ナレーションの文（字幕）が入っていないことを確かめた
+- PDFの画像のXObjectは0個、フォントはJetBrains Mono（Bold・Regular）と日本語の文字のType3フォント37個。メタデータはTitle・Creator（HeadlessChrome）・Producer（Skia/PDF）・日時だけ
+- PDFの全12ページをPDFKitでPNGにし、同じステップのstill --liveの画像とffmpegのPSNRで比べると31.7〜35.1dB。6・11ページは並べて見て、配置と内容が同じで差は色味の違い程度だった
+- pptxで3スライド（1シーン1スライド）、図形41・文字29・画像4・グループ31、要素のアニメーション11ステップ・差分の重ね4ステップ（switchのターミナルの打ち込みと「今ここ」の移動）。図形にできず画像にした要素の一覧は出なかった
+- PPTXのXMLで、文字がテキストボックス（txBox。スライド順に8・10・11個）に入り、アニメーションの対象がグループ（41・19・25件）と画像（0・8・0件）だけであること、画面切り替えがフェード・プッシュ・プッシュ、mergeの「mainで実行」のカードが終了効果（フェード）で消えること、ノートに【スライド開始】【クリック n】の台本・文のメモ・シーンのメモが入ること、docProps/core.xmlのタイトルが題名でcreatorがmotion-deckであることを確かめた
+- ヘッドレスのChrome（1600×900）で動画モードを #f=860 で開き、CDPの入力イベントで I → switchの feature/login の札をクリック → 指示を入力 → 「指示を追加」と操作してplayer-edit.pngを撮った。対象は section[data-scene="switch"] > div.row2 > div.where > div.card.cyan・見ていた画面は文2（moved）となり、溜めた指示が1件になったことを画像とDOMで確かめた
+- 公開する全ファイル（PPTXの中のXML・ノート・docProps・画像、PDFの圧縮ストリームとメタデータ、PNGのチャンクを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを機械的に調べ、check.log・synth.log・pptx.logの絶対パスは<work>・<local-tts>に伏せ字にし、output.mdの声の名前は<声の名前>とした
+- 実行者は音声を聞けず、PowerPointでの再生もPDFビューアでの文字選択の操作も確かめていない。試聴が必要な箇所はoutput.mdにシーンと文番号で書いた
 
 ## 確認するポイント
 
