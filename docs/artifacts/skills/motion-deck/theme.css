@@ -1,20 +1,23 @@
 /* theme.css — このデッキだけの調整。部品と色の既定は motion/kit.css。 */
 
-/* 枝の図：線とコミットは箱で描く（PPTXで図形のまま残る） */
-.tree { position: relative; width: 1440px; height: 340px; margin-top: 70px; }
-.tree .ln { position: absolute; width: 12px; height: 12px; border-radius: 6px; }
-.tree .ln.ink { background: var(--ink); }
-.tree .ln.cyan { background: var(--cyan); }
-.tree .dot { position: absolute; top: 226px; width: 48px; height: 48px; border-radius: 24px; border: 6px solid var(--ink); background: var(--white); box-sizing: border-box; }
-.tree .dot.up { top: 46px; }
-.tree .dot.cyan { background: var(--cyan); }
-.tree .dot.green { background: var(--green); }
-.tree .at { position: absolute; }
+/* Gitの図：線は太い箱、コミットは太枠の丸（PPTXで図形として残る） */
+.git-graph { position: absolute; left: var(--safe-x); top: 330px; width: 1720px; height: 470px; }
+.git-graph .rail { height: 12px; border-radius: 6px; background: var(--ink); }
+.git-graph .main-rail { left: 0; top: 300px; width: 1360px; }
+.git-graph .branch-up { left: 374px; top: 110px; width: 12px; height: 196px; background: var(--cyan); }
+.git-graph .branch-rail { left: 374px; top: 104px; width: 812px; background: var(--cyan); }
+.git-graph .branch-down { left: 1174px; top: 110px; width: 12px; height: 196px; background: var(--cyan); }
+.git-graph .dot { z-index: 1; width: 56px; height: 56px; box-sizing: border-box; border: 4px solid var(--ink); border-radius: 50%; background: var(--white); }
+.git-graph .dot.cyan { background: var(--cyan-soft); }
+.git-graph .dot.green { background: var(--green); }
 
-/* 合流の前半は絶対配置で重ね、まとめと場所を取り合わない */
-[data-scene="merge"] .phase { position: absolute; inset: 0; padding: var(--safe-top) var(--safe-x) 0; box-sizing: border-box; }
+/* 作って移る */
+[data-scene="make"] .make-row { display: flex; gap: 44px; margin-top: 40px; align-items: flex-start; }
+[data-scene="make"] .make-side { display: flex; flex-direction: column; gap: 34px; width: 616px; }
+[data-scene="make"] .here-list { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin-top: 14px; }
+[data-scene="make"] .here-list .chip { opacity: 0.4; }
+[data-scene="make"] .here-list .chip.is-active { opacity: 1; background: var(--cyan-soft); }
 
-/* 今いる枝：2本のレーンと走者 */
-[data-scene="switch"] .lanes { position: relative; width: 620px; height: 440px; flex: none; }
-[data-scene="switch"] .lane { position: absolute; left: 0; width: 520px; }
-[data-scene="switch"] #s-runner { position: absolute; left: 540px; }
+/* 合流のあとのまとめ */
+[data-scene="merge"] .merge-sum-h { position: absolute; left: var(--safe-x); top: var(--safe-top); }
+[data-scene="merge"] .merge-sum { position: absolute; left: var(--safe-x); top: 260px; width: 1500px; display: flex; flex-direction: column; gap: 48px; }

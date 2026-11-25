@@ -8,77 +8,83 @@
 <body>
 <main id="composition" data-chapter-bar>
 
-  <!-- ブランチとは：mainの線から枝が分かれる（線とコミットはPPTXで図形に残るよう箱で描く） -->
-  <section data-scene="branch" data-transition="none">
-    <h2 class="h" data-at="0">ブランチ ＝ 作業の<span class="c-cyan">枝分かれ</span></h2>
-    <div class="sub muted" data-at="0" data-delay="8">本流を止めずに、横で作る</div>
-    <div class="tree">
-      <div class="ln ink" style="left:0;top:244px;width:1440px" data-at="main" data-anim="wipe"></div>
-      <div class="dot" style="left:96px" data-at="main" data-delay="6" data-anim="scale"></div>
-      <div class="dot" style="left:336px" data-at="main" data-delay="12" data-anim="scale"></div>
-      <div class="dot" style="left:976px" data-at="main" data-delay="18" data-anim="scale"></div>
-      <div class="dot" style="left:1256px" data-at="main" data-delay="24" data-anim="scale"></div>
-      <div class="at" style="left:0;top:300px" data-at="main" data-delay="10"><span class="chip mono">main</span></div>
-      <div class="ln cyan" style="left:354px;top:64px;height:192px" data-at="fork" data-anim="grow-y"></div>
-      <div class="ln cyan" style="left:354px;top:64px;width:860px" data-at="fork" data-delay="12" data-anim="wipe"></div>
-      <div class="dot cyan up" style="left:596px" data-at="fork" data-delay="22" data-anim="scale"></div>
-      <div class="dot cyan up" style="left:856px" data-at="fork" data-delay="28" data-anim="scale"></div>
-      <div class="at" style="left:1240px;top:36px" data-at="fork" data-delay="32" data-anim="left"><span class="chip mono cyan">feature/login</span></div>
-    </div>
-    <div class="card green bold" style="position:absolute;right:var(--safe-x);bottom:calc(var(--safe-bottom) + 30px)" data-at="safe" data-anim="pop">枝で試しても、<span class="mono">main</span> は無事</div>
-  </section>
+  <!-- ブランチとは：mainの線から枝が分かれ、走者が枝の上を進む -->
+  <section data-scene="idea">
+    <h2 class="h" data-at="0">ブランチ ＝ <span class="c-cyan">作業の分かれ道</span></h2>
+    <div class="sub muted" data-at="0" data-delay="8">本流を守ったまま、別の作業を進める</div>
+    <div class="diagram git-graph">
+      <div class="at rail main-rail" data-at="main" data-anim="wipe" data-dur="30"></div>
+      <div class="at dot" style="left:92px;top:278px" data-at="main" data-delay="6" data-anim="scale"></div>
+      <div class="at dot" style="left:352px;top:278px" data-at="main" data-delay="12" data-anim="scale"></div>
+      <div class="at dot" style="left:1092px;top:278px" data-at="main" data-delay="18" data-anim="scale"></div>
+      <div class="at" style="left:1390px;top:279px" data-at="main" data-delay="20" data-anim="left"><span class="chip mono">main</span></div>
 
-  <!-- 作って移る：ターミナルを打つと、走者が今いる枝へ移る -->
-  <section data-scene="switch" data-transition="slide">
-    <h2 class="h" data-at="0">枝を<span class="c-cyan">作って移る</span></h2>
-    <div style="display:flex;gap:60px;margin-top:50px;align-items:flex-start">
-      <div class="terminal" data-show="0" data-at="create" data-command="git switch -c feature/login" data-width="1000" data-size="32">
-        <div data-at="create" data-delay="40" class="dim">Switched to a new branch 'feature/login'</div>
-        <div data-at="commit"><span class="prompt">$</span> git commit -m "ログイン画面"</div>
-        <div data-at="back"><span class="prompt">$</span> git switch main</div>
-        <div data-at="back" data-delay="16" class="dim">Switched to branch 'main'</div>
-      </div>
-      <div class="lanes">
-        <div class="card cyan lane" style="top:0" data-at="create" data-anim="scale">
-          <div class="mono-title">feature/login</div>
-          <p>新しい枝</p>
-          <div style="margin-top:14px" data-at="commit" data-anim="pop"><span class="chip yellow">コミット 1</span></div>
-        </div>
-        <div class="card lane" style="top:290px" data-at="0" data-delay="10">
-          <div class="mono-title">main</div>
-          <p>本流</p>
-        </div>
-        <div class="runner" id="s-runner" data-size="72" data-color="cyan"></div>
-      </div>
+      <div class="at rail branch-up" data-at="fork" data-anim="wipe-down" data-dur="18"></div>
+      <div class="at rail branch-rail" data-at="fork" data-delay="12" data-anim="wipe" data-dur="24"></div>
+      <div class="at dot cyan" style="left:612px;top:82px" data-at="fork" data-delay="24" data-anim="scale"></div>
+      <div class="at dot cyan" style="left:872px;top:82px" data-at="fork" data-delay="30" data-anim="scale"></div>
+      <div class="runner at" data-size="72" data-color="cyan" data-seed="3" style="left:1010px;top:27px" data-at="fork" data-delay="18" data-anim="right"></div>
+      <div class="at" style="left:1210px;top:83px" data-at="fork" data-delay="30" data-anim="left"><span class="chip mono cyan">feature/login</span></div>
+
+      <div class="at card green bold" style="left:0;top:380px" data-at="safe" data-anim="pop">枝で何を試しても、<span class="kw">main</span> は無事</div>
     </div>
   </section>
 
-  <!-- 合流：枝がmainに下りて合流のコミットができ、まとめに差し替える -->
-  <section data-scene="merge" data-transition="iris">
-    <div class="phase" data-until="sum">
-      <h2 class="h" data-at="0">枝を <span class="mono">main</span> に<span class="c-cyan">合流</span></h2>
-      <div class="tree" data-at="0" data-delay="8" data-anim="fade">
-        <div class="ln ink" style="left:0;top:244px;width:1440px"></div>
-        <div class="dot" style="left:96px"></div>
-        <div class="dot" style="left:336px"></div>
-        <div class="at" style="left:0;top:300px"><span class="chip mono">main</span></div>
-        <div class="ln cyan" style="left:354px;top:64px;height:192px"></div>
-        <div class="ln cyan" style="left:354px;top:64px;width:752px"></div>
-        <div class="dot cyan up" style="left:596px"></div>
-        <div class="dot cyan up" style="left:856px"></div>
-        <div class="at" style="left:480px;top:-40px"><span class="chip mono cyan">feature/login</span></div>
-        <div class="ln cyan" style="left:1094px;top:64px;height:192px" data-at="run" data-anim="wipe-down"></div>
-        <div class="dot green" style="left:1076px" data-at="run" data-delay="20" data-anim="pop"></div>
-        <div class="at" style="left:1150px;top:110px" data-at="run" data-delay="30" data-anim="left"><span class="bubble green mono">git merge</span></div>
+  <!-- 作って移る：左のターミナルでコマンドを打ち、右で今いる枝が移る -->
+  <section data-scene="make" data-transition="slide">
+    <h2 class="h" data-at="0">枝を<span class="c-cyan">作って、移る</span></h2>
+    <div class="sub muted" data-at="0" data-delay="8">使うコマンドは 2つ</div>
+    <div class="make-row">
+      <div class="terminal" data-show="0" data-at="create" data-command="git switch -c feature/login" data-width="1060" data-size="30">
+        <div class="dim" data-at="create" data-delay="36">Switched to a new branch 'feature/login'</div>
+        <div data-at="list"><span class="ok">$ </span>git branch</div>
+        <div class="dim" data-at="list" data-delay="8">  main</div>
+        <div class="ok" data-at="list" data-delay="14">* feature/login</div>
+        <div data-at="commit"><span class="ok">$ </span>git commit -m "ログイン画面"</div>
+        <div class="dim" data-at="commit" data-delay="10">1 file changed</div>
+      </div>
+      <div class="make-side">
+        <div class="card here" data-at="0" data-delay="16" data-anim="right">
+          <h3>今いる枝</h3>
+          <div class="here-list">
+            <span class="chip mono" data-active="..create">main</span>
+            <span class="chip mono" data-active="create">feature/login</span>
+          </div>
+        </div>
+        <div class="card yellow bold" data-at="commit" data-delay="12" data-anim="pop">コミットは、この枝にだけ積まれる</div>
       </div>
     </div>
-    <h2 class="h" data-at="sum">今日のまとめ</h2>
-    <div class="summary" style="margin-top:40px;width:1500px" data-at="sum" data-delay="8" data-stagger="8">
-      <div class="row"><div class="key">git switch -c</div><div class="val">枝を作って移る</div></div>
-      <div class="row"><div class="key">git commit</div><div class="val">枝の上に記録を積む</div></div>
-      <div class="row"><div class="key">git merge</div><div class="val"><span class="mono">main</span> に合流させる</div></div>
+  </section>
+
+  <!-- 合流：枝の先からmainへ線が下り、緑の合流のコミットができる。そのあとまとめに差し替える -->
+  <section data-scene="merge" data-transition="slide">
+    <h2 class="h" data-at="0" data-until="sum" data-out="up">枝を<span class="c-green">合流</span>させる</h2>
+    <h2 class="h merge-sum-h" data-at="sum">今日の<span class="c-cyan">まとめ</span></h2>
+    <div class="diagram git-graph merge-graph" data-at="0" data-delay="8" data-anim="fade" data-until="sum">
+      <div class="at rail main-rail"></div>
+      <div class="at dot" style="left:92px;top:278px"></div>
+      <div class="at dot" style="left:352px;top:278px"></div>
+      <div class="at dot" style="left:672px;top:278px"></div>
+      <div class="at" style="left:1390px;top:279px"><span class="chip mono">main</span></div>
+      <div class="at rail branch-up"></div>
+      <div class="at rail branch-rail"></div>
+      <div class="at dot cyan" style="left:612px;top:82px"></div>
+      <div class="at dot cyan" style="left:872px;top:82px"></div>
+      <div class="at" style="left:1210px;top:83px"><span class="chip mono cyan">feature/login</span></div>
+      <div class="at" style="left:0;top:370px" data-at="0" data-delay="20" data-anim="pop"><span class="bubble mono">git switch main</span></div>
+
+      <div class="at rail branch-down" data-at="join" data-anim="wipe-down" data-dur="18"></div>
+      <div class="at dot green" style="left:1152px;top:278px" data-at="join" data-delay="16" data-anim="pop"></div>
+      <div class="at" style="left:860px;top:370px" data-at="join" data-delay="22" data-anim="up"><span class="bubble green mono">git merge feature/login</span></div>
     </div>
-    <div class="next-link" style="margin-top:48px" data-at="next" data-anim="words" data-dur="24">次は、小さな機能で枝を一本作る</div>
+    <div class="merge-sum">
+      <div class="summary">
+        <div class="row" data-at="sum"><div class="key">git switch -c</div><div class="val">新しい枝を分ける</div></div>
+        <div class="row" data-at="sum" data-delay="10"><div class="key">git switch</div><div class="val">枝のあいだを移る</div></div>
+        <div class="row" data-at="sum" data-delay="20"><div class="key">git merge</div><div class="val">枝を <span class="kw">main</span> に合流させる</div></div>
+      </div>
+      <div class="next-link" data-at="next" data-anim="words" data-dur="24">次は、小さな枝を一本作ってみる</div>
+    </div>
   </section>
 
 </main>

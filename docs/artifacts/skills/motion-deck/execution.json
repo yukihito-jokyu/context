@@ -3,36 +3,37 @@
   "skill": "motion-deck",
   "skill_source": "utils/skills/media/motion-deck/SKILL.md",
   "skill_sha256": "cdc01a08ff894141e15e01dc6b80e0581104c59eeb5f073bdfee1fc3c9cc403d",
-  "recorded_at": "2026-11-25T09:41:43.450Z",
+  "recorded_at": "2026-11-25T09:55:20.405Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "aed195ed1282a9d2b",
-    "task": "発表モードの全ステップをPDFに書き出すpdfコマンドが加わったmotion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキ（defaultテンプレート、通常のデッキ）として、既定の声とQwen3-TTS（--engine qwen3-tts）でinit・原稿・シーン・check・still・synth（dry-runの後バックグラウンド）・timeline・still --cues/--live・pptx・pdfまで行い、PDFのページ数・文字・見た目とPPTXのXMLとノートを確かめ、修正の列の画面を撮って、公開できる成果物を伏せ字にして保存する"
+    "agent_id": "a4ac23e7a4f97feca",
+    "task": "motion-deckのSKILL.mdと参照資料に従い、「Gitのブランチ入門」を3シーン・約1分の新しいデッキ（defaultテンプレート）として作業用フォルダに作り、init・原稿・シーン・check・still --cues・synth --dry-run・synth（--engine qwen3-tts、バックグラウンド）・timeline・check・still --cues・still --live・pptx・pdfを実行し、PDF（ページ数・文書のタイトル・文字の取り出し・字幕なし・still --liveとの見比べ）とPPTX（XML・ノート）を確かめ、プレーヤーの修正の列を撮って保存する"
   },
   "input": "input.md",
-  "summary": "「Gitのブランチ入門」を3シーン・12文（読み上げ343文字）のmotion-deckのデッキ（defaultテンプレート）にし、local-ttsの既定の声とQwen3-TTSでナレーションを付けて、1分01秒の動画・12ステップの発表・4スライドのPowerPoint・12ページのPDFにしました。PDFは発表の1ステップ＝1ページで、全ページの文字を取り出せ、画像は使っていません。PDFを見比べたときに合流の図のずれに気づいて直し、書き出しをやり直しました。声の名前と絶対パスは伏せ字にし、個人の声による音声は載せていません。",
+  "summary": "「Gitのブランチ入門」を3シーン・12文（読み上げ340文字）のmotion-deckのデッキ（defaultテンプレート）として新しく書き、local-ttsの既定の声とQwen3-TTSでナレーションを付けて、1分00秒の動画・12ステップの発表・4スライドのPowerPoint・12ページのPDFにしました。PDFは発表の1ステップ＝1ページで、文書のタイトルはscript.jsonの題名「Gitのブランチ入門」になり、全ページの文字を取り出せ、画像は使っていません。声の名前と絶対パスは伏せ字にし、個人の声による音声は載せていません。",
   "stage": "PDFとPPTXの書き出しと確認、修正の列の画面の撮影まで。Qwen3-TTSのサーバーは合成前から別に起動されていた（started elsewhere）ため、synthは起動しておらず、止めずに残した。音声の試聴、PowerPointでの再生確認、PDFビューアでの文字選択の操作、MP4の書き出し、bundleは未実施",
   "checks": [
-    "init（既定のテンプレート、通常のデッキ）で雛形を作り、script.jsonを3シーン・12文に書き換え、index.html・theme.css・scenes.jsを書いた。枝の線とコミットはPPTXで図形として残るよう、SVGではなく箱で描いた",
-    "音声なしのcheckで、mergeの「git merge」の吹き出しとまとめの表の文字の重なりを注意として指摘されたので、合流の図をdata-until=\"sum\"で消すようにして、エラー0件・注意2件（仮の尺、ナレーション切り替え未確認）にした。still --cuesの一覧を見て構図を確かめた",
-    "synth --dry-runで3シーン・343文字・目安約2分と出たため、synthを--engine qwen3-ttsでバックグラウンドで実行し、終了コード0・約93秒で3シーン（18.8秒・18.7秒・17.7秒）の音声ができた",
-    "timelineで3シーン・1.02分（1830フレーム）・音声ありになり、ffprobeでnarration.m4aが61.0秒であることを確認。依頼の約1分の範囲に収まった",
+    "init（既定のテンプレート、通常のデッキ）で雛形を作り、script.jsonを3シーン（idea・make・merge）・12文に書き換え、lexicon.jsonにGit・main・switch・branch・mergeの読みを足し、index.html・theme.css・scenes.jsを新しく書いた。枝の線とコミットは、PPTXで図形として残るよう箱と丸で描いた",
+    "音声なしのcheckでエラー0件・注意2件（仮の尺、ナレーション切り替え未確認）。still --cuesの一覧を見て、枝の縦線がコミットの丸の上に重なって見えたため丸を線より前に出し、checkとstillをやり直した",
+    "synth --dry-runで3シーン・340文字・目安約2分と出たため、synthを--engine qwen3-ttsでバックグラウンドで実行し、終了コード0・約90秒で3シーン（18.3秒・19.1秒・17.6秒）の音声ができた",
+    "timelineで3シーン・1.00分（1808フレーム）・音声ありになり、ffprobeでnarration.m4aが60.3秒であることを確認。依頼の約1分に収まった",
     "合成後のcheckでエラー0件・注意0件、発表モード12ステップを確認",
-    "pdfで12ページのPDFができ、PDFKitでページ数12（発表のステップ数と同じ）、全ページ1440×810pt、全ページでpage.stringから見出し・ラベル・ターミナルの行などの文字を取り出せること、字幕の文が入っていないことを確認",
-    "PDFのフォントはJetBrains Mono（TrueType）とヒラギノ角ゴ（Type3）の部分埋め込みで、画像のXObjectは0個。メタデータはTitle「index.html」、Creator HeadlessChrome、Producer Skia/PDF",
-    "PDFの1・4・6・10・12ページをPDFKitでPNGにして同じステップのstill --liveの画像と見比べ、10ページ目（mergeの合流）で合流の線が枝より約40px上から始まり緑のコミットがmainの線から浮いているずれに気づいた。合流の線とコミットを同じ図の箱に入れ直し、check（エラー0件・注意0件）・still --cues・still --live・pptx・pdfをやり直して、各ページがstill --liveと一致することを確認した（原稿は変えていないので音声は作り直していない）",
-    "合成後のstill --cues（12枚）とstill --live（12ステップ、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影、紙色の背景、章バーと字幕の帯がそろっていることを確認",
-    "pptxで4スライド（mergeは見出しの差し替えで2枚）・図形51・文字50・画像3・グループ37・要素のアニメーション12ステップ・差分の重ね3ステップのPPTXができた。図形にできず画像にした要素の一覧は出なかった",
-    "PPTXのXMLで、文字がテキストボックス（txBox。スライド順に8・14・7・21個）に入っていること、アニメーションの対象がグループ（46・25・14・14件）か画像（0・6・0・0件）で単独の図形がないこと、画面切り替え（プッシュ・円・フェード）とノートの台本・文のメモ・シーンのメモを確認",
-    "ヘッドレスのChrome（1600×900）で動画モードを開き、CDPでI→feature/loginのカードのクリック→親へ→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、溜めた指示が1件になったことを画像とDOMで確認",
-    "公開する全ファイル（PPTXのノート・XML・docProps・画像、PDFの圧縮ストリームとメタデータ、PNGのメタデータを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを確認し、check.log・synth.log・pptx.logの絶対パスとoutput.mdの声の名前は伏せ字にした",
+    "合成後のstill --cues（12枚）とstill --live（12ステップ、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影、紙色の背景、章バーと字幕の帯（動画のみ）がそろっていることを確認",
+    "pdfで12ページのPDFができ、PDFKitでページ数12（発表のステップ数と同じ）、文書のタイトルが「Gitのブランチ入門」（script.jsonのtitleと同じ）、全ページ1440×810pt、全ページでpage.stringから見出し・ラベル・ターミナルの行などの文字を取り出せること、ナレーションの文（字幕）が入っていないことを確認",
+    "PDFの画像のXObjectは0個、フォントはJetBrains Mono（Type0、部分埋め込み）15個と、日本語の文字のType3フォント54個。メタデータはTitle「Gitのブランチ入門」、Creator HeadlessChrome、Producer Skia/PDFで、パスやユーザー名は含まない",
+    "PDFの1・4・6・9・10・12ページをPDFKitでPNGにして同じステップのstill --liveの画像と並べて見比べ、配置と内容が一致することを確認（PSNR 31〜35dB。差はPDFKitの描画の色の違い程度）",
+    "pptxで4スライド（mergeは見出しの差し替えで2枚）・図形55・文字53・画像3・グループ40・要素のアニメーション12ステップ・差分の重ね2ステップのPPTXができた。図形にできず画像にした要素は走るキャラクターのSVG 1件",
+    "PPTXのXMLで、文字がテキストボックス（txBox。スライド順に8・16・8・21個）に入っていること、アニメーションの対象がグループ（14・11・5・5件）か画像（1・1・0・0件）で単独の図形がないこと、画面切り替え（フェード・プッシュ）、ノートの台本（【スライド開始】【クリック n】）・文のメモ・シーンのメモ、docPropsのタイトルが題名であることを確認",
+    "ヘッドレスのChrome（1600×900）で動画モードを開き、CDPでI→ideaのfeature/loginの札のクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、溜めた指示が1件になったことを画像とDOMで確認",
+    "still --liveの出力ファイル名のシーン名が、発表のフレーム番号に動画の時間軸のシーンを当てて付けられ、make・mergeのステップにもideaと付いていた（画像の中身は正しい）。スキル側の不具合候補として報告",
+    "公開する全ファイル（PPTXのノート・XML・docProps、PDFの圧縮ストリームとメタデータ、PNGのチャンクを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを確認し、check.log・synth.log・pptx.logの絶対パスとoutput.mdの声の名前は伏せ字にした",
     "合成前と作業の最後にlocal-tts server statusで、Qwen3-TTSが別に起動されたもの（started elsewhere）として動いていることを確認し、止めなかった",
     "実行者は音声を聞けず、PowerPointでの再生も、PDFビューアでの文字選択の操作も確かめていない。試聴が必要な箇所をoutput.mdにシーンと文番号で記録"
   ],
   "preview": "contact.png",
-  "preview_alt": "紙色の背景に、mainの黒い線からfeature/loginの青い枝が分かれる図、ターミナルの打ち込みと今いる枝のカードを移る走るキャラクター、枝がmainに下りて緑の合流のコミットができる図とまとめの表が、各文の終わりごとに12枚並んだ一覧画像",
-  "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で消える merge の前半は消えかけの薄い状態で写る（発表の各ステップは live-contact.png と git-branch.pdf）",
+  "preview_alt": "紙色の背景に、mainの黒い線からfeature/loginの青い枝が分かれる図、ターミナルの打ち込みと今いる枝の札が移る画面、枝の先からmainへ線が下りて緑の合流のコミットができる図とまとめの表が、各文の終わりごとに12枚並んだ一覧画像",
+  "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で消える merge の図は消えかけの薄い状態で写る（発表の各ステップは live-contact.png と git-branch.pdf）",
   "downloads": [
     {
       "file": "output.md",
@@ -64,7 +65,7 @@
     },
     {
       "file": "scenes.js",
-      "label": "シーンのフレームの関数（scenes.js）"
+      "label": "シーンのフレームの関数（scenes.js。このデッキでは関数なし）"
     },
     {
       "file": "check.log",
@@ -87,28 +88,28 @@
   "artifacts": [
     {
       "file": "check.log",
-      "sha256": "2a3584ef46bd1411cba64850d27ff14b6cbb0f3bcc8a0113e5f970188faf78ed",
-      "bytes": 164
+      "sha256": "3d6f3cd4dbf80effd998c3f9b2f278265677ea07eb52311ba68e4ec428c64643",
+      "bytes": 157
     },
     {
       "file": "contact.png",
-      "sha256": "a6b37d0eda9aa891cdd31e996a9034f16bef5954ceee28e1a7ee4cb8becb5682",
-      "bytes": 332153
+      "sha256": "9154148a5b67b4351984ac7da1603116c03fb87799fa7a30f3fc529858d90c4b",
+      "bytes": 357575
     },
     {
       "file": "git-branch.pdf",
-      "sha256": "a731ddc8d2f3abe2f3a7dea7cd4cbbf2dbfd7bcfdaaf1d12cc48ece283d0dcda",
-      "bytes": 314261
+      "sha256": "f06745bfc6c9710df73713d264aefbb8e3a3a8ef152e72ca8ce73c048695162b",
+      "bytes": 335588
     },
     {
       "file": "git-branch.pptx",
-      "sha256": "a0d9ffdf6646962a11cb678d95a41fe48e7370e5d5224f410071deb2f3140b16",
-      "bytes": 84961
+      "sha256": "eb1054d4d3b9d27761271548a5d637c873d342d11f939f19592fb86caaf036e5",
+      "bytes": 71069
     },
     {
       "file": "index.html",
-      "sha256": "6365c270345a19994549dfd85ed5a2c2c5e0be4cb3c05844f7ceec599df7224d",
-      "bytes": 5729
+      "sha256": "0e0cd747f075231fdbc0d1388ae6d31b2b328e1612d9098d61788ffb70b2c0bc",
+      "bytes": 6083
     },
     {
       "file": "input.md",
@@ -117,43 +118,43 @@
     },
     {
       "file": "live-contact.png",
-      "sha256": "d45539aecea60de92a4ac182320d04299a9a414fe045b64c438abdfb48c90ffd",
-      "bytes": 226235
+      "sha256": "c0d2df21677b699235ad8daae1f7aadf5060420fa89551e3445697cf79220506",
+      "bytes": 251772
     },
     {
       "file": "output.md",
-      "sha256": "aa17176cefeedc22d3790647ab0bf0ef859dcf680633a7f2c514e7c469a1ba7b",
-      "bytes": 10232
+      "sha256": "9d020a445a7b0f385dcf915c0bff2a6398c9af1072364ef81f58ef49b46523af",
+      "bytes": 5783
     },
     {
       "file": "player-edit.png",
-      "sha256": "bbfe5cd43ee5daaaedbc080852258a17a00906241707a138ad57f471ede667be",
-      "bytes": 170040
+      "sha256": "722086b6b6e21b29d054aa2f87011892f616946589e13ccde460354bdfd2ace0",
+      "bytes": 172595
     },
     {
       "file": "pptx.log",
-      "sha256": "f408582442b79213e0cc0d1404d02df02c36aca38f222db98446770a4b0cf531",
-      "bytes": 483
+      "sha256": "0bf33a6f086011c43cefb00a2ebb2880fc8ce0a3db226ee4fa2b8cf2c0be24b4",
+      "bytes": 649
     },
     {
       "file": "scenes.js",
-      "sha256": "3e804b8d38fe60b10242e3e20538253f8ea9f58c64601ff06e8cd93fc1243139",
-      "bytes": 593
+      "sha256": "fb62c988c3deb6f8db244a99feccad4508aed2e19f788b78d47ae9b8e2c31ce5",
+      "bytes": 208
     },
     {
       "file": "script.json",
-      "sha256": "1c21c73cc1c5c832b461df057e41383c3334b8bcae5d083bf3a516ce9835d49b",
-      "bytes": 2009
+      "sha256": "77d2302368d496d2936eb2a28bd128a67dfa931b897da90b13272210d26fa4b4",
+      "bytes": 2070
     },
     {
       "file": "synth.log",
-      "sha256": "53b83d4b203ad0813253088797f4ffa555ab7a24018ec3767d641521154ac51f",
-      "bytes": 892
+      "sha256": "3a26503f8ba8bd4c28077ac03310a43fec58490d31c9b8e40dfe6a4e98404b56",
+      "bytes": 850
     },
     {
       "file": "theme.css",
-      "sha256": "f44f5f452e93e1c46c613a4ad3b5258ce9c9370122b05abdba6a16b16a747a4b",
-      "bytes": 1261
+      "sha256": "d7080a127ad82dcba2ca2d3d843e17a7c08a3aba68a24b53c2692dcbd5fbe87e",
+      "bytes": 1794
     }
   ],
   "source_files": [
@@ -199,7 +200,7 @@
     },
     {
       "file": "scripts/motion.mjs",
-      "sha256": "e86eaac06536f9ae3f2f275a3869300fe96d44486b07d75cd74e71ea074a1999"
+      "sha256": "272dc686d0228b7d6e0e7dc661be872732fc19450b04d1dd9880e6cd843bad1d"
     },
     {
       "file": "scripts/pptx.mjs",
@@ -338,5 +339,5 @@
       "sha256": "d5306a022e5b28233b26b184d15c3ecb41111425da71382523e5c76442647940"
     }
   ],
-  "source_sha256": "f359d6e6b9f909819a0fbc6fd82fcacff1ced378dea114d2ed24e5750ac05006"
+  "source_sha256": "0be5ab9ed505b08524977199c1d53880e7b3bb25b43e6b4e497da665448ffa6c"
 }
