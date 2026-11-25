@@ -411,6 +411,7 @@ function cmdSynth(pos, opt) {
   if (!which('uv')) fail('uv が見つかりません');
 
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-synth-'));
+  let used = t.engine; // 停止コマンドに付けるエンジン。speak が出す実際のエンジン（既定を含む）で置き換える
   try {
     for (const x of todo) {
       const started = Date.now();
@@ -421,7 +422,8 @@ function cmdSynth(pos, opt) {
       const args = ['run', '--project', path.join(localTts, 'tools'), 'local-tts', 'speak', path.join(P.ssmlDir, `${x.sc.id}.ssml`), '--output', tmpWav, '--force'];
       if (t.voice) args.push('--voice', t.voice);
       if (t.engine) args.push('--engine', t.engine);
-      run('uv', args, `local-tts（${x.sc.id}）`);
+      const out = run('uv', args, `local-tts（${x.sc.id}）`);
+      try { used = JSON.parse(out.slice(out.indexOf('{'))).engine || used; } catch { /* 出力が読めなければ指定のエンジンのまま */ }
       const timing = readJSON(tmpWav.replace(/\.wav$/, '.json'));
       fs.copyFileSync(tmpWav, wav);
       const names = new Set((timing.marks || []).map((m) => m.name));
@@ -435,7 +437,7 @@ function cmdSynth(pos, opt) {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
   log('合成が終わりました。続けて timeline を実行してください。');
-  log(`使い終わったらエンジンを止める: uv run --project "${path.join(localTts, 'tools')}" local-tts server stop`);
+  log(`使い終わったらエンジンを止める: uv run --project "${path.join(localTts, 'tools')}" local-tts server stop${used ? ` --engine ${used}` : ''}`);
 }
 
 // ───────────────────────── timeline ─────────────────────────
