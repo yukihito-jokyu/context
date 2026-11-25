@@ -2281,7 +2281,7 @@ const HELP = `motion-deck — ナレーションで動く HTML プレゼン
   check [deck] [--scene id,..] [--no-browser]
                                     原稿・HTML・配置（はみ出し）を検査する
   ssml [deck]                       原稿から build/ssml/<id>.ssml を作る
-  synth [deck] [--voice 名前] [--engine voxcpm2|omnivoice|s2]
+  synth [deck] [--voice 名前] [--engine voxcpm2|omnivoice|qwen3-tts|s2]
         [--scenes id,..] [--force] [--dry-run]
                                     local-tts でシーンごとに音声を作る（原稿が変わったシーンだけ）
   timeline [deck] [--estimate]      音声の時刻から timeline.js と narration.m4a を作る
