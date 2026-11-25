@@ -2,7 +2,7 @@
 
 skill-authoringを使い、独立した検証用ディレクトリにsample専用のSkillを追加してください。既存のREADMEと配置を調べてから、新しいSKILL.mdとカタログを作成してください。
 
-対象: /private/tmp/issue79-skill-authoring-sample（公開サイトを持たない、架空のsampleプロジェクト専用の検証用構成）。共通Skill追加ではありません。
+対象: `<作業用ディレクトリ>`（公開サイトを持たない、架空のsampleプロジェクト専用の検証用構成）。共通Skill追加ではありません。
 
 以下のプロンプトを本文として使ってください。
 

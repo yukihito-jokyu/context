@@ -103,4 +103,4 @@ function verifySkillInventory(root, skills) {
   if (expected.size) throw new Error(`成果物がないスキル: ${[...expected].join(', ')}`);
 }
 
-module.exports = {verifyExampleSkillSource, sourceManifest, discoverSkills, verifyArtifacts, verifySkillInventory};
+module.exports = {collectFiles, verifyExampleSkillSource, sourceManifest, discoverSkills, verifyArtifacts, verifySkillInventory};
