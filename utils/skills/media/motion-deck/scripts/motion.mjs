@@ -411,6 +411,7 @@ function cmdSynth(pos, opt) {
   if (!which('uv')) fail('uv が見つかりません');
 
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-synth-'));
+  let used = t.engine; // 停止コマンドに付けるエンジン。speak が出す実際のエンジン（既定を含む）で置き換える
   try {
     for (const x of todo) {
       const started = Date.now();
@@ -421,7 +422,8 @@ function cmdSynth(pos, opt) {
       const args = ['run', '--project', path.join(localTts, 'tools'), 'local-tts', 'speak', path.join(P.ssmlDir, `${x.sc.id}.ssml`), '--output', tmpWav, '--force'];
       if (t.voice) args.push('--voice', t.voice);
       if (t.engine) args.push('--engine', t.engine);
-      run('uv', args, `local-tts（${x.sc.id}）`);
+      const out = run('uv', args, `local-tts（${x.sc.id}）`);
+      try { used = JSON.parse(out.slice(out.indexOf('{'))).engine || used; } catch { /* 出力が読めなければ指定のエンジンのまま */ }
       const timing = readJSON(tmpWav.replace(/\.wav$/, '.json'));
       fs.copyFileSync(tmpWav, wav);
       const names = new Set((timing.marks || []).map((m) => m.name));
@@ -435,7 +437,7 @@ function cmdSynth(pos, opt) {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
   log('合成が終わりました。続けて timeline を実行してください。');
-  log(`使い終わったらエンジンを止める: uv run --project "${path.join(localTts, 'tools')}" local-tts server stop`);
+  log(`使い終わったらエンジンを止める: uv run --project "${path.join(localTts, 'tools')}" local-tts server stop${used ? ` --engine ${used}` : ''}`);
 }
 
 // ───────────────────────── timeline ─────────────────────────
@@ -890,8 +892,9 @@ async function cmdStill(pos, opt) {
     }
     for (const pt of pts) {
       const f = await page.seek(pt.frame);
-      const sc = tl.scenes.filter((s) => f >= s.start).pop();
-      const file = path.join(dir, `${String(f).padStart(6, '0')}-${sc ? sc.id : 'frame'}.png`);
+      // 発表モードのシーンの区切りは動画モードと違うので、--live では発表モードのシーンを使う
+      const id = opt.live ? pt.scene : (tl.scenes.filter((s) => f >= s.start).pop() || {}).id;
+      const file = path.join(dir, `${String(f).padStart(6, '0')}-${id || 'frame'}.png`);
       fs.writeFileSync(file, await page.capture('png'));
       files.push(file);
     }
@@ -2278,7 +2281,7 @@ const HELP = `motion-deck — ナレーションで動く HTML プレゼン
   check [deck] [--scene id,..] [--no-browser]
                                     原稿・HTML・配置（はみ出し）を検査する
   ssml [deck]                       原稿から build/ssml/<id>.ssml を作る
-  synth [deck] [--voice 名前] [--engine voxcpm2|omnivoice|s2]
+  synth [deck] [--voice 名前] [--engine voxcpm2|omnivoice|qwen3-tts|s2]
         [--scenes id,..] [--force] [--dry-run]
                                     local-tts でシーンごとに音声を作る（原稿が変わったシーンだけ）
   timeline [deck] [--estimate]      音声の時刻から timeline.js と narration.m4a を作る
