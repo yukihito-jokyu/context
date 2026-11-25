@@ -890,8 +890,9 @@ async function cmdStill(pos, opt) {
     }
     for (const pt of pts) {
       const f = await page.seek(pt.frame);
-      const sc = tl.scenes.filter((s) => f >= s.start).pop();
-      const file = path.join(dir, `${String(f).padStart(6, '0')}-${sc ? sc.id : 'frame'}.png`);
+      // 発表モードのシーンの区切りは動画モードと違うので、--live では発表モードのシーンを使う
+      const id = opt.live ? pt.scene : (tl.scenes.filter((s) => f >= s.start).pop() || {}).id;
+      const file = path.join(dir, `${String(f).padStart(6, '0')}-${id || 'frame'}.png`);
       fs.writeFileSync(file, await page.capture('png'));
       files.push(file);
     }
