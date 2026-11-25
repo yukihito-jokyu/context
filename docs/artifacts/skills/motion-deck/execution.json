@@ -2,38 +2,45 @@
   "schema_version": 1,
   "skill": "motion-deck",
   "skill_source": "utils/skills/media/motion-deck/SKILL.md",
-  "skill_sha256": "5d5fb8bed7b9f3d08aec3e5862de9b622eaddae0931e6d915ec18317fde2ba8e",
-  "recorded_at": "2026-11-23T08:11:55.694Z",
+  "skill_sha256": "cdc01a08ff894141e15e01dc6b80e0581104c59eeb5f073bdfee1fc3c9cc403d",
+  "recorded_at": "2026-11-25T09:41:43.450Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "ae6a9c6a19e8010b8",
-    "task": "local-ttsに既定のエンジンQwen3-TTS（qwen3-tts）が加わり、synthの時間の目安と解説を更新したmotion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキ（defaultテンプレート、通常のデッキ）として、既定の声とQwen3-TTS（--engine qwen3-tts）でinit・原稿・シーン・check・still・synth（dry-runの後バックグラウンド）・timeline・still --cues/--live・pptxまで行い、PPTXのXMLとノートを確かめ、修正の列の画面を撮って、公開できる成果物を伏せ字にして保存し、synthが起動したQwen3-TTSのサーバーを止める"
+    "agent_id": "aed195ed1282a9d2b",
+    "task": "発表モードの全ステップをPDFに書き出すpdfコマンドが加わったmotion-deckのSKILL.mdに従い、「Gitのブランチ入門」を3シーン・約1分のナレーション付きデッキ（defaultテンプレート、通常のデッキ）として、既定の声とQwen3-TTS（--engine qwen3-tts）でinit・原稿・シーン・check・still・synth（dry-runの後バックグラウンド）・timeline・still --cues/--live・pptx・pdfまで行い、PDFのページ数・文字・見た目とPPTXのXMLとノートを確かめ、修正の列の画面を撮って、公開できる成果物を伏せ字にして保存する"
   },
   "input": "input.md",
-  "summary": "「Gitのブランチ入門」を3シーン・13文（読み上げ364文字）のmotion-deckのデッキ（defaultテンプレート）にし、local-ttsの既定の声とQwen3-TTSでナレーションを付けて、1分03秒の動画・13ステップの発表・4スライドのPowerPointにしました。合成は目安約2分に対し約97秒で終わりました。枝の線とコミットをSVGではなく箱で描いたので、PowerPointでは要素を図形70・テキスト45にして42のグループにまとめ、画像にした要素は走者のSVG 1件だけでした。動画モードの修正の列で指示を1件溜めた画面も撮り、声の名前と絶対パスは伏せ字にして、個人の声による音声は載せていません。",
-  "stage": "PPTXの書き出しとXMLでの確認、修正の列の画面の撮影まで。synthが起動したQwen3-TTSのサーバーは止め、別に起動されていたOmniVoice（started elsewhere）は止めずに残した。音声の試聴、PowerPointでの再生確認、MP4の書き出し、bundleは未実施",
+  "summary": "「Gitのブランチ入門」を3シーン・12文（読み上げ343文字）のmotion-deckのデッキ（defaultテンプレート）にし、local-ttsの既定の声とQwen3-TTSでナレーションを付けて、1分01秒の動画・12ステップの発表・4スライドのPowerPoint・12ページのPDFにしました。PDFは発表の1ステップ＝1ページで、全ページの文字を取り出せ、画像は使っていません。PDFを見比べたときに合流の図のずれに気づいて直し、書き出しをやり直しました。声の名前と絶対パスは伏せ字にし、個人の声による音声は載せていません。",
+  "stage": "PDFとPPTXの書き出しと確認、修正の列の画面の撮影まで。Qwen3-TTSのサーバーは合成前から別に起動されていた（started elsewhere）ため、synthは起動しておらず、止めずに残した。音声の試聴、PowerPointでの再生確認、PDFビューアでの文字選択の操作、MP4の書き出し、bundleは未実施",
   "checks": [
-    "init（既定のテンプレート、通常のデッキ）で雛形を作り、script.jsonを3シーン・13文に書き換え、index.html・theme.css・scenes.jsを書いた。枝の線とコミットはPPTXで図形として残るよう、SVGではなく箱で描いた",
-    "音声なしのcheckで、使えない文の名前（end）と英字「main」の残りをエラーとして指摘されたので直し、エラー0件・注意2件（仮の尺、ナレーション切り替え未確認）にした。still --cuesの一覧を見て、switchの枝名が切れていた所を直した",
-    "ユーザーの設定の既定のエンジンはVoxCPM2のままなので、依頼どおり--engine qwen3-ttsを付けた。synth --dry-runで3シーン・364文字・目安約2分と出たため、synthをバックグラウンドで実行し、終了コード0・約97秒で3シーン（17.9秒・20.8秒・19.9秒）の音声ができた",
-    "timelineで3シーン・1.06分（1901フレーム）・音声ありになり、ffprobeでnarration.m4aが63.4秒であることを確認。依頼の約1分の範囲に収まった",
-    "合成後のcheckでエラー0件・注意0件、発表モード13ステップを確認",
-    "合成後のstill --cues（13枚）とstill --live（13ステップ、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影、紙色の背景、章バーと字幕の帯がそろっていることを確認",
-    "pptxで4スライド（mergeは見出しの差し替えで2枚）・図形70・文字45・画像5・グループ42・要素のアニメーション13ステップ・差分の重ね4ステップのPPTXができた。図形にできず画像にした要素は1件（switchの走者のSVG）",
-    "PPTXのXMLで、文字がテキストボックス（txBox。スライド順に8・17・9・11個）に入っていること、アニメーションの対象がグループ（43・36・19・16件）か画像（0・8・0・0件）で単独の図形がないこと、switchのdata-untilが終了効果2件になっていること、画面切り替え（プッシュ・円・フェード）とノートの台本・メモを確認",
-    "ヘッドレスのChrome（1600×900）で動画モードを開き、CDPでI→注釈カードのクリック→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、溜めた指示が1件になったことを画像とDOMで確認",
-    "公開する全ファイル（PPTXのノート・XML・docProps、PNGのメタデータを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを確認し、synth.log・pptx.logの絶対パスとoutput.mdの声の名前は伏せ字にした",
-    "作業の最後にlocal-tts server stop --engine qwen3-ttsでsynthが起動したサーバーを止め、server statusでQwen3-TTSが停止、OmniVoice（started elsewhere）が残っていることを確認",
-    "実行者は音声を聞けず、PowerPointでの再生も確かめていない。試聴が必要な箇所をoutput.mdにシーンと文番号で記録"
+    "init（既定のテンプレート、通常のデッキ）で雛形を作り、script.jsonを3シーン・12文に書き換え、index.html・theme.css・scenes.jsを書いた。枝の線とコミットはPPTXで図形として残るよう、SVGではなく箱で描いた",
+    "音声なしのcheckで、mergeの「git merge」の吹き出しとまとめの表の文字の重なりを注意として指摘されたので、合流の図をdata-until=\"sum\"で消すようにして、エラー0件・注意2件（仮の尺、ナレーション切り替え未確認）にした。still --cuesの一覧を見て構図を確かめた",
+    "synth --dry-runで3シーン・343文字・目安約2分と出たため、synthを--engine qwen3-ttsでバックグラウンドで実行し、終了コード0・約93秒で3シーン（18.8秒・18.7秒・17.7秒）の音声ができた",
+    "timelineで3シーン・1.02分（1830フレーム）・音声ありになり、ffprobeでnarration.m4aが61.0秒であることを確認。依頼の約1分の範囲に収まった",
+    "合成後のcheckでエラー0件・注意0件、発表モード12ステップを確認",
+    "pdfで12ページのPDFができ、PDFKitでページ数12（発表のステップ数と同じ）、全ページ1440×810pt、全ページでpage.stringから見出し・ラベル・ターミナルの行などの文字を取り出せること、字幕の文が入っていないことを確認",
+    "PDFのフォントはJetBrains Mono（TrueType）とヒラギノ角ゴ（Type3）の部分埋め込みで、画像のXObjectは0個。メタデータはTitle「index.html」、Creator HeadlessChrome、Producer Skia/PDF",
+    "PDFの1・4・6・10・12ページをPDFKitでPNGにして同じステップのstill --liveの画像と見比べ、10ページ目（mergeの合流）で合流の線が枝より約40px上から始まり緑のコミットがmainの線から浮いているずれに気づいた。合流の線とコミットを同じ図の箱に入れ直し、check（エラー0件・注意0件）・still --cues・still --live・pptx・pdfをやり直して、各ページがstill --liveと一致することを確認した（原稿は変えていないので音声は作り直していない）",
+    "合成後のstill --cues（12枚）とstill --live（12ステップ、別の--out）の一覧画像を見て、見出しが左上、太枠とずらした影、紙色の背景、章バーと字幕の帯がそろっていることを確認",
+    "pptxで4スライド（mergeは見出しの差し替えで2枚）・図形51・文字50・画像3・グループ37・要素のアニメーション12ステップ・差分の重ね3ステップのPPTXができた。図形にできず画像にした要素の一覧は出なかった",
+    "PPTXのXMLで、文字がテキストボックス（txBox。スライド順に8・14・7・21個）に入っていること、アニメーションの対象がグループ（46・25・14・14件）か画像（0・6・0・0件）で単独の図形がないこと、画面切り替え（プッシュ・円・フェード）とノートの台本・文のメモ・シーンのメモを確認",
+    "ヘッドレスのChrome（1600×900）で動画モードを開き、CDPでI→feature/loginのカードのクリック→親へ→指示の入力→「指示を追加」と操作してplayer-edit.pngを撮り、溜めた指示が1件になったことを画像とDOMで確認",
+    "公開する全ファイル（PPTXのノート・XML・docProps・画像、PDFの圧縮ストリームとメタデータ、PNGのメタデータを含む）に個人名・ユーザー名・メールアドレス・絶対パス・声の名前がないことを確認し、check.log・synth.log・pptx.logの絶対パスとoutput.mdの声の名前は伏せ字にした",
+    "合成前と作業の最後にlocal-tts server statusで、Qwen3-TTSが別に起動されたもの（started elsewhere）として動いていることを確認し、止めなかった",
+    "実行者は音声を聞けず、PowerPointでの再生も、PDFビューアでの文字選択の操作も確かめていない。試聴が必要な箇所をoutput.mdにシーンと文番号で記録"
   ],
   "preview": "contact.png",
-  "preview_alt": "紙色の背景に、mainの黒い線からfeature/loginの青い枝が分かれる図、ターミナルの行の強調と今いる枝の図を移る走るキャラクター、枝がmainに下りて緑の合流のコミットができる図とまとめの表が、各文の終わりごとに13枚並んだ一覧画像",
-  "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で消える注釈カードや merge の前半は消えかけの薄い状態で写る（発表の各ステップは live-contact.png）",
+  "preview_alt": "紙色の背景に、mainの黒い線からfeature/loginの青い枝が分かれる図、ターミナルの打ち込みと今いる枝のカードを移る走るキャラクター、枝がmainに下りて緑の合流のコミットができる図とまとめの表が、各文の終わりごとに12枚並んだ一覧画像",
+  "preview_note": "合成後の still --cues の一覧。次の文の直前を撮るため、data-until で消える merge の前半は消えかけの薄い状態で写る（発表の各ステップは live-contact.png と git-branch.pdf）",
   "downloads": [
     {
       "file": "output.md",
       "label": "実行報告（Markdown）"
+    },
+    {
+      "file": "git-branch.pdf",
+      "label": "PDFの書き出し（発表の各ステップ）"
     },
     {
       "file": "git-branch.pptx",
@@ -41,7 +48,7 @@
     },
     {
       "file": "pptx.log",
-      "label": "pptxの出力（図形にできず画像にした要素の一覧）"
+      "label": "pptxの出力"
     },
     {
       "file": "player-edit.png",
@@ -80,68 +87,73 @@
   "artifacts": [
     {
       "file": "check.log",
-      "sha256": "796a9eb07a56fd56577dd88fd6ea50597ae31d6db4806fcd4582036c0d040dcc",
-      "bytes": 98
+      "sha256": "2a3584ef46bd1411cba64850d27ff14b6cbb0f3bcc8a0113e5f970188faf78ed",
+      "bytes": 164
     },
     {
       "file": "contact.png",
-      "sha256": "47830f109889a1b25e467ddb115364df4532625a06e4fde1b3b0c101750d4a22",
-      "bytes": 391711
+      "sha256": "a6b37d0eda9aa891cdd31e996a9034f16bef5954ceee28e1a7ee4cb8becb5682",
+      "bytes": 332153
+    },
+    {
+      "file": "git-branch.pdf",
+      "sha256": "a731ddc8d2f3abe2f3a7dea7cd4cbbf2dbfd7bcfdaaf1d12cc48ece283d0dcda",
+      "bytes": 314261
     },
     {
       "file": "git-branch.pptx",
-      "sha256": "1455062adb681bc91b622e2c11151925648d5c6ab5c43d938a3359a8f76921a4",
-      "bytes": 138138
+      "sha256": "a0d9ffdf6646962a11cb678d95a41fe48e7370e5d5224f410071deb2f3140b16",
+      "bytes": 84961
     },
     {
       "file": "index.html",
-      "sha256": "725232d72f5ee1857f75e43d98186484c5376942464cbd866a8cb192e422c9c3",
-      "bytes": 6466
+      "sha256": "6365c270345a19994549dfd85ed5a2c2c5e0be4cb3c05844f7ceec599df7224d",
+      "bytes": 5729
     },
     {
       "file": "input.md",
-      "sha256": "72570cdb2a0c0be34f186901c55776613589428a4f88e809635d403e45abe516",
-      "bytes": 357
+      "sha256": "b7245f06071a18f625313b94b40f9392344b35eb5be29ad55c781ae907b786a9",
+      "bytes": 363
     },
     {
       "file": "live-contact.png",
-      "sha256": "7bf9b619d587fcdab0bb5de87ebeb91a039efbf224578529ca56d5a3ac79a3c5",
-      "bytes": 264435
+      "sha256": "d45539aecea60de92a4ac182320d04299a9a414fe045b64c438abdfb48c90ffd",
+      "bytes": 226235
     },
     {
       "file": "output.md",
-      "sha256": "79d441a9654f4e0bfa2f3b0d936ef4a8ae49bdf948ee38f93dd1b661c01bdd5c",
-      "bytes": 12908
+      "sha256": "aa17176cefeedc22d3790647ab0bf0ef859dcf680633a7f2c514e7c469a1ba7b",
+      "bytes": 10232
     },
     {
       "file": "player-edit.png",
-      "sha256": "b9aae5fed1ad4087039ffdb720ccc12dfd3560d1960f51e1daae9f98f1e73b9e",
-      "bytes": 166619
+      "sha256": "bbfe5cd43ee5daaaedbc080852258a17a00906241707a138ad57f471ede667be",
+      "bytes": 170040
     },
     {
       "file": "pptx.log",
-      "sha256": "a03625a8c5cb0866bb1d13cc8b9f55e78af9c7b3ab0f3d61d35d6eeff3d48bbc",
-      "bytes": 606
+      "sha256": "f408582442b79213e0cc0d1404d02df02c36aca38f222db98446770a4b0cf531",
+      "bytes": 483
     },
     {
       "file": "scenes.js",
-      "sha256": "0686bad9ea491c7b79709a91af6964a0e8be10dd0191796e16658760c8536b4e",
-      "bytes": 551
+      "sha256": "3e804b8d38fe60b10242e3e20538253f8ea9f58c64601ff06e8cd93fc1243139",
+      "bytes": 593
     },
     {
       "file": "script.json",
-      "sha256": "d640f607c45fbdb3188dfa12468dea9f97fa439c389b8721d9cd001a8b459a31",
-      "bytes": 3286
+      "sha256": "1c21c73cc1c5c832b461df057e41383c3334b8bcae5d083bf3a516ce9835d49b",
+      "bytes": 2009
     },
     {
       "file": "synth.log",
-      "sha256": "a7ed49fa782068e9e06073df7d8d0c7fdf215effbe12f2ee716654780b86e18e",
-      "bytes": 1157
+      "sha256": "53b83d4b203ad0813253088797f4ffa555ab7a24018ec3767d641521154ac51f",
+      "bytes": 892
     },
     {
       "file": "theme.css",
-      "sha256": "c6ddb564f68dcf27217116ce4eeebfa8222e05fee3cb19ce3cae881787eba275",
-      "bytes": 2026
+      "sha256": "f44f5f452e93e1c46c613a4ad3b5258ce9c9370122b05abdba6a16b16a747a4b",
+      "bytes": 1261
     }
   ],
   "source_files": [
@@ -151,7 +163,7 @@
     },
     {
       "file": "SKILL.md",
-      "sha256": "5d5fb8bed7b9f3d08aec3e5862de9b622eaddae0931e6d915ec18317fde2ba8e"
+      "sha256": "cdc01a08ff894141e15e01dc6b80e0581104c59eeb5f073bdfee1fc3c9cc403d"
     },
     {
       "file": "references/authoring.md",
@@ -163,7 +175,7 @@
     },
     {
       "file": "references/player.md",
-      "sha256": "6d307a6f2f813c59fc3fbbaa912b2f27168e26ddfef5b2230a17edc953511b0d"
+      "sha256": "623c27c3a6f24aaba4dda3b736c7b83daa05638b59e91414f66f10100912095d"
     },
     {
       "file": "references/template-from-pptx.md",
@@ -187,7 +199,7 @@
     },
     {
       "file": "scripts/motion.mjs",
-      "sha256": "66b525c58c8af4c4ecba800960cf3b5234975113ffd0cc599ab0d0c0e2425de1"
+      "sha256": "e86eaac06536f9ae3f2f275a3869300fe96d44486b07d75cd74e71ea074a1999"
     },
     {
       "file": "scripts/pptx.mjs",
@@ -326,5 +338,5 @@
       "sha256": "d5306a022e5b28233b26b184d15c3ecb41111425da71382523e5c76442647940"
     }
   ],
-  "source_sha256": "920566f2c75bf9e69bb8befd7d34865efd77603be0b99dfdee7ba87b45398c5d"
+  "source_sha256": "f359d6e6b9f909819a0fbc6fd82fcacff1ced378dea114d2ed24e5750ac05006"
 }
