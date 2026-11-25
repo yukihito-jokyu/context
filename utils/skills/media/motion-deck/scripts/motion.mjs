@@ -1015,7 +1015,7 @@ async function cmdPdf(pos, opt) {
 
     const src = pathToFileURL(P.index).href + '?render=1&mode=live';
     fs.mkdirSync(path.dirname(host), { recursive: true });
-    fs.writeFileSync(host, `<!doctype html><meta charset="utf-8"><style>@page { size: ${tl.width}px ${tl.height}px; margin: 0 }
+    fs.writeFileSync(host, `<!doctype html><meta charset="utf-8"><title>${xml(loadScript(P).title)}</title><style>@page { size: ${tl.width}px ${tl.height}px; margin: 0 }
 html, body { margin: 0 } iframe { display: block; border: 0; width: ${tl.width}px; height: ${tl.height}px; break-after: page }</style>
 ${stops.map((f) => `<iframe data-frame="${f}" src="${src}&frame=${f}"></iframe>`).join('\n')}\n`);
 
