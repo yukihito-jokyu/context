@@ -2,25 +2,25 @@
   "schema_version": 1,
   "skill": "local-tts",
   "skill_source": "utils/skills/media/local-tts/SKILL.md",
-  "skill_sha256": "b8d206fd4bd45e86ea53d7d2569fe3553ac4e545ee3d7ecb706317797cf470f9",
-  "recorded_at": "2026-11-23T15:05:47.600Z",
+  "skill_sha256": "56c929230bdf11f1469893be47b7de6c07e46f8c7283b504fa959e68bbab8b9a",
+  "recorded_at": "2026-11-28T08:00:33.093Z",
   "executor": "Claude Code（サブエージェント）",
   "runner": {
     "kind": "subagent",
-    "agent_id": "a7e20ee81285578e1",
+    "agent_id": "aaae63118b60a6df7",
     "task": "local-ttsのSKILL.mdに従い、2文のSSMLをplanで確認してQwen3-TTS（--engine qwen3-tts）と既定の声でspeakしてWAVにし、checkで読みを聞き取って原稿と照らし、誤読があればredoで直し、エンジンのサーバーの停止を試みるまでを実行する"
   },
   "input": "input.md",
-  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で4.72秒のWAVを生成しました。checkで2区間の読みをカタカナで聞き取り、原稿と照らして誤読がないと判断したため、redoは行っていません。保存したWAVの大きさは-14.0 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間・聞き取った読みを掲載しています。声の名前は伏せ字にしています。",
+  "summary": "2文の日本語をSSMLにして区切りを確認し、Qwen3-TTSと既定の声で5.84秒のWAVを生成しました。checkで2区間の読みをカタカナで聞き取り、原稿と照らして誤読がないと判断したため、redoは行っていません。保存したWAVの大きさは-14.0 LUFSでした。公開サイトにはWAVを掲載せず、原稿・区切り・区間ごとの時間・聞き取った読みを掲載しています。声の名前は伏せ字にしています。",
   "stage": "WAVの生成、checkによる読みの確認、server stopの実行まで。音声の試聴は未実施",
   "checks": [
-    "doctorとengine listで、既定のエンジンqwen3-ttsがreadyであることを確認",
-    "server statusで、Qwen3-TTSのサーバーが実行前から別に起動されている（started elsewhere）ことを確認。ログの最後の生成が終わっており、ほかのセッションが使っていないことを確かめてから合成",
+    "doctorとengine listで、既定のエンジンqwen3-ttsがreadyであることを確認。何もダウンロードしていない",
+    "server statusで、Qwen3-TTSのサーバーが実行前から別に起動されている（started elsewhere）ことを確認。ログの最後の生成が約40時間前に終わっており、ポートにほかの接続がないことを確かめてから合成",
     "planは発話2つ、警告0件",
-    "speakは再生せずに終了コード0で4.72秒の音声を生成（生成10.2秒、発話の約2.2倍）",
-    "ffprobeでWAVがpcm_s16le・24,000 Hz・モノラル・4.72秒であることを確認",
+    "speakは再生せずに終了コード0で5.84秒の音声を生成（生成24.0秒、RTF 4.11。1文目に最初の生成の準備を含み19.2秒、2文目はRTF 1.88）",
+    "ffprobeでWAVがpcm_s16le・24,000 Hz・モノラル・5.84秒であることを確認",
     "FFmpegのebur128で、保存したWAVの大きさが-14.0 LUFS、トゥルーピークが-1.9 dBFSであることを確認",
-    "checkは終了コード0で2区間を約12.5秒で聞き取り。区間1はホンジツワオアツマリイタダキアリガトーゴザイマス、区間2はハッピョーノジカンワジューゴフンデス",
+    "checkは終了コード0で2区間を約12秒で聞き取り。区間1はホンジツワオアツマリイタダキアリガトーゴザイマス、区間2はハッピョーノジカンワジューゴフンデス",
     "実行者が原稿と照らし、2区間とも読みは正しい（本日＝ホンジツ、十五分＝ジューゴフン）と判断。助詞のワと長音は書き方だけの違い（認識の誤り）として扱い、redoは不要",
     "server stopは「No server started by this tool is running」。実行前から別に起動されていたサーバーは止めていない",
     "実行者は音声を聞けないため、アクセントとイントネーションは未確認。WAVは公開物に含めていない"
@@ -61,8 +61,8 @@
     },
     {
       "file": "output.md",
-      "sha256": "cd7f83370ff913adbcde94aaea2758294cc2a635ca4f08838b7fb60f5ec34fd1",
-      "bytes": 1952
+      "sha256": "0f5edad37ad8cbe24dcd40c0c94637f3b2d009b3e8879a48dd2eabd0d6f55e6b",
+      "bytes": 2825
     },
     {
       "file": "plan.txt",
@@ -76,14 +76,14 @@
     },
     {
       "file": "timing.json",
-      "sha256": "bdeb5f088d9d6dce2947a4e4c8946731170f13ef81bec8ba90ab48925684491e",
-      "bytes": 649
+      "sha256": "af0c2aa3526be84fa7cd9a690c4d1f1805a50849438ad04f35ede1bdac6036b9",
+      "bytes": 647
     }
   ],
   "source_files": [
     {
       "file": "SKILL.md",
-      "sha256": "b8d206fd4bd45e86ea53d7d2569fe3553ac4e545ee3d7ecb706317797cf470f9"
+      "sha256": "56c929230bdf11f1469893be47b7de6c07e46f8c7283b504fa959e68bbab8b9a"
     },
     {
       "file": "references/cleanup.md",
@@ -91,7 +91,7 @@
     },
     {
       "file": "references/commands.md",
-      "sha256": "8f3110801cd423869c7a2437fb26e04119413b7114edc6f4cfa52866978502c8"
+      "sha256": "dd204a407cf4aa677822f7b5cecf35be8c48a41da75f1cb04b43f1b365a9cd82"
     },
     {
       "file": "references/cuda-wsl.md",
@@ -99,11 +99,11 @@
     },
     {
       "file": "references/engine.md",
-      "sha256": "26c14c2b783e6fa068058b9b96e6711264c4eda91de9499db1581f3d7f46a656"
+      "sha256": "5af0b3b23f99faeccf4ef3f649d8ba65f691f53a4f8d824a82a5a1f11beaa013"
     },
     {
       "file": "references/engines.md",
-      "sha256": "71ac906844d7e3cb81b6332064eaec45d68e9ef3d1d66e3a9a139d3907d79a9c"
+      "sha256": "f784a60e651496ca4756d26a71b2c55cb7b14bd1d85c4e2fda89269b52e367a1"
     },
     {
       "file": "references/setup.md",
@@ -199,7 +199,7 @@
     },
     {
       "file": "tools/local-tts.example.toml",
-      "sha256": "3546a3462cd0f4932f3904ae4f0642e2d4866e6da3a2c2bef4f80b6d5e618d99"
+      "sha256": "0e3d0bc16554f94c8c3752ff710f3bdac1f00cdb02f4ef9d23241adbb8a1fb21"
     },
     {
       "file": "tools/pyproject.toml",
@@ -251,11 +251,11 @@
     },
     {
       "file": "tools/src/local_tts/cli.py",
-      "sha256": "9456180bdc0d51d00cfebec1efdc450028a02ac918d6d314adfb9c16cfb5f12d"
+      "sha256": "59502c725aa198a3dbfb6f07e5f3433af2d1890aac0995084ba3653dd6f02118"
     },
     {
       "file": "tools/src/local_tts/engines.py",
-      "sha256": "4a9a7192f2031249905cf845fc089049b6f83305e806b9c9aec1b8988fe017b7"
+      "sha256": "467ee1f6666d3fd69721c844d894ab66e5a1ce98869bc0ff096e944cab5cb845"
     },
     {
       "file": "tools/src/local_tts/fillers.py",
@@ -283,7 +283,7 @@
     },
     {
       "file": "tools/src/local_tts/server.py",
-      "sha256": "c9fa8e4917c8553ae9c63dc541b1426f06a7b5283a434b8016e594774cd2abf0"
+      "sha256": "a3163cb5a165cb89b869a69dd43566cd4c16d469e116179e3d4285c5236e74c0"
     },
     {
       "file": "tools/src/local_tts/ssml.py",
@@ -303,7 +303,7 @@
     },
     {
       "file": "tools/tests/test_cli.py",
-      "sha256": "0f3ff448dc27b0f1a9b1c1d8f5ee18db199a52058c0bc53b13e5551e27ab779a"
+      "sha256": "48c117ab3558e4c5f7f862db13003fbe173fd3b6860e4e7d23ae2e098089445b"
     },
     {
       "file": "tools/tests/test_engines.py",
@@ -334,5 +334,5 @@
       "sha256": "bff0f7e0de10b97ca6549c7596039c3cd707300aedfef5281f387926aa93189b"
     }
   ],
-  "source_sha256": "393d2b069345784ee677b6d9d85961940e34d3c253b4438c26535b1f4d6145c8"
+  "source_sha256": "f933a77c45138bae88b29611074f1da7dc05d305df6ebbeb2830fd0f6b40b98d"
 }

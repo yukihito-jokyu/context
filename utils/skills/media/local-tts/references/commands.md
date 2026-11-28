@@ -30,6 +30,7 @@ uv run --project "<local-tts>/tools" local-tts server stop --engine voxcpm2
 
 - `start`はサーバーを裏で（別プロセスで）起動し、リクエストを受け付けられるまで待ってから戻る。ターミナルを閉じても動き続ける。
 - `say`・`speak`・`api`は、サーバーが止まっていれば自動で起動する。自動起動しない場合は、S2は`[server] auto_start = false`、PyTorchのエンジンは`[engines.<名前>] auto_start = false`。
+- VOICEVOXは、`[engines.voicevox]`に`start`（起動のコマンド）を書いたときだけ起動し、`stop`を書いたときだけ止める（[VOICEVOXで利用する](engine.md#voicevoxで利用する)）。
 - 動いている間のメモリはQwen3-TTS約6.6 GB（Mac）、OmniVoice約4 GB、VoxCPM2約14 GB（CUDAは約8 GB）、S2約4.6 GB。使い終わったら`stop`で止める。`stop`は止まりきるまで待ってから戻る。
 - `status`は全エンジンを表示する（`--engine`で1つだけ）。`stop`は`--engine`がなければ、このツールが起動したサーバーをすべて止める。手動で起動したサーバーは、そのターミナルでCtrl+Cを押して止める。
 - WindowsのCUDAで空きVRAMが目安より少ないと、PyTorchのエンジンは起動を止める。動いているエンジンを`stop`してから使う。
@@ -223,6 +224,7 @@ OS、CPUアーキテクチャ、CUDA/Metal、FFmpeg/FFplay（Macは再生用の`
 | `[engines.voxcpm2]` | `stream_start_buffer_ms_per_char` | 生成しながら再生するとき、1文字あたり先に溜める時間（Mac既定120、ほか0） |
 | `[engines.<名前>]` | `url`、`device`、`dtype`、`timeout`、`auto_start` | アドレス、`auto`（CUDA→MPS→CPU）か`cuda`・`mps`・`cpu`、OmniVoiceの精度（GPUは既定`float16`、Qwen3-TTSは`bfloat16`）、1リクエストの待ち時間（既定600秒）、自動起動 |
 | `[engines.voicevox]` | `url` | VOICEVOX ENGINEのアドレス（既定`http://127.0.0.1:50021`）。話者は先頭の`speaker` |
+| `[engines.voicevox]` | `start`、`stop`、`auto_start`、`wait` | 起動と停止のコマンド（文字列のリスト。例は`docker run`・`docker stop`）、`start`があるとき自動で起動するか（既定true）、応答を待つ秒数（既定600） |
 | `[generation]` | `stream_start_buffer_ms_per_char` | 話し始める前に、1文字あたりためる時間（途切れ対策） |
 | `[server]` | `auto_start` | `say`/`speak`でサーバーを自動起動するか（既定true） |
 | `[server]` | `accelerator` | `auto`ならWindowsでCUDA、MacでMetal。明示値は`cuda`、`metal`、`cpu` |

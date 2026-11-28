@@ -2,7 +2,8 @@
 
 s2 runs s2.cpp; omnivoice, voxcpm2 and qwen3-tts run tools/engines/<name>/server.py in their own virtual
 environment. Each keeps a PID file and a log in <home>/cache/ (s2-server.pid, omnivoice-server.pid, ...).
-VOICEVOX is started by the user and only reported here."""
+VOICEVOX runs only the commands the user writes in [engines.voicevox] (start, stop), for example
+`docker run`; without `start` it is started by the user and only reported here."""
 
 import json
 import os
@@ -13,7 +14,9 @@ import socket
 import subprocess
 import sys
 import time
+from urllib.error import URLError
 from urllib.parse import urlsplit
+from urllib.request import urlopen
 
 from .audio import AudioError, Backend
 from . import engines, runtime
@@ -112,7 +115,7 @@ def start(config, wait=None):
     name = config["engine"]
     kind = engines.ENGINES[name]["kind"]
     if kind == "voicevox":
-        raise AudioError("Start the VOICEVOX ENGINE yourself; local-tts only connects to it")
+        return start_voicevox(config, wait)
     if kind == "python":
         settings = engines.settings(config, name)
         return start_python(config, name, *files(0, 0, name), float(wait or settings.get("wait", 600)))
@@ -146,6 +149,76 @@ def wait_until_listening(config, process, pid_file, log_file, wait):
             raise AudioError(f"The TTS server did not open {host}:{port} within {wait:.0f} s "
                              f"(see {log_file})")
         time.sleep(.5)
+
+
+def voicevox_command(config, key):
+    """[engines.voicevox] start or stop: a command as a list of strings, or None when not written."""
+    command = engines.settings(config, "voicevox").get(key)
+    if command is None:
+        return None
+    if not (isinstance(command, list) and command and all(isinstance(part, str) for part in command)):
+        raise AudioError(f'engines.voicevox.{key} must be a command as a list of strings, '
+                         'for example ["docker", "stop", "voicevox"]')
+    return command
+
+
+def voicevox_ready(config, timeout=2.):
+    """True once the ENGINE answers GET /version. A port forwarded by Docker (or Colima) can accept
+    TCP connections while no ENGINE is behind it, so an open port alone is not enough."""
+    try:
+        with urlopen(Backend(config).url + "/version", timeout=timeout) as response:
+            return response.status == 200
+    except (OSError, URLError, ValueError):
+        return False
+
+
+def start_voicevox(config, wait=None):
+    """Run [engines.voicevox] start and wait until the ENGINE answers. The command may stay in the
+    foreground or exit with 0 after detaching (docker run -d); another exit code is a failure."""
+    if voicevox_ready(config):
+        return False
+    command = voicevox_command(config, "start")
+    if command is None:
+        raise AudioError("The VOICEVOX ENGINE is not running. Start it yourself, or write the command in "
+                         "[engines.voicevox] start (see references/engine.md)")
+    settings = engines.settings(config, "voicevox")
+    wait = float(wait or settings.get("wait", 600))
+    pid_file, log_file = files(0, 0, "voicevox")
+    try:
+        process = launch(command, None, pid_file, log_file)
+    except OSError as exc:
+        raise AudioError(f"Cannot run engines.voicevox.start ({command[0]}): {exc}") from exc
+    pid_file.unlink(missing_ok=True)  # Only the stop command stops VOICEVOX, never a recorded PID.
+    deadline = time.monotonic() + wait
+    while not voicevox_ready(config):
+        code = process.poll()
+        if code not in (None, 0):
+            raise AudioError(f"engines.voicevox.start exited with {code} (see {log_file}):\n"
+                             f"{log_tail(log_file=log_file)}")
+        if time.monotonic() > deadline:
+            raise AudioError(f"The VOICEVOX ENGINE did not answer at {Backend(config).url} within {wait:.0f} s "
+                             f"(see {log_file})")
+        time.sleep(.5)
+    return True
+
+
+def stop_voicevox(config):
+    """Run [engines.voicevox] stop. Returns False when it is not written or the ENGINE is not running."""
+    command = voicevox_command(config, "stop")
+    if command is None or not voicevox_ready(engines.select(config, "voicevox")):
+        return False
+    _, log_file = files(0, 0, "voicevox")
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    with log_file.open("ab") as log:
+        try:
+            done = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+                                  timeout=60)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise AudioError(f"engines.voicevox.stop failed ({command[0]}): {exc}") from exc
+    if done.returncode:
+        raise AudioError(f"engines.voicevox.stop exited with {done.returncode} (see {log_file}):\n"
+                         f"{log_tail(log_file=log_file)}")
+    return True
 
 
 def start_one(config, pid_file, log_file, wait):
@@ -215,9 +288,12 @@ def pid_files():
     return found
 
 
-def stop(name=None):
-    """Stop every server this tool started (or only one engine's). Returns False if none was running."""
+def stop(name=None, config=None):
+    """Stop every server this tool started (or only one engine's). Returns False if none was running.
+    VOICEVOX is stopped by running [engines.voicevox] stop from `config`, when written."""
     stopped = False
+    if config is not None and name in (None, "voicevox"):
+        stopped = stop_voicevox(config)
     for engine_name, pid_file in pid_files():
         if name and engine_name != name:
             continue
@@ -266,19 +342,28 @@ def status(config, name=None):
         bound = engines.select(config, engine_name)
         for index, one in enumerate(instances(bound)):
             pid_file, log_file = files(index, endpoint(one)[1], engine_name)
-            result.append({"engine": engine_name, "url": Backend(one).url, "listening": reachable(one),
-                           "pid": None if engine_name == "voicevox" else recorded_pid(pid_file, engine_name),
-                           "log": None if engine_name == "voicevox" else str(log_file)})
+            voicevox = engine_name == "voicevox"
+            log = (str(log_file) if not voicevox or voicevox_command(bound, "start") is not None
+                   else None)
+            listening = voicevox_ready(one) if voicevox else reachable(one)
+            result.append({"engine": engine_name, "url": Backend(one).url, "listening": listening,
+                           "pid": None if voicevox else recorded_pid(pid_file, engine_name),
+                           "log": log})
     return result
 
 
 def ensure(config):
-    """Start the engine's server for say/speak if it is down, unless auto_start = false."""
+    """Start the engine's server for say/speak if it is down, unless auto_start = false.
+    VOICEVOX starts only when [engines.voicevox] start is written."""
     config = engines.select(config)
     name = config["engine"]
     kind = engines.ENGINES[name]["kind"]
+    if kind == "voicevox":
+        auto = (voicevox_command(config, "start") is not None
+                and engines.settings(config, name).get("auto_start", True))
+        return start_voicevox(config) if auto and not voicevox_ready(config) else False
     auto = (engines.settings(config, name).get("auto_start", True) if kind == "python"
             else config.get("server", {}).get("auto_start", True))
-    if kind != "voicevox" and auto and not all(reachable(one) for one in instances(config)):
+    if auto and not all(reachable(one) for one in instances(config)):
         return start(config)
     return False
