@@ -29,7 +29,7 @@ uv run --project "<local-tts>/tools" local-tts <command> ...
 | `voxcpm2` | 約1.9〜2.4倍 | 約14 GB（CUDAは約8 GB） | 生成しながら届き、最初の音が早い（約1分の原稿で4.6秒） | Apache-2.0 |
 | `omnivoice` | 約1.9〜2.0倍 | 約4 GB | メモリが少ない環境。1回の生成が長いほど速い（最初の音は遅い） | Apache-2.0 |
 | `s2` | 約8倍 | 約4 GB | 以前の音声と声をそろえたいとき | 研究・非商用（商用は別契約） |
-| `voicevox` | — | — | 自分で起動したVOICEVOX ENGINEにつなぐ | キャラクターごと |
+| `voicevox` | — | — | VOICEVOX ENGINEにつなぐ。起動は自分で行うか、設定の`start`（Dockerなど）で自動にする | キャラクターごと |
 
 - 指定しなければ設定の`engine`（なければQwen3-TTS）。コマンドごとに`--engine <名前>`で変える。
 - 状態は`engine list`で確かめる。PyTorchのエンジンは`engine install <名前>`で導入する（実行環境約1〜1.5 GBとモデル約3〜5 GBをダウンロードするので、承認を得てから）。

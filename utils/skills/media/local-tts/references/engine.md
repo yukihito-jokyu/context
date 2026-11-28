@@ -169,7 +169,7 @@ W3C文法の全体をXSDで検証しているわけではなく、対応サブ�
 ## VOICEVOXで利用する
 
 別ファイル`<home>/config.toml`に、次の内容だけを保存する。
-標準VOICEVOX ENGINEを起動してから同じ`speak`コマンドを実行する。
+VOICEVOX ENGINEを起動してから同じ`speak`コマンドを実行する。
 
 ```toml
 engine = "voicevox"
@@ -180,6 +180,42 @@ url = "http://127.0.0.1:50021"
 ```
 
 1回だけ使うなら、設定はそのままで`--engine voicevox`を付けてもよい（話者は`speaker`、既定3）。古い書き方（`backend = "voicevox"`とルートの`url`）も読める。
+
+### VOICEVOX ENGINEを起動する
+
+次のどれかで起動する。どれも`http://127.0.0.1:50021`で待ち受ける。
+
+- VOICEVOXのアプリを起動する。アプリが動いている間、ENGINEも動く。
+- [VOICEVOX ENGINE](https://github.com/VOICEVOX/voicevox_engine)のリリースを入れて、`run`（Windowsは`run.exe`）を実行する。
+- Dockerで公式イメージを動かす。
+
+```sh
+docker run --rm -d --name voicevox -p 127.0.0.1:50021:50021 voicevox/voicevox_engine:cpu-latest
+docker stop voicevox
+```
+
+- `cpu-latest`はamd64とarm64の両方がある。Apple SiliconのMacでも動く（2026-11-28にApple M4のMacとColimaで、ENGINE 0.26.2の合成まで確認）。
+- GPU版の`nvidia-latest`はamd64だけ。NVIDIAのGPUがあるLinux・WSLで`--gpus all`を付けて使う。
+- 初回はイメージの取得に時間がかかる（上の確認では取得を含めて約80秒、2回目からは約6秒）。
+- `--rm`を付けたので、`docker stop`で止めるとコンテナも消える。
+
+### 止まっていたら自動で起動する
+
+`[engines.voicevox]`に起動と停止のコマンドを書くと、`say`・`speak`・`api`はENGINEが止まっていれば`start`を実行し、応答するまで待つ。`server start --engine voicevox`でも起動でき、`server stop`は`stop`を実行する。
+
+```toml
+[engines.voicevox]
+url = "http://127.0.0.1:50021"
+start = ["docker", "run", "--rm", "-d", "--name", "voicevox", "-p", "127.0.0.1:50021:50021", "voicevox/voicevox_engine:cpu-latest"]
+stop = ["docker", "stop", "voicevox"]
+# auto_start = true   # falseなら自動では起動せず、server startでだけ起動する
+# wait = 600          # 応答を待つ秒数（初回はイメージの取得を含む）
+```
+
+- コマンドは文字列のリストで書く。シェルを通さないので、`&&`やリダイレクトは使えない。Docker以外（`run`のパスなど）も書ける。
+- 起動したかどうかは`<url>/version`が応答するかで判断する。Dockerはコンテナの中でENGINEが待ち受ける前からポートを開けるため。
+- `start`のコマンドは、動き続けても、裏に回して0で終わってもよい（`docker run -d`）。0以外で終わると失敗として、`<home>/cache/voicevox-server.log`の末尾を表示する。
+- `start`を書かなければ、今までどおり自動では起動しない。`stop`を書かなければ、`server stop`はVOICEVOXを止めない。
 
 標準APIでは発話区間のWAV完成後に再生を始める。音声波形を逐次返すS2経路とは異なる。
 AivisSpeechは互換APIの仕様差があるため、この経路の検証対象に含めていない。

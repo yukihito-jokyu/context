@@ -11,7 +11,7 @@ local-tts（制御側：Typerだけ。PyTorchを読み込まない）
   ├─ omnivoice → tools/engines/omnivoice/server.py  :3032  <home>/cache/engines/omnivoice/.venv
   ├─ voxcpm2   → tools/engines/voxcpm2/server.py    :3031  <home>/cache/engines/voxcpm2/.venv
   ├─ s2        → s2.cpp                             :3030  <home>/cache/s2-build
-  └─ voicevox  → ユーザーが起動するVOICEVOX ENGINE    :50021
+  └─ voicevox  → VOICEVOX ENGINE（自分で起動、または設定のstart） :50021
 ```
 
 - どのエンジンのサーバーも、s2.cppと同じ`POST /generate`（multipartで`text`・`params`・`voice`を受け、PCM16に`X-Audio-Encoding`・`X-Audio-Sample-Rate`・`X-Audio-Channels`を付けて返す）に応じる。そのため`say`・`speak`・`api`、話速・音量・ピッチ（FFmpeg）、マーカーの時刻は、エンジンによらず同じ処理を通る。
