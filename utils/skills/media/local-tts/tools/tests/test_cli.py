@@ -281,6 +281,98 @@ class VoiceCommandTests(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn('No server started by this tool', result.output)
 
+    VOICEVOX = ('engine = "voicevox"\n[engines.voicevox]\n'
+                'start = ["docker", "run", "--rm", "-d", "--name", "voicevox"]\n'
+                'stop = ["docker", "stop", "voicevox"]\n')
+
+    def test_say_starts_voicevox_only_with_a_start_command(self):
+        self.config.write_text('engine = "voicevox"\n', encoding='utf-8')
+        with patch('local_tts.cli.say_loop'), \
+                patch('local_tts.server.voicevox_ready', return_value=False), \
+                patch('local_tts.server.launch') as launch:
+            result = self.invoke('say', 'hi')
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('[engines.voicevox] start', result.output)
+        launch.assert_not_called()
+        self.config.write_text(self.VOICEVOX + 'auto_start = false\n', encoding='utf-8')
+        with patch('local_tts.cli.say_loop'), \
+                patch('local_tts.server.voicevox_ready', return_value=False), \
+                patch('local_tts.server.launch') as launch:
+            result = self.invoke('say', 'hi')
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('server start --engine voicevox', result.output)
+        launch.assert_not_called()
+
+    def test_voicevox_start_waits_for_the_engine_after_a_detached_exit(self):
+        from local_tts import server
+        self.config.write_text(self.VOICEVOX, encoding='utf-8')
+        detached = type('Proc', (), {'pid': 7, 'poll': lambda self: 0})()  # docker run -d exits with 0
+        with patch.object(server, 'RUNTIME', self.folder), \
+                patch('local_tts.cli.say_loop'), \
+                patch('local_tts.server.time.sleep'), \
+                patch('local_tts.server.voicevox_ready', side_effect=[False, False, False, True]), \
+                patch('local_tts.server.subprocess.Popen', return_value=detached) as popen:
+            result = self.invoke('say', 'hi')
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(popen.call_args.args[0][:2], ['docker', 'run'])
+        self.assertFalse((self.folder / 'voicevox-server.pid').exists())  # Not stopped by PID
+
+    def test_voicevox_start_reports_a_failed_command(self):
+        from local_tts import server
+        self.config.write_text(self.VOICEVOX, encoding='utf-8')
+        (self.folder / 'voicevox-server.log').write_text('Conflict. The container name is in use\n',
+                                                         encoding='utf-8')
+        failed = type('Proc', (), {'pid': 7, 'poll': lambda self: 125})()
+        with patch.object(server, 'RUNTIME', self.folder), \
+                patch('local_tts.server.voicevox_ready', return_value=False), \
+                patch('local_tts.server.subprocess.Popen', return_value=failed):
+            result = self.invoke('server', 'start', '--engine', 'voicevox')
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('exited with 125', result.output)
+        self.assertIn('container name is in use', result.output)
+
+    def test_voicevox_start_and_stop_need_their_commands(self):
+        from local_tts import server
+        self.config.write_text('engine = "voicevox"\n', encoding='utf-8')
+        with patch('local_tts.server.voicevox_ready', return_value=False):
+            result = self.invoke('server', 'start')
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('[engines.voicevox] start', result.output)
+        with patch.object(server, 'PID_FILE', self.folder / 'pid'), \
+                patch('local_tts.server.voicevox_ready', return_value=True), \
+                patch('local_tts.server.subprocess.run') as run:
+            result = self.invoke('server', 'stop')
+        self.assertIn('No server started by this tool', result.output)
+        run.assert_not_called()
+        self.config.write_text('engine = "voicevox"\n[engines.voicevox]\nstart = "docker run"\n',
+                               encoding='utf-8')
+        with patch('local_tts.server.voicevox_ready', return_value=False):
+            result = self.invoke('server', 'start')
+        self.assertIn('list of strings', result.output)
+
+    def test_server_stop_runs_the_voicevox_stop_command(self):
+        from local_tts import server
+        self.config.write_text(self.VOICEVOX, encoding='utf-8')
+        done = type('Done', (), {'returncode': 0})()
+        with patch.object(server, 'RUNTIME', self.folder), \
+                patch.object(server, 'PID_FILE', self.folder / 'pid'), \
+                patch('local_tts.server.voicevox_ready', return_value=True), \
+                patch('local_tts.server.subprocess.run', return_value=done) as run:
+            result = self.invoke('server', 'stop', '--engine', 'voicevox')
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn('Stopped', result.output)
+        self.assertEqual(run.call_args.args[0], ['docker', 'stop', 'voicevox'])
+
+    def test_engine_list_shows_how_voicevox_starts(self):
+        self.config.write_text('engine = "voicevox"\n', encoding='utf-8')
+        self.assertIn('start it yourself', self.invoke('engine', 'list').output)
+        self.config.write_text(self.VOICEVOX, encoding='utf-8')
+        self.assertIn('auto-start configured', self.invoke('engine', 'list').output)
+
+    def test_voicevox_request_does_not_send_start_or_stop(self):
+        from local_tts import engines
+        self.assertTrue({'start', 'stop'} <= engines.PROCESS_KEYS)
+
     def test_doctor_reports_a_missing_engine(self):
         with patch.object(voices, 'RUNTIME', self.folder / 'empty-cache'):
             result = self.invoke('doctor')

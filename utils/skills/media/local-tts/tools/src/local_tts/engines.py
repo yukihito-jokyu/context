@@ -5,7 +5,7 @@ text/params/voice in, PCM16 with X-Audio-* headers out), so the controller stays
 - s2: Fish Audio S2 Pro through s2.cpp (C++; built by tools/scripts/setup-s2.*)
 - omnivoice, voxcpm2, qwen3-tts: PyTorch models, each in its own uv project under tools/engines/<name>
   with its own virtual environment in <home>/cache/engines/<name>/.venv
-- voicevox: a VOICEVOX ENGINE the user runs; its own API, no cloned voices
+- voicevox: a VOICEVOX ENGINE the user runs (or [engines.voicevox] start runs); its own API, no cloned voices
 """
 
 import os
@@ -55,7 +55,8 @@ ENGINES = {
 # Before engines existed, `backend` named the transport; keep reading it.
 LEGACY_BACKENDS = {"s2cpp": "s2", "voicevox": "voicevox"}
 # Settings in [engines.<name>] that configure the server process rather than one request.
-PROCESS_KEYS = {"url", "device", "dtype", "optimize", "timeout", "auto_start", "wait", "request_chars"}
+PROCESS_KEYS = {"url", "device", "dtype", "optimize", "timeout", "auto_start", "wait", "request_chars",
+                "start", "stop"}
 
 
 class EngineError(ValueError):

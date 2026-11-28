@@ -70,10 +70,17 @@ def load_config(ctx, voice=None, engine=None):
 
 
 def ensure_server(config):
-    if not all(server.reachable(one) for one in server.instances(config)):
+    voicevox = engines.ENGINES[config["engine"]]["kind"] == "voicevox"
+    if (not server.voicevox_ready(config) if voicevox
+            else not all(server.reachable(one) for one in server.instances(config))):
         label = engines.ENGINES[config["engine"]]["label"]
-        if engines.ENGINES[config["engine"]]["kind"] == "voicevox":
-            raise AudioError(f"{label} is not running at {Backend(config).url}; start it first")
+        if voicevox:
+            if server.voicevox_command(config, "start") is None:
+                raise AudioError(f"{label} is not running at {Backend(config).url}; start it first, "
+                                 "or write the command in [engines.voicevox] start")
+            if not engines.settings(config, "voicevox").get("auto_start", True):
+                raise AudioError(f"{label} is not running at {Backend(config).url}; "
+                                 "start it with: server start --engine voicevox")
         typer.echo(f"Starting the {label} server in the background (stop it with: server stop)...", err=True)
     server.ensure(config)
 
@@ -332,12 +339,15 @@ def server_status(ctx: typer.Context, engine: Annotated[Optional[str], typer.Opt
 
 @server_app.command("stop")
 @handled
-def server_stop(engine: Annotated[Optional[str], typer.Option(
+def server_stop(ctx: typer.Context, engine: Annotated[Optional[str], typer.Option(
         help="Stop only this engine's server (default: all of them).")] = None):
-    """Stop the servers started by this tool (frees their GPU memory)."""
+    """Stop the servers started by this tool (frees their GPU memory).
+
+    VOICEVOX is stopped by running [engines.voicevox] stop, when it is written."""
     if engine:
         engines.check(engine)
-    typer.echo("Stopped" if server.stop(engine) else "No server started by this tool is running")
+    typer.echo("Stopped" if server.stop(engine, read_config(ctx))
+               else "No server started by this tool is running")
 
 
 @engine_app.command("list")
@@ -356,6 +366,8 @@ def engine_list(ctx: typer.Context):
         elif "installed" in info:
             state = ("ready" if info["installed"] and info["model"] else
                      f"not installed (local-tts engine install {info['engine']})")
+        elif server.voicevox_command(config, "start") is not None:
+            state = "external (auto-start configured)"
         else:
             state = "external (start it yourself)"
         typer.echo(f"{mark} {info['engine']:<10} {state:<40} {info['url']}  {info['license']}")
